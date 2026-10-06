@@ -1,0 +1,384 @@
+{
+  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "id": "s1e08",
+  "season": 1,
+  "n": 8,
+  "title": "The Process That Wouldn't Die",
+  "setting": "a hospital records room",
+  "core": true,
+  "minutes": 12,
+  "concepts": ["processes", "threads", "signals", "zombie-processes", "graceful-shutdown"],
+  "prerequisites": ["s1e01", "s1e02", "s1e04", "s1e05", "s1e06", "s1e07"],
+  "rule": null,
+  "post": {
+    "author": "u/chart_room_ambrose",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 3318,
+    "title": "At midnight I told a program in the hospital basement to stop. At 3 AM it's still in the list, and kill -9 won't touch it.",
+    "blocks": [
+      { "t": "p", "text": "I work nights in the records room at St. Isolde's, two floors under the old wing. Paper charts come down in the old lift and four scanners turn them into files for the hospital's records system. Under the desk hums the records server, an old computer whose CPU has four cores, four separate processors on one chip, so it can run four things at once." },
+      { "t": "p", "text": "It runs one program, chartfeed. The contractor who set it up explained the rest. A program is just a file. When the server runs it, the running copy is a process, with its own memory and its own number, a PID. chartfeed's main process, PID 2210, starts a child process for each scanner, a worker, which uploads that scanner's charts page by page. 2210 is their parent." },
+      { "t": "p", "text": "At midnight the nightly backup copies everything, and nothing may be mid-upload. A card taped to the server says: *11:55, send each worker SIGTERM. Anything still running at 12:00 gets SIGKILL.* A signal is a short message the operating system delivers to a process. SIGTERM politely asks it to stop. SIGKILL, typed as kill -9, ends it on the spot." },
+      { "t": "p", "text": "On Tuesday, Bed 14's chart was 600 pages. At 11:55 I sent SIGTERM to its worker, 3121. The other three stopped within a minute. 3121 kept uploading. At midnight I typed kill -9 3121, and it stopped. Bed 14's chart ends at page 212. Then I listed 2210's children:" },
+      { "t": "log", "text": "$ ps -o pid,ppid,stat,cmd --ppid 2210\n  PID  PPID STAT CMD\n  ...  (108 more lines like these)\n 3118  2210 Z    [worker] <defunct>\n 3119  2210 Z    [worker] <defunct>\n 3120  2210 Z    [worker] <defunct>\n 3121  2210 Z    [worker] <defunct>" },
+      { "t": "p", "text": "Z, for defunct. All of them: the three that stopped politely, the one I killed, and 108 more from earlier nights, four a night since the contractor's update 28 nights ago. I sent kill -9 to all four of tonight's. Nothing. Again. Nothing. The meter says they use no CPU and no memory. They just won't leave the list." },
+      { "t": "beat", "text": "You can't kill something that's already dead." },
+      { "t": "p", "text": "Our IT lead wants to restart the server every night. The contractor says the dead ones are harmless. Bed 14's nurse wants the rest of her patient's chart. What do I tell them?" },
+      {
+        "t": "evidence",
+        "label": "process_list.png",
+        "diagram": {
+          "type": "arch",
+          "w": 760,
+          "h": 300,
+          "aria": "chartfeed, PID 2210, the parent, running for 28 days, with tonight's four child workers. Workers 3118, 3119 and 3120 got SIGTERM at 11:55 and stopped. Worker 3121, Bed 14's, got kill -9 at midnight at page 212 of 600. All four show Z, defunct, and kill -9 on any of them does nothing.",
+          "groups": [
+            { "label": "Records server", "x": 4, "y": 4, "w": 752, "h": 292 }
+          ],
+          "nodes": [
+            { "id": "p2210", "label": "chartfeed", "sub": "PID 2210, the parent", "meta": "running for 28 days", "x": 380, "y": 70, "w": 230, "h": 62, "shape": "box", "tone": "" },
+            { "id": "w3118", "label": "worker 3118", "sub": "Z, defunct", "meta": "SIGTERM at 11:55", "x": 100, "y": 220, "w": 170, "h": 62, "shape": "box", "tone": "muted" },
+            { "id": "w3119", "label": "worker 3119", "sub": "Z, defunct", "meta": "SIGTERM at 11:55", "x": 285, "y": 220, "w": 170, "h": 62, "shape": "box", "tone": "muted" },
+            { "id": "w3120", "label": "worker 3120", "sub": "Z, defunct", "meta": "SIGTERM at 11:55", "x": 470, "y": 220, "w": 170, "h": 62, "shape": "box", "tone": "muted" },
+            { "id": "w3121", "label": "worker 3121", "sub": "Z, defunct", "meta": "killed, page 212/600", "x": 660, "y": 220, "w": 170, "h": 62, "shape": "box", "tone": "bad" }
+          ],
+          "edges": [
+            { "from": "p2210", "to": "w3118" },
+            { "from": "p2210", "to": "w3119" },
+            { "from": "p2210", "to": "w3120" },
+            { "from": "p2210", "to": "w3121", "tone": "bad" }
+          ],
+          "notes": [
+            { "x": 380, "y": 285, "text": "kill -9 on any of them: nothing happens", "tone": "bad", "anchor": "middle" }
+          ]
+        },
+        "caption": "I copied the list onto a chart divider. One parent, four children, every one marked Z. The three on the left stopped when they were asked. The one on the right is Bed 14's, killed at page 212 of 600. Same letter for all four."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 97,
+      "age": "5h",
+      "text": "Z is short for zombie, and that's the real technical name. When a process ends, however it ends, the operating system frees its memory but keeps one small entry in the process table, its list of every process: the PID and the exit status, a number saying how it ended. The entry stays until the parent collects it by calling wait. Until then it's a zombie. Finished, but not gone. There's nothing left for kill -9 to kill. So whose job is it to call wait, and what changed 28 nights ago?",
+      "replies": [
+        {
+          "author": "u/chart_room_ambrose",
+          "op": true,
+          "points": 36,
+          "age": "4h",
+          "text": "Only the update. The contractor says it just tidied up chartfeed's code. 2210 itself hasn't been restarted since."
+        }
+      ]
+    },
+    {
+      "author": "u/third_floor_theo",
+      "points": 58,
+      "age": "4h",
+      "text": "3121 wasn't defying you. A program can catch SIGTERM and finish what it's doing before it exits. That's what SIGTERM is for. SIGKILL can't be caught: the operating system stops the process mid-page, and whatever it hadn't saved is gone. Engineers call the polite way a graceful shutdown: SIGTERM first, then a fixed wait, the grace period, and SIGKILL only if it's still running after that."
+    },
+    {
+      "author": "u/radiology_rhea",
+      "points": 41,
+      "age": "3h",
+      "text": "Fun fact: a worker usually isn't one stream of work. It runs threads, separate streams of work inside one process that share its memory. One reads the scanner, one uploads, one writes the log. That's how one worker can keep three cores busy. The scheduler, part of the operating system, hands out turns on the cores, a short slice of time each, many times a second."
+    },
+    {
+      "author": "u/ward_clerk_benno",
+      "points": 22,
+      "age": "2h",
+      "text": "We had these at my last hospital. Restarting the server cleared them. Then they came back, four a night, like they were clocking in for the night shift."
+    }
+  ],
+  "reply": {
+    "prompt": "Tonight is night 29. What should change before midnight? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Add a step to the midnight card: send kill -9 to every worker marked Z, and repeat until the list is empty.",
+        "tone": "bad",
+        "verdict": "You can't kill the dead",
+        "part2": "I added it. At 12:05 I sent kill -9 to all 116, twice. The list didn't lose a single line. At 12:20 the backup started with the list still there, 116 entries long, every one of them a Z. Someone has written under my new step on the card, in pencil: *they're already gone.*",
+        "senior": "A zombie has already exited. Signals are for running processes, and there is nothing left to receive one. Only the parent calling wait, or the parent itself ending, clears the entry."
+      },
+      {
+        "text": "Restart the records server every night at 11:50, so the list starts clean and nothing is mid-upload at midnight.",
+        "tone": "warn",
+        "verdict": "Trade-off. Clears them, at a cost",
+        "part2": "The restart cleared all 116 at once. It also stopped every worker in the middle of whatever chart it was on, exactly like kill -9 does. Bed 3's chart now ends at page 31 of 48. The list is empty at midnight and fills up again the next night, four at a time.",
+        "senior": "A restart ends every process, zombies' entries included, so the list starts empty. But it stops every worker without letting it finish, so you trade a slow, harmless-looking leak for lost work every night. It hides the bug in the parent instead of fixing it."
+      },
+      {
+        "text": "Fix chartfeed so the parent collects every finished worker with wait. Start the stop at 11:30 with SIGTERM so each worker can finish its chart, and keep SIGKILL for one still running at a hard deadline, with its chart marked to start over.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "The contractor put the missing wait back in one afternoon. That night the list only ever showed workers that were still running, and each one vanished the moment it finished. I sent SIGTERM at 11:30. Bed 14's worker finished its chart at 11:51. Nobody typed kill -9. The 112 old ones stayed until we restarted chartfeed itself on Sunday, and then they were gone in one go. The list is clean now. Except that at 3:12 every morning, a worker starts for Scanner D, which is switched off. It uploads nothing, exits, and is collected. Every time.",
+        "senior": "Stopping a process well is a routine: ask with SIGTERM, give the work a grace period it can actually meet, force SIGKILL only at a deadline, and make sure work cut off halfway can be redone safely. And every parent that starts children must collect them with wait."
+      },
+      {
+        "text": "Leave the zombies alone, since they use no CPU or memory. Just stop sending SIGKILL: let every worker finish, however long it takes, and start the backup after.",
+        "tone": "warn",
+        "verdict": "Half right",
+        "part2": "No more half charts. But the backup now starts whenever the last chart finishes: 12:40 one night, 1:25 the next, and on Thursday it was still copying when the day shift logged in, and everything crawled until ten. The list kept growing, four a night. Tonight it's 140. They still won't leave.",
+        "senior": "Letting work finish is right, but with no deadline the backup waits on the slowest chart. Pick a grace period and plan for what happens after it. And the zombies are a real bug: each one is tiny, but a parent that never calls wait leaks one entry per child, and if it ever starts children faster, the table fills."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s1e08",
+    "title": "Run the records server",
+    "lede": "You're at the records server at 11:50 PM. The top row is the CPU's four cores, and each one shows which thread it's running right now. chartfeed (PID 2210) is the parent, and each scanner can get a worker process. The table under the diagram is the process list, like ps. The clock runs 10 times faster than real life. Click any box to see what it does.",
+    "tryThis": "Try this: start a worker for Scanner A and give it two more threads, then start workers for B and C, and watch five threads take turns on four cores. Send SIGKILL to A: its unfinished pages are lost and it turns into a zombie. Send kill -9 to the zombie: nothing. Press wait. Then send SIGTERM to B and watch it finish its chart before it exits. Finally, turn on the fix and let C finish."
+  },
+  "explain": {
+    "oneLine": "Nothing was haunting the server. A worker that got SIGTERM was finishing its chart as designed, kill -9 cut it off mid-upload, and since the update the parent never calls wait, so every worker that ends stays in the list as a zombie.",
+    "steps": [
+      {
+        "title": "A program is a file. A process is that program, running.",
+        "text": "chartfeed on disk is a program file. Each time the server runs it, the operating system creates a process: a running copy with its own PID, its own memory that other processes can't touch, and a parent, the process that started it. chartfeed's main process, 2210, starts one child process per scanner. Each child is a worker with its own PID, 3118 to 3121 on Tuesday, and its own memory."
+      },
+      {
+        "title": "Threads share a process. The scheduler shares the cores.",
+        "text": "Inside a process, threads are separate streams of work. They share the process's memory, but each has its own stack, its scratch space for whatever it is doing right now. A core runs one thread at a time, so the server's four cores can run four threads at once. The scheduler, part of the operating system, decides which runnable thread gets a core next, and switches them many times a second, so dozens of threads seem to run together on four cores. A zombie has no threads left, so it never gets a turn. That's why the meter showed no CPU."
+      },
+      {
+        "title": "Signals ask, or force.",
+        "text": "A signal is a short message the operating system delivers to a process. The kill command sends SIGTERM, signal 15, unless you name another one. SIGTERM's default action ends the process, but a program can catch it with a signal handler and clean up first. chartfeed's workers do exactly that: finish the chart, save, exit. That's why 3121 kept going. SIGKILL, signal 9, sent by kill -9, can't be caught, blocked or ignored. The operating system ends the process at once, and anything it hadn't saved is gone. That's where pages 213 to 600 went."
+      },
+      {
+        "title": "Ending isn't leaving. Being collected is.",
+        "text": "When a process ends, by finishing or by a signal, the operating system frees its memory but keeps one entry in the process table: its PID, its exit status and how much it used. The parent reads that by calling wait, and only then does the entry go. Until then the child is a zombie, and signals do nothing to it, because nothing is running. The update dropped chartfeed's wait, so every worker since has stayed, four a night. If a parent ends first, its children become orphans and are adopted by init, the first process (PID 1), which collects them. That's why restarting chartfeed or the server clears the list."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 270,
+      "aria": "One worker's life, left to right. Running: threads on cores, its own memory and PID. SIGTERM moves it to Finishing: it caught SIGTERM, saves, then exits. Exiting makes it a Zombie: no threads, no memory, just its PID and exit status. The parent calling wait makes it Gone: the entry is removed. A dashed red path shows SIGKILL going straight from Running to Zombie, ending it at once. Notes: since the update, workers are stuck at Zombie; if the parent ends, init, PID 1, adopts and collects them.",
+      "groups": [
+        { "label": "One worker's life", "x": 5, "y": 5, "w": 730, "h": 250 }
+      ],
+      "nodes": [
+        { "id": "run", "label": "Running", "sub": "threads on cores", "meta": "own memory, PID", "x": 85, "y": 100, "w": 140, "h": 62, "shape": "box", "tone": "ok" },
+        { "id": "fin", "label": "Finishing", "sub": "caught SIGTERM", "meta": "saves, then exits", "x": 275, "y": 100, "w": 140, "h": 62, "shape": "box", "tone": "accent" },
+        { "id": "zom", "label": "Zombie (Z)", "sub": "no threads, no RAM", "meta": "PID + exit status", "x": 465, "y": 100, "w": 140, "h": 62, "shape": "box", "tone": "warn" },
+        { "id": "gone", "label": "Gone", "sub": "entry removed", "meta": "PID reusable", "x": 650, "y": 100, "w": 140, "h": 62, "shape": "box", "tone": "muted" }
+      ],
+      "edges": [
+        { "from": "run", "to": "fin", "label": "SIGTERM", "dy": -40 },
+        { "from": "fin", "to": "zom", "label": "exits", "dy": -40 },
+        { "from": "zom", "to": "gone", "label": "wait()", "dy": -40 },
+        { "from": "run", "to": "zom", "label": "SIGKILL: ends at once", "via": [[85, 200], [465, 200]], "dash": true, "tone": "bad" }
+      ],
+      "notes": [
+        { "x": 465, "y": 160, "text": "stuck here since the update", "tone": "warn", "anchor": "middle" },
+        { "x": 650, "y": 230, "text": "or init (PID 1) adopts it", "tone": "muted", "anchor": "middle" }
+      ]
+    },
+    "caption": "SIGTERM lets a worker finish and leave by the front door. SIGKILL skips to the end, mid-page. Either way it becomes a zombie, an entry holding its PID and exit status, until its parent calls wait. Since the update, chartfeed never did, so every worker stopped one step short of gone.",
+    "fix": {
+      "title": "The fix: collect your children, and stop gracefully",
+      "text": "First the bug: the parent must collect every child that ends, by calling wait (or waitpid) whenever a child exits. The operating system even tells it when, with a SIGCHLD signal. Then the shutdown: send SIGTERM early enough that a normal chart can finish, 11:30 for a midnight backup. Each worker catches it, finishes the chart it's on, saves and exits, inside a grace period. Only a worker still running at the deadline gets SIGKILL, and because SIGKILL loses whatever it was doing, the upload must be safe to redo: mark a chart complete only after its last page lands, and start an unfinished one over. Restarting chartfeed once clears the 112 old zombies, because init adopts them and collects them."
+    },
+    "limits": [
+      "A grace period is a promise, not a guarantee. If a worker hangs or ignores SIGTERM, or the deadline simply arrives first, SIGKILL still cuts it off, so the work itself must be safe to redo. Graceful shutdown reduces lost work. It doesn't remove the need to handle it.",
+      "Zombies are cheap, not free. Each holds only a process table entry, so a few are harmless, but a parent that leaks one per child can fill the table if it starts children fast enough, and then the server can't start any new process. Fix the parent rather than scheduling restarts around it.",
+      "Some programs never see SIGTERM. If a shell starts your program, the shell may receive the signal instead, and AWS's guide to graceful shutdowns on ECS warns that shells ignore SIGTERM by default. Then your program only ever meets the SIGKILL at the end of the grace period."
+    ],
+    "tradeoff": {
+      "head": ["How you stop it", "Good", "Bad"],
+      "rows": [
+        ["SIGKILL right away", "Instant. Works on anything still running.", "No cleanup at all. Anything in memory is lost, and half-written work stays half-written."],
+        ["SIGTERM, then wait forever", "Nothing is cut off. Every chart finishes.", "One stuck or huge job holds up everything after it, like the backup."],
+        ["SIGTERM, then SIGKILL after a grace period", "Most work finishes cleanly, and there's still a hard deadline.", "You have to choose the period, and whatever misses it must be safe to redo."]
+      ]
+    },
+    "seniorTake": "Every process you start, you also have to stop and collect. Ask before you force, give the work a deadline it can meet, design the work so being killed halfway is survivable, and make sure every parent waits for its children. A zombie isn't a ghost. It's a receipt nobody picked up.",
+    "realWorld": [
+      {
+        "title": "What kill -9 actually sends",
+        "text": "The Linux manual page for signals lists SIGTERM as signal 15 and SIGKILL as signal 9 on x86 and ARM machines, both with a default action that ends the process. It also states that SIGKILL and SIGSTOP cannot be caught, blocked or ignored. The manual page for the kill command adds that when you don't name a signal it sends TERM, and that if a process doesn't end after TERM, KILL may be used, with the warning that it cannot be caught.",
+        "source": 0
+      },
+      {
+        "title": "Zombies are in the manual",
+        "text": "The Linux manual page for wait says a child that ends but hasn't been waited for becomes a zombie. The kernel keeps a minimal record of it, its PID, termination status and resource usage, so the parent can collect them later. Until a wait removes it, the zombie uses a slot in the kernel's process table, and if that table fills, no new processes can be created. If the parent ends first, its zombie children are adopted by init (or the nearest subreaper), which waits for them automatically. The ps manual shows the same thing as state Z: a defunct process, terminated but not reaped by its parent.",
+        "source": 2
+      },
+      {
+        "title": "Kubernetes: TERM first, KILL after 30 seconds",
+        "text": "Kubernetes, a system that runs programs in containers across many machines, shuts a pod down gracefully by default. It first sends a TERM signal to the main process in each container, then waits for a grace period, 30 seconds unless you change it. Once the grace period expires, the KILL signal is sent to any processes still running. Its documentation says the point is to let processes terminate gracefully instead of being stopped abruptly with no chance to clean up.",
+        "source": 6
+      },
+      {
+        "title": "Amazon ECS works the same way",
+        "text": "AWS's guide to graceful shutdowns with ECS, from March 2021, says that when a task is stopped, SIGTERM goes to each container's entry process, usually PID 1, and SIGKILL follows after a timeout, 30 seconds by default. You can change it with the stopTimeout setting, which for tasks on Fargate defaults to 30 seconds and can be at most 120. The guide also says that a task behind an Application Load Balancer is removed from the load balancer before it gets SIGTERM, so it stops receiving new requests first.",
+        "source": 7
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What's the difference between a process and a thread?",
+        "How do you shut down a service without losing work?"
+      ],
+      "answer": "A process is a running program with its own memory and PID. Threads are streams of work inside one process that share its memory, each with its own stack, and the operating system's scheduler gives them turns on the CPU cores. To shut down safely: stop sending the service new work first, for example by taking it out of the load balancer, then send SIGTERM, let it finish what it's doing within a grace period, and send SIGKILL only to whatever is left. Make the work idempotent or resumable, because some of it will be killed one day. If the service starts child processes, mention that the parent must wait for them, or they pile up as zombies. Real defaults help: Kubernetes and ECS both give 30 seconds between SIGTERM and SIGKILL unless you change it."
+    }
+  },
+  "terms": [
+    { "term": "Program file", "def": "A program as it sits on disk: a file of instructions. Running it creates a process. One program file can be running as many processes at once." },
+    { "term": "Process", "def": "One running copy of a program. The operating system gives it its own memory, its own PID and a parent, and keeps it in the process table." },
+    { "term": "PID", "def": "Process ID: the number the operating system gives each process, like 2210. Commands such as kill and ps use it to pick a process." },
+    { "term": "Parent process", "def": "The process that started another one. It is expected to collect each of its children with wait after they end." },
+    { "term": "Child process", "def": "A process started by another process, its parent. chartfeed's workers are its children." },
+    { "term": "Worker", "def": "In this story, a child process chartfeed starts for one scanner. It uploads that scanner's chart page by page, then exits." },
+    { "term": "Chart", "def": "A patient's medical record. In this hospital, paper charts are scanned page by page into the records system." },
+    { "term": "Records system", "def": "The hospital's software that stores every patient's chart. chartfeed's workers upload scanned pages to it." },
+    { "term": "Nightly backup", "def": "A copy of all the data, made every night so it can be restored if something is lost. Copying files that are still changing can give a broken copy." },
+    { "term": "Thread", "def": "A separate stream of work inside one process. Threads share the process's memory, each has its own stack, and each can run on a different core." },
+    { "term": "Stack", "def": "A thread's own scratch memory for the work it is doing right now. Threads in one process share everything else." },
+    { "term": "CPU core", "def": "One processor inside a CPU chip. Each core runs one thread at a time, so a 4-core CPU can run four threads at once." },
+    { "term": "Scheduler", "def": "The part of the operating system that decides which runnable thread gets a CPU core next, switching between them many times a second." },
+    { "term": "Time slice", "def": "The short turn on a core the scheduler gives a thread before it may switch to another one. It's how dozens of threads share a few cores." },
+    { "term": "Runnable", "def": "A thread that is ready to run and only waiting for a core. A zombie has no runnable threads." },
+    { "term": "Kernel", "def": "The core of the operating system. It runs processes, delivers signals and keeps the process table." },
+    { "term": "Signal", "def": "A short message the operating system delivers to a process, such as SIGTERM or SIGKILL. Each has a number and a default action." },
+    { "term": "Signal handler", "def": "Code in a program that runs when a particular signal arrives, for example to finish the current job and save before exiting." },
+    { "term": "SIGTERM", "def": "Signal 15, the polite stop. Its default action ends the process, but a program can catch it and clean up first. kill sends it unless told otherwise." },
+    { "term": "SIGKILL", "def": "Signal 9. It can't be caught, blocked or ignored: the operating system ends the process at once, and anything it hadn't saved is lost." },
+    { "term": "SIGSTOP", "def": "A signal that pauses a process. Like SIGKILL, it can't be caught, blocked or ignored." },
+    { "term": "SIGCHLD", "def": "The signal a parent receives when one of its children stops or ends. A good parent responds by calling wait." },
+    { "term": "kill", "def": "The command that sends a signal to a process by PID. Despite the name, it sends SIGTERM unless you choose another signal." },
+    { "term": "kill -9", "def": "The kill command sending signal 9, SIGKILL. It ends a running process at once. It does nothing to a zombie, which has already ended." },
+    { "term": "ps", "def": "A command that lists processes with their PID, parent's PID (PPID), state (STAT) and command. A Z in STAT means zombie." },
+    { "term": "Exit status", "def": "A small number a process leaves behind when it ends, saying how it ended: finished normally, or ended by a signal such as SIGKILL." },
+    { "term": "Process table", "def": "The kernel's list of every process. A zombie keeps its entry until its parent calls wait. If the table fills, no new process can start." },
+    { "term": "wait() system call", "def": "What a parent calls to collect a child that has ended: it reads the child's exit status, and the child's entry is removed. waitpid() does the same for a chosen child." },
+    { "term": "System call", "def": "A request a program makes to the kernel, the core of the operating system, such as wait to collect a child or kill to send a signal." },
+    { "term": "Zombie process", "def": "A process that has ended but whose parent hasn't collected it with wait. It uses no CPU and no memory, only its process table entry. ps shows it as Z, defunct." },
+    { "term": "Defunct", "def": "What ps prints for a zombie process: it has ended, and only its entry is left." },
+    { "term": "Reap", "def": "Engineers' word for collecting an ended child with wait, which removes its zombie entry." },
+    { "term": "Orphan process", "def": "A child whose parent has ended. The operating system gives it a new parent, init, which collects it when it ends." },
+    { "term": "init", "def": "The first process a Linux system starts, PID 1. It adopts orphans and collects them with wait automatically." },
+    { "term": "Subreaper", "def": "A process that has asked to adopt orphaned descendants in place of init, and collect them." },
+    { "term": "Graceful shutdown", "def": "Stopping a program politely: stop giving it new work, send SIGTERM, let it finish and save, and only force SIGKILL after a grace period." },
+    { "term": "Grace period", "def": "How long you wait after SIGTERM before sending SIGKILL. Kubernetes and ECS both default to 30 seconds." },
+    { "term": "Shell", "def": "The program that reads and runs typed commands, such as sh or bash. A program started through a shell is the shell's child." },
+    { "term": "x86 and ARM", "def": "The two most common families of CPU design. Signal numbers can differ between CPU families, which is why manuals name them." },
+    { "term": "Manual page", "def": "A man page: the built-in documentation for a Linux command or system call, such as man 7 signal or man 2 wait." },
+    { "term": "Container", "def": "A packaged program with everything it needs to run, started as an isolated group of processes on a shared machine." },
+    { "term": "Kubernetes", "def": "An open-source system that runs containers across many machines, starts and stops them, and restarts them when they fail." },
+    { "term": "Pod", "def": "In Kubernetes, the smallest unit it runs: one or more containers that are started and stopped together." },
+    { "term": "Amazon ECS", "def": "Elastic Container Service: AWS's service for running containers. A running group of containers is called a task." },
+    { "term": "ECS task", "def": "One running copy of a task definition in Amazon ECS: one or more containers started and stopped together." },
+    { "term": "Task definition", "def": "The settings file for an ECS task: which containers to run, with how much CPU and memory, and settings such as stopTimeout." },
+    { "term": "stopTimeout", "def": "An ECS container setting: seconds between SIGTERM and SIGKILL when a task stops. Default 30. On Fargate the maximum is 120." },
+    { "term": "Fargate", "def": "An AWS way of running ECS containers without managing the servers underneath." },
+    { "term": "Entry process", "def": "The first process a container starts, usually PID 1 inside it. It receives the stop signal and should pass it on to its children." }
+  ],
+  "atWork": "If your team runs containers on Amazon ECS, open one service's task definition and read stopTimeout for each container: blank means the default, 30 seconds between SIGTERM and SIGKILL. Then check that the app actually catches SIGTERM, finishes what it's doing and exits within that time. Look at how the container starts it: if the command goes through a shell (sh -c ...), the signal may never reach your program. Write down the longest job the service can be in the middle of, and whether it survives being cut off halfway. On any Linux server or EC2 instance you're allowed to read, run ps -eo pid,ppid,stat,cmd and look for a Z in the STAT column. Count the zombies and note their parent's PID: that parent is the one not calling wait.",
+  "board": {
+    "cards": [
+      { "id": "processes", "title": "Process" },
+      { "id": "threads", "title": "Thread" },
+      { "id": "signals", "title": "Signals" },
+      { "id": "zombie-processes", "title": "Zombie process" },
+      { "id": "graceful-shutdown", "title": "Graceful shutdown" }
+    ],
+    "strings": [
+      { "from": "threads", "to": "processes", "label": "live inside a" },
+      { "from": "threads", "to": "cpu", "label": "take turns on" },
+      { "from": "processes", "to": "memory", "label": "each gets its own" },
+      { "from": "signals", "to": "processes", "label": "ask or force a" },
+      { "from": "zombie-processes", "to": "processes", "label": "ended, uncollected" },
+      { "from": "graceful-shutdown", "to": "signals", "label": "TERM, then KILL" }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s1e08-r1",
+      "kind": "free",
+      "prompt": "Your web service runs in containers. After every deploy, a few customers find half-saved orders, and the logs show the old containers being killed exactly 30 seconds after the deploy starts. What is happening, and what do you change?",
+      "keyIdeas": [
+        { "idea": "The platform sends SIGTERM, then SIGKILL after a 30-second grace period, cutting off work in progress", "match": ["sigterm", "sigkill", "kill -9", "grace period", "30 seconds", "stop timeout", "stoptimeout", "killed"] },
+        { "idea": "The app must handle SIGTERM: stop taking new work, finish what it's doing, exit", "match": ["handle sigterm", "catch", "handler", "finish", "stop taking", "no new", "drain", "graceful", "exit cleanly"] },
+        { "idea": "Give it a grace period long enough for normal work, or keep each piece of work short", "match": ["longer", "raise", "increase", "grace period", "stoptimeout", "termination", "shorter jobs", "smaller"] },
+        { "idea": "Make the work safe to redo if it is cut off anyway", "match": ["idempotent", "redo", "retry", "resume", "transaction", "all or nothing", "safe to repeat", "start over"] }
+      ],
+      "model": "On a deploy the platform stops the old containers by sending SIGTERM and then, 30 seconds later, SIGKILL. The app either ignores SIGTERM or needs longer than 30 seconds, so orders in progress are cut off mid-save. Make the app catch SIGTERM: stop accepting new requests, finish the ones in flight, and exit. Check that the signal really reaches it (not swallowed by a shell). If normal work needs longer, raise the grace period within the platform's limits. And make each order save all-or-nothing and safe to retry, because one day something will be killed halfway anyway."
+    },
+    {
+      "id": "s1e08-r2",
+      "kind": "mcq",
+      "prompt": "A process shows Z in ps. You send it kill -9. What happens?",
+      "options": [
+        "It disappears from the list at once",
+        "Nothing: it has already ended, and only its parent's wait (or the parent ending) removes it",
+        "It starts running again",
+        "The server restarts"
+      ],
+      "answer": 1,
+      "why": "A zombie has already exited. Signals go to running processes, and there's nothing left to receive one. Its entry stays until the parent collects it with wait, or until the parent ends and init adopts and collects it."
+    },
+    {
+      "id": "s1e08-r3",
+      "kind": "mcq",
+      "prompt": "What's the difference between SIGTERM and SIGKILL?",
+      "options": [
+        "They're the same signal with different numbers",
+        "SIGKILL is the polite one, and programs can ignore it",
+        "SIGTERM only works on zombie processes",
+        "SIGTERM can be caught so the program can clean up first. SIGKILL can't be caught, and ends it at once"
+      ],
+      "answer": 3,
+      "why": "SIGTERM (15) is a request: a program can handle it, finish and save. SIGKILL (9) can't be caught, blocked or ignored, so whatever wasn't saved is lost."
+    },
+    {
+      "id": "s1e08-r4",
+      "kind": "free",
+      "prompt": "A new teammate asks why one worker process can keep three of a server's four cores busy, while a zombie process uses none at all. What do you tell them?",
+      "keyIdeas": [
+        { "idea": "A process can run several threads, which share its memory", "match": ["thread", "threads", "streams", "share memory", "same memory"] },
+        { "idea": "Each core runs one thread at a time, and the scheduler hands out turns", "match": ["one thread at a time", "scheduler", "turns", "time slice", "core each", "one per core", "four at once"] },
+        { "idea": "A zombie has ended: no threads, no memory, only its process table entry", "match": ["ended", "exited", "finished", "no threads", "nothing running", "only an entry", "table entry", "process table", "exit status"] }
+      ],
+      "model": "A process isn't one stream of work: it can run several threads that share its memory. Each core runs one thread at a time, and the scheduler decides which runnable thread gets a core next, so a worker with three busy threads can keep three cores busy. A zombie has already ended. It has no threads to run and its memory has been freed; all that's left is its entry in the process table, holding its PID and exit status until the parent calls wait. Nothing to schedule, so no CPU."
+    },
+    {
+      "id": "s1e08-r5",
+      "kind": "mcq",
+      "prompt": "chartfeed's parent process ends while 112 of its zombie children are still in the list. What happens to them?",
+      "options": [
+        "They stay until the server is restarted",
+        "They come back to life as running processes",
+        "init (PID 1) adopts them and collects them with wait",
+        "The scheduler restarts each one"
+      ],
+      "answer": 2,
+      "why": "Children whose parent ends become orphans. They're adopted by init, the first process, which collects zombies automatically. That's why restarting chartfeed clears the list."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 3 months later. chartfeed collects its workers now and the list stays clean. Next week the hospital moves chartfeed onto a container platform. To stop a container, the platform sends SIGTERM and, 30 seconds later, SIGKILL. A chart like Bed 14's takes about 40 minutes to upload. The contractor says: \"chartfeed already handles SIGTERM. We're fine.\"",
+    "prompt": "Reply to OP. Is the contractor right? What needs to change before the move?",
+    "keyIdeas": [
+      { "idea": "Handling SIGTERM isn't enough: 30 seconds is far shorter than a 40-minute chart, so SIGKILL will cut it off", "match": ["30 seconds", "not enough", "too short", "40 minutes", "sigkill", "cut off", "killed anyway", "won't finish"] },
+      { "idea": "Make the upload survive being cut off: save progress and resume, or mark complete only at the end", "match": ["resume", "checkpoint", "save progress", "page by page", "start over", "mark complete", "redo", "idempotent", "where it left off"] },
+      { "idea": "Raising the grace period helps only within the platform's limit", "match": ["raise", "longer grace", "increase", "stoptimeout", "120", "limit", "maximum", "grace period"] },
+      { "idea": "Stop the work from starting when a stop is coming, or keep jobs short", "match": ["stop taking", "no new", "smaller", "split", "shorter", "batches", "drain"] }
+    ],
+    "model": "Not quite. Handling SIGTERM means chartfeed will try to finish the chart it's on, but the platform only waits 30 seconds before SIGKILL, and a chart like Bed 14's needs about 40 minutes. It will be cut off mid-upload, just like on Tuesday. Raise the grace period if the platform allows it, but expect a limit far below 40 minutes (ECS on Fargate, for example, tops out at 120 seconds). So make the work survive being killed: upload in small batches, record which pages have landed, and on SIGTERM stop at the next page boundary and save that progress, so a new worker resumes where the old one stopped. Mark a chart complete only after its last page lands."
+  },
+  "next": "Next: in a county records office, something opens a folder for every visitor, one at a time, every night at three.",
+  "sources": [
+    { "title": "signal(7), Linux manual page: overview of signals (SIGTERM 15, SIGKILL 9 on x86 and ARM; SIGKILL and SIGSTOP cannot be caught, blocked, or ignored)", "url": "https://man7.org/linux/man-pages/man7/signal.7.html" },
+    { "title": "kill(1), Linux manual page (util-linux): if no signal is specified, TERM is sent; KILL may be used if TERM doesn't work, and cannot be caught", "url": "https://man7.org/linux/man-pages/man1/kill.1.html" },
+    { "title": "wait(2), Linux manual page: NOTES on zombie processes, the process table, and orphans adopted by init", "url": "https://man7.org/linux/man-pages/man2/wait.2.html" },
+    { "title": "ps(1), Linux manual page: PROCESS STATE CODES (Z, defunct \"zombie\" process, terminated but not reaped by its parent)", "url": "https://man7.org/linux/man-pages/man1/ps.1.html" },
+    { "title": "pthreads(7), Linux manual page: threads share global memory, each thread has its own stack", "url": "https://man7.org/linux/man-pages/man7/pthreads.7.html" },
+    { "title": "sched(7), Linux manual page: the scheduler is the kernel component that decides which runnable thread will be executed by the CPU next", "url": "https://man7.org/linux/man-pages/man7/sched.7.html" },
+    { "title": "Kubernetes documentation: Pod Lifecycle, Termination of Pods (TERM to the main process, default 30-second grace period, then KILL)", "url": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination" },
+    { "title": "Graceful shutdowns with ECS (AWS Containers Blog, Jeremy Cowan and Michael Fischer, March 19, 2021)", "url": "https://aws.amazon.com/blogs/containers/graceful-shutdowns-with-ecs/" },
+    { "title": "Amazon ECS Developer Guide: task definition parameters for Fargate (stopTimeout: default 30 seconds, maximum 120 seconds)", "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html" }
+  ]
+}

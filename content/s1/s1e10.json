@@ -1,0 +1,382 @@
+{
+  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "id": "s1e10",
+  "season": 1,
+  "n": 10,
+  "title": "Lost in the Cloud",
+  "setting": "a ferry company moving its servers",
+  "core": true,
+  "minutes": 12,
+  "concepts": ["data-centers", "regions", "availability-zones", "virtual-machines", "managed-services"],
+  "prerequisites": ["s1e01", "s1e02", "s1e04", "s1e05", "s1e06", "s1e07"],
+  "rule": null,
+  "post": {
+    "author": "u/harbor_ops_maren",
+    "flair": "Part 1",
+    "age": "5h",
+    "votes": 3907,
+    "title": "We moved our ferry bookings into the cloud so the harbor couldn't flood them again. Last Tuesday at 4:12 AM, the cloud went dark. Only our part of it.",
+    "blocks": [
+      { "t": "p", "text": "I run operations for Greywater Ferries: three boats, four islands, the first sailing at 5:40 AM. Our booking system used to live on a server in the harbor office, until the harbor came into the harbor office. Twice. So last spring we moved to the cloud, which our IT man, Sol, describes as someone else's data centers, rented by the hour." },
+      { "t": "p", "text": "He explained the map. The cloud company splits the world into regions, each a cluster of data centers in one area. Each region is split into availability zones, AZs: one or more data centers each, miles from the other zones, with their own power and cooling. Our servers are virtual machines, software computers carved out of the company's real ones. Sol made two of them to run the booking app, plus a database server, and put all three in AZ-b, close together, so they'd talk fast." },
+      { "t": "p", "text": "Last Tuesday at 4:12 AM the booking site went dark, and so did the ticket scanners on the dock. The cloud company's status page said a single data center in a single availability zone had lost power, in AZ-b. Ours. The dashboard still listed our three machines. Their health checks said nothing answered." },
+      { "t": "log", "text": "04:12  booking-app-1  (AZ-b)  health check failed\n04:12  booking-app-2  (AZ-b)  health check failed\n04:12  bookings-db    (AZ-b)  no connection\n05:37  power restored in AZ-b\n05:41  booking-app-1, booking-app-2  ok\n07:05  bookings-db restored from 02:00 snapshot" },
+      { "t": "p", "text": "Power came back at 5:37. Our app servers woke up. The database's disk had been damaged, and Sol rebuilt it from last night's snapshot, a copy of its disk saved at 2:00 AM. We sailed the 5:40 and the 6:30 with a handwritten list. Eleven bookings made between 2:00 and 4:12 were simply gone. Eleven people came down the dock that morning holding tickets our system says were never sold." },
+      { "t": "beat", "text": "Somewhere there's a building none of us has ever seen, and our tickets went dark inside it." },
+      { "t": "p", "text": "The fishing co-op on the next pier uses the same cloud company. Their auction app didn't blink. Their manager says it lives \"in all three zones\". Sol says ours could too, but it would cost more and he isn't sure how. Our owner asks a simpler question: why did we pay to move into the cloud if the cloud can go dark? What do I tell her?" },
+      {
+        "t": "evidence",
+        "label": "where_our_servers_live.png",
+        "diagram": {
+          "type": "arch",
+          "w": 760,
+          "h": 360,
+          "aria": "Greywater's corner of the cloud. Passengers and dock scanners reach the booking app. In the North Coast region there are three availability zones. AZ-a and AZ-c hold nothing of Greywater's. AZ-b, which lost power at 4:12 AM, holds both booking app servers and the bookings database, whose disk was damaged and which came back at 7:05 AM.",
+          "groups": [
+            { "label": "North Coast region", "x": 4, "y": 70, "w": 752, "h": 282 },
+            { "label": "AZ-a", "x": 16, "y": 100, "w": 236, "h": 240 },
+            { "label": "AZ-b, power lost", "x": 262, "y": 100, "w": 236, "h": 240 },
+            { "label": "AZ-c", "x": 508, "y": 100, "w": 236, "h": 240 }
+          ],
+          "nodes": [
+            { "id": "users", "label": "Passengers + dock", "sub": "bookings, ticket scans", "x": 380, "y": 34, "w": 220, "h": 52, "shape": "box", "tone": "" },
+            { "id": "app1", "label": "booking-app-1", "sub": "VM, no answer", "x": 380, "y": 160, "w": 180, "h": 52, "shape": "box", "tone": "bad" },
+            { "id": "app2", "label": "booking-app-2", "sub": "VM, no answer", "x": 380, "y": 225, "w": 180, "h": 52, "shape": "box", "tone": "bad" },
+            { "id": "db", "label": "bookings-db", "sub": "disk damaged", "meta": "back at 7:05 AM", "x": 380, "y": 295, "w": 180, "h": 62, "shape": "db", "tone": "bad" }
+          ],
+          "edges": [
+            { "from": "users", "to": "app1", "label": "no answer", "dash": true, "tone": "bad" }
+          ],
+          "notes": [
+            { "x": 134, "y": 225, "text": "nothing of ours", "tone": "muted", "anchor": "middle" },
+            { "x": 626, "y": 225, "text": "nothing of ours", "tone": "muted", "anchor": "middle" }
+          ]
+        },
+        "caption": "Sol drew our corner of the cloud on the back of a timetable. One region, three zones, and everything we own in the one that lost power. The other two zones had power all morning. We had nothing there."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 77,
+      "age": "4h",
+      "text": "The cloud didn't go dark. One data center did, in one zone, and you'd put every egg you own in it. Zones exist so you don't have to. Spread your two app servers across two zones behind your load balancer, so either one can carry the day alone. Then ask your cloud company what a standby database in another zone would cost, and compare it with Tuesday.",
+      "replies": [
+        {
+          "author": "u/harbor_ops_maren",
+          "op": true,
+          "points": 28,
+          "age": "4h",
+          "text": "Sol says the cloud company's managed database can do that with one setting. Ours isn't managed. He installed it himself on a virtual machine."
+        }
+      ]
+    },
+    {
+      "author": "u/tide_table_tomas",
+      "points": 49,
+      "age": "4h",
+      "text": "A managed service is one where the cloud company runs the software for you, here the database: backups, updates, and, if you tick the box, a standby. That's a second copy in another zone that gets every write as it happens, and if the first copy dies, the service switches to the standby by itself. That switch is called failover. You pay for both copies, of course."
+    },
+    {
+      "author": "u/co_op_auctioneer",
+      "points": 36,
+      "age": "3h",
+      "text": "That's us next door. Three app servers, one per zone, and a database with a standby in a second zone. Tuesday at 4:12 we got an alert that the database had failed over. A minute or two of errors while it switched. That was our whole morning."
+    },
+    {
+      "author": "u/fogbound_fern",
+      "points": 21,
+      "age": "2h",
+      "text": "\"Someone else's data centers\" is the most honest description of the cloud I've heard. Someone else's, and somewhere else."
+    }
+  ],
+  "reply": {
+    "prompt": "Sol can rebuild before the winter timetable starts. What should he build? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Spread the app servers across at least two zones behind the load balancer, and move the database to a managed service with a standby in another zone. Keep the nightly snapshots too.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Sol spent two weekends on it. In February the cloud company had another power problem, in AZ-a this time, where one app server and our main database now live. The other app server took every request. The database failed over to its standby in AZ-c by itself, and the booking site showed errors for about a minute and a half. Then it carried on. Nobody on the dock noticed. The scanners logged one strange thing that morning: a ticket scanned at 4:13 for the 5:40, for a seat we stopped selling when the old harbor office flooded.",
+        "senior": "Spread every layer across zones: app servers behind a load balancer, and a database with a standby in another zone that takes over by itself. Any one zone can fail, so design for losing any one. Keep backups as well, because a standby copies mistakes as faithfully as it copies data."
+      },
+      {
+        "text": "Move everything back to a server in the harbor office, where we can see it.",
+        "tone": "bad",
+        "verdict": "Back to one building",
+        "part2": "We bought a new server and put it on a shelf, a meter above the last flood line. In March a storm took out the harbor's power for six hours. The server sat in the dark with everything we own on it, exactly like Tuesday, except this time it was our building.",
+        "senior": "A server you can see is still one building, one power supply and one flood. Zones give you separate buildings you could never afford yourself, but only if you use more than one."
+      },
+      {
+        "text": "Keep everything in AZ-b, but take a database snapshot every 15 minutes instead of every night.",
+        "tone": "warn",
+        "verdict": "Trade-off. Loses less, still goes dark",
+        "part2": "At the next outage, Sol rebuilt the database from a snapshot taken eight minutes before the power went. We lost three bookings instead of eleven. The site was still dark for two hours, and the 5:40 still sailed with a handwritten list.",
+        "senior": "More frequent snapshots shrink how much you lose, not how long you're down: everything still sits in one zone. Backups and a standby solve different problems, and you usually want both."
+      },
+      {
+        "text": "Move to a different cloud company whose data centers don't lose power.",
+        "tone": "bad",
+        "verdict": "No such company",
+        "part2": "Sol spent a month moving us. The new company's status page has a green tick next to every zone. In April, one of their zones lost cooling for most of a night. We were in it, all of us, in the one zone.",
+        "senior": "Any data center can lose power or cooling. That's the reason cloud companies offer separate zones in the first place. Changing companies doesn't remove the risk. Using more than one zone does."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s1e10",
+    "title": "Keep the ferry bookings up",
+    "lede": "You're Sol. The region has three availability zones. Choose where the two app servers go and whether the database gets a standby in another zone, then watch the morning's traffic: each dot is a booking or a ticket scan going through the load balancer. Press Power loss in AZ-b and see what keeps serving. The clock runs 120 times faster than real life, so a minute passes in half a second.",
+    "tryThis": "Try this: run it the way Sol built it, everything in AZ-b, and cut the power. Every request fails until power returns after 85 minutes and the servers boot. Reset, put the app servers in AZ-a and AZ-c, keep the single database in AZ-b, and cut the power again: the servers are fine, but they have no database. Then give the database a standby in AZ-c and try once more: about a minute and a half of errors while it fails over, then the site carries on."
+  },
+  "explain": {
+    "oneLine": "The cloud didn't go dark. One data center in one zone lost power, and Greywater had put both app servers and its only database in that zone, so the power still running in the other two zones did it no good.",
+    "steps": [
+      {
+        "title": "The cloud is someone else's data centers.",
+        "text": "A data center is a building full of servers with its own power, cooling and network links. A cloud company owns many of them and rents out pieces by the hour, so you don't buy machines or wait for them to arrive. The machines are still real, in real buildings that can flood, overheat or lose power, just like the harbor office."
+      },
+      {
+        "title": "Regions, zones and data centers.",
+        "text": "A region is one area of the world with several availability zones. Each zone is one or more data centers with their own power, cooling and network, kept miles from the other zones but linked to them by fast private fiber. The point is that a fire, a flood or a power cut in one zone shouldn't reach the others. Zones are the cloud's way of giving you separate buildings. Greywater used one."
+      },
+      {
+        "title": "Virtual machines, and services someone else runs.",
+        "text": "A virtual machine is a whole computer made of software. The cloud company's real server runs a hypervisor that splits it into several VMs, each with its own operating system, and each VM lives in exactly one zone. Sol installed the database himself on a VM, so copies, backups and a standby were his job, and he had none. A managed service hands that job to the cloud company. A managed database can keep a standby in another zone, update it with every write as it happens, and fail over to it by itself."
+      },
+      {
+        "title": "What happened on Tuesday.",
+        "text": "At 4:12 the data center in AZ-b holding Greywater's three VMs lost power. AZ-a and AZ-c were fine, and held nothing of Greywater's. Power came back at 5:37 and the app servers were up by 5:41, but the database VM's disk had been damaged, and the newest copy was the 2:00 AM snapshot. So the 11 bookings made after it were lost, and the site stayed down until 7:05. A standby in another zone would have taken over within a couple of minutes and lost nothing, because it receives every write as it happens."
+      },
+      {
+        "title": "The same map on AWS.",
+        "text": "On AWS, a VM is an EC2 instance, and you pick its subnet, and with it its availability zone, when you launch it. A managed relational database is Amazon RDS, where a Multi-AZ deployment keeps a synchronous standby in a different zone and fails over automatically, typically in 60 to 120 seconds. Files go in Amazon S3, which by default stores each one across at least three zones. And an Application Load Balancer must be given subnets in at least two zones."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 380,
+      "aria": "The fix drawn on AWS's map. A load balancer with a node in every zone sends traffic to an EC2 instance in each of three Availability Zones, AZ-a, AZ-b and AZ-c, inside one AWS Region. An RDS primary database in AZ-a keeps a synchronous copy in an RDS standby in AZ-b, which takes over by itself. Amazon S3 stores files across three or more zones.",
+      "groups": [
+        { "label": "AWS Region", "x": 6, "y": 80, "w": 728, "h": 292 },
+        { "label": "AZ-a", "x": 16, "y": 108, "w": 230, "h": 186 },
+        { "label": "AZ-b", "x": 255, "y": 108, "w": 230, "h": 186 },
+        { "label": "AZ-c", "x": 494, "y": 108, "w": 230, "h": 186 }
+      ],
+      "nodes": [
+        { "id": "alb", "label": "Load balancer (ALB)", "sub": "a node in each zone", "x": 370, "y": 40, "w": 240, "h": 52, "shape": "box", "tone": "" },
+        { "id": "ec2a", "label": "EC2 instance", "sub": "app server, a VM", "x": 131, "y": 165, "w": 190, "h": 52, "shape": "box", "tone": "ok" },
+        { "id": "ec2b", "label": "EC2 instance", "sub": "app server, a VM", "x": 370, "y": 165, "w": 190, "h": 52, "shape": "box", "tone": "ok" },
+        { "id": "ec2c", "label": "EC2 instance", "sub": "app server, a VM", "x": 609, "y": 165, "w": 190, "h": 52, "shape": "box", "tone": "ok" },
+        { "id": "rdsp", "label": "RDS primary", "sub": "managed database", "x": 131, "y": 248, "w": 190, "h": 62, "shape": "db", "tone": "ok" },
+        { "id": "rdss", "label": "RDS standby", "sub": "takes over by itself", "x": 370, "y": 248, "w": 190, "h": 62, "shape": "db", "tone": "accent" },
+        { "id": "s3", "label": "Amazon S3", "sub": "files, copied across 3+ zones", "x": 370, "y": 335, "w": 600, "h": 44, "shape": "box", "tone": "" }
+      ],
+      "edges": [
+        { "from": "alb", "to": "ec2a" },
+        { "from": "alb", "to": "ec2b" },
+        { "from": "alb", "to": "ec2c" },
+        { "from": "rdsp", "to": "rdss", "label": "sync copy", "dy": -43, "tone": "ok" }
+      ]
+    },
+    "caption": "The fix on AWS's map. One app server per zone behind a load balancer that has a node in every zone, a managed database with a standby in a second zone, and files in S3, which keeps its own copies in at least three zones. Any one zone can go dark and the site keeps answering.",
+    "fix": {
+      "title": "The fix: use more than one zone, at every layer",
+      "text": "Run at least two app servers in at least two zones, behind a load balancer that spans those zones, and make sure each one can carry the traffic alone. Move the database to a managed service with a standby in another zone: it copies every write as it happens and fails over by itself, typically within a minute or two, with nothing lost. Keep the nightly snapshots too, stored outside the database's zone, because a standby copies mistakes as faithfully as it copies data. Then test it on a quiet night: fail the database over on purpose, stop one zone's app server, and watch the site keep answering."
+    },
+    "limits": [
+      "Several zones protect you from one zone failing, not the whole region. A region-wide problem, or a bug in your own code, takes every zone down together. Surviving that takes a second region, which costs far more and gets its own cases later.",
+      "A standby isn't a backup. It copies every write, including a bad one: a table deleted on the primary is deleted on the standby too. Keep snapshots, and test restoring them.",
+      "It costs more and isn't instant. You pay for servers in each zone and for a standby database that mostly waits, every write waits a little longer while it's copied, and a failover still means a minute or two of errors that the app must retry through."
+    ],
+    "tradeoff": {
+      "head": ["Where it runs", "Good", "Bad"],
+      "rows": [
+        ["Everything in one zone", "Cheapest and simplest. The machines sit close together.", "One power cut, flood or fire in that zone and everything goes at once, like Tuesday."],
+        ["App servers in two or more zones, one database", "Losing one zone's app server is a non-event.", "The database still sits in one zone, so losing that zone still takes the site down."],
+        ["Every layer in two or more zones, database with a standby", "Any one zone can go dark: a minute or two of failover, no lost bookings.", "Costs more: two of everything, and each write waits a little longer while the standby keeps up."]
+      ]
+    },
+    "seniorTake": "The cloud doesn't make your servers reliable. It hands you separate buildings, and using them is your job. Ask of every part of the system: if this zone went dark right now, what would still answer? Wherever the answer is nothing, that's the next thing to fix.",
+    "realWorld": [
+      {
+        "title": "AWS us-east-1, December 22, 2021",
+        "text": "On December 22, 2021, AWS reported EC2 launch failures and network connectivity problems for some instances in a single Availability Zone, USE1-AZ4, in its US-EAST-1 Region. The Register reported that 26 minutes later AWS acknowledged a power outage and recommended moving workloads elsewhere, that power was restored at 5:39 AM Pacific time, and that networking problems slowed full recovery. AWS warned that, as is often the case with a loss of power, some hardware might not be recoverable, and that it was unlikely to recover all of the small number of remaining EC2 instances and EBS volumes. The Register also noted that AWS advises customers not to rely on a single Availability Zone, and that Slack and Asana reported problems that day.",
+        "source": 0
+      },
+      {
+        "title": "What AWS's updates said about single-AZ services",
+        "text": "AWS's status updates that morning, reproduced word for word by customers on their own status pages, confirmed a loss of power within a single data center within a single Availability Zone. They said connectivity and power to other data centers in that zone, and to other zones in the Region, were not affected, and recommended failing away from USE1-AZ4 for anyone able to do so. A later update said that services hosting endpoints in the affected data center, such as single-AZ RDS databases and ElastiCache, would have seen impact during the event.",
+        "source": 1
+      },
+      {
+        "title": "Why the zone was named USE1-AZ4",
+        "text": "AWS maps zone names like us-east-1a to physical zones at random for each account, so one account's us-east-1a may be a different place from another's. The AZ ID, like use1-az1, is the same in every account for the same physical zone. The status updates named the zone by its AZ ID, USE1-AZ4, which points to the same place for every customer.",
+        "source": 2
+      },
+      {
+        "title": "What RDS Multi-AZ does when a zone fails",
+        "text": "Amazon RDS documents that when a Multi-AZ DB instance has a planned or unplanned outage caused by an infrastructure defect, RDS automatically switches to a standby replica in another Availability Zone. Failover times are typically 60 to 120 seconds, though large transactions or a long recovery can make it longer. The failover changes the database's DNS record to point at the standby, so apps have to reconnect, and AWS warns that some Java setups cache DNS answers so long that they keep trying the old address: the same TTL problem from the first case of this season.",
+        "source": 3
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What's the difference between a region and an availability zone?",
+        "How would you make a web app survive the loss of one data center?"
+      ],
+      "answer": "A region is a geographic area. An availability zone is one or more data centers inside it with separate power, cooling and networking, far enough from the other zones to fail on its own, close enough to copy data between them synchronously. To survive losing one: run app servers in at least two zones behind a load balancer, with enough capacity in each to carry the load alone; run the database with a synchronous standby in another zone that fails over automatically, like RDS Multi-AZ, typically 60 to 120 seconds; keep files in a service that stores them across zones, like S3; and keep backups, because a standby copies mistakes too. Then say what it doesn't cover: a region-wide outage needs a second region, and every one of these steps costs money, so match it to what downtime actually costs the business."
+    }
+  },
+  "terms": [
+    { "term": "Cloud computing", "def": "Renting computing, storage and databases from a cloud company over the internet, paying for what you use, instead of buying and running your own machines. Someone else's data centers." },
+    { "term": "Cloud company", "def": "A company that runs data centers and rents out servers, storage and services in them by the hour, such as AWS." },
+    { "term": "Data center", "def": "A building full of servers, with its own power, cooling and network links. Real buildings: they can flood, overheat or lose power." },
+    { "term": "Cloud region", "def": "One area of the world where a cloud company runs several availability zones. AWS calls them Regions." },
+    { "term": "Availability zone", "def": "One or more data centers inside a region, with their own power, cooling and network, miles from the other zones but linked to them by fast private fiber." },
+    { "term": "AZ", "def": "Short for availability zone. AZ-a, AZ-b and AZ-c in this story are the three zones of one region." },
+    { "term": "AZ ID", "def": "AWS's fixed name for a physical zone, like use1-az4, the same in every account. Zone names like us-east-1a can point to different zones in different accounts." },
+    { "term": "Virtual machine", "def": "A whole computer made of software: one real server is split into several VMs, each with its own operating system. A VM lives in exactly one zone." },
+    { "term": "VM", "def": "Short for virtual machine." },
+    { "term": "Hypervisor", "def": "The software on a real server that splits it into virtual machines and keeps them apart." },
+    { "term": "App server", "def": "A server running the application itself, here the booking app, which takes requests and reads and writes the database." },
+    { "term": "Booking system", "def": "The ferry company's software for selling tickets and checking them at the dock." },
+    { "term": "Ticket scanner", "def": "The handheld device at the dock that reads a passenger's ticket and asks the booking system whether it's valid." },
+    { "term": "Managed services", "def": "Services the cloud company runs for you, such as a managed database: it handles the servers, backups, software updates and failover, and you use the result." },
+    { "term": "Standby", "def": "A second copy of a database in another zone that receives every write as it happens and waits to take over if the first copy fails." },
+    { "term": "Primary database", "def": "The copy of a database that the app reads and writes. A standby takes its place after a failover." },
+    { "term": "Failover", "def": "Switching to a standby automatically when the main copy fails. On RDS Multi-AZ it typically takes 60 to 120 seconds." },
+    { "term": "Synchronous replication", "def": "Copying each write to the standby before it counts as done, so the standby never falls behind. It makes each write a little slower." },
+    { "term": "Multi-AZ", "def": "Running something in two or more availability zones so it survives losing one. On Amazon RDS, a deployment with a standby in a different zone." },
+    { "term": "Single-AZ", "def": "Running something in only one availability zone. Cheaper, but that zone failing takes it down." },
+    { "term": "Disk snapshot", "def": "A saved copy of a disk or database at one moment. Restoring it brings back that moment, and loses anything written after it." },
+    { "term": "Backup copy", "def": "A copy kept so you can restore data after it's lost or damaged, such as nightly snapshots. Unlike a standby, it lets you go back in time." },
+    { "term": "Dashboard", "def": "The cloud company's web page where you manage your machines and see their state." },
+    { "term": "VPC", "def": "Virtual private cloud: your own private network inside AWS, split into subnets, each in one availability zone. The VPC console lists them." },
+    { "term": "Single point of failure", "def": "One part whose failure takes the whole system down, like one zone holding every server." },
+    { "term": "Subnet", "def": "A slice of a cloud network's addresses that sits in one availability zone. Launching a server into a subnet puts it in that zone." },
+    { "term": "Amazon S3", "def": "Simple Storage Service: AWS's service for storing files. Most of its storage classes keep each file across at least three availability zones." },
+    { "term": "S3 object", "def": "What S3 calls a stored file, together with its name and details." },
+    { "term": "EBS volume", "def": "Elastic Block Store: a virtual disk AWS attaches to an EC2 instance. It lives in one availability zone." },
+    { "term": "Region outage", "def": "A failure that reaches every zone in a region at once. Several zones don't protect against it. A second region can." },
+    { "term": "Multi-region", "def": "Running a system in two or more regions, with data copied between them, so it can survive losing a whole region. Much more costly and complex." },
+    { "term": "Java", "def": "A popular programming language. Java programs keep their own cache of DNS answers, and some setups keep them far longer than the TTL says." },
+    { "term": "US-EAST-1", "def": "AWS's Region in Northern Virginia, in the United States." },
+    { "term": "PST", "def": "Pacific Standard Time, the US West Coast's winter clock. AWS's status updates that day used it." },
+    { "term": "Post-event summary", "def": "AWS's published write-up of a major outage: what happened, why, and what it is changing. Not every outage gets one." },
+    { "term": "The Register", "def": "A British technology news site." },
+    { "term": "Slack", "def": "A workplace chat app." },
+    { "term": "Asana", "def": "A project-tracking app for teams." },
+    { "term": "Co-op", "def": "A cooperative: a business owned by its members, like the fishermen who run the auction next door." }
+  ],
+  "atWork": "Open the AWS console for your team's production account (read-only access is enough) and list the EC2 instances behind one important service, with each one's Availability Zone. If they all share a zone, that zone is a single point of failure. In the VPC console, each subnet also shows its AZ ID, like use1-az4, which is what you compare with other accounts or with AWS's status updates. Then open RDS and check that service's database: does Multi-AZ say Yes, and which secondary zone does it list? Finally, check that the load balancer has subnets in every zone the instances use. Write down what would still answer if any one zone went dark tonight.",
+  "board": {
+    "cards": [
+      { "id": "data-centers", "title": "Data center" },
+      { "id": "regions", "title": "Region" },
+      { "id": "availability-zones", "title": "Availability zone" },
+      { "id": "virtual-machines", "title": "Virtual machine" },
+      { "id": "managed-services", "title": "Managed services" }
+    ],
+    "strings": [
+      { "from": "regions", "to": "availability-zones", "label": "split into" },
+      { "from": "availability-zones", "to": "data-centers", "label": "one or more" },
+      { "from": "virtual-machines", "to": "availability-zones", "label": "lives in one" },
+      { "from": "managed-services", "to": "availability-zones", "label": "can span several" },
+      { "from": "managed-services", "to": "dns", "label": "fail over via" }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s1e10-r1",
+      "kind": "mcq",
+      "prompt": "Greywater's two app servers and its database all sat in AZ-b, and AZ-b's data center lost power. Which change would have kept the booking site up?",
+      "options": [
+        "Bigger virtual machines",
+        "A faster load balancer",
+        "App servers in two zones, and a database with a standby in another zone",
+        "Nightly snapshots"
+      ],
+      "answer": 2,
+      "why": "Only spreading every layer across zones survives losing one zone. Bigger machines in the same zone go dark together, and snapshots limit what's lost, not how long the site is down."
+    },
+    {
+      "id": "s1e10-r2",
+      "kind": "free",
+      "prompt": "Your company's checkout runs on two EC2 instances in one Availability Zone and a single-AZ RDS database. Your manager asks what happens if that zone loses power, and what you'd change. What do you say?",
+      "keyIdeas": [
+        { "idea": "Everything is in one zone, so checkout goes down with it", "match": ["one zone", "single zone", "single-az", "goes down", "all down", "everything stops", "single point of failure", "dark"] },
+        { "idea": "Put instances in at least two zones behind a load balancer", "match": ["two zones", "2 zones", "multiple zones", "several zones", "across zones", "another zone", "load balancer", "multi-az", "spread"] },
+        { "idea": "Make the database Multi-AZ: a standby in another zone with automatic failover", "match": ["multi-az", "standby", "failover", "fail over", "replica", "second zone"] },
+        { "idea": "It costs more, a failover still means a minute or two of errors, and you still need backups", "match": ["cost", "more expensive", "60", "120", "a minute", "two minutes", "retry", "backup", "snapshot"] }
+      ],
+      "model": "If that zone loses power, checkout stops completely: both instances and the only database are in it, so the other zones' power doesn't help us. I'd run the instances in at least two zones behind the load balancer, each able to carry the load alone, and switch the database to RDS Multi-AZ, so a synchronous standby in another zone takes over by itself, typically within 60 to 120 seconds, with no committed orders lost. The app should retry through that minute or two of errors. It costs more, a second database and more instances, and we keep our backups, because the standby copies mistakes too."
+    },
+    {
+      "id": "s1e10-r3",
+      "kind": "mcq",
+      "prompt": "What is an availability zone?",
+      "options": [
+        "Another name for a region",
+        "One or more data centers with their own power, cooling and network, kept apart from the other zones in the same region",
+        "A single rack of servers",
+        "A backup copy of your data"
+      ],
+      "answer": 1,
+      "why": "A region holds several zones. Each zone is one or more data centers, separate enough that one zone's power cut or flood shouldn't reach the others, close enough to copy data between them quickly."
+    },
+    {
+      "id": "s1e10-r4",
+      "kind": "mcq",
+      "prompt": "Compared with installing a database yourself on a virtual machine, what does a managed database service such as Amazon RDS take off your hands?",
+      "options": [
+        "Nothing: it's the same thing with a different name",
+        "Writing your queries",
+        "Designing your tables",
+        "Backups, software patching, failure detection and failover"
+      ],
+      "answer": 3,
+      "why": "AWS says RDS manages backups, software patching, automatic failure detection and recovery, and offers a standby in another zone. Your queries and your table design are still yours."
+    },
+    {
+      "id": "s1e10-r5",
+      "kind": "free",
+      "prompt": "A teammate says: \"We're on RDS Multi-AZ now, so we don't need backups anymore.\" What do you tell them?",
+      "keyIdeas": [
+        { "idea": "The standby copies every write, mistakes included: a deleted table is gone on both", "match": ["copies every", "copies mistakes", "mistake", "deleted", "bad write", "corrupt", "both copies", "replicates"] },
+        { "idea": "Backups let you go back in time; a standby only has now", "match": ["back in time", "point in time", "restore", "snapshot", "older copy", "yesterday"] },
+        { "idea": "Multi-AZ covers a zone failing, not a region outage or bad data", "match": ["one zone", "zone failure", "region", "not a backup", "isn't a backup", "different problems"] }
+      ],
+      "model": "Multi-AZ protects you from losing a zone, not from losing data. The standby copies every write as it happens, so if someone deletes a table or a bug corrupts rows, the standby has the same damage a second later. Backups and snapshots are the only way back to how things were yesterday. And Multi-AZ doesn't cover a region-wide outage either. Keep the backups, keep a copy outside the database's zone, and test restoring one."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. Sol rebuilt everything: three app servers, one per zone, behind the load balancer, and a managed database with a standby in another zone. It sailed through a power cut in AZ-a without anyone noticing. Then last week the cloud company had a problem across its whole North Coast region: for 50 minutes nothing in any of its three zones could be reached, and our booking site was down the whole time. Our owner wants to know why the new setup didn't save us, and whether we should copy everything to a second region.",
+    "prompt": "Reply to OP. Why didn't the multi-zone setup help, and should Greywater add a second region?",
+    "keyIdeas": [
+      { "idea": "Zones protect against one zone failing, not the whole region", "match": ["whole region", "region-wide", "entire region", "all three zones", "every zone", "not the region", "one zone"] },
+      { "idea": "Surviving a region outage needs a second region: copies of the data and a way to move traffic there", "match": ["second region", "another region", "multi-region", "copy the data", "replicate", "switch traffic", "dns", "fail over to"] },
+      { "idea": "It costs much more and is complex, so weigh it against what 50 minutes of downtime costs", "match": ["cost", "expensive", "complex", "worth it", "trade-off", "tradeoff", "how much", "downtime costs", "business"] },
+      { "idea": "A cheaper middle step: backups in another region and a practiced recovery plan", "match": ["backups in another region", "copy backups", "snapshots in", "recovery plan", "practice", "runbook", "paper list", "manual"] }
+    ],
+    "model": "The new setup did its job: it protects against one zone going dark, which it survived in AZ-a. A problem across the whole region takes every zone down together, and nothing inside that region can help. Surviving that means a second region: a copy of the database kept up to date there (usually a little behind, because it's far away), app servers ready to run, and a way to send customers there, typically by changing DNS. That roughly doubles the cost and adds a lot of moving parts, so weigh it against what 50 minutes of no bookings really costs. A sensible middle step: copy backups to another region every night, write down and practice how to rebuild there, and keep the paper manifest routine sharp for the first sailing."
+  },
+  "next": "Next: a 24-hour diner, ordering tablets that fail without a sound, and a night cook who learns to read the logs.",
+  "sources": [
+    { "title": "AWS power failure in US-EAST-1 region killed some hardware and instances (The Register, Simon Sharwood, December 22, 2021)", "url": "https://www.theregister.com/2021/12/22/aws_outage/" },
+    { "title": "AWS status updates for December 22, 2021 (USE1-AZ4 power loss), reproduced word for word on InfluxData's status page", "url": "https://status.influxdata.com/incidents/403911btsq20" },
+    { "title": "AWS RAM User Guide: Availability Zone IDs for your AWS resources (zone names map differently per account; AZ IDs are the same everywhere)", "url": "https://docs.aws.amazon.com/ram/latest/userguide/working-with-az-ids.html" },
+    { "title": "Amazon RDS User Guide: Failing over a Multi-AZ DB instance (typically 60 to 120 seconds; the DNS record is changed to the standby)", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.Failover.html" },
+    { "title": "Amazon RDS User Guide: Multi-AZ DB instance deployments (synchronous standby in a different Availability Zone; higher write latency)", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html" },
+    { "title": "AWS Global Infrastructure: Regions and Availability Zones (an AZ is one or more discrete data centers with redundant power, networking and connectivity)", "url": "https://aws.amazon.com/about-aws/global-infrastructure/regions_az/" },
+    { "title": "Amazon EC2 User Guide: What is Amazon EC2? (an EC2 instance is a virtual server)", "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html" },
+    { "title": "Amazon EC2 User Guide: Regions and Zones (launching instances in multiple Availability Zones protects against the failure of a single location)", "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html" },
+    { "title": "Amazon RDS User Guide: What is Amazon RDS? (RDS manages backups, software patching, automatic failure detection and recovery)", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html" },
+    { "title": "Amazon S3 User Guide: Data protection in Amazon S3 (stored across a minimum of three Availability Zones, except S3 One Zone-IA)", "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/DataDurability.html" },
+    { "title": "AWS: What is cloud computing? (the on-demand delivery of IT resources over the Internet with pay-as-you-go pricing)", "url": "https://aws.amazon.com/what-is-cloud-computing/" },
+    { "title": "Elastic Load Balancing User Guide: Application Load Balancers, Availability Zone subnets (at least two)", "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html" },
+    { "title": "AWS Post-Event Summaries: the list of published outage write-ups. It has none for December 22, 2021, which is why AWS's status text is cited from a customer's copy", "url": "https://aws.amazon.com/premiumsupport/technology/pes/" }
+  ]
+}

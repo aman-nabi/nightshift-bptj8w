@@ -1,0 +1,361 @@
+{
+  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "id": "s1e11",
+  "season": 1,
+  "n": 11,
+  "title": "Logs at 3 AM",
+  "setting": "a 24-hour diner's ordering tablets",
+  "core": true,
+  "minutes": 12,
+  "concepts": ["reading-logs", "status-codes", "tracing-one-request", "basic-debugging"],
+  "prerequisites": ["s1e01", "s1e03", "s1e04", "s1e06"],
+  "rule": null,
+  "post": {
+    "author": "u/grill_side_sol",
+    "flair": "Part 1",
+    "age": "7h",
+    "votes": 3488,
+    "title": "I cook nights at a 24-hour diner. Every night around 3:07, one order goes into the system and never reaches my kitchen.",
+    "blocks": [
+      { "t": "p", "text": "I work the grill at the Lantern, a 24-hour diner off Route 9, midnight to eight. The servers take orders on tablets. Each tablet sends the order to the order API, a small program that Rafi, the owner's nephew, runs in the cloud, and the order API tells the kitchen printer to print a ticket. Three programs. Rafi calls them services. A ticket prints, I cook it." },
+      { "t": "p", "text": "Three nights running, the same thing. Around 3 AM the bar crowd leaves, the room goes quiet, and a woman sits down in Booth 6. Black coffee, lemon pie. Pearl taps it in. The tablet shows *Sent to kitchen* with a green check. No ticket prints. Pearl comes back twenty minutes later and I'm standing at an empty rail." },
+      { "t": "p", "text": "The woman never complains. She waits with her hands folded, watching the kitchen door. The next order, anybody's, prints fine." },
+      { "t": "p", "text": "Rafi says every program keeps a log: a diary where it writes one line for everything it does, with the time at the front. He gave me read access, so I can look but not change anything, and went to bed. The tablet's log has her order:" },
+      { "t": "log", "text": "03:07:12 INFO  tablet-6  order sent req=7f3a -> 201 Created (48 ms)" },
+      { "t": "p", "text": "201 means the order API took it. So I searched the order API's log for 3:07. Nothing. Not one line stamped anywhere between 2:58 and 3:20, like the order never got there. Then I showed only ERROR lines. Rafi says ERROR is the loudest level a line can have, the one for things that broke. There are hundreds, one every five minutes, all night:" },
+      { "t": "log", "text": "{\"ts\":\"2026-10-06T07:05:00.002Z\",\"level\":\"ERROR\",\"svc\":\"order-api\",\"msg\":\"metrics push failed\",\"status\":503}\n{\"ts\":\"2026-10-06T07:10:00.002Z\",\"level\":\"ERROR\",\"svc\":\"order-api\",\"msg\":\"metrics push failed\",\"status\":503}" },
+      { "t": "p", "text": "Rafi says those have been there since spring and don't matter. The last ticket on the spike says 02:41:05. After that the printer printed nothing until an order at 3:09, which came out fine." },
+      { "t": "beat", "text": "Booth 6 is always the first order after the quiet." },
+      { "t": "p", "text": "She'll be back tonight. Where does her order go? And how do we make sure the kitchen never loses one again?" },
+      {
+        "t": "evidence",
+        "label": "three_logs.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 190,
+          "aria": "What each log said about Booth 6's order. The Booth 6 tablet sent it at 03:07:12 and got 201 Created from the order API. The order API's log has no lines stamped 3:07, only an ERROR every five minutes. The kitchen printer printed no ticket; its last ticket was at 02:41:05.",
+          "nodes": [
+            { "id": "tab", "label": "Booth 6 tablet", "sub": "sent 03:07:12", "meta": "got 201 Created", "x": 100, "y": 90, "w": 170, "h": 72, "shape": "box", "tone": "ok" },
+            { "id": "api", "label": "Order API", "sub": "no lines at 3:07", "meta": "ERROR every 5 min", "x": 370, "y": 90, "w": 180, "h": 72, "shape": "box", "tone": "warn" },
+            { "id": "prn", "label": "Kitchen printer", "sub": "no ticket", "meta": "last one 02:41:05", "x": 640, "y": 90, "w": 170, "h": 72, "shape": "box", "tone": "bad" }
+          ],
+          "edges": [
+            { "from": "tab", "to": "api", "label": "POST /orders" },
+            { "from": "api", "to": "prn", "label": "print?", "dash": true, "tone": "bad" }
+          ],
+          "notes": [
+            { "x": 507, "y": 150, "text": "lost here?", "tone": "bad", "anchor": "middle" }
+          ]
+        },
+        "caption": "What each log told me by 4 AM. The tablet got its 201. The order API has nothing stamped 3:07, just an ERROR every five minutes. The printer's last ticket is from 02:41:05."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 64,
+      "age": "6h",
+      "text": "Two things. Rafi's order API writes its times in UTC, the one clock servers keep so logs from different places line up, and your diner is four hours behind it. Your 3:07 is its 07:07. And that req=7f3a on the tablet's line is a request id: a tag the tablet sends along with the order, in a header, so every service that touches the order can write the same tag. Search all three logs for 7f3a instead of a time. Read every level while you're at it, not just the loud one.",
+      "replies": [
+        {
+          "author": "u/grill_side_sol",
+          "op": true,
+          "points": 22,
+          "age": "5h",
+          "text": "Searched 7f3a. Five lines. The order API took the order, and five seconds later wrote a WARN about the printer. The printer's own log says that at 03:07:12 it was *waking up*. Waking up from what?"
+        }
+      ]
+    },
+    {
+      "author": "u/fryer_basket_fran",
+      "points": 29,
+      "age": "5h",
+      "text": "Waitress at a truck stop two counties over. Our kitchen printer goes into sleep mode if nobody prints for a while, to save power. The first ticket after a quiet spell always comes out slow. Never lost one, though."
+    },
+    {
+      "author": "u/packet_ghost",
+      "points": 17,
+      "age": "4h",
+      "text": "Every log line has a level, which says how loud it is. DEBUG for tiny details, INFO for normal events, WARN for \"something went wrong but I carried on\", ERROR for \"this failed\". Those ERRORs fire every five minutes all night, and the pie only vanishes once. Loud isn't the same as guilty."
+    }
+  ],
+  "reply": {
+    "prompt": "Booth 6 comes back tonight. Rafi can change one thing before then. What should it be? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Fix the ERROR lines first. Get rid of the 503s that fire every five minutes, so the log is clean and the real problem stands out.",
+        "tone": "bad",
+        "verdict": "Loud, but not guilty",
+        "part2": "Rafi spent Tuesday fixing whatever was answering those 503s. The ERRORs stopped. The log went quiet and clean. At 3:07 Pearl sent the pie. The tablet said *Sent to kitchen*. Nothing printed. The clean log showed the same WARN line as before, the one nobody had read, sitting right where it always was.",
+        "senior": "Noisy errors are worth fixing someday, but they weren't the cause. They fire every five minutes while other orders print fine. Two things happening on the same night doesn't make one the cause: follow the lost order's request id instead of the loudest line."
+      },
+      {
+        "text": "Turn off the printer's sleep mode, so it's always awake when an order comes in.",
+        "tone": "warn",
+        "verdict": "Fixes tonight, hides the next one",
+        "part2": "Rafi switched the sleep off. At 3:07 the ticket printed at once and I plated the pie. On Saturday the printer ran out of paper at 4 AM, and the order API threw away six orders the same quiet way, each tablet still saying *Sent to kitchen*. We found out from the complaints.",
+        "senior": "Removing the trigger fixes one cause. The real bug is that a failed print gets swallowed while the tablet is told the order is safe. Any other printer problem, paper, power or a network blip, will vanish orders exactly the same way."
+      },
+      {
+        "text": "When the printer doesn't answer in time, the order API keeps the order and retries until a ticket prints. If it still can't, it logs an ERROR with the request id. The tablet says *printed* only after the printer confirms.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Rafi changed it on Wednesday. At 3:07 the printer was asleep again. The order API waited, wrote a WARN, *printer slow, retry 1 of 5*, tried again ten seconds later, and the ticket rolled out. Pearl's tablet flipped from *waiting for kitchen* to *printed*. I plated the pie and turned around. Booth 6 was empty. The coffee was still steaming, and on the table was exact change for three slices.",
+        "senior": "Never drop work quietly. Keep it, retry it, log a real failure as an ERROR with the request id so someone gets told, and don't report success until the work is actually done."
+      },
+      {
+        "text": "Raise the order API's timeout for the printer from 5 seconds to 30.",
+        "tone": "warn",
+        "verdict": "Covers this printer, still drops orders",
+        "part2": "Rafi set the timeout to 30 seconds. On Wednesday the 3:07 ticket came out eight seconds late, which was fine. On Thursday the diner's network dropped out for a minute. Four orders waited their 30 seconds, and the order API threw them away anyway, each with a WARN nobody read.",
+        "senior": "A longer wait covers this printer's 8-second wake-up, but when the wait runs out the order is still thrown away. Waiting longer isn't the same as not losing things."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s1e11",
+    "title": "Find the order that vanished",
+    "lede": "You're Sol with read access to all three logs: the tablets, the order API and the kitchen printer. Lines stream in from 02:58, 30 times faster than real life. Filter by level, by service or by any text, click a line to read it, and follow its request id to line up one order's journey. When you know where the pie went, pick your diagnosis and check it.",
+    "tryThis": "Try this: show only ERROR and see what's loud. Search 03:07 and notice which service is missing, then switch the times to UTC. Search 7f3a, click the tablet's line and follow it. Then reproduce it: let 20 quiet minutes pass, send a test order, and send another right after."
+  },
+  "explain": {
+    "oneLine": "Nothing ate the pie. The kitchen printer was asleep, the order API waited 5 seconds for an 8-second wake-up, gave up, and threw the ticket away with a quiet WARN, while the tablet already said the order was sent.",
+    "steps": [
+      {
+        "title": "A log is a program's diary.",
+        "text": "Every service writes lines about what it does: a timestamp, a level, which service wrote it, and a message. The tablets, the order API and the printer each keep their own. Levels sort lines by how loud they are: DEBUG for small details, INFO for normal events, WARN for \"something went wrong but I carried on\", ERROR for \"this failed\". The order API also keeps an access log line for every request it answers, with the method, the path, the status code and how long it took. That's where the 201 lives."
+      },
+      {
+        "title": "Times only line up in one time zone.",
+        "text": "The order API writes its times in UTC, as most servers do. The tablets and the printer use the diner's clock, four hours behind. Sol searched the API's log for 3:07 and found nothing, because the API wrote 07:07. A timestamp like 2026-10-06T07:07:12Z, date first and Z for UTC, means the same moment everywhere. When every service writes UTC, lines from different machines sort into one story."
+      },
+      {
+        "title": "Follow the request id, not the clock.",
+        "text": "The tablet tagged the order req=7f3a and sent the tag along in a header, and each service wrote it into its lines. Searching all three logs for 7f3a lined up the journey. The tablet sent it and got 201 Created. The order API answered at once, then asked the printer to print. The printer logged that it was waking from sleep. Five seconds later the API wrote a WARN, *printer did not answer in 5000 ms, dropping ticket*. At 03:07:20 the printer was ready, with nothing left to print. The API's lines are structured: JSON with named fields like level and req, so a tool can filter on them exactly. The printer writes free text, so you can only search it for words."
+      },
+      {
+        "title": "Why only Booth 6, and only around 3 AM.",
+        "text": "The printer goes to sleep after 20 minutes without a ticket and takes about 8 seconds to wake. The last ticket printed at 02:41:05, so it fell asleep at 03:01:05, and by 03:07 it had been idle 26 minutes. Booth 6 was always the first order after the bar crowd left, so hers always hit a sleeping printer, and her order woke it up for everyone else. The ERRORs every five minutes were the order API failing to send its numbers to a stats server, which answered 503. Real, but they fired all night while other orders printed fine."
+      },
+      {
+        "title": "The method: reproduce, narrow down, guess, check.",
+        "text": "Sol and Rafi let the diner go quiet for 20 minutes and sent a test order from Booth 6. Gone, with the same WARN: reproduced. The request id narrowed it to one step, between the order API and the printer. The guess: the API's 5-second wait is shorter than the printer's 8-second wake-up. The check: they woke the printer with a test page, sent another order, and it printed. A guess that predicts what happens next is a diagnosis."
+      }
+    ],
+    "diagram": {
+      "type": "sequence",
+      "w": 740,
+      "aria": "The journey of order 7f3a. The Booth 6 tablet sends POST /orders with request id 7f3a. The order API answers 201 Created at 03:07:12, then asks the kitchen printer to print ticket 7f3a. The printer is asleep and needs about 8 seconds to wake. The order API waits 5 seconds with no answer, writes a WARN and drops the ticket. The printer is ready at 03:07:20 with nothing to print. The tablet shows Sent to kitchen; no ticket ever prints.",
+      "lanes": ["Booth 6 tablet", "Order API", "Kitchen printer"],
+      "steps": [
+        { "from": 0, "to": 1, "label": "POST /orders · req 7f3a" },
+        { "from": 1, "to": 0, "label": "201 Created, 03:07:12" },
+        { "from": 1, "to": 2, "label": "print ticket 7f3a" },
+        { "span": 2, "rows": 1, "label": "asleep, waking 8s", "tone": "warn" },
+        { "note": 1, "text": "waits 5s, no answer", "sub": "WARN: dropping ticket", "tone": "bad" },
+        { "note": 2, "text": "ready at 03:07:20", "sub": "nothing to print", "tone": "" },
+        { "outcome": 0, "text": "Tablet shows: Sent to kitchen", "tone": "warn" },
+        { "outcome": 2, "text": "No ticket ever prints", "tone": "bad" }
+      ]
+    },
+    "caption": "Read top to bottom. The order API tells the tablet 201 Created before the ticket exists, then asks the printer. The printer is asleep and needs about 8 seconds. The API waits 5, writes a WARN and drops the ticket at 07:07:17Z, which is 03:07:17 diner time. The printer is ready at 03:07:20 with nothing to print.",
+    "fix": {
+      "title": "The fix: never drop an order quietly",
+      "text": "The order API keeps every order until the printer confirms the ticket. When a print fails, it retries a few times with a growing wait, writing each failed try as a WARN. If it still can't print, it writes one ERROR with the request id and raises an alert, so a person hears about it. The tablet shows *printed* only after the printer confirms, and *not printed yet* until then. Then fix the logs that hid it: every line in every service gets a UTC timestamp and the request id, a lost order is an ERROR, not a WARN, and the stats ERRORs get fixed or turned down, so ERROR means \"look at me\" again."
+    },
+    "limits": [
+      "Retries only help if the printer comes back. If it's out of paper or unplugged, the order waits forever, so a person has to be told: an alert, or a red banner on the tablet.",
+      "Logs only hold what someone chose to write. The printer never wrote the request id when it was ready, and the API filed a lost order as a WARN. Good logs are designed, not hoped for.",
+      "More logging isn't free. Keeping DEBUG lines on all the time costs storage and money and slows every search, and logs can leak private data such as names or card numbers. Keep details off by default and never log secrets."
+    ],
+    "tradeoff": {
+      "head": ["Log style", "Good", "Bad"],
+      "rows": [
+        ["Free text", "Easy to write, and easy to read by eye at 3 AM.", "Hard to filter exactly. Every program words things its own way."],
+        ["Structured (JSON fields)", "Tools can filter on level, service and request id exactly.", "Longer lines, harder to read raw. Every service must agree on field names."],
+        ["DEBUG kept on", "Every detail is there when you need it.", "Many more lines to store, pay for and search through."]
+      ]
+    },
+    "seniorTake": "Logs are evidence, and you only get the evidence you planned for. Put a UTC timestamp and a request id on every line, pick levels honestly, and never let a program swallow a failure with a shrug. Then debug like a detective: reproduce it, narrow it down, guess, and check the guess.",
+    "realWorld": [
+      {
+        "title": "Google's SRE book: troubleshooting as a method",
+        "text": "Chapter 12 of Google's book *Site Reliability Engineering*, \"Effective Troubleshooting\", lays debugging out as a loop: a problem report, triage, examine (logs and other data), diagnose, test and treat, and cure. It calls this the hypothetico-deductive method: from what you see, guess a cause, then test the guess. It warns that \"correlation is not causation\", suggests splitting a system in half to narrow down where a fault is, and points at whatever touched the system last, because recent changes are a productive place to start. Sol's reproduce, narrow down, guess and check is the same loop in kitchen words.",
+        "source": 0
+      },
+      {
+        "title": "Searching logs on AWS: CloudWatch Logs Insights",
+        "text": "Amazon's log search tool lets you query logs with short commands joined by the | character, such as fields, filter, sort and limit. AWS describes it as a way to interactively search and analyze log data, and to identify potential causes when an issue occurs. It discovers the fields in logs written as JSON automatically, so a structured line's level and request id become things you can filter on exactly. For free-text logs, a parse command pulls fields out of the words.",
+        "source": 1
+      },
+      {
+        "title": "A request id built into AWS's load balancer",
+        "text": "An AWS Application Load Balancer adds a header called X-Amzn-Trace-Id to each request it passes to the servers behind it, or adds to the one already there. When its access logs are turned on (they're off by default), each request's line records that trace id next to two status codes: the one the load balancer sent back, and the one the server behind it returned. It's the same idea as req=7f3a, done for you at the front door.",
+        "source": 3
+      }
+    ],
+    "interview": {
+      "asked": [
+        "A customer says their order disappeared. How do you debug it?",
+        "What would you put in every log line, and why?"
+      ],
+      "answer": "Start with a clear problem report, and reproduce it if you can. Get the request's id and search every service's logs for it, with all times in UTC, to line up the journey and find the last place it was seen. Read WARN as well as ERROR, and don't chase noise just because it's loud: correlation is not causation. Form a hypothesis, test it, then fix both the cause and the gap that hid it. Every log line should carry a UTC timestamp, a level, the service name, the request id and a message, ideally as structured JSON fields so tools can filter on them. Never log secrets or private data."
+    }
+  },
+  "terms": [
+    { "term": "Log", "def": "A program's diary: a file or stream where it writes one line for each thing it does, with the time first. Each service keeps its own." },
+    { "term": "Log line", "def": "One entry in a log, usually a timestamp, a level, the program that wrote it, and a message." },
+    { "term": "Service", "def": "One program in a system that does one job and talks to the others, like the tablets, the order API or the kitchen printer." },
+    { "term": "Cloud", "def": "Computers you rent from a company such as Amazon and use over the internet, instead of machines in your own building." },
+    { "term": "Read access", "def": "Permission to look at something without being able to change it." },
+    { "term": "Tablet", "def": "A small touch-screen computer. At the Lantern, servers tap orders into them at the table." },
+    { "term": "Order API", "def": "The Lantern's program in the cloud. It takes orders from the tablets and tells the kitchen printer what to print." },
+    { "term": "Ticket", "def": "The paper slip the kitchen printer prints for each order. The cook works from it." },
+    { "term": "Timestamp", "def": "The date and time written at the start of a log line, saying when it happened." },
+    { "term": "UTC", "def": "Coordinated Universal Time, the one clock engineers use so timestamps from anywhere line up. A Z at the end of a time, like 07:07:12Z, means UTC." },
+    { "term": "Local time", "def": "The time on the clocks where you are. The Lantern's is four hours behind UTC, so 03:07 at the diner is 07:07 UTC." },
+    { "term": "RFC 3339", "def": "The internet's standard format for timestamps, like 2026-10-06T07:07:12Z: date first, then time, then Z for UTC or an offset like -04:00." },
+    { "term": "Log level", "def": "How loud a log line is. Common levels, quietest first: DEBUG, INFO, WARN, ERROR. Tools can show only the lines at or above a level." },
+    { "term": "DEBUG", "def": "The quietest level: small details for whoever is fixing the program. Often switched off unless someone turns it on." },
+    { "term": "INFO", "def": "The level for normal events, like an order received or a ticket printed." },
+    { "term": "WARN", "def": "Warning: something went wrong or looks odd, but the program carried on. Easy to skip, and sometimes the real clue." },
+    { "term": "ERROR", "def": "The level for something that failed. Meant to be rare and important. If it fires all night for something harmless, people learn to ignore it." },
+    { "term": "Structured log", "def": "A log whose lines are made of named fields, usually JSON, like {\"level\":\"WARN\",\"req\":\"7f3a\"}. Tools can filter on each field exactly." },
+    { "term": "Free-text log", "def": "A log written as plain sentences, like the printer's. Easy to read by eye, but you can only search it for words, and every program words things differently." },
+    { "term": "Field", "def": "One named value in a structured log line, like level, svc or req." },
+    { "term": "Request id", "def": "A short tag stuck on one request, like req=7f3a, and passed along in a header so every service that handles it writes the same tag." },
+    { "term": "Correlation id", "def": "Another name for a request id: the tag that lets you line up, or correlate, every log line about one request across services." },
+    { "term": "Trace", "def": "The whole journey of one request through every service, lined up by its id." },
+    { "term": "Access log", "def": "A log with one line per request a server answered: the time, the method, the path, the status code and how long it took." },
+    { "term": "Sleep mode", "def": "A power-saving state a device enters after sitting idle. It takes a few seconds to wake. The Lantern's printer sleeps after 20 idle minutes and wakes in about 8 seconds." },
+    { "term": "Idle", "def": "Not doing anything. The printer counts idle time from its last ticket." },
+    { "term": "Heartbeat", "def": "A small message a device writes or sends on a schedule to say it's still alive, like a tablet's battery check." },
+    { "term": "Drop", "def": "To throw a piece of work away without doing it. The order API dropped tickets when the printer was slow and only wrote a WARN about it." },
+    { "term": "Stats server", "def": "A server that collects numbers about other programs, their metrics. The order API's pushes to it failed with 503 every five minutes, harmlessly." },
+    { "term": "Reproduce", "def": "To make a problem happen again on purpose, so you can watch it and later check a fix." },
+    { "term": "Narrow down", "def": "To shrink where a problem could be, step by step, until one place is left." },
+    { "term": "Hypothesis", "def": "A guess about the cause that you can test, like: the API gives up before the printer wakes." },
+    { "term": "Bisection", "def": "Narrowing down by halves: check the middle of the path, then the middle of the broken half, and so on." },
+    { "term": "Correlation is not causation", "def": "Two things happening together doesn't mean one causes the other. The 503 ERRORs and the lost pie both happened at night; only one caused it." },
+    { "term": "Hypothetico-deductive method", "def": "The loop the SRE book describes: from what you see, guess a cause, work out what the guess predicts, and test it." },
+    { "term": "Triage", "def": "Deciding how bad a problem is and what to do first, often stopping the damage before you know the cause." },
+    { "term": "Alert", "def": "An automatic message that tells a person something important failed, like a ticket that still hasn't printed." },
+    { "term": "SRE", "def": "Site reliability engineering: Google's name for engineers who keep large systems running, and the title of a book Google published about it." },
+    { "term": "OpenTelemetry", "def": "An open standard and set of tools for logs, metrics and traces. Its log model names the levels TRACE, DEBUG, INFO, WARN, ERROR and FATAL." },
+    { "term": "Syslog", "def": "An old, standard way for programs and devices to send log lines. Its standard, RFC 5424, defines eight levels, from Emergency down to Debug." },
+    { "term": "Trace Context", "def": "A W3C standard for passing a request's id between services in a header called traceparent, so different tools agree on the format." },
+    { "term": "W3C", "def": "The World Wide Web Consortium, the group that publishes many web standards." },
+    { "term": "CloudWatch Logs", "def": "Amazon's service for collecting and storing logs from your programs and from AWS services." },
+    { "term": "Log group", "def": "In CloudWatch Logs, a named collection of logs, usually one per service." },
+    { "term": "Logs Insights", "def": "CloudWatch's search tool for logs. You write a short query with commands joined by the | character, such as fields, filter, sort and limit." },
+    { "term": "Query", "def": "A question written in a search language, like: show the 20 newest lines that contain ERROR." },
+    { "term": "parse", "def": "A Logs Insights command that pulls named fields out of a free-text line, so you can filter on them like JSON fields." },
+    { "term": "X-Amzn-Trace-Id", "def": "A header an AWS Application Load Balancer adds to each request it passes on. It works as a request id and appears in the load balancer's access logs." }
+  ],
+  "atWork": "Open CloudWatch Logs Insights in your AWS account (read access is enough), pick the log group for a service your team runs, and run: fields @timestamp, @message | filter @message like /ERROR/ | sort @timestamp desc | limit 20. Then check three things. Are the times in UTC? Does each line have a level and a request id? Do some ERRORs fire all the time without anything being wrong? Pick one request id and search every log group it should pass through. If your service sits behind an Application Load Balancer with access logs turned on, find that request's X-Amzn-Trace-Id and status codes there too. Write down one place where a lost request would be logged as a WARN, or not at all.",
+  "board": {
+    "cards": [
+      { "id": "reading-logs", "title": "Reading logs" },
+      { "id": "status-codes", "title": "Status codes" },
+      { "id": "tracing-one-request", "title": "Tracing a request" },
+      { "id": "basic-debugging", "title": "Basic debugging" }
+    ],
+    "strings": [
+      { "from": "reading-logs", "to": "status-codes", "label": "record each" },
+      { "from": "tracing-one-request", "to": "reading-logs", "label": "joins up the" },
+      { "from": "tracing-one-request", "to": "headers", "label": "rides in a" },
+      { "from": "basic-debugging", "to": "tracing-one-request", "label": "narrows down with" },
+      { "from": "basic-debugging", "to": "reading-logs", "label": "starts from" }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s1e11-r1",
+      "kind": "free",
+      "prompt": "It's 2 AM. Customers say their card was charged but their order never arrived. Orders pass through a website, a payment service and a warehouse service, each with its own log. What do you do, in order?",
+      "keyIdeas": [
+        { "idea": "Get the order's request id and search every service's log for it", "match": ["request id", "correlation", "trace", "order id", "req", "follow", "same id", "tag"] },
+        { "idea": "Put all timestamps in one time zone, usually UTC", "match": ["utc", "time zone", "timezone", "same clock", "line up", "timestamps"] },
+        { "idea": "Read WARN as well as ERROR, and don't chase loud noise", "match": ["warn", "not just error", "every level", "all levels", "noise", "loud", "correlation"] },
+        { "idea": "Reproduce it, then test a hypothesis", "match": ["reproduce", "recreate", "test order", "hypothes", "guess", "check", "test it"] }
+      ],
+      "model": "Take one affected order and find its request id. Search all three logs for that id, with every timestamp in UTC so the lines line up, and find the last service that saw it. Read every level on that trail, not just ERROR, and ignore errors that fire all the time anyway. Make a guess about what failed at that step, try to reproduce it with a test order, and check that the guess predicts what happens. Then fix the cause and the logging gap that hid it."
+    },
+    {
+      "id": "s1e11-r2",
+      "kind": "mcq",
+      "prompt": "The tablet's log says 03:07:12. The order API's log says 07:07:12Z for the same order. What's going on?",
+      "options": [
+        "They're two different orders, four hours apart",
+        "The order API's clock is broken",
+        "It's the same moment: the API writes UTC, and the diner's clock is four hours behind UTC",
+        "The order waited four hours before reaching the API"
+      ],
+      "answer": 2,
+      "why": "The Z means UTC. The diner is four hours behind UTC, so 03:07 at the diner and 07:07Z are the same instant. Mixed time zones are why Sol's search for 3:07 found nothing in the API's log."
+    },
+    {
+      "id": "s1e11-r3",
+      "kind": "mcq",
+      "prompt": "Which line was the real clue?",
+      "options": [
+        "ERROR metrics push failed, status 503, every five minutes",
+        "WARN printer did not answer in 5000 ms, dropping ticket, req 7f3a",
+        "INFO order sent req=7f3a -> 201 Created",
+        "DEBUG heartbeat ok, battery 72%"
+      ],
+      "answer": 1,
+      "why": "The 503s fired all night while other orders printed, so they weren't the cause. The WARN carries the same request id as the lost order, and it's where that order's trail ends."
+    },
+    {
+      "id": "s1e11-r4",
+      "kind": "mcq",
+      "prompt": "Why did Booth 6's order vanish when the next order printed fine?",
+      "options": [
+        "The printer sleeps after 20 idle minutes. Her order woke it, and the order API gave up after 5 seconds, before the 8-second wake-up ended",
+        "Booth 6's tablet has a weak signal",
+        "The order API restarts every night at 3:07",
+        "The printer runs out of paper at 3 AM and someone refills it"
+      ],
+      "answer": 0,
+      "why": "Booth 6 was always the first order after the quiet, so hers always met a sleeping printer. The 5-second wait ran out before the 8-second wake-up, and the ticket was dropped. Everyone after her found the printer awake."
+    },
+    {
+      "id": "s1e11-r5",
+      "kind": "free",
+      "prompt": "Rafi asks you to design the one log line the order API writes when it finally gives up on a ticket. What goes in it, at what level, and why?",
+      "keyIdeas": [
+        { "idea": "Level ERROR, because an order was lost", "match": ["error"] },
+        { "idea": "The request id", "match": ["request id", "req", "correlation", "7f3a", "order id", "trace"] },
+        { "idea": "A UTC timestamp", "match": ["utc", "timestamp", "time"] },
+        { "idea": "Structured fields, plus an alert so someone acts", "match": ["json", "field", "structured", "alert", "notify", "page", "wake"] }
+      ],
+      "model": "Level ERROR, not WARN: a customer's order was lost and someone has to act. Write it as JSON fields so tools can filter it: a UTC timestamp, the level, the service name, the request id, the booth, what failed (the printer didn't answer), how long it waited and how many times it retried. Raise an alert on it, because an ERROR nobody reads at 3 AM is just another quiet line. Leave out card numbers and anything else private."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. The Lantern takes online orders now: a website, then a payment service, then the kitchen printer. Last Friday three online customers were charged and nothing printed. The website logs in diner time and tags each order with a request id. The payment service logs in UTC with no request id. The printer still writes free text. Rafi's plan: \"add ERROR logs everywhere.\"",
+    "prompt": "Reply to OP. How would you find those three orders tonight, and what should Rafi change in the logs first?",
+    "keyIdeas": [
+      { "idea": "Pass one request id through every service and write it on every line", "match": ["request id", "correlation", "same id", "pass the id", "header", "trace", "traceparent"] },
+      { "idea": "Every timestamp in UTC", "match": ["utc"] },
+      { "idea": "Honest levels and structured fields, not ERROR everywhere", "match": ["level", "warn", "json", "structured", "field", "noise", "honest", "not everything"] }
+    ],
+    "model": "Tonight: take the three payments, convert their times to UTC, and match them to the website's lines by time and amount to get each order's request id. Then follow each one as far as it goes and see where the trail stops. First changes: the website passes its request id to the payment service and the printer in a header, and every service writes it on every line; every timestamp in UTC; JSON fields with honest levels. ERROR everywhere just makes noise people learn to ignore. A lost order is one ERROR, with an alert."
+  },
+  "next": "Next: a night-shift call center, and a caller on line two who always answers a beat too late, as if from very far away.",
+  "sources": [
+    { "title": "Site Reliability Engineering (Google), Chapter 12: Effective Troubleshooting (problem report, triage, examine, diagnose, test and treat, cure; \"correlation is not causation\"; bisection; what touched it last)", "url": "https://sre.google/sre-book/effective-troubleshooting/" },
+    { "title": "Amazon CloudWatch Logs User Guide: Analyzing log data with CloudWatch Logs Insights", "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AnalyzingLogData.html" },
+    { "title": "Amazon CloudWatch Logs User Guide: Supported logs and discovered fields (fields in JSON logs, @timestamp and @message)", "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_AnalyzeLogData-discoverable-fields.html" },
+    { "title": "Elastic Load Balancing: Request tracing for your Application Load Balancer (the X-Amzn-Trace-Id header)", "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-request-tracing.html" },
+    { "title": "Elastic Load Balancing: Access logs for your Application Load Balancer (off by default; elb_status_code, target_status_code and trace_id fields)", "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html" },
+    { "title": "Amazon CloudWatch Logs User Guide: CloudWatch Logs Insights language query syntax (fields, filter, sort, limit, parse)", "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html" },
+    { "title": "RFC 3339: Date and Time on the Internet: Timestamps (IETF, July 2002): Z means UTC", "url": "https://www.rfc-editor.org/rfc/rfc3339.html" },
+    { "title": "RFC 5424: The Syslog Protocol (IETF, March 2009): eight severity levels, from Emergency to Debug", "url": "https://www.rfc-editor.org/rfc/rfc5424.html" },
+    { "title": "OpenTelemetry specification: Logs Data Model (severity ranges TRACE, DEBUG, INFO, WARN, ERROR, FATAL; Timestamp and TraceId fields)", "url": "https://opentelemetry.io/docs/specs/otel/logs/data-model/" },
+    { "title": "W3C Recommendation: Trace Context (the traceparent header and its trace-id)", "url": "https://www.w3.org/TR/trace-context/" }
+  ]
+}

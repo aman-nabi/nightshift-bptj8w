@@ -1,0 +1,360 @@
+{
+  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "id": "s1e09",
+  "season": 1,
+  "n": 9,
+  "title": "The Filing Cabinet",
+  "setting": "a county records office",
+  "core": true,
+  "minutes": 12,
+  "concepts": ["tables", "primary-keys", "foreign-keys", "sql", "joins", "n-plus-one"],
+  "prerequisites": ["s1e01", "s1e02", "s1e04", "s1e06", "s1e07"],
+  "rule": null,
+  "post": {
+    "author": "u/deputy_recorder_pru",
+    "flair": "Part 1",
+    "age": "7h",
+    "votes": 2640,
+    "title": "Every night at 3 AM, something opens a folder in our records for every visitor, one at a time. And visitor 13 signs in. We have no 13.",
+    "blocks": [
+      { "t": "p", "text": "I'm the deputy recorder for Larkmoor County. I work nights, scanning deeds, the papers that say who owned which land, some going back to 1840. Until March, everything the office knew lived in one enormous spreadsheet that Mr. Abernethy kept for forty years. When he retired, the county hired a contractor to move it into a database, a program built to store records and find them fast." },
+      { "t": "p", "text": "She split it into three tables, like three drawers of a filing cabinet: residents, deeds and visits to our reading room. A table has fixed columns, like name and street, and one row per record. Every row gets a number that never changes, its primary key, like the number on a folder. A visit doesn't copy the visitor's name. It stores their resident number, a foreign key, like a slip that says *see folder 112*." },
+      { "t": "p", "text": "Every night at 3:00 AM the system builds the reading-room report: every visit since March, with the visitor's name. It takes 19 seconds. Abernethy's spreadsheet showed the same list instantly. The contractor opened the database's log, a list of every query, every question it's asked:" },
+      { "t": "log", "text": "03:00:00.004  SELECT * FROM visits;                        4811 rows\n03:00:00.008  SELECT name FROM residents WHERE id = 112;   1 row\n03:00:00.012  SELECT name FROM residents WHERE id = 7;     1 row\n03:00:00.016  SELECT name FROM residents WHERE id = 13;    0 rows\n03:00:19.248  report done: 4812 queries" },
+      { "t": "p", "text": "One question per visit. Something opens a folder for every visit, one at a time, every night at three. And then there's 13. On 212 lines of the report the name is blank. Every one is resident 13, at 3:07 AM. We have no resident 13. Abernethy's card index skips from 12 to 14. The reading room is locked at 3:07. I've checked." },
+      { "t": "beat", "text": "Someone keeps signing in as a person we never filed." },
+      { "t": "p", "text": "The county auditor visits next month. The contractor can make one change before then. Abernethy, on the phone, said only: *never use 13.* What should she change?" },
+      {
+        "t": "evidence",
+        "label": "report_queries.png",
+        "diagram": {
+          "type": "arch",
+          "w": 760,
+          "h": 280,
+          "aria": "The 3 AM report and the database. The report sends 1 query for every visit, then 4,811 more queries, one for each visitor's name: 4,812 round trips one after another, about 4 ms each, 19 seconds in all. For resident 13 the database returns 0 rows, so the name is blank.",
+          "nodes": [
+            { "id": "report", "label": "3 AM report", "sub": "every visit + a name", "meta": "19 seconds", "x": 130, "y": 140, "w": 200, "h": 62, "shape": "box", "tone": "warn" },
+            { "id": "db", "label": "Database", "sub": "residents, deeds, visits", "meta": "about 4 ms an answer", "x": 620, "y": 140, "w": 200, "h": 90, "shape": "db", "tone": "" }
+          ],
+          "edges": [
+            { "from": "report", "to": "db", "label": "1 query: every visit", "via": [[130, 60], [620, 60]] },
+            { "from": "report", "to": "db", "label": "4,811 more: one name each", "via": [[130, 225], [620, 225]], "dash": true, "tone": "bad" }
+          ],
+          "notes": [
+            { "x": 375, "y": 145, "text": "4,812 round trips, one after another", "tone": "warn", "anchor": "middle" },
+            { "x": 375, "y": 262, "text": "resident 13: 0 rows, a blank name", "tone": "bad", "anchor": "middle" }
+          ]
+        },
+        "caption": "I drew this for the auditor's file. The report asks once for every visit, then once more for each visit's name, 4,811 times, one after another. Every question is quick. There are just a lot of them. For resident 13, the answer is always nothing."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 84,
+      "age": "6h",
+      "text": "Count the questions. 4,811 visits, 4,812 queries: one for the list, then a loop, code that repeats the same step for each row, asking once more for every row in it. Engineers call that the N+1 problem. Each query is quick, but each one is a round trip to the database, one after another. A join asks once: it matches rows from two tables, each visit with its resident, inside a single query. Then ask your contractor what writes those 3:07 visits.",
+      "replies": [
+        {
+          "author": "u/deputy_recorder_pru",
+          "op": true,
+          "points": 30,
+          "age": "5h",
+          "text": "She says the badge reader on the reading-room door adds a visit every time a badge is swiped. She's finding out whose badge files as 13."
+        }
+      ]
+    },
+    {
+      "author": "u/sql_after_dark",
+      "points": 52,
+      "age": "5h",
+      "text": "SQL is the language you ask a database things in. SELECT picks the columns, FROM picks the table, WHERE keeps only the rows you want, ORDER BY sorts them, and INSERT adds a row. When you rewrite that report as a join, choose the kind carefully. An inner join keeps only visits whose resident exists. A left join keeps every visit and leaves the name empty, NULL, when there's no match."
+    },
+    {
+      "author": "u/microfiche_mo",
+      "points": 33,
+      "age": "4h",
+      "text": "Before anyone deletes anything, count. SELECT resident_id, COUNT(*) FROM visits GROUP BY resident_id puts each resident's visits into a group and counts each group, all in one query. I'd bet 13 is near the top of that list."
+    },
+    {
+      "author": "u/night_notary_jo",
+      "points": 19,
+      "age": "3h",
+      "text": "Forty years Abernethy kept 13 empty. The first thing the computer did was fill it."
+    }
+  ],
+  "reply": {
+    "prompt": "The contractor can make one change before the auditor's visit. What should it be? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Move the database to a bigger, faster server. A 19-second report means it's overloaded.",
+        "tone": "bad",
+        "verdict": "The server isn't the slow part",
+        "part2": "The county paid for the bigger server. The report took 19 seconds. Then 19 seconds again. The contractor showed me the new server's CPU during the run: 2%. It answers each question in a blink, then waits for the next one. 4,812 times.",
+        "senior": "Each query is quick. The time is 4,812 round trips, one after another. A faster server shortens the tiny part, not the waiting. Count the queries before you buy hardware."
+      },
+      {
+        "text": "Rewrite the report as one query that joins visits to residents with an inner join.",
+        "tone": "warn",
+        "verdict": "Trade-off. Fast, but it hides 13",
+        "part2": "The report now takes a quarter of a second. It's beautiful. It's also 212 lines shorter. The auditor counted the visits table, 4,811 rows, then the report, 4,599 lines, and asked where the other 212 had gone. I didn't have an answer. Neither did the report.",
+        "senior": "A join is the right speed fix, but an inner join keeps only visits whose resident exists. The 212 visits by 13 match nobody, so they vanish without a word. When rows may not match, a left join keeps them, and then you find out why they don't match."
+      },
+      {
+        "text": "Keep the report's loop, but first load every resident's name into the report program's memory in one query, and look the names up there.",
+        "tone": "warn",
+        "verdict": "Trade-off. Fewer queries, more to carry",
+        "part2": "Two queries, and the report was done in under a second. Then the county scanned in the 1950s deeds, the residents table grew past half a million rows, and every night the report loaded all of them to print a few thousand names. And on 212 lines, resident 13 is still blank, because nothing checks who a visit points at.",
+        "senior": "Fetching what you need in one or two queries does fix the N+1 problem. The tidy version asks only for the names it needs, in one batched query. But your code is now doing the database's matching, and it does nothing about rows that point at nobody."
+      },
+      {
+        "text": "Replace the loop with one query that left-joins visits to residents, so every visit appears and unmatched ones show up empty. Then turn on foreign key checks, so no new visit can point at a resident who doesn't exist.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "One query. The report takes a quarter of a second, and all 4,811 visits are there, 212 of them marked *no resident on file*. The next night, at 3:07, the database refused a visit for the first time: FOREIGN KEY constraint failed, resident 13. The contractor traced it to the badge reader on the reading-room door. During the move she had set it to file every staff badge as resident 13, a number nobody would ever have, because Abernethy never used it. Staff got their own table that week. I asked the night guard about his 3:07 round. He says he does it at four.",
+        "senior": "Let the database do the matching: one join instead of thousands of round trips, and a left join when some rows might not match, so nothing disappears quietly. Then make the database enforce the relationship with a foreign key, so bad rows are refused when they're written instead of discovered in a report."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s1e09",
+    "title": "Open the filing cabinet",
+    "lede": "This is a real SQL console. A small copy of the office's records, 14 residents, 8 deeds and 12 visits, lives in SQLite, a small database engine, running right here in your browser. Pick a preset or type your own SQL and press Run. The N+1 race builds the visitor report three ways and counts the queries. It charges 1 ms per query, a teaching assumption: real round trips vary.",
+    "tryThis": "Try this: run the inner join, then the left join, and count the rows: two visits by resident 13 vanish from one and show up with NULL in the other. Run the GROUP BY preset to count visits per resident. Press the N+1 race: 13 queries against 1. Then run the foreign key preset and watch the database refuse a visit by resident 13. Type your own SELECT too. Reset puts everything back."
+  },
+  "explain": {
+    "oneLine": "Nothing was reading the folders. The report asked the database one question per visit, 4,812 round trips a night, and the 212 blank names belong to visits that point at a resident who was never filed.",
+    "steps": [
+      {
+        "title": "A database keeps records in tables.",
+        "text": "Each table holds one kind of thing: residents, deeds, visits. Columns are the fields every row has, like name and street, and each row is one record. The primary key, residents.id, is a value that must be unique and never empty, so other tables can point at a row safely. Abernethy's spreadsheet copied a name onto every visit line. The database stores each name once, in residents, and a visit points at it with a foreign key, visits.resident_id."
+      },
+      {
+        "title": "SQL asks for exactly what you want.",
+        "text": "SELECT name, street FROM residents WHERE street = 'Coldwater Lane' ORDER BY name reads like a request slip: these columns, from this table, only these rows, in this order. INSERT INTO visits (resident_id, visited_at) VALUES (7, '2026-10-06 03:30') adds a row. GROUP BY sorts rows into groups and COUNT(*) counts each group, so SELECT resident_id, COUNT(*) FROM visits GROUP BY resident_id gives visits per resident in a single query."
+      },
+      {
+        "title": "The report made 4,812 round trips.",
+        "text": "It ran one query for the list of visits, then, in a loop, one more for each visitor's name: 1 + N queries, the N+1 problem. Each was quick, but each is a round trip to the database plus a little work, about 4 ms here, and 4,812 of them one after another take 19 seconds. A join does the matching inside the database instead: SELECT visits.visited_at, residents.name FROM visits LEFT JOIN residents ON residents.id = visits.resident_id is one query and one round trip. A batched lookup works too: fetch the visits, then every name at once with WHERE id IN (...), two queries in all."
+      },
+      {
+        "title": "Inner or left decides what happens to 13.",
+        "text": "An inner join keeps only pairs that match, so every visit by resident 13 would vanish from the report without a word. A left join keeps every visit and fills the missing name with NULL, which is what a report that must account for every row needs. The rows exist because nothing checked them. The contractor built the database on SQLite, which only enforces foreign keys when each connection turns the check on. And the badge reader on the reading-room door had been set to file every staff badge as resident 13."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 330,
+      "aria": "The office's three tables. residents has id as its primary key, plus name, street and born: 3,904 rows, and no id 13. deeds and visits each have a resident_id column, a foreign key that points at residents.id. visits has 4,811 rows, and 212 of them point at id 13, which matches nothing.",
+      "nodes": [
+        { "id": "res", "label": "residents", "sub": "id (primary key)", "meta": "3,904 rows, no id 13", "x": 370, "y": 85, "w": 220, "h": 80, "shape": "db", "tone": "" },
+        { "id": "deeds", "label": "deeds", "sub": "resident_id (foreign key)", "meta": "parcel, recorded", "x": 130, "y": 250, "w": 220, "h": 80, "shape": "db", "tone": "" },
+        { "id": "visits", "label": "visits", "sub": "resident_id (foreign key)", "meta": "4,811 rows", "x": 610, "y": 250, "w": 220, "h": 80, "shape": "db", "tone": "warn" }
+      ],
+      "edges": [
+        { "from": "deeds", "to": "res", "label": "resident_id = id" },
+        { "from": "visits", "to": "res", "label": "resident_id = id", "tone": "warn" }
+      ],
+      "notes": [
+        { "x": 610, "y": 312, "text": "212 rows point at id 13", "tone": "bad", "anchor": "middle" }
+      ]
+    },
+    "caption": "Three drawers, one key between them. Each deed and each visit holds a resident's id, and a join matches it to residents.id. 212 visits hold 13, which matches nothing: an inner join drops them, a left join keeps them with an empty name.",
+    "fix": {
+      "title": "The fix: let the database match, and let it refuse",
+      "text": "Replace the loop with one query that joins visits to residents. Use a left join, so every visit appears and the ones that match nobody show up with an empty name instead of vanishing. That's one round trip instead of 4,812. If the code is built with an ORM, a library that writes SQL for you, use its eager loading, which fetches related rows up front with a join or a batched IN query. Then turn on foreign key checks for every connection (in SQLite, PRAGMA foreign_keys = ON), so a visit for a resident who doesn't exist is refused when it's written. Finally, give staff badges their own table instead of a fake resident number, and decide what the 212 old rows should become."
+    },
+    "limits": [
+      "A join isn't free. Matching big tables is still work inside the database, and it needs an index on the matching column to be fast, which gets its own case in Season 3. But one join is almost always far cheaper than thousands of round trips.",
+      "Turning foreign keys on only guards new writes. Rows that already point at nobody stay until someone fixes or deletes them, and every program that writes those rows, like the badge reader, starts getting errors it must handle.",
+      "Batching has a ceiling too. An IN list with tens of thousands of IDs gets long and slow, so very large lists are split into chunks or replaced by a join."
+    ],
+    "tradeoff": {
+      "head": ["How the report gets names", "Good", "Bad"],
+      "rows": [
+        ["One query per visit (N+1)", "Simple code. Each query is tiny.", "One round trip per row: 4,812 here, 19 seconds, and slower every night as visits grow."],
+        ["One query with a join", "One round trip. The database does the matching.", "You must choose inner or left on purpose, and big joins need the right index."],
+        ["Two queries: the visits, then names WHERE id IN (...)", "Two round trips. Easy to add to existing code, and how many ORMs do eager loading.", "Your code does the matching, and a very long ID list must be split."]
+      ]
+    },
+    "seniorTake": "Count queries, not just milliseconds. A page whose query count grows with its rows is a loop talking to the database, and it gets slower every day it runs. Let the database match rows with a join, choose inner or left on purpose, and let it enforce your foreign keys, so bad data is stopped when it's written instead of found by an auditor.",
+    "realWorld": [
+      {
+        "title": "Rails names the problem",
+        "text": "The Ruby on Rails guide to Active Record queries shows the N + 1 queries problem with ten books: code that loads 10 books and then prints each book's author runs 1 query for the books and 10 more, one per author, 11 in total. Loading them with includes(:author) cuts it to 2 queries: one for the books, and one for all their authors with WHERE authors.id IN (1,2,3,4,5,6,7,8,9,10).",
+        "source": 0
+      },
+      {
+        "title": "Django offers a join or a batch",
+        "text": "Django's documentation describes select_related as following foreign-key relationships and fetching the related rows in the same query: a single, more complex query, so later use of the relationship doesn't hit the database again. prefetch_related instead does a separate lookup for each relationship and does the joining in Python. Both, the documentation says, are designed to stop the deluge of database queries caused by accessing related objects.",
+        "source": 1
+      },
+      {
+        "title": "PostgreSQL on inner and left joins",
+        "text": "PostgreSQL's tutorial calls queries that access several tables at once join queries. In its inner join example, a city with no matching row in the other table gets no result row at all: the join ignores unmatched rows. A left outer join keeps every row of the left table at least once, and when a row has no match, empty (null) values are substituted for the right table's columns.",
+        "source": 2
+      },
+      {
+        "title": "SQLite checks foreign keys only when asked",
+        "text": "SQLite's documentation says foreign key constraints are disabled by default, for backwards compatibility, and must be enabled separately for each database connection, with PRAGMA foreign_keys = ON. A table can declare a foreign key and still accept rows that point at nothing, if the connection writing them never turned the check on.",
+        "source": 3
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What is the N+1 query problem, and how do you fix it?",
+        "What's the difference between an inner join and a left join?"
+      ],
+      "answer": "N+1 is code that fetches a list with one query, then runs one more query per item to fetch something related, so the query count grows with the data and every query pays a round trip. Spot it by counting queries per request, or in a tool like pg_stat_statements, where one short query has a huge call count. Fix it with a join, or with a second batched query using WHERE id IN (...). In an ORM that's eager loading: includes in Rails, select_related or prefetch_related in Django. An inner join returns only rows that match on both sides. A left join returns every row from the left table and fills the right side with NULL when there's no match. Name the trap: replacing an N+1 loop with an inner join can silently drop rows that have no match."
+    }
+  },
+  "terms": [
+    { "term": "Database table", "def": "One kind of record in a database, like residents or visits, laid out in columns and rows. Like one drawer of a filing cabinet." },
+    { "term": "Rows and columns", "def": "A column is a field every record has, like name or street. A row is one record, one value per column, like one folder in the drawer." },
+    { "term": "Primary key", "def": "A column whose value identifies each row: unique, never empty, never changed. Other tables point at a row by its primary key." },
+    { "term": "Foreign key", "def": "A column that holds another table's primary key, like visits.resident_id holding a resident's id. Declared as a constraint, it can stop rows that point at nothing." },
+    { "term": "Constraint", "def": "A rule the database enforces on its data, such as \"this value must be unique\" or \"this id must exist in residents\". Breaking it makes the write fail." },
+    { "term": "Referential integrity", "def": "The guarantee a foreign key gives: every reference points at a row that really exists." },
+    { "term": "SQL", "def": "Structured Query Language: the standard language for asking a relational database for data and changing it. Used by PostgreSQL, SQLite, MySQL and many more." },
+    { "term": "Query", "def": "In a database, one request written in SQL, such as a SELECT, and its answer. Each query from an app is usually its own round trip." },
+    { "term": "SELECT and FROM", "def": "The SQL that reads data. SELECT names the columns you want, FROM names the table. SELECT * means every column." },
+    { "term": "WHERE clause", "def": "The part of a query that keeps only the rows you want, like WHERE street = 'Coldwater Lane'." },
+    { "term": "ORDER BY", "def": "The part of a query that sorts the result, like ORDER BY name. DESC sorts largest first." },
+    { "term": "INSERT INTO", "def": "The SQL that adds a new row: INSERT INTO visits (resident_id, visited_at) VALUES (7, '2026-10-06 03:30')." },
+    { "term": "GROUP BY", "def": "The part of a query that sorts rows into groups by a column's value, so a function like COUNT(*) gives one answer per group." },
+    { "term": "COUNT(*) function", "def": "An aggregate function that counts rows. With GROUP BY it counts the rows in each group." },
+    { "term": "Aggregate function", "def": "A function that turns many rows into one result, like COUNT, SUM, AVG, MAX or MIN." },
+    { "term": "Join", "def": "A query that combines rows from two tables, pairing them by a rule such as residents.id = visits.resident_id, in one round trip." },
+    { "term": "Inner join", "def": "A join that keeps only pairs that match on both sides. Written JOIN or INNER JOIN. Rows with no match disappear from the result." },
+    { "term": "Left join", "def": "A join that keeps every row of the left table. Where there's no match on the right, the right side's columns are NULL. Also called a left outer join." },
+    { "term": "NULL", "def": "SQL's marker for \"no value\". A left join fills the missing side with NULL." },
+    { "term": "IN list", "def": "A WHERE condition that matches any value in a list, like WHERE id IN (1, 7, 112). It lets one query fetch many rows by id." },
+    { "term": "N+1 query problem", "def": "Fetching a list with one query, then running one more query per item for related data: 1 + N queries, one round trip each, growing with the data." },
+    { "term": "Batched query", "def": "Fetching many related rows in one query, such as every visitor's name with WHERE id IN (...), instead of one query each." },
+    { "term": "Loop (code)", "def": "Code that repeats the same steps once for every item in a list, such as once per visit." },
+    { "term": "Index", "def": "A sorted lookup structure a database keeps for a column, so it can find matching rows without reading the whole table." },
+    { "term": "ORM", "def": "Object-relational mapper: a library that turns rows into objects in your code and writes the SQL for you. It can quietly hide an N+1 loop." },
+    { "term": "Eager loading", "def": "Telling an ORM to fetch related rows up front, with a join or one batched query, instead of one query per item later." },
+    { "term": "Ruby on Rails", "def": "A popular web framework, a ready-made toolkit for building web apps, written in the Ruby language. Active Record is its ORM." },
+    { "term": "Active Record", "def": "Ruby on Rails' ORM. Its includes method turns on eager loading." },
+    { "term": "Python", "def": "A popular programming language, often used for web apps and data work." },
+    { "term": "Django", "def": "A popular web framework for Python. Its ORM offers select_related (a join) and prefetch_related (a batched query) to avoid N+1." },
+    { "term": "SQLite", "def": "A small, popular SQL database engine that keeps a whole database in one file, or in memory. This case's sim runs it in your browser." },
+    { "term": "sql.js", "def": "SQLite compiled to JavaScript so it can run inside a web browser. The sim uses it." },
+    { "term": "Database connection", "def": "One open line between a program and its database. Some settings, like SQLite's foreign key checks, apply per connection." },
+    { "term": "PRAGMA foreign_keys", "def": "The SQLite command that turns foreign key checks on (= ON) or off for the current connection. They are off by default." },
+    { "term": "Query log", "def": "A list a database can keep of every query it receives, with times. It shows N+1 loops plainly." },
+    { "term": "pg_stat_statements", "def": "A PostgreSQL extension that tracks statistics for every query shape, including calls, how many times it ran." },
+    { "term": "Placeholder ($1)", "def": "A stand-in for a value in a query, like WHERE id = $1. Tools group queries that differ only in such values." },
+    { "term": "CloudWatch Database Insights", "def": "An AWS monitoring view for Amazon RDS databases that shows database load and lets you filter it by SQL statement, waits, hosts or users." },
+    { "term": "Schema", "def": "The design of a database: its tables, their columns, and the keys and constraints between them." },
+    { "term": "Badge reader", "def": "The box by a door that reads an ID badge. This one also adds a row to the visits table each time a badge is swiped." },
+    { "term": "Deed", "def": "A legal paper recording who owns a piece of land. A county records office keeps them." },
+    { "term": "Parcel", "def": "One piece of land with its own number in the county's records." },
+    { "term": "Auditor", "def": "A person who checks an organization's records for accuracy." },
+    { "term": "Deputy recorder", "def": "An official at a county records office who files and keeps land and public records." }
+  ],
+  "atWork": "If your database is PostgreSQL, on Amazon RDS or anywhere else, ask whether the pg_stat_statements extension is turned on. Where it is, it lists each query shape with its values replaced by placeholders like $1, plus a calls column counting how many times it ran. Sort by calls: a short query like SELECT ... WHERE id = $1 with an enormous count is usually a loop in the app. On Amazon RDS, CloudWatch Database Insights also shows database load broken down by SQL statement. Pick one slow page, count its queries per request, and check whether your ORM uses eager loading there. Then pick one foreign key your schema declares and confirm the database actually enforces it.",
+  "board": {
+    "cards": [
+      { "id": "tables", "title": "Tables" },
+      { "id": "primary-keys", "title": "Primary key" },
+      { "id": "foreign-keys", "title": "Foreign key" },
+      { "id": "sql", "title": "SQL" },
+      { "id": "joins", "title": "Joins" },
+      { "id": "n-plus-one", "title": "N+1 queries" }
+    ],
+    "strings": [
+      { "from": "primary-keys", "to": "tables", "label": "names each row" },
+      { "from": "foreign-keys", "to": "primary-keys", "label": "points at a" },
+      { "from": "sql", "to": "tables", "label": "asks questions of" },
+      { "from": "joins", "to": "foreign-keys", "label": "match rows by" },
+      { "from": "n-plus-one", "to": "joins", "label": "fixed by one" },
+      { "from": "n-plus-one", "to": "network", "label": "a round trip each" }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s1e09-r1",
+      "kind": "free",
+      "prompt": "An orders page lists 50 orders with each customer's name. It's slow, and the database log shows 51 queries for every page view: one for the orders, then one per order for its customer. What's going on, and how do you fix it?",
+      "keyIdeas": [
+        { "idea": "It's the N+1 problem: 1 + 50 queries, one round trip each", "match": ["n+1", "n + 1", "one per order", "51", "round trip", "loop", "per row"] },
+        { "idea": "Fetch orders and customers together with one join", "match": ["join", "one query", "single query"] },
+        { "idea": "Or fetch all the customers in one batched query (WHERE id IN), eager loading in an ORM", "match": ["in (", "where id in", "batch", "eager", "includes", "select_related", "prefetch", "two queries", "2 queries"] },
+        { "idea": "Use a left join, or check counts, if some orders might have no matching customer", "match": ["left join", "outer join", "no match", "null", "missing customer", "count"] }
+      ],
+      "model": "It's the N+1 problem: one query for the 50 orders, then a loop that asks for each order's customer separately, 51 round trips in a row for every page view, and it grows with the page size. Get the orders and their customers in one query by joining orders to customers on the customer id. If some orders might have no matching customer, use a left join so they still appear, with NULL for the name. If the code uses an ORM, turn on eager loading, which does the same thing as a join or as one batched query with WHERE id IN (...). Two queries at most, instead of 51."
+    },
+    {
+      "id": "s1e09-r2",
+      "kind": "mcq",
+      "prompt": "The visits table has 4,811 rows, and 212 of them have a resident_id that matches no resident. How many rows does visits INNER JOIN residents return?",
+      "options": ["4,811", "212", "4,599", "4,812"],
+      "answer": 2,
+      "why": "An inner join keeps only the pairs that match. 4,811 minus the 212 that match nobody leaves 4,599. A left join would return all 4,811, with NULL names on 212 of them."
+    },
+    {
+      "id": "s1e09-r3",
+      "kind": "mcq",
+      "prompt": "What does a primary key guarantee?",
+      "options": [
+        "Each row's value is unique and never empty, so other tables can point at it",
+        "The table is always sorted by it",
+        "The row can never be deleted",
+        "Its values are hidden from queries"
+      ],
+      "answer": 0,
+      "why": "A primary key identifies each row: unique and not null. That's what lets a foreign key elsewhere point at exactly one row."
+    },
+    {
+      "id": "s1e09-r4",
+      "kind": "free",
+      "prompt": "A teammate needs the number of visits each resident made. Their plan: fetch every visit into the app, then count them in a loop. What would you suggest instead, and why?",
+      "keyIdeas": [
+        { "idea": "Let the database count: GROUP BY resident_id with COUNT(*)", "match": ["group by", "count(", "count(*)", "aggregate"] },
+        { "idea": "One query and one round trip", "match": ["one query", "single query", "one round trip", "1 query"] },
+        { "idea": "Only one row per resident comes back instead of every visit", "match": ["one row per", "fewer rows", "less data", "instead of every", "not every visit", "smaller"] }
+      ],
+      "model": "Ask the database to do the counting: SELECT resident_id, COUNT(*) FROM visits GROUP BY resident_id. It's one query and one round trip, and it sends back one row per resident instead of every visit, so far less data crosses the network and the app has nothing to loop over. Add a join to residents if you want names next to the counts, a left join from residents if you also want the people with no visits."
+    },
+    {
+      "id": "s1e09-r5",
+      "kind": "mcq",
+      "prompt": "The office's SQLite database accepted 212 visits for resident 13, who doesn't exist, even though visits.resident_id was declared as a foreign key. Why?",
+      "options": [
+        "Foreign keys only work in PostgreSQL",
+        "SQLite only checks foreign keys when each connection turns them on, with PRAGMA foreign_keys = ON",
+        "13 is a reserved number in SQL",
+        "The visits were written by a join"
+      ],
+      "answer": 1,
+      "why": "SQLite's foreign key checks are off by default, for backwards compatibility, and must be enabled on every connection. Nothing turned them on, so nothing refused the bad rows."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 3 months later. The night report is one left join now and takes a quarter of a second. The county added a new page to its website: for each deed, the owner's name and their last three visits. The contractor's first version loads the 50 deeds on a page, then asks for each deed's owner, then asks for that owner's visits. A page takes 1.4 seconds, and the database log shows 101 queries for every page view.",
+    "prompt": "Reply to OP. What's happening, and what should the contractor change?",
+    "keyIdeas": [
+      { "idea": "It's the N+1 problem twice: 1 + 50 + 50 = 101 round trips", "match": ["n+1", "n + 1", "101", "1 + 50", "twice", "loop", "round trip", "per deed"] },
+      { "idea": "Get deeds and owners in one query with a join", "match": ["join", "one query", "single query"] },
+      { "idea": "Get every owner's visits in one batched query and pick the last three per owner", "match": ["in (", "where resident_id in", "batch", "one more query", "all the visits", "last three", "eager", "prefetch"] },
+      { "idea": "Count queries per page so the next loop is caught early", "match": ["count queries", "query count", "test", "alert", "monitor", "pg_stat_statements", "log"] }
+    ],
+    "model": "It's the N+1 problem twice over: one query for the 50 deeds, then 50 for the owners and 50 more for their visits, 101 round trips for one page. Get the deeds and their owners in one query by joining deeds to residents, a left join if a deed might have no owner on file. Then fetch every owner's visits in a single batched query, WHERE resident_id IN (...) with those owners' ids, ordered by date, and keep the last three per owner in the code. If the site uses an ORM, that's eager loading. Two queries instead of 101. Then add a check that counts queries per page view, so the next loop is caught before an auditor finds it."
+  },
+  "next": "Next: a ferry company moves its servers into the cloud. One winter morning, part of the cloud goes dark.",
+  "sources": [
+    { "title": "Ruby on Rails Guides: Active Record Query Interface, N + 1 Queries Problem (eager loading with includes)", "url": "https://guides.rubyonrails.org/active_record_querying.html#n-1-queries-problem" },
+    { "title": "Django documentation 5.2: QuerySet API reference, select_related() and prefetch_related()", "url": "https://docs.djangoproject.com/en/5.2/ref/models/querysets/#select-related" },
+    { "title": "PostgreSQL documentation: Tutorial, Joins Between Tables (inner and left outer joins)", "url": "https://www.postgresql.org/docs/current/tutorial-join.html" },
+    { "title": "SQLite documentation: SQLite Foreign Key Support, Enabling Foreign Key Support (disabled by default, enabled per connection)", "url": "https://www.sqlite.org/foreignkeys.html#fk_enable" },
+    { "title": "PostgreSQL documentation: Constraints (primary keys are unique and not null; foreign keys keep referential integrity)", "url": "https://www.postgresql.org/docs/current/ddl-constraints.html" },
+    { "title": "PostgreSQL documentation: Tutorial, Aggregate Functions (count, GROUP BY, HAVING)", "url": "https://www.postgresql.org/docs/current/tutorial-agg.html" },
+    { "title": "PostgreSQL documentation: pg_stat_statements, tracking statistics of SQL statements (the calls column)", "url": "https://www.postgresql.org/docs/current/pgstatstatements.html" },
+    { "title": "Amazon RDS User Guide: Monitoring Amazon RDS databases with CloudWatch Database Insights", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_DatabaseInsights.html" },
+    { "title": "sql.js: SQLite compiled to JavaScript, for running a SQL database in the browser (GitHub)", "url": "https://github.com/sql-js/sql.js" }
+  ]
+}
