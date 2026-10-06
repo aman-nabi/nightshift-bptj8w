@@ -1,5 +1,76 @@
-/* engine/core-v1.1.1.js
+/* engine/core-v1.2.0.js
    CHANGELOG
+   v1.2.1 (2026-10-07) default pace is plan B for learning both courses in parallel: 45 minutes on weekdays, 80 on weekend days.
+   v1.2.0 (2026-10-07) engine contract v1.1.0 section 9 (9.1 to 9.8): two
+     courses (Dead Letter and LATENT) on one forum, plus Build Nights.
+     - 9.1/9.2 DL.content.loadCatalog() reads content/courses.json first.
+       On a 404 it behaves exactly as v1 (only content/catalog.json, and
+       caseMeta, loadCase and orderedSessions keep their v1 behavior while
+       the catalog has no `courses`). A rejected fetch of courses.json
+       rejects. Otherwise it loads every course catalog (each one required),
+       the plan and every builds file (a 404 on the plan or a builds file
+       gives an empty default) and exposes one merged catalog: `courses`,
+       `seasons` (with `course` and `key` = course + ":" + n), `cases`,
+       `interviews` and `lld` (with `course`; lld is always "dl"), `rules`
+       (Dead Letter's), `concepts` (merged, first course wins per id),
+       `builds` (every milestone with `project`, `projectTitle`, `repo`,
+       `course` and `minutes`, default 75), `projects` (one entry per
+       builds file) and `plan` (defaults filled in). caseMeta(id) searches
+       cases, interviews, lld and builds, so a caller that used
+       caseMeta(id) === null to recognise a non-case id (ui-v1.1.0 does
+       this for interviews) must now check which list the entry came from.
+       loadCase(id) fetches <contentBase>/<prefix><season>/<id>.json
+       through the case's course.
+     - 9.3 progress state v2: defaultState() has v: 2, builds: {},
+       settings.schedule "parallel" and settings.githubOwner "aman-nabi".
+       normalize() (so init() and every update()) migrates a v1 state by
+       adding the missing keys and keeps everything else; v never goes
+       below 2. DL.store.migrate(raw) exposes it. savedAt is unchanged
+       from v1.1.1. DL.sync packs settings.schedule, settings.githubOwner,
+       card.build and a new `builds` section (sync code format 1 is kept:
+       a v1.1.1 decoder skips the section). DL.sync.merge merges builds
+       (the later `done` wins; on the same date a verified entry beats an
+       unverified one; else local) and counts them in the summary.
+     - 9.4 orderedSessions(plan, schedule?, state?): `plan` is "core",
+       "all" or a settings object. The schedule defaults to the store's
+       settings.schedule, the state (for build locks) to the store's
+       state. "parallel" follows catalog.plan.schedules.parallel.phases[]
+       .sessions (syllabus order of every course, then builds, when the
+       plan has no sessions); "dl-only" and "lt-only" keep that course's
+       plan items in plan order, then its other items in syllabus order,
+       then its other builds. Items: { id, kind, course, minutes, status,
+       core, season, title, weekendOnly, phase }. Builds: kind "build",
+       weekendOnly true, core true, season null, minutes from the file
+       (default 75), status "ready" when unlocked else "locked", course
+       "lt" for X ids and "dl" for the rest. Unknown ids are skipped.
+     - 9.5 pace.plan: on a weekday, weekendOnly items never enter
+       newItems (the next eligible items in order do); they still count in
+       share and status. The cap uses each item's own minutes and still
+       stops at the first item that doesn't fit. The one guaranteed
+       session is the first eligible item.
+     - 9.6 DL.builds: list(), get(id), isUnlocked(id, state?) (every
+       unlockAfter case has a `done` date in state.cases; credited cases
+       count), checkTag({ owner, repo, tag }) and markDone(id, { tag,
+       verified, note }). checkTag makes one GitHub API call (plus one
+       follow-up GET /repos/<owner>/<repo> on a 404: 404 there is no-repo,
+       anything else missing; 403 or 429 is rate-limited; a thrown fetch
+       or another status is error), only when called, never retried, and
+       resolves { status, message } in plain words. markDone writes
+       state.builds[id] through DL.store.update; marked again, it keeps
+       the first done date, stays verified once verified and keeps the
+       note when no new one is given.
+     - 9.7 decision cards: markDone with a note creates card "build:<id>"
+       ({ step, due, history, rot, build: id }). sched.promptFor returns
+       { kind: "decision", prompt: milestone.decisionPrompt, model: the
+       learner's note } for such a card (or for a milestone passed as
+       caseObj). sched.reviewKind gives "decision" for it.
+     - 9.8 DL.credits.apply(state, catalog?) is pure and returns
+       [{ id, from }] for every plan.credits target that is not done and
+       whose sources are all done. DL.credits.applyToStore(catalog?)
+       writes cases[id] = { done, creditedFrom } and no card, for the UI
+       to call after closing a case.
+     - SESSION_MINUTES gains build: 75. The router is unchanged (the
+       #build/<id> route is contract 9.9, out of this version's scope).
    v1.1.1 (2026-10-06) the store no longer loses local progress on load
      (contract 3.4, "does not lose local data"). Before, init() always let
      the cloud copy replace the local one and then wrote it over local
@@ -291,11 +362,15 @@
   /* DL.content (contract 3.3)                                          */
   /* ================================================================== */
 
-  var SESSION_MINUTES = { "case": 12, lld: 20, interview: 35 };
+  var SESSION_MINUTES = { "case": 12, lld: 20, interview: 35, build: 75 };
+  var COURSES_URL = "content/courses.json";
+  var V1_CATALOG_URL = "content/catalog.json";
   var catalogPromise = null;
   var casePromises = {};
 
-  function fetchJSON(url, what) {
+  /* With `missingOk`, a 404 resolves null instead of rejecting (the course
+     registry, the plan and the builds files). */
+  function fetchJSON(url, what, missingOk) {
     var f = root.fetch;
     if (typeof f !== "function") {
       return Promise.reject(new Error("Could not load " + what + ": fetch is not available here."));
@@ -303,6 +378,7 @@
     return Promise.resolve()
       .then(function () { return f.call(root, url); })
       .then(function (res) {
+        if (missingOk && res && res.status === 404) return null;
         if (!res || res.ok === false) {
           var status = res && res.status ? ", HTTP " + res.status : "";
           throw new Error("Could not load " + what + " (" + url + status + ").");
@@ -321,19 +397,15 @@
     return null;
   }
 
+  function objList(x) { return Array.isArray(x) ? x.filter(isObj) : []; }
+
   /* Every session in syllabus order: per season, its cases by n (each
      followed by the lld cases whose `after` names it), then the season's
      finale interviews. lld cases without a known `after` go at the end of
-     Season 5. Placement happens on the full list first, then the core
-     filter, so a core lld after a bonus case keeps its spot. */
-  function orderedSessions(plan) {
-    var cat = content.catalog;
-    if (!isObj(cat)) return [];
-    var cases = Array.isArray(cat.cases) ? cat.cases.filter(isObj) : [];
-    var interviews = Array.isArray(cat.interviews) ? cat.interviews.filter(isObj) : [];
-    var llds = Array.isArray(cat.lld) ? cat.lld.filter(isObj) : [];
-    var seasons = Array.isArray(cat.seasons) ? cat.seasons.filter(isObj) : [];
-
+     Season 5. Returns [{ entry, kind, season }], each id once per kind.
+     Placement happens on the full list; any core filter comes after, so a
+     core lld after a bonus case keeps its spot. */
+  function syllabusEntries(cases, interviews, llds, seasons) {
     var seasonByN = {};
     var nums = [];
     function addNum(n) { if (typeof n === "number" && nums.indexOf(n) < 0) nums.push(n); }
@@ -357,17 +429,7 @@
       var key = kind + ":" + entry.id;
       if (seen[key]) return;
       seen[key] = true;
-      var minutes = SESSION_MINUTES[kind];
-      if (kind === "case" && typeof entry.minutes === "number" && entry.minutes > 0) minutes = entry.minutes;
-      out.push({
-        id: entry.id,
-        kind: kind,
-        minutes: minutes,
-        status: entry.status || "planned",
-        season: season,
-        title: entry.title || entry.id,
-        core: entry.core === true
-      });
+      out.push({ entry: entry, kind: kind, season: season });
     }
 
     var endPlaced = false;
@@ -395,20 +457,316 @@
     // Interviews with no season and no finale slot still appear, at the end.
     interviews.forEach(function (iv) { add(iv, "interview", typeof iv.season === "number" ? iv.season : null); });
 
-    return plan === "core" ? out.filter(function (it) { return it.core; }) : out;
+    return out;
+  }
+
+  function entryMinutes(entry, kind) {
+    if (kind === "case" && typeof entry.minutes === "number" && entry.minutes > 0) return entry.minutes;
+    return SESSION_MINUTES[kind];
+  }
+
+  /* v1 (a catalog without `courses`): exactly the v1.1.1 items. */
+  function orderedSessionsV1(cat, planName) {
+    var out = syllabusEntries(objList(cat.cases), objList(cat.interviews), objList(cat.lld), objList(cat.seasons))
+      .map(function (r) {
+        return {
+          id: r.entry.id,
+          kind: r.kind,
+          minutes: entryMinutes(r.entry, r.kind),
+          status: r.entry.status || "planned",
+          season: r.season,
+          title: r.entry.title || r.entry.id,
+          core: r.entry.core === true
+        };
+      });
+    return planName === "core" ? out.filter(function (it) { return it.core; }) : out;
+  }
+
+  var SCHEDULES = ["parallel", "dl-only", "lt-only"];
+
+  /* Contract 9.4: the crossover milestones X1..X7 belong to LATENT; every
+     other milestone (Gatekeeper, Loadout, Nightwatch N1..N7) to Dead Letter. */
+  function buildCourse(id) { return /^X\d/i.test(String(id)) ? "lt" : "dl"; }
+
+  function buildMinutes(m) {
+    return typeof m.minutes === "number" && m.minutes > 0 ? m.minutes : SESSION_MINUTES.build;
+  }
+
+  function storeSettings() {
+    var s = store.get();
+    return isObj(s) && isObj(s.settings) ? s.settings : {};
+  }
+
+  /* For the merged catalog: id -> { entry, kind, course, season } for every
+     session, each course's ids in syllabus order, and the build ids in
+     file order. The first entry with an id wins. */
+  function sessionIndex(cat) {
+    var index = {};
+    var syllabus = {};
+    var courses = objList(cat.courses);
+    var cases = objList(cat.cases);
+    var interviews = objList(cat.interviews);
+    var llds = objList(cat.lld);
+    var seasons = objList(cat.seasons);
+    function courseOf(e) { return typeof e.course === "string" && e.course ? e.course : "dl"; }
+    courses.forEach(function (course) {
+      var cid = course.id;
+      function mine(e) { return courseOf(e) === cid; }
+      var ids = syllabus[cid] = [];
+      syllabusEntries(cases.filter(mine), interviews.filter(mine), llds.filter(mine), seasons.filter(mine))
+        .forEach(function (r) {
+          if (typeof r.entry.id !== "string" || hasOwn(index, r.entry.id)) return;
+          index[r.entry.id] = { entry: r.entry, kind: r.kind, course: cid, season: r.season };
+          ids.push(r.entry.id);
+        });
+    });
+    var builds = [];
+    objList(cat.builds).forEach(function (m) {
+      if (typeof m.id !== "string" || !m.id || hasOwn(index, m.id)) return;
+      index[m.id] = { entry: m, kind: "build", course: buildCourse(m.id), season: null };
+      builds.push(m.id);
+    });
+    return { index: index, syllabus: syllabus, builds: builds, courses: courses };
+  }
+
+  function sessionItem(rec, phase, st) {
+    var e = rec.entry;
+    if (rec.kind === "build") {
+      return {
+        id: e.id,
+        kind: "build",
+        course: rec.course,
+        minutes: buildMinutes(e),
+        status: isUnlocked(e.id, st) ? "ready" : "locked",
+        core: true,
+        season: null,
+        title: e.title || e.id,
+        weekendOnly: true,
+        phase: phase
+      };
+    }
+    return {
+      id: e.id,
+      kind: rec.kind,
+      course: rec.course,
+      minutes: entryMinutes(e, rec.kind),
+      status: e.status || "planned",
+      core: e.core === true,
+      season: rec.season,
+      title: e.title || e.id,
+      weekendOnly: false,
+      phase: phase
+    };
+  }
+
+  /* The parallel plan flattened to [{ id, phase }]. An id listed twice
+     keeps its first place. */
+  function planSessions(cat) {
+    var out = [];
+    var seen = {};
+    var plan = isObj(cat.plan) ? cat.plan : {};
+    var schedules = isObj(plan.schedules) ? plan.schedules : {};
+    var parallel = isObj(schedules.parallel) ? schedules.parallel : {};
+    objList(parallel.phases).forEach(function (ph) {
+      var n = typeof ph.n === "number" ? ph.n : null;
+      (Array.isArray(ph.sessions) ? ph.sessions : []).forEach(function (id) {
+        if (typeof id !== "string" || hasOwn(seen, id)) return;
+        seen[id] = true;
+        out.push({ id: id, phase: n });
+      });
+    });
+    return out;
+  }
+
+  /* Contract 9.4. "parallel": the plan's sessions in plan order. "dl-only"
+     and "lt-only": that course's plan sessions in plan order, then the
+     course's other sessions in syllabus order, then its other builds. A
+     parallel plan with no sessions at all (a missing plan file) falls back
+     to every course in syllabus order, then every build. Ids that resolve
+     to nothing are skipped. The core filter comes last. */
+  function orderedSessionsV2(cat, planName, schedule, st) {
+    var idx = sessionIndex(cat);
+    var planned = planSessions(cat);
+    var only = schedule === "dl-only" ? "dl" : schedule === "lt-only" ? "lt" : null;
+    var out = [];
+    var placed = {};
+    function push(id, phase) {
+      if (hasOwn(placed, id) || !hasOwn(idx.index, id)) return;
+      var rec = idx.index[id];
+      if (only && rec.course !== only) return;
+      placed[id] = true;
+      out.push(sessionItem(rec, phase, st));
+    }
+    planned.forEach(function (p) { push(p.id, p.phase); });
+    if (only || !planned.length) {
+      idx.courses.forEach(function (course) {
+        (idx.syllabus[course.id] || []).forEach(function (id) { push(id, null); });
+      });
+      idx.builds.forEach(function (id) { push(id, null); });
+    }
+    return planName === "core" ? out.filter(function (it) { return it.core; }) : out;
+  }
+
+  /* orderedSessions(plan, schedule?, state?). `plan` is "core", "all" or a
+     settings object ({ plan, schedule }). Without a schedule argument the
+     settings object's, then the store's settings.schedule is used
+     ("parallel" when unknown). `state` (for build locks) defaults to the
+     store's state. A catalog without `courses` (the v1 fallback) gives the
+     v1 items in syllabus order. */
+  function orderedSessions(plan, schedule, st) {
+    var cat = content.catalog;
+    if (!isObj(cat)) return [];
+    var settings = isObj(plan) ? plan : null;
+    var planName = settings ? settings.plan : plan;
+    if (!Array.isArray(cat.courses)) return orderedSessionsV1(cat, planName);
+    var sched = typeof schedule === "string" ? schedule
+      : settings && typeof settings.schedule === "string" ? settings.schedule
+      : storeSettings().schedule;
+    if (SCHEDULES.indexOf(sched) < 0) sched = "parallel";
+    return orderedSessionsV2(cat, planName, sched, isObj(st) ? st : store.get());
+  }
+
+  /* ---------- the merged catalog (contract 9.1, 9.2) ------------------ */
+
+  function emptyPlan() { return { schedules: { parallel: { phases: [] } }, credits: {} }; }
+
+  /* A copy of the plan with the parts the engine reads always present. */
+  function normalizePlan(p) {
+    if (!isObj(p)) return emptyPlan();
+    var out = clone(p);
+    if (!isObj(out.schedules)) out.schedules = {};
+    if (!isObj(out.schedules.parallel)) out.schedules.parallel = {};
+    if (!Array.isArray(out.schedules.parallel.phases)) out.schedules.parallel.phases = [];
+    if (!isObj(out.credits)) out.credits = {};
+    return out;
+  }
+
+  function courseBase(course) {
+    var b = isObj(course) && typeof course.contentBase === "string" ? course.contentBase : "content";
+    return b.replace(/\/+$/, "");
+  }
+
+  function courseById(id) {
+    var cat = content.catalog;
+    return isObj(cat) ? findById(objList(cat.courses), id) : null;
+  }
+
+  /* One catalog from the registry's courses, their catalogs (same order),
+     the plan (null when missing) and the builds files (null for a missing
+     one). Starts from a shallow copy of Dead Letter's catalog, so fields
+     such as `forum` carry over. */
+  function mergeCatalogs(courses, catalogs, planObj, buildFiles) {
+    var dlAt = -1;
+    courses.forEach(function (c, i) { if (dlAt < 0 && c.id === "dl") dlAt = i; });
+    var merged = Object.assign({}, catalogs[dlAt >= 0 ? dlAt : 0]);
+    merged.courses = clone(courses);
+    merged.seasons = [];
+    merged.cases = [];
+    merged.interviews = [];
+    merged.lld = [];
+    merged.rules = dlAt >= 0 && Array.isArray(catalogs[dlAt].rules) ? catalogs[dlAt].rules.slice() : [];
+    merged.concepts = {};
+    courses.forEach(function (course, i) {
+      var cat = catalogs[i];
+      var cid = course.id;
+      objList(cat.seasons).forEach(function (s) {
+        merged.seasons.push(Object.assign({}, s, { course: cid, key: cid + ":" + s.n }));
+      });
+      objList(cat.cases).forEach(function (c) { merged.cases.push(Object.assign({}, c, { course: cid })); });
+      objList(cat.interviews).forEach(function (iv) { merged.interviews.push(Object.assign({}, iv, { course: cid })); });
+      objList(cat.lld).forEach(function (w) { merged.lld.push(Object.assign({}, w, { course: "dl" })); });
+      if (isObj(cat.concepts)) {
+        Object.keys(cat.concepts).forEach(function (k) {
+          if (!hasOwn(merged.concepts, k)) setKey(merged.concepts, k, cat.concepts[k]);
+        });
+      }
+    });
+    merged.builds = [];
+    merged.projects = [];
+    buildFiles.forEach(function (bf) {
+      if (!isObj(bf)) return;
+      var pid = asText(bf.project);
+      var title = asText(bf.title) || pid;
+      var repo = asText(bf.repo) || pid;
+      var ids = [];
+      objList(bf.milestones).forEach(function (m) {
+        if (typeof m.id !== "string" || !m.id) return;
+        ids.push(m.id);
+        merged.builds.push(Object.assign({}, m, {
+          project: pid,
+          projectTitle: title,
+          repo: repo,
+          course: buildCourse(m.id),
+          minutes: buildMinutes(m)
+        }));
+      });
+      merged.projects.push({
+        project: pid, title: title, repo: repo, language: asText(bf.language), pitch: asText(bf.pitch), milestones: ids
+      });
+    });
+    merged.plan = normalizePlan(planObj);
+    return merged;
+  }
+
+  function loadV1Catalog() {
+    return fetchJSON(V1_CATALOG_URL, "the catalog").then(function (cat) {
+      if (!isObj(cat)) throw new Error("The catalog is not a JSON object.");
+      return cat;
+    });
+  }
+
+  /* Every course catalog is required. A 404 on the plan or on a builds
+     file is tolerated (empty plan, no milestones from that file). */
+  function loadMergedCatalog(reg) {
+    if (!isObj(reg)) throw new Error("The course list (" + COURSES_URL + ") is not a JSON object.");
+    var courses = objList(reg.courses).filter(function (c) { return typeof c.id === "string" && c.id; });
+    if (!courses.length) throw new Error("The course list (" + COURSES_URL + ") names no courses.");
+    var catalogs = Promise.all(courses.map(function (c) {
+      var name = asText(c.title) || c.id;
+      var url = typeof c.catalog === "string" && c.catalog ? c.catalog : courseBase(c) + "/catalog.json";
+      return fetchJSON(url, "the " + name + " catalog").then(function (cat) {
+        if (!isObj(cat)) throw new Error("The " + name + " catalog is not a JSON object.");
+        return cat;
+      });
+    }));
+    var plan = typeof reg.plan === "string" && reg.plan ? fetchJSON(reg.plan, "the plan", true) : Promise.resolve(null);
+    var builds = Promise.all((Array.isArray(reg.builds) ? reg.builds : [])
+      .filter(function (u) { return typeof u === "string" && u; })
+      .map(function (u) { return fetchJSON(u, "the build file " + u, true); }));
+    return Promise.all([catalogs, plan, builds]).then(function (r) {
+      return mergeCatalogs(courses, r[0], r[1], r[2]);
+    });
+  }
+
+  /* v1: content/s<season>/<id>.json. Merged: through the case's course,
+     <contentBase>/<prefix><season>/<id>.json. */
+  function casePath(meta, id) {
+    var cat = content.catalog;
+    if (!isObj(cat) || !Array.isArray(cat.courses)) return "content/s" + meta.season + "/" + id + ".json";
+    if (typeof meta.season !== "number") {
+      throw new Error("Case " + id + " has no season in the catalog, so its file can't be found.");
+    }
+    var course = courseById(typeof meta.course === "string" ? meta.course : "dl") || {};
+    var base = courseBase(course);
+    var prefix = typeof course.prefix === "string" ? course.prefix : "s";
+    return (base ? base + "/" : "") + prefix + meta.season + "/" + id + ".json";
   }
 
   var content = DL.content = {
     catalog: null,
 
+    /* content/courses.json first. A 404 there means the v1 single
+       catalog; anything else that fails rejects (and is retried on the
+       next call). Cached. Also sets DL.content.catalog. */
     loadCatalog: function () {
       if (!catalogPromise && content.catalog) catalogPromise = Promise.resolve(content.catalog);
       if (!catalogPromise) {
-        var p = fetchJSON("content/catalog.json", "the catalog").then(function (cat) {
-          if (!isObj(cat)) throw new Error("The catalog is not a JSON object.");
-          content.catalog = cat;
-          return cat;
-        });
+        var p = fetchJSON(COURSES_URL, "the course list", true)
+          .then(function (reg) { return reg === null ? loadV1Catalog() : loadMergedCatalog(reg); })
+          .then(function (cat) {
+            content.catalog = cat;
+            return cat;
+          });
         catalogPromise = p;
         p.catch(function () { if (catalogPromise === p) catalogPromise = null; });
       }
@@ -421,7 +779,7 @@
         .then(function () {
           var meta = content.caseMeta(id);
           if (!meta) throw new Error("Case " + id + " is not in the catalog.");
-          return fetchJSON("content/s" + meta.season + "/" + id + ".json", "case " + id);
+          return fetchJSON(casePath(meta, id), "case " + id);
         })
         .then(function (obj) {
           if (!isObj(obj)) throw new Error("Case " + id + " is not a JSON object.");
@@ -432,10 +790,18 @@
       return p;
     },
 
+    /* v1 catalog: cases only. Merged catalog: cases, interviews, lld, then
+       builds. */
     caseMeta: function (id) {
       var cat = content.catalog;
-      if (!isObj(cat) || !Array.isArray(cat.cases)) return null;
-      return findById(cat.cases.filter(isObj), id);
+      if (!isObj(cat)) return null;
+      if (!Array.isArray(cat.courses)) return Array.isArray(cat.cases) ? findById(cat.cases.filter(isObj), id) : null;
+      var lists = [cat.cases, cat.interviews, cat.lld, cat.builds];
+      for (var i = 0; i < lists.length; i++) {
+        var hit = findById(objList(lists[i]), id);
+        if (hit) return hit;
+      }
+      return null;
     },
 
     orderedSessions: orderedSessions
@@ -454,18 +820,24 @@
     "capability_disabled", "capability_removed", "transform_error"];
   var DB_KNOWN = DB_TERMINAL.concat(["unavailable", "resource_exhausted"]);
 
+  var STATE_VERSION = 2;
+
+  /* Progress state v2 (contract 9.3). `interviews` stays an optional
+     top-level map, as in v1.1.1. */
   function defaultState() {
     return {
-      v: 1,
+      v: STATE_VERSION,
       savedAt: 0,
       settings: {
-        plan: "core", targetDate: null, weekdayMin: 30, weekendMin: 60,
-        aiGrading: true, startedOn: null, aiNoticeSeen: false
+        plan: "core", targetDate: null, weekdayMin: 45, weekendMin: 80,
+        aiGrading: true, startedOn: null, aiNoticeSeen: false,
+        schedule: "parallel", githubOwner: "aman-nabi"
       },
       cases: {},
       cards: {},
       notes: {},
-      daily: {}
+      daily: {},
+      builds: {}
     };
   }
 
@@ -477,18 +849,21 @@
     });
   }
 
-  /* Merges loaded data into defaultState(): settings key by key, the four
+  /* Merges loaded data into defaultState(): settings key by key, the five
      maps whole, savedAt when it is a number (else 0), unknown top-level
-     fields kept for forward compatibility. */
+     fields kept for forward compatibility. This is also the v1 to v2
+     migration: a v1 state gains builds: {}, settings.schedule and
+     settings.githubOwner from the defaults and keeps everything else.
+     v is never lowered (a v2 state stays v2, a newer one keeps its v). */
   function normalize(raw) {
     var s = defaultState();
     if (!isObj(raw)) return s;
     var r = clone(raw);
     Object.keys(r).forEach(function (k) { if (!(k in s)) s[k] = r[k]; });
     if (isObj(r.settings)) Object.keys(r.settings).forEach(function (k) { s.settings[k] = r.settings[k]; });
-    ["cases", "cards", "notes", "daily"].forEach(function (k) { if (isObj(r[k])) s[k] = r[k]; });
+    ["cases", "cards", "notes", "daily", "builds"].forEach(function (k) { if (isObj(r[k])) s[k] = r[k]; });
     s.savedAt = numOr(r.savedAt, 0);
-    s.v = 1;
+    s.v = typeof r.v === "number" && isFinite(r.v) && r.v > STATE_VERSION ? r.v : STATE_VERSION;
     pruneDaily(s);
     return s;
   }
@@ -693,6 +1068,10 @@
 
     defaultState: defaultState,
 
+    /* Pure: a v1 (or v2) state, as loaded, to a v2 state (contract 9.3).
+       init() and update() run the same migration. */
+    migrate: function (raw) { return normalize(raw); },
+
     /* Never rejects. Called twice, it returns the same promise. */
     init: function () {
       if (!initPromise) {
@@ -767,6 +1146,36 @@
   var FADE_DAYS = 3;
   var GRADE_STEP = { missed: 0, partly: 0, good: 1, easy: 2 };
 
+  /* Contract 9.7: the decision card DL.builds.markDone creates (card id
+     "build:<id>") carries the milestone id in `build`. */
+  function isDecisionCard(card) {
+    return isObj(card) && typeof card.build === "string" && card.build !== "";
+  }
+
+  /* A build milestone passed where a case object is expected. */
+  function isMilestone(x) {
+    return isObj(x) && typeof x.decisionPrompt === "string" && !Array.isArray(x.recall) && !isObj(x.coldCase);
+  }
+
+  /* prompt: the milestone's decisionPrompt. model: the learner's own note,
+     from milestone.note when the caller put one there, otherwise from
+     state.builds[id].note in the store ("" when there is none). */
+  function decisionPrompt(id, milestone) {
+    var m = milestone || (typeof id === "string" ? buildGet(id) : null) || {};
+    var note = "";
+    if (typeof m.note === "string") {
+      note = m.note;
+    } else {
+      var s = store.get();
+      var entry = isObj(s) && isObj(s.builds) && typeof id === "string" && hasOwn(s.builds, id) ? s.builds[id] : null;
+      if (isObj(entry) && typeof entry.note === "string") note = entry.note;
+    }
+    var prompt = typeof m.decisionPrompt === "string" && m.decisionPrompt
+      ? m.decisionPrompt
+      : "What did you decide while building " + (m.title || id || "this milestone") + ", and why?";
+    return { kind: "decision", prompt: prompt, model: note };
+  }
+
   DL.sched = {
     INTERVALS: INTERVALS,
     FADE_DAYS: FADE_DAYS,
@@ -813,16 +1222,23 @@
       return humanDays(daysBetween(todayIso || today(), card.due));
     },
 
-    /* The review kind pace.plan expects for a due card. */
+    /* The review kind pace.plan expects for a due card. A decision card
+       (contract 9.7) is "decision"; pace.plan counts it like a recall. */
     reviewKind: function (card) {
+      if (isDecisionCard(card)) return "decision";
       return card && Number(card.step) >= COLD_STEP ? "cold" : "recall";
     },
 
-    /* Step 3 and up: the cold case. Otherwise the recall prompts rotate by
-       the number of reviews so far. */
+    /* A decision card (it carries `build`, or caseObj is a build milestone)
+       gives { kind: "decision", prompt, model }. Otherwise: step 3 and up,
+       the cold case; below that the recall prompts rotate by the number of
+       reviews so far. */
     promptFor: function (card, caseObj) {
       var c = card || {};
       var k = caseObj || {};
+      if (isDecisionCard(c) || isMilestone(caseObj)) {
+        return decisionPrompt(isDecisionCard(c) ? c.build : k.id, isMilestone(caseObj) ? caseObj : null);
+      }
       var recall = Array.isArray(k.recall) ? k.recall : [];
       var hasCold = isObj(k.coldCase);
       if (hasCold && (Number(c.step) >= COLD_STEP || !recall.length)) {
@@ -871,7 +1287,10 @@
        remaining.length (the whole backlog is due) and daysLeft = 0.
      - "share minutes" = share x average minutes of `remaining`.
      - Rule 3: the floor of one new session (doneToday === 0 and something
-       remains) is applied literally, even when reviews fill the day.
+       remains) is applied literally, even when reviews fill the day. Since
+       v1.2.0 (contract 9.5) it is the first eligible item, and nothing is
+       offered when no item is eligible (a weekday with only weekendOnly
+       items left).
      - Rule 4 order is strict: done, past-target, behind, ahead, on-track.
      - Rule 5: suggestedDate is also given for past-target (a new date is
        what the learner needs then); extraMinutes is only set when behind.
@@ -918,19 +1337,27 @@
     }
     var shareMinutes = share * avg;
 
-    // Rule 3.
+    // Rule 3, with contract 9.5: on a weekday a weekendOnly item is not
+    // eligible (it still counts in share above and in the status below).
+    // The eligible items are taken in order, each with its own minutes,
+    // stopping at the first one that doesn't fit (never reordered). The one
+    // guaranteed session is the first eligible item.
+    var weekend = isWeekend(t);
+    var eligible = [];
+    for (i = 0; i < n; i++) {
+      if (weekend || !(remaining[i] && remaining[i].weekendOnly === true)) eligible.push(remaining[i]);
+    }
     var todayCount = Math.max(0, Math.ceil(share - doneToday - 0.0001));
     var budget = minutesToday - reviewMinutes;
-    var fit = 0;
+    var newItems = [];
     var used = 0;
-    while (fit < todayCount && fit < n) {
-      var m = sessionMinutes(remaining[fit]);
+    for (i = 0; i < eligible.length && newItems.length < todayCount; i++) {
+      var m = sessionMinutes(eligible[i]);
       if (used + m > budget + 1e-9) break;
       used += m;
-      fit++;
+      newItems.push(eligible[i]);
     }
-    todayCount = fit;
-    if (doneToday === 0 && n > 0 && todayCount < 1) todayCount = 1;
+    if (doneToday === 0 && n > 0 && !newItems.length && eligible.length) newItems.push(eligible[0]);
 
     // Rule 4.
     var status;
@@ -948,7 +1375,7 @@
 
     return {
       reviews: due,
-      newItems: remaining.slice(0, todayCount),
+      newItems: newItems,
       share: share,
       status: status,
       extraMinutes: extraMinutes,
@@ -1433,13 +1860,15 @@
   var SYNC_TABLES = {
     settings: {
       plan: ["p", K_RAW], targetDate: ["t", K_DATE], weekdayMin: ["w", K_RAW], weekendMin: ["e", K_RAW],
-      aiGrading: ["a", K_BOOL], startedOn: ["o", K_DATE], aiNoticeSeen: ["n", K_BOOL]
+      aiGrading: ["a", K_BOOL], startedOn: ["o", K_DATE], aiNoticeSeen: ["n", K_BOOL],
+      schedule: ["s", K_RAW], githubOwner: ["g", K_RAW]
     },
     cases: { done: ["d", K_DATE], choice: ["c", K_RAW], firstTryOk: ["f", K_BOOL] },
-    cards: { step: ["s", K_RAW], due: ["u", K_DATE], history: ["h", K_HIST], rot: ["r", K_RAW] },
+    cards: { step: ["s", K_RAW], due: ["u", K_DATE], history: ["h", K_HIST], rot: ["r", K_RAW], build: ["b", K_RAW] },
     notes: { text: ["t", K_RAW], d: ["d", K_DATE] },
     daily: { sessions: ["s", K_RAW], reviews: ["r", K_RAW] },
-    interviews: { score: ["s", K_RAW], max: ["m", K_RAW], d: ["d", K_DATE] }
+    interviews: { score: ["s", K_RAW], max: ["m", K_RAW], d: ["d", K_DATE] },
+    builds: { done: ["d", K_DATE], tag: ["t", K_RAW], verified: ["v", K_BOOL], verifiedAt: ["a", K_DATE], note: ["n", K_RAW] }
   };
   var SYNC_UNTABLES = {};
   Object.keys(SYNC_TABLES).forEach(function (sec) {
@@ -1448,7 +1877,9 @@
     Object.keys(t).forEach(function (k) { r[t[k][0]] = [k, t[k][1]]; });
     SYNC_UNTABLES[sec] = r;
   });
-  var SYNC_SECTIONS = { settings: "s", cases: "c", cards: "k", notes: "n", daily: "y", interviews: "i" };
+  /* builds ("b") is new in v1.2.0. The format stays 1: a v1.1.1 decoder
+     skips a section letter it doesn't know. */
+  var SYNC_SECTIONS = { settings: "s", cases: "c", cards: "k", notes: "n", daily: "y", interviews: "i", builds: "b" };
   var SYNC_SECTION_OF = {};
   Object.keys(SYNC_SECTIONS).forEach(function (k) { SYNC_SECTION_OF[SYNC_SECTIONS[k]] = k; });
   var GRADE_LETTER = { missed: "m", partly: "p", good: "g", easy: "e" };
@@ -1714,6 +2145,14 @@
       var db = strOr(b.d);
       if (db !== da) return db > da ? b : a;
       return numOr(b.score, -Infinity) > numOr(a.score, -Infinity) ? b : a;
+    },
+    // Contract 9.3: the later `done` wins; on the same date a verified
+    // entry beats an unverified one.
+    builds: function (a, b) {
+      var da = strOr(a.done);
+      var db = strOr(b.done);
+      if (db !== da) return db > da ? b : a;
+      return b.verified === true && a.verified !== true ? b : a;
     }
   };
 
@@ -1737,12 +2176,12 @@
 
   /* Pure. Returns { state, summary }, where summary counts the entries
      that came from `incoming`: { cases, cards, notes, interviews, daily,
-     settings: bool }. Neither input is changed. */
+     builds, settings: bool }. Neither input is changed. */
   function mergeDetailed(local, incoming) {
     var a = isObj(local) ? clone(local) : {};
     var b = isObj(incoming) ? clone(incoming) : {};
     var out = {};
-    var summary = { cases: 0, cards: 0, notes: 0, interviews: 0, daily: 0, settings: false };
+    var summary = { cases: 0, cards: 0, notes: 0, interviews: 0, daily: 0, builds: 0, settings: false };
     // Unknown top-level fields (v included): local first, incoming fills gaps.
     Object.keys(b).forEach(function (k) { if (!hasOwn(SYNC_SECTIONS, k)) setKey(out, k, b[k]); });
     Object.keys(a).forEach(function (k) { if (!hasOwn(SYNC_SECTIONS, k)) setKey(out, k, a[k]); });
@@ -1755,8 +2194,9 @@
     var sb = isObj(b.settings) ? b.settings : {};
     out.settings = sa.startedOn ? sa : Object.assign({}, sa, sb);
     summary.settings = !sameValue(out.settings, sa);
-    ["cases", "cards", "notes", "daily", "interviews"].forEach(function (k) {
-      if (k === "interviews" && !isObj(a[k]) && !isObj(b[k])) return;
+    // interviews and builds appear only when either input has them.
+    ["cases", "cards", "notes", "daily", "interviews", "builds"].forEach(function (k) {
+      if ((k === "interviews" || k === "builds") && !isObj(a[k]) && !isObj(b[k])) return;
       var r = mergeMap(MERGE_RULES[k], isObj(a[k]) ? a[k] : {}, isObj(b[k]) ? b[k] : {});
       out[k] = r.map;
       summary[k] = r.changed;
@@ -1974,6 +2414,182 @@
     grade: gradePrompt,
     interview: interviewPrompt,
     parseCode: parseCode
+  };
+
+  /* ================================================================== */
+  /* DL.builds: Build Nights (contract 9.6)                             */
+  /* ================================================================== */
+
+  var GITHUB_API = "https://api.github.com";
+  /* Letters, digits and single inner hyphens, up to 39 characters. */
+  var GH_OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/;
+  var GH_REPO_RE = /^[A-Za-z0-9._-]{1,100}$/;
+
+  /* A case counts as done when its record has a `done` date (a record
+     with only a first reply pick is not done). Credited cases count. */
+  function caseDone(cases, id) {
+    return typeof id === "string" && hasOwn(cases, id) && isObj(cases[id]) && !!cases[id].done;
+  }
+
+  /* Every milestone of the merged catalog, each with its project. */
+  function buildList() {
+    var cat = content.catalog;
+    return isObj(cat) ? objList(cat.builds) : [];
+  }
+
+  function buildGet(id) {
+    return findById(buildList(), id);
+  }
+
+  /* True when every unlockAfter id is done in state.cases. `st` defaults
+     to the store's state. An unknown id is never unlocked. */
+  function isUnlocked(id, st) {
+    var m = buildGet(id);
+    if (!m) return false;
+    var s = isObj(st) ? st : store.get();
+    var cases = isObj(s) && isObj(s.cases) ? s.cases : {};
+    var needs = Array.isArray(m.unlockAfter) ? m.unlockAfter : [];
+    for (var i = 0; i < needs.length; i++) {
+      if (!caseDone(cases, needs[i])) return false;
+    }
+    return true;
+  }
+
+  /* One call to GET /repos/<owner>/<repo>/git/ref/tags/<tag>, plus, on a
+     404, one call to GET /repos/<owner>/<repo> to tell a missing tag from
+     a missing repo. Only when called (a button press): never at load,
+     never in a loop, never retried. Never rejects. */
+  function checkTag(opts) {
+    var o = isObj(opts) ? opts : {};
+    var owner = asText(o.owner).trim();
+    var repo = asText(o.repo).trim();
+    var tag = asText(o.tag).trim();
+    function result(status, message) { return { status: status, message: message }; }
+    if (!GH_OWNER_RE.test(owner)) {
+      return Promise.resolve(result("error", owner
+        ? "\"" + owner + "\" doesn't look like a GitHub username. Check it in Settings."
+        : "Add your GitHub username in Settings first."));
+    }
+    if (!GH_REPO_RE.test(repo)) return Promise.resolve(result("error", "This milestone has no repo name to check."));
+    if (!tag || /\s/.test(tag)) return Promise.resolve(result("error", "This milestone has no tag to check."));
+    var f = root.fetch;
+    if (typeof f !== "function") {
+      return Promise.resolve(result("error", "This page can't reach GitHub here. You can mark the milestone as self-reported instead."));
+    }
+    var where = owner + "/" + repo;
+    var repoUrl = GITHUB_API + "/repos/" + encodeURIComponent(owner) + "/" + encodeURIComponent(repo);
+    var tagUrl = repoUrl + "/git/ref/tags/" + tag.split("/").map(encodeURIComponent).join("/");
+    function get(url) { return Promise.resolve().then(function () { return f.call(root, url); }); }
+    var missing = result("missing", "GitHub can't find the tag " + tag + " on " + where + " yet. Push your work, then run: git tag " +
+      tag + " && git push origin " + tag);
+    return get(tagUrl).then(function (res) {
+      var status = res && typeof res.status === "number" ? res.status : 0;
+      if (status === 200) return result("found", "Found the tag " + tag + " on " + where + ". This milestone is verified.");
+      if (status === 403 || status === 429) {
+        return result("rate-limited", "GitHub is limiting checks from this network right now (about 60 an hour without signing in). " +
+          "Try again later, or mark the milestone as self-reported.");
+      }
+      if (status === 404) {
+        return get(repoUrl).then(function (res2) {
+          if (res2 && res2.status === 404) {
+            return result("no-repo", "GitHub has no public repo " + where + ". Create it, push your work, then add the tag " + tag +
+              ". If it already exists, check that it is public and that your username in Settings is right.");
+          }
+          return missing;
+        }, function () { return missing; });
+      }
+      return result("error", "GitHub answered with an error (HTTP " + (status || "unknown") + "). Try again in a few minutes.");
+    }, function () {
+      return result("error", "Couldn't reach GitHub. Check your connection and try again.");
+    });
+  }
+
+  /* Writes state.builds[id] = { done, tag, verified, verifiedAt?, note? }
+     through DL.store.update. A milestone marked done again keeps its first
+     `done` date (so the sync rule "verified beats unverified on the same
+     date" lets a later verification win), stays verified once verified,
+     and keeps its note when no new one is given. With a note, it also
+     creates the decision card "build:<id>" (contract 9.7) unless one
+     exists. Resolves with a copy of the entry. Rejects for an id that is
+     not in the catalog. */
+  function markDone(id, opts) {
+    var m = buildGet(id);
+    if (!m) return Promise.reject(new Error("Build " + id + " is not in the catalog."));
+    var o = isObj(opts) ? opts : {};
+    var t = today();
+    var note = typeof o.note === "string" ? o.note.trim() : "";
+    var newTag = typeof o.tag === "string" ? o.tag.trim() : "";
+    return store.update(function (d) {
+      if (!isObj(d.builds)) d.builds = {};
+      if (!isObj(d.cards)) d.cards = {};
+      var prev = isObj(d.builds[id]) ? d.builds[id] : {};
+      var entry = {
+        done: typeof prev.done === "string" && prev.done ? prev.done : t,
+        tag: newTag || (typeof prev.tag === "string" && prev.tag ? prev.tag : asText(m.tag)),
+        verified: o.verified === true || prev.verified === true
+      };
+      if (o.verified === true) entry.verifiedAt = t;
+      else if (entry.verified && typeof prev.verifiedAt === "string") entry.verifiedAt = prev.verifiedAt;
+      var keptNote = note || (typeof prev.note === "string" ? prev.note : "");
+      if (keptNote) entry.note = keptNote;
+      setKey(d.builds, id, entry);
+      var cardId = "build:" + id;
+      if (note && !isObj(d.cards[cardId])) d.cards[cardId] = Object.assign(DL.sched.newCard(t), { build: id });
+    }).then(function (s) { return clone(s.builds[id]); });
+  }
+
+  DL.builds = {
+    list: buildList,
+    get: buildGet,
+    isUnlocked: isUnlocked,
+    checkTag: checkTag,
+    markDone: markDone
+  };
+
+  /* ================================================================== */
+  /* DL.credits: auto-credit (contract 9.8)                             */
+  /* ================================================================== */
+
+  /* Pure. For each target in catalog.plan.credits that is not done and
+     whose source ids are all done: { id, from: [...] }. `catalog`
+     defaults to DL.content.catalog. Neither input is changed. */
+  function creditsApply(st, catalog) {
+    var cat = isObj(catalog) ? catalog : content.catalog;
+    var plan = isObj(cat) && isObj(cat.plan) ? cat.plan : {};
+    var credits = isObj(plan.credits) ? plan.credits : {};
+    var cases = isObj(st) && isObj(st.cases) ? st.cases : {};
+    var out = [];
+    Object.keys(credits).forEach(function (target) {
+      var from = credits[target];
+      if (!Array.isArray(from) || !from.length || caseDone(cases, target)) return;
+      for (var i = 0; i < from.length; i++) if (!caseDone(cases, from[i])) return;
+      out.push({ id: target, from: from.slice() });
+    });
+    return out;
+  }
+
+  /* For the UI to call after closing a case: writes
+     cases[target] = { done: today, creditedFrom } for every credit due
+     (any other field already on the record is kept) and creates no card,
+     since the LATENT cards cover the target. Resolves with the list
+     applied ([] when nothing was due, and then nothing is written). */
+  function creditsApplyToStore(catalog) {
+    var list = creditsApply(store.get(), catalog);
+    if (!list.length) return Promise.resolve([]);
+    var t = today();
+    return store.update(function (d) {
+      if (!isObj(d.cases)) d.cases = {};
+      list.forEach(function (c) {
+        var prev = isObj(d.cases[c.id]) ? d.cases[c.id] : {};
+        if (prev.done) return;
+        setKey(d.cases, c.id, Object.assign({}, prev, { done: t, creditedFrom: c.from.slice() }));
+      });
+    }).then(function () { return list; });
+  }
+
+  DL.credits = {
+    apply: creditsApply,
+    applyToStore: creditsApplyToStore
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = DL;   // lets Node unit tests require it

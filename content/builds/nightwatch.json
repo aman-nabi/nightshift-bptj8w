@@ -1,0 +1,297 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-07) first version, from docs/projects-v1.0.0.md; unlocks use core cases only"
+  ],
+  "project": "nightwatch",
+  "title": "Nightwatch",
+  "repo": "nightwatch",
+  "language": "Go checkers, TypeScript API and web",
+  "pitch": "Multi-region uptime monitoring where checkers agree before they wake anyone, plus an AI incident copilot.",
+  "milestones": [
+    {
+      "id": "N1",
+      "title": "Monitors, one checker, a status page, SSRF protection",
+      "minutes": 75,
+      "unlockAfter": [
+        "s1e04",
+        "s1e09",
+        "s4e01"
+      ],
+      "spec": "The smallest real version.\n\n- An API to register monitors (URL, interval, expected status).\n- One checker that runs them and stores results in Postgres.\n- A public status page.\n- Refuse private addresses and cloud metadata endpoints (SSRF protection).",
+      "promptPack": "Create a monorepo named nightwatch with a TypeScript API (monitors CRUD with validation, Postgres) and a Go checker that runs HTTP checks on schedule and writes results. Before every check, resolve the host and refuse private, loopback, link-local and cloud metadata addresses, including after redirects. Add a public status page. Tests: API validation, checker results, and SSRF refusal for 127.0.0.1, 10.0.0.0/8, 169.254.169.254 and a redirect to a private address.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "API and checker tests pass",
+        "SSRF tests refuse every private and metadata address, including via redirect",
+        "Status page shows live results"
+      ],
+      "tag": "m01-mvp",
+      "share": false,
+      "decisionPrompt": "Why must the SSRF check run after DNS resolution and again after redirects?"
+    },
+    {
+      "id": "N2",
+      "title": "Time-series storage and uptime math",
+      "minutes": 75,
+      "unlockAfter": [
+        "s3e01",
+        "s3e09",
+        "s3e10"
+      ],
+      "spec": "Store results so that uptime questions stay fast.\n\n- Rollups (per minute, hour, day) and retention.\n- Uptime percentage over any window.\n- The right indexes.",
+      "promptPack": "Add rollup tables (minute, hour, day) maintained by a job, a retention policy, and uptime and latency-percentile queries over any window. Add indexes and show query plans in docs/decisions.md. Load one million synthetic results and assert a 30-day uptime query returns under a stated time.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "30-day uptime query is under the stated time on one million results",
+        "Query plans are documented",
+        "Retention job deletes old raw data"
+      ],
+      "tag": "m02-timeseries",
+      "share": false,
+      "decisionPrompt": "Why did you roll up instead of querying raw results, and what do you lose by doing it?"
+    },
+    {
+      "id": "N3",
+      "title": "Scheduler, queue, workers, alerts without duplicates",
+      "minutes": 75,
+      "unlockAfter": [
+        "s4e03",
+        "s4e06",
+        "s4e07",
+        "s4e10"
+      ],
+      "spec": "Scale out checks and alerts.\n\n- A scheduler puts due checks on a queue; worker checkers take them.\n- Alerts fan out to email, Slack and webhooks.\n- No missed checks and no duplicate alerts.",
+      "promptPack": "Split scheduling from checking: a scheduler enqueues due checks, a pool of checker workers consumes them with acknowledgements and visibility timeouts. Alerts fan out through pub/sub to email, Slack and webhook senders, each deduplicated with an idempotency key per incident and channel. Test: kill a worker mid-check and assert no missed checks and no duplicate alerts.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Worker-kill test: no missed checks, no duplicate alerts",
+        "Each alert channel has a test",
+        "Decision note explains the idempotency key"
+      ],
+      "tag": "m03-queues",
+      "share": false,
+      "decisionPrompt": "What is your idempotency key for an alert, and what duplicate would happen without it?"
+    },
+    {
+      "id": "N4",
+      "title": "No false alarms, SLOs, monitoring the monitor",
+      "minutes": 75,
+      "unlockAfter": [
+        "s6e01",
+        "s6e05",
+        "s6e06",
+        "s6e07"
+      ],
+      "spec": "Wake people only for real problems.\n\n- Two-stage confirmation before declaring an incident.\n- SLOs and error budgets for monitored sites.\n- Nightwatch monitors itself.\n- An incident timeline.",
+      "promptPack": "Add two-stage confirmation (a failure must repeat within a window before an incident opens), SLOs with error budgets per monitor, an external heartbeat so Nightwatch's own scheduler is monitored, and an incident timeline. Test with a flaky-network simulation: zero false pages while real outages still page within the stated time.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Flaky-network test produces 0 false pages",
+        "Real outage pages within the stated time",
+        "Self-monitoring alert fires when the scheduler stops"
+      ],
+      "tag": "m04-no-false-alarms",
+      "share": false,
+      "decisionPrompt": "How did you balance fast paging against false alarms, in numbers?"
+    },
+    {
+      "id": "N5",
+      "title": "Teams, roles, API keys, audit log",
+      "minutes": 75,
+      "unlockAfter": [
+        "s7e01",
+        "s7e02",
+        "s7e03",
+        "s7e04",
+        "s7e08",
+        "s7e09"
+      ],
+      "spec": "Make it safe for many customers.\n\n- Accounts and teams with roles.\n- API keys stored hashed, shown once.\n- Tenant isolation on every query.\n- An audit log of admin actions.",
+      "promptPack": "Add teams with role-based access (owner, admin, member), login with sessions, API keys stored as hashes and shown once, tenant isolation enforced in every query (consider row-level security), and an append-only audit log for admin actions. Tests: a member of team A can never read team B's monitors or results through any endpoint; every admin action creates an audit entry.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Tenant-isolation tests pass for every endpoint",
+        "API keys are hashed and never logged",
+        "Audit log covers every admin action"
+      ],
+      "tag": "m05-tenancy",
+      "share": false,
+      "decisionPrompt": "How do you guarantee one team can never see another's data, even through a bug in one endpoint?"
+    },
+    {
+      "id": "N6",
+      "title": "Three regions that must agree",
+      "minutes": 75,
+      "unlockAfter": [
+        "s8e01",
+        "s8e03",
+        "s8e04",
+        "s8e10"
+      ],
+      "spec": "The distributed systems heart of Nightwatch.\n\n- Checkers in three regions.\n- A site is down only when a quorum of regions agrees.\n- Tell apart my checker can't reach it from the site is down.\n- Leader election for the scheduler.",
+      "promptPack": "Run checkers in three regions. An incident opens only when a quorum (2 of 3) reports failure within a window. A region that cannot reach several unrelated sites marks itself suspect instead of reporting them down. Elect one scheduler leader using a lease with fencing tokens. Test: isolate one region with a simulated partition and assert it cannot trigger a page; kill the leader and assert a new one takes over without double-scheduling.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Partition test: one isolated region cannot page",
+        "Leader failover without double scheduling",
+        "Diagram of the agreement flow in the README"
+      ],
+      "tag": "m06-quorum",
+      "share": true,
+      "decisionPrompt": "Why 2 of 3, and what goes wrong with 2 of 2 or 1 of 3?"
+    },
+    {
+      "id": "N7",
+      "title": "Multi-region deploy, capacity and cost",
+      "minutes": 75,
+      "unlockAfter": [
+        "s9e01",
+        "s9e03"
+      ],
+      "spec": "Run it for real, and know what it costs.\n\n- Deploy across regions.\n- Survive losing a region.\n- Cost per 1,000 checks.",
+      "promptPack": "Deploy nightwatch across at least two cloud regions with a budget alarm set first, document the topology, run a region-loss drill, and produce a cost report per 1,000 checks with the assumptions written down. Keep everything inside the budget cap you set.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Region-loss drill passes and is written up",
+        "Cost per 1,000 checks is reported with assumptions",
+        "Budget alarm is set before deploying"
+      ],
+      "tag": "m07-multiregion",
+      "share": false,
+      "decisionPrompt": "What was the biggest cost in your deployment, and how would you cut it?"
+    },
+    {
+      "id": "X1",
+      "title": "Incident copilot v1: RAG over runbooks",
+      "minutes": 75,
+      "unlockAfter": [
+        "a3e01",
+        "a3e04",
+        "a3e06"
+      ],
+      "spec": "Start the AI half of Nightwatch.\n\n- Ingest logs, deploy events and runbooks.\n- For an incident, suggest the likely cause with cited evidence.",
+      "promptPack": "Add an incident copilot service: ingest recent logs, deploy events and markdown runbooks; index runbooks with hybrid search; for an open incident, gather evidence and ask an LLM for the likely cause, citing the exact log lines and runbook sections used. Never send secrets or personal data to the model: redact before sending. Add tests for retrieval and for redaction.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Answers cite the log lines and runbook sections they used",
+        "Redaction tests pass",
+        "A demo incident shows a cited suggestion"
+      ],
+      "tag": "x01-copilot",
+      "share": false,
+      "decisionPrompt": "What did you redact before sending anything to the model, and how do you know it works?"
+    },
+    {
+      "id": "X2",
+      "title": "Evals on 50 past incidents",
+      "minutes": 75,
+      "unlockAfter": [
+        "a5e02",
+        "a5e03",
+        "a5e04"
+      ],
+      "spec": "Measure the copilot.\n\n- A library of 50 recorded (synthetic) incidents with known causes.\n- Likely-cause accuracy and citation faithfulness, run in CI.",
+      "promptPack": "Create 50 synthetic incidents with known root causes, logs and runbooks. Build an eval that scores likely-cause accuracy and citation faithfulness (an LLM judge checked against 15 hand-labelled cases). Run it in CI and fail the build on a drop. Report baseline and improved scores after at least two iterations.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Eval runs in CI and gates merges",
+        "Judge agreement with your labels is reported",
+        "Two iterations with before and after scores"
+      ],
+      "tag": "x02-evals",
+      "share": true,
+      "decisionPrompt": "Which change improved accuracy the most, and how sure are you it wasn't noise?"
+    },
+    {
+      "id": "X3",
+      "title": "An agent with tools and guardrails",
+      "minutes": 75,
+      "unlockAfter": [
+        "a4e01",
+        "a4e07",
+        "a7e01",
+        "a7e04"
+      ],
+      "spec": "Let the copilot investigate.\n\n- Tools: query metrics, fetch logs, list recent deploys.\n- Read-only by default; anything else needs a human.\n- Resistant to prompt injection hidden in log text.",
+      "promptPack": "Turn the copilot into an agent with read-only tools (query metrics, fetch logs, list deploys), a step and cost budget, and a human approval gate for anything that changes state. Add a red-team suite of 20 incidents whose logs contain injected instructions and assert the agent never follows them or leaks data.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Red-team suite passes",
+        "Budgets stop runaway loops",
+        "No tool can change state without approval"
+      ],
+      "tag": "x03-agent",
+      "share": false,
+      "decisionPrompt": "How does the agent tell data from instructions when a log line says ignore your rules?"
+    },
+    {
+      "id": "X4",
+      "title": "Drafted post-mortems",
+      "minutes": 75,
+      "unlockAfter": [
+        "s6e07",
+        "a2e03"
+      ],
+      "spec": "Save the on-call engineer an hour.\n\n- Draft a blameless post-mortem from the incident timeline.\n- Draft an on-call handoff note.",
+      "promptPack": "Generate blameless post-mortem drafts (summary, impact, timeline, cause, what went well, action items) and on-call handoff notes from the incident timeline, with structured output validated against a schema. Rate 10 drafts yourself with a simple rubric and record the results.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Drafts validate against the schema",
+        "10 drafts rated with the rubric",
+        "Drafts stay blameless in wording"
+      ],
+      "tag": "x04-postmortems",
+      "share": false,
+      "decisionPrompt": "What did the model get wrong most often in the drafts, and how did you fix it?"
+    },
+    {
+      "id": "X5",
+      "title": "Cost and speed through an LLM gateway",
+      "minutes": 75,
+      "unlockAfter": [
+        "a6e01",
+        "a6e03",
+        "a6e04"
+      ],
+      "spec": "Make the AI part cheap and fast.\n\n- Route calls through a gateway with caching and model routing.\n- Report cost per incident analysis before and after.",
+      "promptPack": "Put all model calls behind a small gateway with prompt caching, response caching for repeated lookups, routing of simple steps to a cheaper model, retries with backoff and per-team budgets. Report cost per incident analysis and latency before and after, with the eval scores unchanged or better.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Cost per analysis reported before and after",
+        "Eval scores did not drop",
+        "Budgets stop overspending"
+      ],
+      "tag": "x05-gateway",
+      "share": false,
+      "decisionPrompt": "Which step moved to a cheaper model, and how did you prove quality held?"
+    },
+    {
+      "id": "X6",
+      "title": "A small self-hosted model for log triage",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e04",
+        "a10e05",
+        "a10e10"
+      ],
+      "spec": "The inference rung inside Nightwatch.\n\n- Serve a small open model to sort log lines.\n- Compare cost and accuracy with an API model.",
+      "promptPack": "Serve a small open model with a serving engine on a rented GPU (budget cap first) to classify log lines by severity and category. Compare accuracy, latency and cost per million lines against an API model on the same labelled set, and write up when self-hosting is worth it.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Comparison table: accuracy, latency, cost per million lines",
+        "Budget cap respected",
+        "Write-up states when self-hosting wins"
+      ],
+      "tag": "x06-self-hosted",
+      "share": false,
+      "decisionPrompt": "At what volume does self-hosting beat the API for this task, by your numbers?"
+    },
+    {
+      "id": "X7",
+      "title": "Final: walk me through Nightwatch",
+      "minutes": 75,
+      "unlockAfter": [
+        "s9e05",
+        "a9e01",
+        "a9e04"
+      ],
+      "spec": "The interview round every real loop has.\n\n- A design doc for Nightwatch.\n- A 3 AM Interview where you walk through the system and defend your choices.",
+      "promptPack": "Write a design doc for nightwatch (goals, architecture, data model, agreement protocol, AI copilot, evals, security, cost, trade-offs and what you would do next). Then run the 3 AM Interview room in Claude with the prompt: walk me through a system you built, using the design doc.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Design doc committed",
+        "Interview completed and the result code recorded",
+        "README links the design doc and demo"
+      ],
+      "tag": "x07-walkthrough",
+      "share": true,
+      "decisionPrompt": "If you rebuilt Nightwatch from scratch, what is the one decision you would change?"
+    }
+  ]
+}

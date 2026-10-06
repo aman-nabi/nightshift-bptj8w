@@ -1,0 +1,180 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-07) first version, from docs/projects-v1.0.0.md; unlocks use core cases only"
+  ],
+  "project": "gatekeeper",
+  "title": "Gatekeeper",
+  "repo": "gatekeeper",
+  "language": "Go",
+  "pitch": "A load balancer and reverse proxy built from scratch, the way real ones like Caddy and Traefik work inside.",
+  "milestones": [
+    {
+      "id": "G1",
+      "title": "Reverse proxy to one backend",
+      "minutes": 75,
+      "unlockAfter": [
+        "s1e04",
+        "s2e02"
+      ],
+      "spec": "Gatekeeper sits in front of a web server and passes requests through.\n\n- Accept HTTP requests on one port and forward them to one backend.\n- Copy method, path, query, headers and body; add an X-Forwarded-For header.\n- Write an access log line per request: time, method, path, status, duration.\n- Read the listen port and backend address from a config file.",
+      "promptPack": "Create a new Go module named gatekeeper. Build a reverse proxy that listens on a port from config.yaml and forwards every request to one backend URL from the same file. Preserve method, path, query, headers and body, add X-Forwarded-For, and log one line per request with time, method, path, status and duration. Use only the standard library for the proxy. Add integration tests that start two test servers (backend and proxy) and check GET, POST with a body, and header forwarding. Add a Makefile with test and run targets, and a README explaining how to run it.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "go test ./... passes, including GET, POST and header tests",
+        "A baseline benchmark (requests per second and p99) is recorded in BENCHMARK.md",
+        "README explains how to run it"
+      ],
+      "tag": "m01-proxy",
+      "share": false,
+      "decisionPrompt": "Why did you use (or not use) Go's built-in reverse proxy helper, and what would you lose by writing your own?"
+    },
+    {
+      "id": "G2",
+      "title": "Many backends, pluggable algorithms",
+      "minutes": 75,
+      "unlockAfter": [
+        "s2e02"
+      ],
+      "spec": "Spread traffic across several backends, and make the balancing method swappable.\n\n- A Balancer interface with Next(request) returning a backend.\n- Two algorithms: round robin and least connections.\n- Choose the algorithm in config; adding a third must not change existing code (open for extension, closed for modification).",
+      "promptPack": "Add support for a list of backends in config.yaml and a Balancer interface with Next(r *http.Request) returning a backend. Implement round robin and least connections in separate files, selected by a config field. Track active connections safely. Add a test that sends 1,000 requests to 4 backends and checks the spread is even for round robin, and that least connections favors an idle backend when one backend is slow. Add a short section to docs/decisions.md on why the interface looks the way it does.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Spread test passes for round robin (each backend within 2% of 25%)",
+        "Least-connections test passes with one slow backend",
+        "Adding a new algorithm needs only one new file"
+      ],
+      "tag": "m02-algorithms",
+      "share": true,
+      "decisionPrompt": "How did you make least connections safe when many requests run at once, and what would break without it?"
+    },
+    {
+      "id": "G3",
+      "title": "Health checks and failover",
+      "minutes": 75,
+      "unlockAfter": [
+        "s2e02"
+      ],
+      "spec": "Stop sending traffic to dead backends and bring them back when they recover.\n\n- Active checks: call a health path on every backend on an interval.\n- Passive checks: eject a backend after N consecutive errors.\n- Re-admit a backend after it passes checks again.",
+      "promptPack": "Add active health checks (configurable path, interval, timeout, healthy and unhealthy thresholds) and passive ejection after N consecutive 5xx or connection errors. Ejected backends are skipped by every balancer and re-admitted after passing the healthy threshold. Add a test that kills one of three backends during a 2,000-request run and asserts the error rate stays under 1% and that the backend rejoins after it restarts. Log every state change.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Kill-a-backend test: errors under 1%",
+        "Recovered backend rejoins within two check intervals",
+        "State changes appear in the log"
+      ],
+      "tag": "m03-health",
+      "share": false,
+      "decisionPrompt": "How did you pick the health-check interval and thresholds, and what is the trade-off between fast detection and false alarms?"
+    },
+    {
+      "id": "G4",
+      "title": "Session affinity and consistent hashing",
+      "minutes": 75,
+      "unlockAfter": [
+        "s2e03",
+        "s3e08"
+      ],
+      "spec": "Some clients need to keep hitting the same backend. Add affinity without breaking when backends change.\n\n- Cookie-based sticky sessions.\n- A consistent-hashing balancer with virtual nodes, keyed by a header or client IP.",
+      "promptPack": "Add an optional sticky-session mode using a signed cookie, and a consistent-hashing balancer with configurable virtual nodes keyed by a chosen header or the client IP. Add tests: the same key always maps to the same backend; adding a fifth backend to four moves roughly one fifth of keys (within a tolerance you justify); removing one moves only that backend's keys.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Same key maps to the same backend in tests",
+        "Adding a node moves about 1/N of keys, measured",
+        "Decision note explains when to use sticky sessions vs hashing"
+      ],
+      "tag": "m04-affinity",
+      "share": false,
+      "decisionPrompt": "Why does consistent hashing move only about 1/N of keys, and how many virtual nodes did you choose?"
+    },
+    {
+      "id": "G5",
+      "title": "Safe under heavy concurrency",
+      "minutes": 75,
+      "unlockAfter": [
+        "s5e01",
+        "s5e02"
+      ],
+      "spec": "Prove the proxy is free of race conditions under load.\n\n- Review every piece of shared state: counters, backend lists, health status.\n- Fix races with the right tool: atomics, mutexes or channels.",
+      "promptPack": "Audit every piece of shared state in gatekeeper (connection counters, backend lists, health status, config). Fix any data race using atomics, mutexes or channels, choosing the simplest correct tool for each. Add a load test that opens 10,000 concurrent connections against 4 backends and run the whole suite with go test -race. Document each shared-state decision in docs/decisions.md.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "go test -race ./... is clean",
+        "The 10,000-connection test passes",
+        "Each shared value has a documented protection choice"
+      ],
+      "tag": "m05-race-free",
+      "share": false,
+      "decisionPrompt": "Pick one piece of shared state: why did you protect it with that tool and not another?"
+    },
+    {
+      "id": "G6",
+      "title": "Timeouts, retries, circuit breaker, rate limiting",
+      "minutes": 75,
+      "unlockAfter": [
+        "s6e01",
+        "s6e02",
+        "s6e03"
+      ],
+      "spec": "Make Gatekeeper protect the system when backends misbehave.\n\n- Timeouts on every backend call.\n- Retries with exponential backoff and jitter, only for safe methods (GET, HEAD) or requests with an idempotency key.\n- A circuit breaker per backend.\n- A token-bucket rate limiter per client.",
+      "promptPack": "Add per-backend timeouts, retries with exponential backoff and full jitter (only for GET and HEAD, or requests carrying an Idempotency-Key header), a per-backend circuit breaker (closed, open, half-open) and a per-client token-bucket rate limiter returning 429 with Retry-After. Add a chaos test with one slow backend that shows the breaker opening, half-opening and closing, and a test showing over-limit clients get 429. Plot breaker state over time into a PNG or CSV for the README.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Chaos test shows breaker open, half-open and closed",
+        "Over-limit clients receive 429 with Retry-After",
+        "POST requests are never retried without an idempotency key"
+      ],
+      "tag": "m06-resilience",
+      "share": true,
+      "decisionPrompt": "Why are POST requests not retried by default, and what makes a retry safe?"
+    },
+    {
+      "id": "G7",
+      "title": "TLS, HTTP/2 and hot reload",
+      "minutes": 75,
+      "unlockAfter": [
+        "s1e05",
+        "s2e09"
+      ],
+      "spec": "Terminate HTTPS at the proxy and change config without dropping traffic.\n\n- TLS with automatic certificates for real domains, and a self-signed mode for local tests.\n- HTTP/2.\n- Reload config on a signal with zero dropped requests.",
+      "promptPack": "Add TLS termination with automatic certificates (ACME) for configured domains and a self-signed mode for local tests, enable HTTP/2, and reload config on SIGHUP without dropping in-flight or new requests. Add a test that reloads config during a load test and asserts zero failed requests, and a TLS test using the self-signed mode.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "TLS test passes in self-signed mode",
+        "Reload during load drops 0 requests",
+        "README explains the certificate setup and its limits"
+      ],
+      "tag": "m07-tls-reload",
+      "share": false,
+      "decisionPrompt": "How does your reload avoid dropping requests, and what happens to a request that started under the old config?"
+    },
+    {
+      "id": "G8",
+      "title": "Observability",
+      "minutes": 75,
+      "unlockAfter": [
+        "s6e05"
+      ],
+      "spec": "See what the proxy is doing.\n\n- A metrics endpoint: request rate, errors and latency per backend, breaker state.\n- Structured JSON logs with a request id passed to backends.\n- A small dashboard.",
+      "promptPack": "Add a Prometheus-format metrics endpoint with request count, error count and a latency histogram per backend, plus breaker state and rate-limit rejections. Switch logs to structured JSON with a request id that is generated if missing and forwarded to backends as X-Request-Id. Add a docker-compose with Prometheus and Grafana and a saved dashboard showing rate, errors and duration per backend.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Metrics endpoint exposes the listed series",
+        "Every log line has a request id that also reaches the backend",
+        "Dashboard JSON is committed and loads in Grafana"
+      ],
+      "tag": "m08-observability",
+      "share": false,
+      "decisionPrompt": "Which three panels would you look at first during an incident, and why those?"
+    },
+    {
+      "id": "G9",
+      "title": "Ship it and benchmark honestly",
+      "minutes": 75,
+      "unlockAfter": [
+        "s6e09"
+      ],
+      "spec": "Package Gatekeeper and compare it fairly with a production proxy.\n\n- A small container image.\n- A compose demo with three backends.\n- A benchmark against nginx or Caddy on the same machine, with method and limits written down.",
+      "promptPack": "Create a multi-stage Dockerfile producing a small image, a docker-compose demo with three backends, and a benchmark script that runs the same load against gatekeeper and against nginx or Caddy on the same machine (same backends, same concurrency levels). Write BENCHMARK.md with method, hardware, results tables for p50 and p99 latency and throughput, and an honest limits section.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Image builds and the compose demo runs",
+        "BENCHMARK.md has method, results and limits",
+        "README has a one-paragraph summary and a diagram"
+      ],
+      "tag": "m09-ship",
+      "share": true,
+      "decisionPrompt": "Where did Gatekeeper lose to the production proxy, and what would you change first?"
+    }
+  ]
+}

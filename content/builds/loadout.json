@@ -1,0 +1,189 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-07) first version, from docs/projects-v1.0.0.md; unlocks use core cases only"
+  ],
+  "project": "loadout",
+  "title": "Loadout",
+  "repo": "loadout",
+  "language": "Go, then TypeScript for the web view",
+  "pitch": "A system design simulator: describe an architecture in a file, fire traffic at it, and get a debrief on latency, cost and failures.",
+  "milestones": [
+    {
+      "id": "L1",
+      "title": "The simulation core",
+      "minutes": 75,
+      "unlockAfter": [
+        "s2e01",
+        "s2e08"
+      ],
+      "spec": "Build the engine every later milestone extends.\n\n- A discrete-event simulator: clients send requests, servers have a capacity and a queue.\n- An architecture file (a loadout) in JSON.\n- A debrief: served, dropped, p50, p95 and p99 latency, cost per hour.",
+      "promptPack": "Create a Go module named loadout with a discrete-event simulation engine: a clock, an event queue, clients generating requests at a rate (constant and Poisson), and servers with capacity, a bounded queue and a service-time distribution. Read the architecture from a JSON loadout file and print a debrief (served, dropped, p50, p95, p99, utilization, cost per hour). Add tests comparing simulated results with standard queueing formulas for a single server (utilization and mean wait) within a stated tolerance.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Queueing tests pass within the stated tolerance",
+        "A sample loadout runs and prints a debrief",
+        "README explains the model and its simplifications"
+      ],
+      "tag": "m01-core",
+      "share": false,
+      "decisionPrompt": "What did you simplify in the model, and when would that simplification give a wrong answer?"
+    },
+    {
+      "id": "L2",
+      "title": "Load balancers and caches",
+      "minutes": 75,
+      "unlockAfter": [
+        "s2e02",
+        "s2e04",
+        "s2e05",
+        "s2e06"
+      ],
+      "spec": "Add the first real components.\n\n- A load balancer component with round robin and least connections.\n- A cache component: hit ratio, TTL, LRU eviction, and what happens when it empties.\n- A stampede scenario: the cache restarts at peak.",
+      "promptPack": "Add load-balancer and cache components to loadout. The cache models hit ratio from key popularity (Zipf distribution), TTL expiry and LRU eviction by capacity. Add a stampede scenario where the cache restarts at peak load and the database is hit by every miss, and an option for request coalescing. Tests: measured hit ratio matches the configured popularity within tolerance; coalescing reduces database load in the stampede scenario.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Hit-ratio test passes",
+        "Stampede scenario shows the spike, and coalescing reduces it",
+        "Components are configured in the loadout file"
+      ],
+      "tag": "m02-cache",
+      "share": false,
+      "decisionPrompt": "Why does request coalescing help in a stampede, and what does it cost?"
+    },
+    {
+      "id": "L3",
+      "title": "Campaign level 1: a URL shortener at 100M requests a day",
+      "minutes": 75,
+      "unlockAfter": [
+        "s2e07",
+        "s2e14"
+      ],
+      "spec": "Make it a game: a level with a budget and a goal.\n\n- A CDN component.\n- Budget scoring.\n- Campaign level 1: serve 100 million requests a day under a budget, with an SLO.",
+      "promptPack": "Add a CDN component and a campaign format: a level file with traffic shape, budget, and SLO targets (p99 latency and availability). Implement level 1, a URL shortener at 100 million requests a day with a 100:1 read-to-write ratio. The debrief scores the player's loadout on cost, latency and availability and names the bottleneck in plain words. Add your own solution loadout and its debrief to the README.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Level 1 loads, runs and scores",
+        "The debrief names the bottleneck",
+        "README shows your design and its score"
+      ],
+      "tag": "m03-level-1",
+      "share": true,
+      "decisionPrompt": "Where was the bottleneck in your first URL shortener design, and how did you remove it?"
+    },
+    {
+      "id": "L4",
+      "title": "The data tier",
+      "minutes": 75,
+      "unlockAfter": [
+        "s3e05",
+        "s3e07",
+        "s3e08"
+      ],
+      "spec": "Model databases realistically.\n\n- Read replicas with replication lag and stale reads.\n- Sharding by hash or range, with hot partitions.\n- Consistent hashing for placement.",
+      "promptPack": "Add a database component with optional read replicas (replication lag as a distribution, stale-read counting), sharding by hash or range with configurable key skew to create hot partitions, and consistent hashing for placement. Tests: stale-read counts rise with lag as expected; a skewed key distribution overloads one shard and the debrief says so.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Stale-read test passes",
+        "Hot-shard scenario is detected in the debrief",
+        "Two new campaign levels use the data tier"
+      ],
+      "tag": "m04-data-tier",
+      "share": false,
+      "decisionPrompt": "How did you model replication lag, and what does it teach about read-your-writes?"
+    },
+    {
+      "id": "L5",
+      "title": "Queues and async workers",
+      "minutes": 75,
+      "unlockAfter": [
+        "s4e03",
+        "s4e06"
+      ],
+      "spec": "Add asynchronous work.\n\n- A queue component with backlog, visibility timeout and a dead-letter queue.\n- Worker pools.\n- At-least-once delivery that can process a message twice.",
+      "promptPack": "Add a queue component (backlog, visibility timeout, max receives, dead-letter queue) and worker pools. Model at-least-once delivery so a worker crash after processing but before acknowledging causes a duplicate. Tests: duplicate counts match the configured crash rate; poison messages land in the dead-letter queue after max receives.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Duplicate-processing test passes",
+        "Poison messages reach the dead-letter queue",
+        "A level shows a backlog draining after a spike"
+      ],
+      "tag": "m05-queues",
+      "share": false,
+      "decisionPrompt": "When does at-least-once delivery create duplicates, and how would the real system stay correct?"
+    },
+    {
+      "id": "L6",
+      "title": "Failures and resilience",
+      "minutes": 75,
+      "unlockAfter": [
+        "s6e01",
+        "s6e02",
+        "s6e03",
+        "s6e04",
+        "s6e06"
+      ],
+      "spec": "Make things break on purpose.\n\n- Failure injection: kill nodes, slow dependencies.\n- Retries with and without backoff and jitter, circuit breakers.\n- SLO scoring with an error budget.",
+      "promptPack": "Add failure injection (kill a node at a time, slow a dependency) and client behaviors: retries with or without exponential backoff and jitter, and circuit breakers. Add SLO scoring with an error budget to the debrief. Build a retry-storm level where naive retries collapse the system and backoff with a breaker survives, and test both outcomes.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Retry-storm level collapses without backoff and survives with it",
+        "Error budget appears in the debrief",
+        "Tests cover both outcomes"
+      ],
+      "tag": "m06-chaos",
+      "share": true,
+      "decisionPrompt": "Why do naive retries make an outage worse, and what exactly did backoff and the breaker change?"
+    },
+    {
+      "id": "L7",
+      "title": "Zones, regions and partitions",
+      "minutes": 75,
+      "unlockAfter": [
+        "s8e01",
+        "s8e04",
+        "s8e06"
+      ],
+      "spec": "Model distance and disagreement.\n\n- Availability zones and regions with latency between them.\n- Failover.\n- Network partitions where the system must choose between consistency and availability.",
+      "promptPack": "Add zones and regions with inter-region latency, failover policies, and network partitions. Let a loadout choose consistency behavior per data store (refuse writes during a partition vs accept and reconcile later) and report unavailability and stale or conflicting reads. Tests reproduce the trade-off: the consistent choice shows unavailability, the available choice shows stale reads.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Partition tests show both sides of the trade-off",
+        "A region-loss level is winnable",
+        "README explains the model honestly"
+      ],
+      "tag": "m07-regions",
+      "share": false,
+      "decisionPrompt": "In your partition test, what did each consistency choice cost, in numbers?"
+    },
+    {
+      "id": "L8",
+      "title": "The capacity planner",
+      "minutes": 75,
+      "unlockAfter": [
+        "s9e01",
+        "s9e03"
+      ],
+      "spec": "Turn the simulator into a design assistant.\n\n- Given traffic and an SLO, search for the cheapest loadout that meets it.",
+      "promptPack": "Add a capacity-planning mode: given a traffic profile, an SLO and a component catalog with prices, search for the cheapest loadout that meets the SLO (start with a simple search, explain its limits). Run it on three sample problems and commit the results.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Planner finds a passing design for three sample problems",
+        "Results and search limits are documented",
+        "Planner output can be loaded as a loadout"
+      ],
+      "tag": "m08-planner",
+      "share": false,
+      "decisionPrompt": "What search method did you use, and when could it miss the cheapest design?"
+    },
+    {
+      "id": "L9",
+      "title": "The web view and the campaign launch",
+      "minutes": 75,
+      "unlockAfter": [
+        "s9e05"
+      ],
+      "spec": "Make it shareable.\n\n- A web view in TypeScript that draws the architecture and plays the debrief.\n- Share links for loadouts.\n- A campaign of 10 interview levels.",
+      "promptPack": "Build a small TypeScript web view that loads a loadout file, draws the architecture as a diagram, runs the simulation (compile the Go engine to WebAssembly or port the core), and shows the debrief with charts. Add share links that encode a loadout in the URL. Publish a 10-level campaign of classic interview problems with a short write-up per level.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Web view runs a loadout in the browser",
+        "Share links reproduce a loadout",
+        "10 levels each have a write-up"
+      ],
+      "tag": "m09-launch",
+      "share": true,
+      "decisionPrompt": "Which level taught you the most when you played it yourself, and why?"
+    }
+  ]
+}

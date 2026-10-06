@@ -1,8 +1,47 @@
-/* engine/ui-v1.1.0.js
+/* engine/ui-v1.2.0.js
    Dead Letter UI (DL.ui): the shell, router wiring and every view. Published as engine/ui.js.
-   Contract: docs/dead-letter-engine-contract-v1.0.0.md, section 6. Needs engine/core-v1.1.0.js (DL.sync,
-   DL.prompts, the #interview/<id> route). Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
+   Contract: docs/dead-letter-engine-contract-v1.1.0.md, sections 6 and 9.9. Needs engine/core-v1.2.0.js (the merged
+   catalog, state v2, DL.builds, DL.credits, decision cards; DL.sync, DL.prompts and the #interview/<id> route from
+   v1.1). Styles: index-v1.1.0.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
    CHANGELOG
+   v1.2.1 (2026-10-07) the first-shift card and the pace line default to a finish date about 4 months out (plan B: both courses in parallel).
+   v1.2.0 (2026-10-07) two courses on one forum (Dead Letter and LATENT) plus Build Nights, contract section 9.9:
+     1. Board switcher in the masthead: All, Dead Letter (/n/nightshift), LATENT (/n/latent), from catalog.courses.
+        It filters the Seasons and Evidence views and is remembered in localStorage ("dl.board", every access in
+        try/catch). Tonight always shows both courses. Hidden when the catalog has one course (no courses.json).
+     2. Course look. The view root (#view) gets class course-lt on LATENT case pages, interview pages and LATENT
+        Build Nights (X1 to X7), so the accent turns cyan; Dead Letter keeps amber. The LATENT case player is the
+        same case player: only the masthead (the forum header) changes, to /n/latent and the course tagline from
+        catalog.courses. Every session card on Tonight and Seasons carries a small course chip.
+     3. Tonight. Sessions come from DL.pace.plan with remaining = the orderedSessions items that are open (written
+        cases, open interviews, unlocked builds), weekendOnly passed through. An interview opens once the cases
+        before it in its own course and season are closed. Build Night cards show the project, milestone, minutes
+        and an "Open Build Night" button (#build/<id>); locked builds never appear. Closing a case then calls
+        DL.credits.applyToStore(). The orderedSessions cache is dropped on every "progress" event, since build
+        locks and settings.schedule change it.
+     4. Build Night view #build/<id>: project title and pitch, milestone title and minutes, the unlock status (the
+        cases still needed, linked), the spec (DL.util.md per paragraph, lines starting "- " as a bullet list),
+        the prompt pack in a read-only block with Copy prompt pack (clipboard inside the click, falling back to
+        selecting the text), the done-when checklist (ticks saved in localStorage only, try/catch), repo and tag
+        instructions with the git commands as text, Verify on GitHub (DL.builds.checkTag only on press, never on
+        load, disabled while it runs, the result in plain words), a decision note (the milestone's decisionPrompt
+        as placeholder), Mark done (enabled once verified) and "I built it, mark as self-reported" (both through
+        DL.builds.markDone), the share hint when share is true, and after done the date, verified or
+        self-reported, and the note. A first mark done counts as one of the night's sessions, like a closed case.
+     5. Seasons: grouped by course (Dead Letter seasons, then LATENT seasons, each season keyed by course and
+        number), each with its cases and finale interviews as before. Below them, Projects: Gatekeeper, Loadout
+        and Nightwatch with each milestone's state (locked, ready, done verified or done self-reported). Cases with
+        creditedFrom show "Credited from LATENT" (also on the case page).
+     6. Cold cases: decision cards (build:<id>) render as "u/grey_pager asks about your build:" plus the prompt.
+        After an answer, your own note is shown as the model answer, then the self-grade buttons (no key-idea
+        check and no Claude code for these). The Evidence board keys its columns by course and season.
+     7. Settings: a schedule select (both courses in parallel, Dead Letter only, LATENT only) and a GitHub
+        username field (default aman-nabi), both through DL.store.update. Everything from v1.1 stays; sync and
+        delete messages mention Build Nights.
+     8. Router: #build/<id>. Core's router doesn't know it, so this file sets the hash and renders the view itself,
+        and a hash naming a route only this file knows wins over DL.router.current(). Case routes work for both
+        s... and a... ids. Since caseMeta(id) now finds interviews and builds too, an interview or build id under
+        #case/ is sent to its own view by the catalog list it is in.
    v1.1.0 (2026-10-06) the static GitHub Pages build (no window.claude, local storage, offline grading):
      A. Sync. Boot runs DL.sync.consumeHash() right after DL.store.init() (before the router reads the hash)
         and shows a one-line note above the view saying what merged, or why the link failed. Settings has a
@@ -59,8 +98,23 @@
     ["tonight", "Tonight"], ["reviews", "Cold cases"], ["seasons", "Seasons"], ["rules", "Rulebook"],
     ["board", "Evidence"], ["notes", "Notes"], ["settings", "Settings"]
   ];
-  var ROUTES = { tonight: 1, "case": 1, interview: 1, reviews: 1, rules: 1, board: 1, seasons: 1, notes: 1, settings: 1 };
-  var ARG_ROUTES = { "case": 1, interview: 1 };
+  var ROUTES = { tonight: 1, "case": 1, interview: 1, build: 1, reviews: 1, rules: 1, board: 1, seasons: 1, notes: 1, settings: 1 };
+  var ARG_ROUTES = { "case": 1, interview: 1, build: 1 };
+  /* Routes core's router knows, used when DL.router.ROUTES is missing. Anything else (build) is routed here. */
+  var CORE_ROUTES = ["tonight", "case", "interview", "reviews", "rules", "board", "seasons", "notes", "settings"];
+  var DL_TAGLINE = "Stories from people who work while you sleep.";
+  var BOARD_KEY = "dl.board";
+  var CHECKS_KEY = "dl.build.checks.";
+  var DEFAULT_OWNER = "aman-nabi";
+  var GH_OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/;
+  var SCHEDULES = [
+    ["parallel", "Both courses in parallel"], ["dl-only", "Dead Letter only"], ["lt-only", "LATENT only"]
+  ];
+  var SHARE_HINT = "Worth posting about: a chart or GIF plus one honest line about what broke";
+  var VERIFY_LABELS = {
+    checking: "Checking", found: "Verified", missing: "Tag not found yet", "no-repo": "Repo not found",
+    "rate-limited": "GitHub is busy", error: "Couldn't check"
+  };
   var ROOM_PATH = "content/interview-room.html";
   var ROOM_ASK = "Please publish the HTML below as an interactive artifact exactly as written. Do not redesign, shorten or explain it; just create the artifact.\n\n```html\n";
   var ROOM_COPIED = "Copied. Paste it into claude.ai or the Claude app (any account). Claude will open the 3 AM Interview room.";
@@ -76,11 +130,12 @@
   var S = {
     booted: false, shellReady: false, wired: false, bootPromise: null, catalog: null,
     route: null, routeKey: "", view: null, lastRender: null, progressTimer: 0, flash: null, uid: 0, sess: {},
-    notice: null, room: "", roomP: null, renderSeed: 1
+    notice: null, room: "", roomP: null, renderSeed: 1,
+    board: "all", verified: {}
   };
 
   var ui = DL.ui = DL.ui || {};
-  ui.version = "1.1.0";
+  ui.version = "1.2.0";
   ui.diagrams = [];
 
   /* ======================================================================
@@ -212,6 +267,44 @@
   function copyField(label) {
     return h("textarea", { class: "copy-field", rows: "4", readonly: true, spellcheck: "false", hidden: true, "aria-label": label });
   }
+  /* Selects the text inside `node` (a read-only block), for a copy by hand. False when the browser can't. */
+  function selectNodeText(node) {
+    try {
+      var sel = root.getSelection ? root.getSelection() : null;
+      if (!sel || !doc.createRange) return false;
+      try { node.focus({ preventScroll: true }); } catch (e) { /* not focusable: selecting still works */ }
+      var range = doc.createRange();
+      range.selectNodeContents(node);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return true;
+    } catch (e2) {
+      return false;
+    }
+  }
+  function sayTo(el, t, tone) {
+    if (!el) return;
+    el.textContent = t;
+    el.classList.remove("ok", "bad");
+    if (tone) el.classList.add(tone);
+  }
+
+  /* Browser storage for per-viewer conveniences only (the board filter, Build Night ticks). Every access is
+     wrapped: storage can be blocked, full, or throw on the getter itself. */
+  function lsGet(key) {
+    try {
+      var ls = root.localStorage;
+      return ls && typeof ls.getItem === "function" ? ls.getItem(key) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function lsSet(key, value) {
+    try {
+      var ls = root.localStorage;
+      if (ls && typeof ls.setItem === "function") ls.setItem(key, value);
+    } catch (e) { /* not saved: it only lasts this visit */ }
+  }
 
   function head(eyebrow, title, lede, level) {
     return h("header", { class: "sec-head" }, [
@@ -274,7 +367,14 @@
   function planOf() { return settings().plan === "all" ? "all" : "core"; }
   function catalog() { return S.catalog || (DL.content && DL.content.catalog) || {}; }
   function caseRec(id) { return (state().cases || {})[id] || {}; }
-  function isDone(id) { return !!caseRec(id).done; }
+  function buildRec(id) { return (state().builds || {})[id] || {}; }
+  /* A session is done when its case record has a date (cases, interviews, credited cases) or, for a Build
+     Night, when state.builds has a date. Build ids (G1, X3) never collide with case ids. */
+  function isDone(id) { return !!caseRec(id).done || !!buildRec(id).done; }
+  function isCredited(id) {
+    var r = caseRec(id);
+    return !!r.done && Array.isArray(r.creditedFrom) && r.creditedFrom.length > 0;
+  }
   function cardFor(id) { return (state().cards || {})[id] || null; }
   function isFading(id) {
     var c = cardFor(id);
@@ -296,8 +396,58 @@
     try { m = DL.content.caseMeta ? DL.content.caseMeta(id) : null; } catch (e) { m = null; }
     if (m) return m;
     var cat = catalog();
-    return findIn(cat.cases, id) || findIn(cat.lld, id) || findIn(cat.interviews, id);
+    return findIn(cat.cases, id) || findIn(cat.lld, id) || findIn(cat.interviews, id) || findIn(cat.builds, id);
   }
+
+  /* Courses (contract 9.1). Without content/courses.json the catalog has no `courses`: one course, Dead Letter. */
+  function courseList() {
+    var list = Array.isArray(catalog().courses) ? catalog().courses.filter(function (c) { return c && c.id; }) : [];
+    if (list.length) return list;
+    var forum = catalog().forum || {};
+    return [{ id: "dl", title: "Dead Letter", board: forum.board || "/n/nightshift", prefix: "s", tagline: DL_TAGLINE }];
+  }
+  function courseInfo(id) { return findIn(courseList(), id); }
+  function multiCourse() { return courseList().length > 1; }
+  function courseOf(x) { return x && typeof x.course === "string" && x.course ? x.course : "dl"; }
+  function courseTitle(id) {
+    var c = courseInfo(id);
+    return (c && c.title) || (id === "lt" ? "LATENT" : "Dead Letter");
+  }
+  function courseRank(id) {
+    var list = courseList();
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return i;
+    return list.length;
+  }
+  function courseChip(id) {
+    return h("span", { class: "chip chip-course", "data-course": id === "lt" ? "lt" : "dl", text: courseTitle(id) });
+  }
+  /* The board switcher's filter: "all" or a course id. Seasons and Evidence use it; Tonight never does. */
+  function boardShows(course) { return S.board === "all" || !multiCourse() || course === S.board; }
+
+  /* Build Nights (contract 9.6). Milestones come from the merged catalog with project, projectTitle, repo,
+     course and minutes attached. */
+  function buildMeta(id) {
+    if (!id) return null;
+    try {
+      if (DL.builds && typeof DL.builds.get === "function") {
+        var m = DL.builds.get(id);
+        if (m) return m;
+      }
+    } catch (e) { /* fall back to the catalog list */ }
+    return findIn(catalog().builds, id);
+  }
+  function projectOf(m) {
+    var list = catalog().projects || [];
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].project === m.project) return list[i];
+    return { project: m.project || "", title: m.projectTitle || m.project || "", repo: m.repo || m.project || "", language: "", pitch: "" };
+  }
+  function buildUnlocked(id) {
+    try { return !!(DL.builds && DL.builds.isUnlocked(id)); } catch (e) { return false; }
+  }
+  function githubOwner() { return String(settings().githubOwner == null ? DEFAULT_OWNER : settings().githubOwner).trim(); }
+
+  /* orderedSessions results, cached until the next "progress" event (build locks follow state.cases, and the
+     list follows settings.schedule). */
   function sessionsFor(plan) {
     if (!S.sess[plan]) {
       var list = [];
@@ -306,6 +456,16 @@
     }
     return S.sess[plan];
   }
+  /* One course's sessions in plan order, whatever the schedule setting says. */
+  function courseSessions(plan, course) {
+    var key = plan + "|" + course;
+    if (!S.sess[key]) {
+      var list = [];
+      try { list = DL.content.orderedSessions(plan, course + "-only") || []; } catch (e) { list = []; }
+      S.sess[key] = list.filter(function (it) { return courseOf(it) === course; });
+    }
+    return S.sess[key];
+  }
   function indexOfId(list, id) {
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return i;
     return -1;
@@ -313,62 +473,82 @@
   function sessionInfo(it) {
     var m = metaFor(it.id) || {};
     var o = findIn(sessionsFor("all"), it.id) || {};
+    var kind = it.kind || o.kind || "case";
+    var isBuild = kind === "build";
     return {
       id: it.id,
-      kind: it.kind || o.kind || "case",
+      kind: kind,
+      course: it.course || o.course || courseOf(m),
       title: m.title || o.title || it.title || it.id,
       setting: m.setting || "",
       season: m.season || o.season || it.season || null,
       n: m.n || null,
       minutes: it.minutes || o.minutes || m.minutes || null,
-      core: !!m.core,
-      status: m.status || o.status || it.status || "planned"
+      // milestones carry no `core` or `status` in the catalog: every build is core, ready once unlocked
+      core: isBuild ? true : !!m.core,
+      status: isBuild ? (it.status || o.status || (buildUnlocked(it.id) ? "ready" : "locked")) : (m.status || o.status || it.status || "planned"),
+      project: isBuild ? (m.projectTitle || m.project || "") : ""
     };
   }
   function interviewMeta(id) { return findIn(catalog().interviews, id); }
   function interviewRec(id) { return (state().interviews || {})[id] || null; }
-  function seasonMeta(n) {
-    var list = catalog().seasons || [];
-    for (var i = 0; i < list.length; i++) if (list[i] && list[i].n === n) return list[i];
+  /* Season numbers repeat across courses (Dead Letter S1 and LATENT S1), so a season is found by both. */
+  function seasonMeta(n, course) {
+    var list = catalog().seasons || [], c = course || "dl";
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].n === n && courseOf(list[i]) === c) return list[i];
     return null;
   }
-  /* Interviews need no written case file (the room is generic), so they can always be opened. */
+  /* Interviews need no written case file (the room is generic), so they can always be opened. Builds are
+     playable once unlocked (status "ready"). */
   function playable(info) { return info.kind === "interview" || info.status === "ready"; }
-  function routeFor(info) { return (info.kind === "interview" ? "interview/" : "case/") + info.id; }
-  /* An interview is due by syllabus order once every case and low-level design session before it in its
-     season is closed (in the plan's order; the full list for a bonus interview), and there is at least one.
-     Unwritten cases can't be closed, so a finale never jumps ahead of its season. */
+  function routeFor(info) {
+    if (info.kind === "build") return "build/" + info.id;
+    return (info.kind === "interview" ? "interview/" : "case/") + info.id;
+  }
+  /* An interview is due by syllabus order once every case and low-level design session before it in its own
+     course and season is closed (in the plan's order; the full list for a bonus interview), and there is at
+     least one. Unwritten cases can't be closed, so a finale never jumps ahead of its season. */
   function interviewOpen(it) {
-    var list = sessionsFor(planOf());
+    var course = courseOf(it);
+    var list = courseSessions(planOf(), course);
     var idx = indexOfId(list, it.id);
-    if (idx < 0) { list = sessionsFor("all"); idx = indexOfId(list, it.id); }
+    if (idx < 0) { list = courseSessions("all", course); idx = indexOfId(list, it.id); }
     if (idx < 0) return false;
     var season = list[idx].season, before = 0;
     for (var i = 0; i < idx; i++) {
       var x = list[i];
-      if (x.kind === "interview" || x.season !== season) continue;
+      if (x.kind === "interview" || x.kind === "build" || x.season !== season || courseOf(x) !== course) continue;
       before += 1;
       if (!isDone(x.id)) return false;
     }
     return before > 0;
   }
-  /* What DL.pace.plan may schedule: written cases and open interviews. */
+  /* What DL.pace.plan may schedule: written cases, open interviews and unlocked builds. */
   function plannable(it) { return it.kind === "interview" ? interviewOpen(it) : it.status === "ready"; }
+  /* Decision cards (contract 9.7) have ids "build:<milestone id>". */
+  function isDecisionId(id) { return String(id || "").indexOf("build:") === 0; }
+  function cardKnown(id) { return isDecisionId(id) ? !!buildMeta(id.slice(6)) : !!metaFor(id); }
+  function reviewKindOf(card) {
+    try {
+      if (DL.sched && typeof DL.sched.reviewKind === "function") return DL.sched.reviewKind(card);
+    } catch (e) { /* fall through */ }
+    return (card.step || 0) >= 3 ? "cold" : "recall";
+  }
   function dueList() {
     var t = today(), cards = state().cards || {};
     return Object.keys(cards).filter(function (id) {
-      try { return cards[id] && DL.sched.isDue(cards[id], t) && !!metaFor(id); } catch (e) { return false; }
+      try { return cards[id] && DL.sched.isDue(cards[id], t) && cardKnown(id); } catch (e) { return false; }
     }).sort(function (a, b) {
       var da = cards[a].due || "", db = cards[b].due || "";
       if (da !== db) return da < db ? -1 : 1;
       return a < b ? -1 : 1;
-    }).map(function (id) { return { id: id, kind: (cards[id].step || 0) >= 3 ? "cold" : "recall" }; });
+    }).map(function (id) { return { id: id, kind: reviewKindOf(cards[id]) }; });
   }
   function soonestCard() {
     var t = today(), cards = state().cards || {}, best = null;
     Object.keys(cards).forEach(function (id) {
       var c = cards[id];
-      if (!c || !c.due || c.due <= t || !metaFor(id)) return;
+      if (!c || !c.due || c.due <= t || !cardKnown(id)) return;
       if (!best || c.due < best.due) best = c;
     });
     return best;
@@ -405,22 +585,34 @@
   /* ======================================================================
      Routing
      ====================================================================== */
+  function hasOwn(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   function normRoute(r) {
     if (!r || typeof r !== "object") r = {};
-    var name = ROUTES[r.name] ? r.name : "tonight";
+    // own keys only, so a hash such as "#constructor" can't pass as a route
+    var name = typeof r.name === "string" && hasOwn(ROUTES, r.name) ? r.name : "tonight";
     var arg = r.arg === undefined || r.arg === null || r.arg === "" ? null : String(r.arg);
-    if (ARG_ROUTES[name] && !arg) name = "tonight";
-    return { name: name, arg: ARG_ROUTES[name] ? arg : null };
+    if (hasOwn(ARG_ROUTES, name) && !arg) name = "tonight";
+    return { name: name, arg: hasOwn(ARG_ROUTES, name) ? arg : null };
   }
   function parseRoute(str) {
     var t = String(str || "").replace(/^#/, "");
+    try { t = decodeURIComponent(t); } catch (e) { /* keep it as written */ }   // a host may encode the slash
+    t = t.replace(/^[#\/]+/, "").replace(/\/+$/, "");
     var i = t.indexOf("/");
-    var arg = null;
-    if (i >= 0) { try { arg = decodeURIComponent(t.slice(i + 1)); } catch (e) { arg = t.slice(i + 1); } }
-    return normRoute({ name: i < 0 ? t : t.slice(0, i), arg: arg });
+    return normRoute({ name: i < 0 ? t : t.slice(0, i), arg: i < 0 ? null : t.slice(i + 1) });
   }
   function keyOf(r) { return r.name + (r.arg ? "/" + r.arg : ""); }
+  /* A route this file renders but core's router doesn't know (build). Core would turn it into #tonight. */
+  function uiOnly(name) {
+    var list = DL.router && Array.isArray(DL.router.ROUTES) ? DL.router.ROUTES : CORE_ROUTES;
+    return hasOwn(ROUTES, name) && list.indexOf(name) < 0;
+  }
+  function hashRoute() {
+    try { return root.location ? parseRoute(root.location.hash) : null; } catch (e) { return null; }
+  }
   function currentRoute() {
+    var hr = hashRoute();
+    if (hr && uiOnly(hr.name)) return hr;   // #build/<id>: the hash is the only record of it
     var r = null;
     if (!S.routerIgnored) {
       try { if (DL.router && typeof DL.router.current === "function") r = DL.router.current(); } catch (e) { r = null; }
@@ -433,6 +625,14 @@
   function go(route) {
     var target = parseRoute(route);
     var want = keyOf(target);
+    if (uiOnly(target.name)) {
+      // Not through DL.router.go: it would rewrite the hash to #tonight. Set the hash and render here.
+      try {
+        if (root.location && String(root.location.hash || "") !== "#" + want) root.location.hash = want;
+      } catch (e) { /* the render below still happens */ }
+      if (S.routeKey !== want) renderRoute(target, { focus: true });
+      return;
+    }
     try {
       if (DL.router && typeof DL.router.go === "function") DL.router.go(route);
     } catch (e) { /* checked below */ }
@@ -463,8 +663,8 @@
      Render pipeline
      ====================================================================== */
   var VIEWS = {
-    tonight: viewTonight, "case": viewCase, interview: viewInterview, reviews: viewReviews, seasons: viewSeasons,
-    rules: viewRules, board: viewBoard, notes: viewNotes, settings: viewSettings
+    tonight: viewTonight, "case": viewCase, interview: viewInterview, build: viewBuild, reviews: viewReviews,
+    seasons: viewSeasons, rules: viewRules, board: viewBoard, notes: viewNotes, settings: viewSettings
   };
 
   function runCleanups() {
@@ -504,8 +704,11 @@
     }
     ui.diagrams = [];
     clear(view);
-    var ctx = { root: view, name: r.name, arg: r.arg, alive: true, cleanups: [], rerender: false, onProgress: null };
+    var ctx = { root: view, name: r.name, arg: r.arg, alive: true, cleanups: [], rerender: false, onProgress: null, course: null };
     S.view = ctx;
+    // Every render starts in the home look; case, interview and build views call setCourse for their course.
+    if (view.classList) view.classList.remove("course-lt");
+    setMasthead(null);
     updateNav();
     if (opts.focus) scrollTop();
     var result = null;
@@ -518,6 +721,78 @@
     S.lastRender = p;
     return p;
   }
+  /* Course look (contract 9.9): LATENT pages get .course-lt on the view root (cyan accent) and the masthead shows
+     the page's board and tagline. */
+  function setCourse(ctx, course) {
+    ctx.course = course === "lt" ? "lt" : "dl";
+    if (ctx.root && ctx.root.classList) {
+      if (ctx.course === "lt") ctx.root.classList.add("course-lt");
+      else ctx.root.classList.remove("course-lt");
+    }
+    setMasthead(ctx.course);
+  }
+  /* The forum header. A course page shows its course; Seasons and Evidence follow the board switcher; every
+     other view shows the home board, as in v1.1. */
+  function setMasthead(course) {
+    if (!doc || !S.shellReady) return;
+    var c = course ? courseInfo(course) : null;
+    var name = S.route ? S.route.name : "";
+    if (!c && S.board !== "all" && (name === "seasons" || name === "board")) c = courseInfo(S.board);
+    var forum = catalog().forum || {};
+    var home = courseInfo("dl") || {};
+    setText("brand-board", c ? (c.board || "") : (forum.board || home.board || "/n/nightshift"));
+    var tag = doc.getElementById("brand-tag") || doc.querySelector(".mast .brand-tag");
+    if (tag) tag.textContent = (c && c.tagline) || home.tagline || DL_TAGLINE;
+    var mast = doc.querySelector(".mast");
+    if (mast) {
+      if (c && c.id === "lt") mast.setAttribute("data-course", "lt");
+      else mast.removeAttribute("data-course");
+    }
+  }
+
+  /* Board switcher (contract 9.9): All, then one button per course. Remembered in localStorage. */
+  function loadBoard() {
+    var v = lsGet(BOARD_KEY);
+    S.board = v && v !== "all" && courseInfo(v) && multiCourse() ? v : "all";
+  }
+  function renderSwitcher() {
+    var mast = doc.querySelector(".mast");
+    var box = doc.getElementById("board-switch");
+    if (!box && mast) {
+      box = h("div", { class: "board-switch", id: "board-switch", role: "group", "aria-label": "Board: filters Seasons and Evidence" });
+      mast.appendChild(box);
+    }
+    if (!box) return;
+    clear(box);
+    if (!multiCourse()) { box.hidden = true; return; }
+    var opts = [{ id: "all", title: "All", board: "" }].concat(courseList().map(function (c) {
+      return { id: c.id, title: c.title || c.id, board: c.board || "" };
+    }));
+    opts.forEach(function (o) {
+      var b = h("button", { class: "board-btn", type: "button", "data-board": o.id, "aria-pressed": String(S.board === o.id) }, [
+        h("span", { class: "board-btn-name", text: o.title }),
+        o.board ? h("span", { class: "board-btn-board", text: o.board }) : null
+      ]);
+      b.addEventListener("click", function () { setBoard(o.id); });
+      box.appendChild(b);
+    });
+    box.hidden = false;
+  }
+  function setBoard(id) {
+    S.board = id !== "all" && courseInfo(id) ? id : "all";
+    lsSet(BOARD_KEY, S.board);
+    Array.prototype.forEach.call(doc.querySelectorAll("#board-switch .board-btn"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-board") === S.board));
+    });
+    var name = S.route ? S.route.name : "";
+    if (name === "seasons" || name === "board") renderRoute(S.route, {});
+  }
+  /* One line under a filtered Seasons or Evidence heading, so a hidden course is never a surprise. */
+  function filterNote() {
+    if (S.board === "all" || !multiCourse()) return null;
+    return h("p", { class: "filter-note", text: "Showing " + courseTitle(S.board) + " only. Pick All at the top to see both courses." });
+  }
+
   function onProgress() {
     if (S.progressTimer) return;
     S.progressTimer = setTimeout(function () {
@@ -596,6 +871,7 @@
     if (sm.cards) parts.push(plural(sm.cards, "cold case"));
     if (sm.notes) parts.push(plural(sm.notes, "note"));
     if (sm.interviews) parts.push(plural(sm.interviews, "interview result"));
+    if (sm.builds) parts.push(plural(sm.builds, "Build Night"));
     if (sm.settings) parts.push("your settings");
     if (!parts.length && sm.daily) parts.push("your nightly history");
     if (!parts.length) return "Nothing new in that sync link. This device already had all of it.";
@@ -603,7 +879,7 @@
   }
   function mergeChanged(sm) {
     sm = sm || {};
-    return !!(sm.cases || sm.cards || sm.notes || sm.interviews || sm.daily || sm.settings);
+    return !!(sm.cases || sm.cards || sm.notes || sm.interviews || sm.builds || sm.daily || sm.settings);
   }
   /* Reads "#sync=<code>" (core clears it from the address first) and says what merged. */
   function runSyncHash() {
@@ -626,7 +902,8 @@
     S.wired = true;
     if (DL.events && typeof DL.events.on === "function") {
       DL.events.on("route", function () { syncRoute(); });
-      DL.events.on("progress", onProgress);
+      // The cached session lists go at once (not debounced): build locks and the schedule live in the state.
+      DL.events.on("progress", function () { S.sess = {}; onProgress(); });
     }
     if (root.addEventListener) {
       root.addEventListener("hashchange", function () {
@@ -664,7 +941,9 @@
       S.catalog = cat || DL.content.catalog || {};
       S.sess = {};
       S.booted = true;
+      loadBoard();
       renderShell();
+      renderSwitcher();
       wireEvents();
       startRouter();
       var r = currentRoute();
@@ -698,13 +977,18 @@
   /* ======================================================================
      View: Tonight
      ====================================================================== */
-  /* Only written cases and open interviews go to the pace plan, so sessions that are still being written
-     never fill Tonight or make the plan look behind. `waiting` counts the open sessions left out. */
+  /* Only written cases, open interviews and unlocked builds go to the pace plan (contract 9.5), so sessions
+     that are still being written or locked never fill Tonight or make the plan look behind. Build Nights carry
+     weekendOnly, so the plan holds them for Saturday and Sunday. `waiting` counts the open sessions left out. */
   function paceNow() {
     var st = state(), set = st.settings || {}, t = today();
     var open = sessionsFor(planOf()).filter(function (it) { return !isDone(it.id); });
-    var remaining = open.filter(plannable)
-      .map(function (it) { return { id: it.id, kind: it.kind, minutes: it.minutes }; });
+    var remaining = open.filter(plannable).map(function (it) {
+      return {
+        id: it.id, kind: it.kind, minutes: it.minutes, weekendOnly: it.weekendOnly === true,
+        course: it.course, status: it.status, title: it.title, season: it.season
+      };
+    });
     var due = dueList();
     var doneToday = ((st.daily || {})[t] || {}).sessions || 0;
     var out = DL.pace.plan({
@@ -712,13 +996,13 @@
       weekdayMin: Number(set.weekdayMin) || 30, weekendMin: Number(set.weekendMin) || 60,
       remaining: remaining, due: due, doneToday: doneToday
     }) || {};
-    return { out: out, due: due, target: set.targetDate || addDays(t, 91), waiting: open.length - remaining.length };
+    return { out: out, due: due, target: set.targetDate || addDays(t, 120), waiting: open.length - remaining.length, remaining: remaining };
   }
   function paceText(out, target, waiting) {
     var tgt = fmtDate(target);
     switch (out.status) {
       case "done":
-        return waiting > 0 ? "You're caught up on everything written so far. The next cases are being written."
+        return waiting > 0 ? "You're caught up on everything open so far. The next sessions are being written or unlock as you close cases."
           : "Every session on your plan is closed.";
       case "past-target": return "Your date, " + tgt + ", has passed. Pick a new one whenever you like.";
       case "behind":
@@ -728,18 +1012,43 @@
       default: return "On track for " + tgt + ".";
     }
   }
+  /* "S1·04" for Dead Letter, "A1·04" for LATENT (the course's case prefix), the milestone id for a build. */
   function sessionKey(info) {
     if (info.kind === "interview") return "3AM";
     if (info.kind === "lld") return "LLD";
-    return "S" + (info.season || "?") + (info.n ? "·" + pad2(info.n) : "");
+    if (info.kind === "build") return String(info.id);
+    var c = courseInfo(info.course);
+    var prefix = String((c && c.prefix) || "s").toUpperCase();
+    return prefix + (info.season || "?") + (info.n ? "·" + pad2(info.n) : "");
   }
   function kindLabel(info) {
     if (info.kind === "interview") return "3 AM interview" + (info.season ? " · Season " + info.season : "");
     if (info.kind === "lld") return "Low-level design";
+    if (info.kind === "build") return "Build Night";
     return info.season ? "Season " + info.season : "Case";
+  }
+  /* A Build Night on Tonight: project, milestone, minutes and a button. The title is plain text (no stretched
+     link), so the button is what opens it. */
+  function buildCard(info) {
+    var ready = info.status === "ready";
+    return h("li", { class: "session build " + (ready ? "ready" : "planned") }, [
+      h("span", { class: "session-k", "aria-hidden": "true", text: sessionKey(info) }),
+      h("div", null, [
+        h("p", { class: "session-project", text: "Build Night · " + (info.project || "Project") }),
+        h("h3", { class: "session-title", text: info.title }),
+        h("div", { class: "chips" }, [
+          courseChip(info.course),
+          info.minutes ? h("span", { class: "chip", text: info.minutes + " min" }) : null,
+          h("span", { class: "chip", text: "weekend" }),
+          ready ? null : h("span", { class: "chip", text: "locked" })
+        ]),
+        ready ? h("div", { class: "btn-row" }, link("Open Build Night", "build/" + info.id, "btn btn-primary")) : null
+      ])
+    ]);
   }
   function sessionCard(it) {
     var info = sessionInfo(it);
+    if (info.kind === "build") return buildCard(info);
     var ready = playable(info);
     var title = h("h3", { class: "session-title" }, ready ? link(info.title, routeFor(info)) : h("span", { text: info.title }));
     return h("li", { class: "session " + (ready ? "ready" : "planned") }, [
@@ -748,6 +1057,7 @@
         title,
         info.setting ? h("p", { class: "session-setting", text: info.setting }) : null,
         h("div", { class: "chips" }, [
+          courseChip(info.course),
           h("span", { class: "chip", text: kindLabel(info) }),
           info.minutes ? h("span", { class: "chip", text: info.minutes + " min" }) : null,
           h("span", { class: "chip" + (info.core ? " core" : ""), text: info.core ? "core" : "bonus" }),
@@ -766,7 +1076,7 @@
   function firstShift() {
     var set = settings(), t = today();
     var planName = nextId("plan");
-    var target = h("input", { type: "date", id: nextId("target"), value: isIso(set.targetDate) ? set.targetDate : addDays(t, 91), min: addDays(t, 1), required: true });
+    var target = h("input", { type: "date", id: nextId("target"), value: isIso(set.targetDate) ? set.targetDate : addDays(t, 120), min: addDays(t, 1), required: true });
     var wd = numberInput(nextId("wd"), set.weekdayMin || 30);
     var we = numberInput(nextId("we"), set.weekendMin || 60);
     var summary = h("p", { class: "field-help", "aria-live": "polite", text: planSummary(set.plan === "all" ? "all" : "core") });
@@ -869,6 +1179,14 @@
       sec.appendChild(h("p", { class: "muted", text: "Every session on your plan is closed. Cold cases keep coming back so it stays with you." }));
     } else {
       sec.appendChild(h("p", { class: "muted", text: "That's tonight's new work done. You can always play more from Seasons." }));
+    }
+    // On a weekday the plan holds Build Nights back (contract 9.5); say so when one is open and waiting.
+    var heldBuild = null;
+    try { if (!DL.util.isWeekend(t)) heldBuild = (p.remaining || []).filter(function (it) { return it.weekendOnly; })[0] || null; } catch (e) { heldBuild = null; }
+    if (heldBuild) {
+      sec.appendChild(h("p", { class: "more-line" }, [
+        "Build Night ", link(heldBuild.title || heldBuild.id, "build/" + heldBuild.id), " is unlocked. It shows up here on the weekend."
+      ]));
     }
     sec.appendChild(h("p", { class: "more-line" }, ["Want more? Every case is in ", link("Seasons", "seasons"), "."]));
     sec.appendChild(storageLine());
@@ -1141,13 +1459,18 @@
      ====================================================================== */
   function viewCase(ctx) {
     var id = ctx.arg;
-    // An interview id under #case/ opens the interview view instead of a "being written" panel.
-    if (interviewMeta(id) && !(DL.content.caseMeta && DL.content.caseMeta(id))) return viewInterview(ctx);
+    var cat = catalog();
+    // caseMeta(id) finds interviews and builds too since core v1.2.0, so the id goes to the view of the catalog
+    // list it is in: a build or interview id under #case/ opens its own view instead of a "being written" panel.
+    var isCaseId = !!(findIn(cat.cases, id) || findIn(cat.lld, id));
+    if (!isCaseId && findIn(cat.builds, id)) return viewBuild(ctx);
+    if (!isCaseId && interviewMeta(id)) return viewInterview(ctx);
     var meta = metaFor(id);
     if (!meta) {
       ctx.root.appendChild(messagePanel("Not on file", "There's no case called “" + id + "”.", null));
       return null;
     }
+    setCourse(ctx, courseOf(meta));
     ctx.root.appendChild(h("section", { class: "wrap" }, h("p", { class: "loading", role: "status", text: "Pulling the case file..." })));
     return DL.content.loadCase(id).then(function (c) {
       if (!ctx.alive) return;
@@ -1203,8 +1526,9 @@
       link("Seasons", "seasons"),
       h("span", { "aria-hidden": "true", text: "/" }),
       h("span", { text: bits.join(" · ") }),
+      courseChip(courseOf(meta)),
       h("span", { class: "chip" + (core ? " core" : ""), text: core ? "core" : "bonus" }),
-      isDone(c.id) ? h("span", { class: "chip ok", text: "closed" }) : null
+      isDone(c.id) ? h("span", { class: "chip ok", text: isCredited(c.id) ? "Credited from LATENT" : "closed" }) : null
     ]);
   }
 
@@ -1562,8 +1886,21 @@
     var list = sessionsFor(planOf());
     var idx = indexOfId(list, id);
     if (idx < 0) { list = sessionsFor("all"); idx = indexOfId(list, id); }
+    if (idx < 0) {
+      // a case outside the schedule setting (a LATENT case on "Dead Letter only"): its own course's order
+      var course = courseOf(metaFor(id));
+      list = courseSessions(planOf(), course);
+      idx = indexOfId(list, id);
+      if (idx < 0) { list = courseSessions("all", course); idx = indexOfId(list, id); }
+    }
     for (var i = idx + 1; i < list.length; i++) if (!isDone(list[i].id)) return list[i];
     return null;
+  }
+  /* Auto-credit (contract 9.8): a Dead Letter case whose LATENT sources are all closed is marked done with
+     creditedFrom and no card. A failure here never undoes the close. */
+  function applyCredits() {
+    if (!DL.credits || typeof DL.credits.applyToStore !== "function") return Promise.resolve([]);
+    return Promise.resolve().then(function () { return DL.credits.applyToStore(); }).then(null, function () { return []; });
   }
   function closeCase(id) {
     var t = today();
@@ -1577,7 +1914,9 @@
         day.sessions = (day.sessions || 0) + 1;
       }
       if (!d.cards[id]) d.cards[id] = DL.sched.newCard(t);
-    }));
+    })).then(function (st) {
+      return applyCredits().then(function () { return st; });
+    });
   }
   function closeBox(ctx, c) {
     var box = h("div", { class: "close-box", "aria-live": "polite" });
@@ -1586,6 +1925,11 @@
       box.classList.add("done");
       var t = today(), rec = caseRec(c.id), card = cardFor(c.id);
       var line = justClosed ? "Case closed." : "You closed this case on " + fmtDate(rec.done) + ".";
+      if (!justClosed && isCredited(c.id)) {
+        line = "Credited from LATENT on " + fmtDate(rec.done) + ", for closing " + joinList(rec.creditedFrom.map(function (x) {
+          return (metaFor(x) || {}).title || x;
+        })) + ". Their cold cases cover this one.";
+      }
       if (card) {
         line += DL.sched.isDue(card, t) ? " Its cold case is waiting for you now." : " It comes back as a cold case " + DL.sched.nextReviewText(card, t) + ".";
       }
@@ -1596,7 +1940,10 @@
       var nx = nextSessionAfter(c.id);
       if (nx) {
         var info = sessionInfo(nx);
-        if (playable(info)) {
+        if (info.kind === "build") {
+          if (info.status === "ready") row.appendChild(link("Next: Build Night, " + info.title, routeFor(info), "btn btn-primary"));
+          else box.appendChild(h("p", { class: "muted", text: "Next up: Build Night, " + info.title + " (it unlocks as you close its cases)." }));
+        } else if (playable(info)) {
           row.appendChild(link((info.kind === "interview" ? "Next: the 3 AM interview, " : "Next: ") + info.title, routeFor(info), "btn btn-primary"));
         } else {
           box.appendChild(h("p", { class: "muted", text: "Next up: " + info.title + " (being written)." }));
@@ -1683,6 +2030,102 @@
     widget.classList.add("review-answer");
     return h("div", null, [art, widget]);
   }
+  /* A decision card's answer box (contract 9.7): answer from memory, then your own note from the Build Night is
+     shown as the model answer, then the self-grade buttons. There are no key ideas, so there is no automatic check
+     and no Claude result code for these. */
+  function decisionWidget(item, opts) {
+    var box = h("div", { class: "recall" });
+    var id = nextId("answer");
+    var ta = h("textarea", { id: id, rows: "4", placeholder: "Answer from memory: what did you decide, and why?" });
+    var check = h("button", { class: "btn", type: "button", text: "Check my answer" });
+    var out = h("div", { class: "feedback", "aria-live": "polite" });
+    box.appendChild(h("label", { class: "field-k", for: id, text: "Your answer, in your own words" }));
+    box.appendChild(ta);
+    box.appendChild(check);
+    box.appendChild(out);
+    var graded = false;
+    check.addEventListener("click", function () {
+      var answer = ta.value.trim();
+      clear(out);
+      if (!answer) {
+        out.appendChild(h("p", { text: "Write at least one sentence first. Answering from memory is the whole point." }));
+        ta.focus();
+        return;
+      }
+      check.disabled = true;
+      ta.readOnly = true;
+      var note = String(item.model || "").trim();
+      out.appendChild(h("div", { class: "model" }, [h("p", { class: "part2-label", text: "Your note from the Build Night" })].concat(
+        note ? paras(note) : [h("p", { class: "muted", text: "You didn't leave a note when you marked it done. Compare your answer with what you remember building." })]
+      )));
+      out.appendChild(h("p", { class: "field-k", text: "How did you do?" }));
+      var next = h("p", { class: "next-line" });
+      var grades = ["missed", "partly", "good", "easy"];
+      var btns = grades.map(function (g) {
+        var b = h("button", { class: "btn", type: "button", "aria-pressed": "false", text: GRADE_LABELS[g] });
+        b.addEventListener("click", function () {
+          if (graded) return;
+          graded = true;
+          btns.forEach(function (x, i) {
+            x.disabled = true;
+            x.setAttribute("aria-pressed", String(grades[i] === g));
+          });
+          next.textContent = opts.onGrade ? (opts.onGrade(g) || "") : "";
+          if (opts.after) opts.after(out);
+        });
+        return b;
+      });
+      out.appendChild(h("div", { class: "btn-row", role: "group", "aria-label": "Grade yourself" }, btns));
+      out.appendChild(next);
+    });
+    return box;
+  }
+  /* A due decision card "build:<id>", built from the milestone (no case file to fetch). */
+  function decisionCard(id, onFirst, after) {
+    var t = today();
+    var bid = id.slice(6);
+    var m = buildMeta(bid) || { id: bid, title: bid };
+    var orig = cardFor(id) || Object.assign(DL.sched.newCard(t), { build: bid });
+    var prompt = null;
+    try { prompt = DL.sched.promptFor(orig, m); } catch (e) { prompt = null; }
+    if (!prompt || prompt.kind !== "decision") {
+      prompt = { kind: "decision", prompt: m.decisionPrompt || "What did you decide while building " + (m.title || bid) + ", and why?", model: buildRec(bid).note || "" };
+    }
+    var rec = buildRec(bid);
+    var since = isIso(rec.done) ? DL.util.daysBetween(rec.done, t) : 0;
+    var proj = projectOf(m);
+    var art = h("article", { class: "post post-update" }, h("div", { class: "post-body" }, [
+      h("div", { class: "post-meta" }, [
+        h("span", { class: "flair", text: "Build Night" }),
+        courseChip(courseOf(m)),
+        since > 0 ? h("span", { text: laterText(since) }) : null
+      ]),
+      h("h2", { class: "post-title small", tabindex: "-1", text: (proj.title ? proj.title + ": " : "") + (m.title || bid) }),
+      h("div", { class: "story" }, h("div", { class: "gp-reply" }, [
+        h("p", { class: "c-meta" }, [h("span", { class: "user", text: "u/grey_pager" }), " asks about your build:"]),
+        h("p", { md: prompt.prompt || "" })
+      ]))
+    ]));
+    var committed = false;
+    var widget = decisionWidget(prompt, {
+      // Graded from the card as it was when the view opened, like the case cards.
+      onGrade: function (g) {
+        var next = DL.sched.grade(orig, g, t);
+        var first = !committed;
+        committed = true;
+        Promise.resolve(DL.store.update(function (d) {
+          d.cards = d.cards || {};
+          d.cards[id] = next;
+          if (first) { var day = dayRec(d, t); day.reviews = (day.reviews || 0) + 1; }
+        })).then(null, function () { /* the local copy is kept by the store */ });
+        if (first && onFirst) onFirst();
+        return "Next time: " + DL.sched.nextReviewText(next, t) + ".";
+      },
+      after: after
+    });
+    widget.classList.add("review-answer");
+    return h("div", null, [art, widget]);
+  }
   function shiftOver(n) {
     var nextCard = soonestCard();
     return h("div", { class: "shift-over" }, [
@@ -1715,6 +2158,13 @@
     sec.appendChild(stage);
     var idx = 0, graded = 0;
     function advance() { idx += 1; show(true); }
+    function countGraded() { graded += 1; }
+    function addNext(fb) {
+      var last = idx >= queue.length - 1;
+      var nextBtn = h("button", { class: "btn btn-primary", type: "button", text: last ? "Finish the shift" : "Next cold case" });
+      nextBtn.addEventListener("click", advance);
+      fb.appendChild(h("div", { class: "btn-row" }, nextBtn));
+    }
     function show(focus) {
       if (!ctx.alive) return null;
       clear(stage);
@@ -1726,16 +2176,16 @@
       }
       var id = queue[idx];
       prog.textContent = "Cold case " + (idx + 1) + " of " + queue.length;
+      if (isDecisionId(id)) {
+        stage.appendChild(decisionCard(id, countGraded, addNext));
+        if (focus) focusFirst(stage, "h2");
+        return null;
+      }
       stage.appendChild(h("p", { class: "loading", role: "status", text: "Pulling the file..." }));
       return DL.content.loadCase(id).then(function (c) {
         if (!ctx.alive) return;
         clear(stage);
-        stage.appendChild(reviewCard(c || {}, id, function () { graded += 1; }, function (fb) {
-          var last = idx >= queue.length - 1;
-          var nextBtn = h("button", { class: "btn btn-primary", type: "button", text: last ? "Finish the shift" : "Next cold case" });
-          nextBtn.addEventListener("click", advance);
-          fb.appendChild(h("div", { class: "btn-row" }, nextBtn));
-        }));
+        stage.appendChild(reviewCard(c || {}, id, countGraded, addNext));
         if (focus) focusFirst(stage, "h2");
       }, function (err) {
         if (!ctx.alive) return;
@@ -1755,9 +2205,13 @@
   /* ======================================================================
      View: seasons
      ====================================================================== */
-  function currentSeason() {
-    var list = sessionsFor(planOf());
-    for (var i = 0; i < list.length; i++) if (!isDone(list[i].id)) return list[i].season || null;
+  /* The season of the first open session of one course, on your plan (builds have no season). */
+  function currentSeason(course) {
+    var list = courseSessions(planOf(), course);
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].kind === "build") continue;
+      if (!isDone(list[i].id)) return list[i].season || null;
+    }
     return null;
   }
   /* Interviews are always linked (the room needs no written case). Their chip says "ready" once they're due
@@ -1769,7 +2223,8 @@
     var ready = isIv ? interviewOpen(it) : canOpen;
     var kind = isIv ? "Finale · 3 AM interview" : info.kind === "lld" ? "Low-level design" : info.setting;
     var rec = isIv ? interviewRec(it.id) : null;
-    var doneText = "done ✓" + (rec && typeof rec.score === "number" && typeof rec.max === "number" ? " " + rec.score + "/" + rec.max : "");
+    var doneText = isCredited(it.id) ? "Credited from LATENT"
+      : "done ✓" + (rec && typeof rec.score === "number" && typeof rec.max === "number" ? " " + rec.score + "/" + rec.max : "");
     var stateText = ready ? "ready" : isIv ? "after the cases" : "being written";
     return h("li", { class: "season-item" }, [
       h("span", { class: "si-mark" + (done ? " done" : ready ? " ready" : ""), "aria-hidden": "true", text: done ? "✓" : ready ? "•" : "·" }),
@@ -1778,25 +2233,26 @@
         kind ? h("span", { class: "si-kind", text: kind }) : null
       ]),
       h("div", { class: "chips" }, [
+        courseChip(info.course),
         h("span", { class: "chip" + (info.core ? " core" : ""), text: info.core ? "core" : "bonus" }),
         done ? h("span", { class: "chip ok", text: doneText }) : h("span", { class: "chip", text: stateText })
       ])
     ]);
   }
-  function viewSeasons(ctx) {
-    ctx.rerender = true;
-    var cat = catalog(), plan = planOf();
-    var sec = h("section", { class: "wrap section" }, head("The full run", "Seasons",
-      "Every case in order. Core cases cover what interviews and day-to-day work need; bonus cases go deeper and stay open after your date. Your plan: " +
-      (plan === "all" ? "everything." : "core only.")));
+  /* One course's seasons, in plan order within each season (cases, then the finale interviews). Seasons are
+     keyed by course and number, since both courses have a Season 1. Builds go to Projects, not here. */
+  function courseSeasons(course, withHead) {
+    var cid = course.id;
     var groups = {};
-    sessionsFor("all").forEach(function (it) {
+    courseSessions("all", cid).forEach(function (it) {
+      if (it.kind === "build") return;
       var k = it.season || 0;
       (groups[k] = groups[k] || []).push(it);
     });
-    var current = currentSeason();
+    var current = currentSeason(cid);
     var list = h("ol", { class: "seasons" });
-    var seasons = (cat.seasons || []).slice().sort(function (a, b) { return a.n - b.n; });
+    var seasons = (catalog().seasons || []).filter(function (se) { return se && courseOf(se) === cid; })
+      .sort(function (a, b) { return a.n - b.n; });
     seasons.forEach(function (se) {
       var items = groups[se.n] || [];
       var coreItems = items.filter(function (it) { return sessionInfo(it).core; });
@@ -1810,7 +2266,7 @@
         h("div", { class: "season-head" }, [
           h("span", { class: "s-n", text: "S" + se.n }),
           h("div", null, [
-            h("h2", { md: se.title || "Season " + se.n }),
+            h(withHead ? "h3" : "h2", { md: se.title || "Season " + se.n }),
             se.rank ? h("p", { class: "s-rank", text: se.rank }) : null,
             se.blurb ? h("p", { class: "s-blurb", md: se.blurb }) : null
           ]),
@@ -1822,11 +2278,109 @@
     });
     if (groups[0] && groups[0].length) {
       list.appendChild(h("li", { class: "season-block" }, [
-        h("div", { class: "season-head" }, [h("span", { class: "s-n", text: "+" }), h("div", null, h("h2", { text: "More sessions" }))]),
+        h("div", { class: "season-head" }, [h("span", { class: "s-n", text: "+" }), h("div", null, h(withHead ? "h3" : "h2", { text: "More sessions" }))]),
         h("ul", { class: "season-items" }, groups[0].map(seasonItem))
       ]));
     }
-    sec.appendChild(list);
+    if (!withHead) return list;
+    var hid = nextId("course");
+    return h("section", { class: "course-group", "data-course": cid, "aria-labelledby": hid }, [
+      h("header", { class: "course-head" }, [
+        h("h2", { id: hid, text: course.title || cid }),
+        course.board ? h("span", { class: "course-board", text: course.board }) : null,
+        course.tagline ? h("p", { class: "course-tag", text: course.tagline }) : null
+      ]),
+      list
+    ]);
+  }
+
+  /* Projects (contract 9.9): each project with its milestones and their state. */
+  function projectList() {
+    var cat = catalog();
+    var builds = (cat.builds || []).filter(Boolean);
+    if (Array.isArray(cat.projects) && cat.projects.length) return cat.projects.filter(Boolean);
+    var list = [], seen = {};
+    builds.forEach(function (m) {
+      if (!m.project || seen[m.project]) return;
+      seen[m.project] = true;
+      list.push({
+        project: m.project, title: m.projectTitle || m.project, repo: m.repo || m.project, language: "", pitch: "",
+        milestones: builds.filter(function (x) { return x.project === m.project; }).map(function (x) { return x.id; })
+      });
+    });
+    return list;
+  }
+  /* "locked", "ready", "verified" (done, tag found on GitHub) or "self" (done, self-reported). */
+  function milestoneState(id) {
+    var rec = buildRec(id);
+    if (rec.done) return rec.verified ? "verified" : "self";
+    return buildUnlocked(id) ? "ready" : "locked";
+  }
+  var MILESTONE_TEXT = { locked: "locked", ready: "ready", verified: "done ✓ verified", self: "done ✓ self-reported" };
+  function milestoneItem(m) {
+    var st = milestoneState(m.id);
+    var done = st === "verified" || st === "self";
+    return h("li", { class: "season-item milestone" }, [
+      h("span", { class: "si-mark" + (done ? " done" : st === "ready" ? " ready" : ""), "aria-hidden": "true", text: done ? "✓" : st === "ready" ? "•" : "·" }),
+      h("div", { class: "si-title" }, [
+        link(m.title || m.id, "build/" + m.id),
+        h("span", { class: "si-kind", text: m.id + " · Build Night · " + (m.minutes || 75) + " min" })
+      ]),
+      h("div", { class: "chips" }, [
+        courseChip(courseOf(m)),
+        h("span", { class: "chip" + (done ? " ok" : ""), text: MILESTONE_TEXT[st] })
+      ])
+    ]);
+  }
+  function projectsSection() {
+    var blocks = [];
+    projectList().forEach(function (p) {
+      var ms = (p.milestones || []).map(function (id) { return buildMeta(id); })
+        .filter(function (m) { return m && boardShows(courseOf(m)); });
+      if (!ms.length) return;
+      var doneN = ms.filter(function (m) { return !!buildRec(m.id).done; }).length;
+      var all = doneN === ms.length;
+      var title = p.title || p.project || "Project";
+      blocks.push(h("li", { class: "season-block project-block" + (all ? " solved" : "") }, [
+        h("div", { class: "season-head" }, [
+          h("span", { class: "s-n", "aria-hidden": "true", text: title.charAt(0).toUpperCase() }),
+          h("div", null, [
+            h("h3", { text: title }),
+            p.language || p.repo ? h("p", { class: "s-rank", text: [p.language, p.repo ? "repo " + p.repo : ""].filter(Boolean).join(" · ") }) : null,
+            p.pitch ? h("p", { class: "s-blurb", md: p.pitch }) : null
+          ]),
+          h("span", { class: "chip" + (all ? " ok" : ""), text: all ? "All done" : doneN + " of " + ms.length + " done" })
+        ]),
+        h("ul", { class: "season-items" }, ms.map(milestoneItem))
+      ]));
+    });
+    if (!blocks.length) return null;
+    return h("section", { class: "course-group projects", "aria-labelledby": "proj-h" }, [
+      h("header", { class: "course-head" }, [
+        h("h2", { id: "proj-h", text: "Projects" }),
+        h("p", { class: "course-tag", text: "Build Nights: real code on weekends, in your own GitHub repos. A milestone unlocks when its cases are closed." })
+      ]),
+      h("ol", { class: "seasons" }, blocks)
+    ]);
+  }
+
+  function viewSeasons(ctx) {
+    ctx.rerender = true;
+    var plan = planOf(), multi = multiCourse();
+    var sec = h("section", { class: "wrap section" }, head("The full run", "Seasons",
+      "Every case in order. Core cases cover what interviews and day-to-day work need; bonus cases go deeper and stay open after your date. Your plan: " +
+      (plan === "all" ? "everything." : "core only.") + (multi ? " Dead Letter first, then LATENT, then the Build Night projects." : "")));
+    var note = filterNote();
+    if (note) sec.appendChild(note);
+    if (!multi) {
+      sec.appendChild(courseSeasons(courseList()[0], false));
+    } else {
+      courseList().filter(function (c) { return boardShows(c.id); }).forEach(function (c) {
+        sec.appendChild(courseSeasons(c, true));
+      });
+    }
+    var projects = projectsSection();
+    if (projects) sec.appendChild(projects);
     ctx.root.appendChild(sec);
     return null;
   }
@@ -1905,15 +2459,24 @@
   /* ======================================================================
      View: evidence board (an SVG built here, columns by season)
      ====================================================================== */
-  /* Closed cases with a case file. Interviews are marked done in `cases` too, but pin nothing. */
+  /* Closed cases with a case file, on the boards the switcher shows. Interviews are marked done in `cases` too,
+     but pin nothing; builds live in state.builds and pin nothing either. */
   function doneCaseIds() {
     var cases = state().cases || {};
-    var ids = sessionsFor("all").filter(function (it) { return it.kind !== "interview"; })
+    var ids = sessionsFor("all").filter(function (it) { return it.kind !== "interview" && it.kind !== "build"; })
       .map(function (it) { return it.id; }).filter(function (id) { return cases[id] && cases[id].done; });
     Object.keys(cases).sort().forEach(function (id) {
-      if (cases[id] && cases[id].done && ids.indexOf(id) < 0 && metaFor(id) && !interviewMeta(id)) ids.push(id);
+      if (cases[id] && cases[id].done && ids.indexOf(id) < 0 && metaFor(id) && !interviewMeta(id) && !findIn(catalog().builds, id)) ids.push(id);
     });
-    return ids;
+    return ids.filter(function (id) { return boardShows(courseOf(metaFor(id))); });
+  }
+  function boardColLabel(course, season) {
+    if (!season) return course === "lt" ? "LATENT MORE" : "MORE";
+    return (course === "lt" ? "LATENT SEASON " : "SEASON ") + season;
+  }
+  function boardSeasonText(course, season) {
+    if (!season) return course === "lt" ? "LATENT" : "";
+    return course === "lt" ? "LATENT S" + season : "Season " + season;
   }
   function wrapText(text, max) {
     var words = String(text || "").split(/\s+/).filter(Boolean), lines = [], cur = "";
@@ -1936,9 +2499,10 @@
     var cards = {}, order = [], strings = [], seen = {};
     cases.forEach(function (c) {
       var fading = isFading(c.id);
+      var course = courseOf(metaFor(c.id) || c);
       ((c.board || {}).cards || []).forEach(function (k) {
         if (!k || !k.id || cards[k.id]) return;
-        cards[k.id] = { id: k.id, title: k.title || k.id, season: Number(c.season) || 0, caseId: c.id, fading: fading };
+        cards[k.id] = { id: k.id, title: k.title || k.id, season: Number(c.season) || 0, course: course, caseId: c.id, fading: fading };
         order.push(k.id);
       });
     });
@@ -1954,15 +2518,23 @@
     if (!order.length) { sec.appendChild(h("p", { class: "muted", text: "These cases don't pin any cards yet." })); return; }
 
     var CW = 160, GAPX = 90, ROWH = 96, TOP = 46, PAD = 24;
+    // One column per course and season (both courses have a Season 1): Dead Letter's first, then LATENT's.
     var seasons = [];
-    order.forEach(function (id) { if (seasons.indexOf(cards[id].season) < 0) seasons.push(cards[id].season); });
-    seasons.sort(function (a, b) { return a - b; });
+    function colKey(cd) { return cd.course + ":" + cd.season; }
+    order.forEach(function (id) { if (seasons.indexOf(colKey(cards[id])) < 0) seasons.push(colKey(cards[id])); });
+    seasons.sort(function (a, b) {
+      var pa = a.split(":"), pb = b.split(":");
+      var ra = courseRank(pa[0]), rb = courseRank(pb[0]);
+      if (ra !== rb) return ra - rb;
+      return Number(pa[1]) - Number(pb[1]);
+    });
     var counts = {}, rowsMax = 1;
     order.forEach(function (id) {
       var cd = cards[id];
-      cd.col = seasons.indexOf(cd.season);
-      cd.row = counts[cd.season] || 0;
-      counts[cd.season] = cd.row + 1;
+      var key = colKey(cd);
+      cd.col = seasons.indexOf(key);
+      cd.row = counts[key] || 0;
+      counts[key] = cd.row + 1;
       rowsMax = Math.max(rowsMax, cd.row + 1);
       cd.lines = wrapText(cd.title, 19);
       cd.h = cd.lines.length > 1 ? 66 : 56;
@@ -1982,8 +2554,9 @@
     });
     if (svg.style) { svg.style.minWidth = Math.min(W, 620) + "px"; svg.style.maxWidth = W + "px"; }
     svg.appendChild(s("rect", { class: "bd-cork", x: 0, y: 0, width: W, height: H, rx: 10 }));
-    seasons.forEach(function (sn, i) {
-      svg.appendChild(s("text", { class: "bd-col", x: offX + PAD + CW / 2 + i * (CW + GAPX), y: TOP - 18, "text-anchor": "middle" }, sn ? "SEASON " + sn : "MORE"));
+    seasons.forEach(function (key, i) {
+      var parts = key.split(":");
+      svg.appendChild(s("text", { class: "bd-col", x: offX + PAD + CW / 2 + i * (CW + GAPX), y: TOP - 18, "text-anchor": "middle" }, boardColLabel(parts[0], Number(parts[1]) || 0)));
     });
     var gS = s("g", { class: "bd-strings" }), gC = s("g", { class: "bd-cards" }), gL = s("g", { class: "bd-labels" });
     strings.forEach(function (st) {
@@ -2014,7 +2587,7 @@
       ]);
       var ty = cd.lines.length > 1 ? cd.cy - 6 : cd.cy + 2;
       cd.lines.forEach(function (ln, i) { g.appendChild(s("text", { class: "bd-title", x: cd.cx, y: ty + i * 15, "text-anchor": "middle" }, ln)); });
-      g.appendChild(s("text", { class: "bd-sub", x: cd.cx, y: y0 + cd.h - 9, "text-anchor": "middle" }, (cd.fading ? "fading · " : "") + (cd.season ? "Season " + cd.season : "")));
+      g.appendChild(s("text", { class: "bd-sub", x: cd.cx, y: y0 + cd.h - 9, "text-anchor": "middle" }, (cd.fading ? "fading · " : "") + boardSeasonText(cd.course, cd.season)));
       if (cd.fading) {
         var kx = x0 + CW - 10, ky = y0 + 3;
         var pts = [[kx, ky], [kx - 5, ky + 8], [kx - 1, ky + 15], [kx - 6, ky + 23]].map(function (pt) { return pt[0] + "," + pt[1]; }).join(" ");
@@ -2040,9 +2613,10 @@
         var out = strings.filter(function (st) { return st.from === id; }).map(function (st) {
           return (st.label ? st.label + " → " : "→ ") + cards[st.to].title;
         });
+        var where = boardSeasonText(cd.course, cd.season);
         return h("li", null, [
           h("strong", { text: cd.title }),
-          (cd.season ? " · Season " + cd.season : "") + (cd.fading ? " · fading" : "") + (out.length ? ". " + out.join("; ") : "")
+          (where ? " · " + where : "") + (cd.fading ? " · fading" : "") + (out.length ? ". " + out.join("; ") : "")
         ]);
       }))
     ]));
@@ -2051,10 +2625,14 @@
     ctx.rerender = true;
     var sec = h("section", { class: "wrap section" }, head("Evidence board", "How it all connects",
       "Every case you close pins its cards and red string here. Ideas that connect to other ideas are the ones that last."));
+    var note = filterNote();
+    if (note) sec.appendChild(note);
     ctx.root.appendChild(sec);
     var ids = doneCaseIds();
     if (!ids.length) {
-      sec.appendChild(h("p", { class: "muted", text: "Nothing pinned yet. Close your first case and its cards go up here." }));
+      sec.appendChild(h("p", { class: "muted", text: note
+        ? "Nothing pinned from " + courseTitle(S.board) + " yet. Close one of its cases and its cards go up here."
+        : "Nothing pinned yet. Close your first case and its cards go up here." }));
       return null;
     }
     var loading = h("p", { class: "loading", role: "status", text: "Pinning the cards..." });
@@ -2183,14 +2761,17 @@
       return null;
     }
     var id = iv.id;
+    var course = courseOf(iv);
+    setCourse(ctx, course);
     var season = typeof iv.season === "number" ? iv.season : null;
-    var se = season ? seasonMeta(season) : null;
+    var se = season ? seasonMeta(season, course) : null;
     var level = (se && se.rank) || "";
     var sec = h("section", { class: "wrap section" });
     var crumbs = h("div", { class: "case-crumbs" }, [
       link("Seasons", "seasons"),
       h("span", { "aria-hidden": "true", text: "/" }),
       h("span", { text: (season ? "Season " + season + " finale" : "Finale") + " · 3 AM interview · about 45 min" }),
+      courseChip(course),
       h("span", { class: "chip" + (iv.core ? " core" : ""), text: iv.core ? "core" : "bonus" })
     ]);
     var doneChip = h("span", { class: "chip ok", text: "done", hidden: !isDone(id) });
@@ -2293,6 +2874,319 @@
     };
     ctx.root.appendChild(sec);
     loadRoom().then(null, function () { /* the button tries again and says what went wrong */ });
+    return null;
+  }
+
+  /* ======================================================================
+     View: Build Night  #build/<id>  (contract 9.6 and 9.9)
+     The GitHub check runs only when Verify on GitHub is pressed: never on
+     load, never in a loop. Done-when ticks live in this browser only.
+     ====================================================================== */
+  function loadChecks(id, n) {
+    var arr = null;
+    try { arr = JSON.parse(lsGet(CHECKS_KEY + id) || "null"); } catch (e) { arr = null; }
+    var out = [];
+    for (var i = 0; i < n; i++) out.push(!!(Array.isArray(arr) && arr[i]));
+    return out;
+  }
+  function saveChecks(id, list) {
+    var raw = "[]";
+    try { raw = JSON.stringify(list); } catch (e) { raw = "[]"; }
+    lsSet(CHECKS_KEY + id, raw);
+  }
+  /* The spec: paragraphs split on blank lines, each line through DL.util.md; consecutive lines starting "- "
+     become one bullet list. Nothing else is formatted. */
+  function specEls(text) {
+    var out = [];
+    String(text || "").split(/\n\s*\n/).forEach(function (para) {
+      var plain = [], items = null;
+      function flushPlain() { if (plain.length) { out.push(h("p", { md: plain.join(" ") })); plain = []; } }
+      function flushItems() { if (items) { out.push(h("ul", null, items)); items = null; } }
+      para.split("\n").forEach(function (line) {
+        var t = line.trim();
+        if (!t) return;
+        if (t.indexOf("- ") === 0) {
+          flushPlain();
+          (items || (items = [])).push(h("li", { md: t.slice(2).trim() }));
+        } else {
+          flushItems();
+          plain.push(t);
+        }
+      });
+      flushPlain();
+      flushItems();
+    });
+    return out;
+  }
+  function codeEl(text) { return h("code", { class: "inline-code", text: text }); }
+  /* A first mark done counts as one of tonight's sessions, like closing a case, so the pace plan sees it. */
+  function countBuildSession() {
+    var t = today();
+    return Promise.resolve(DL.store.update(function (d) {
+      var day = dayRec(d, t);
+      day.sessions = (day.sessions || 0) + 1;
+    }));
+  }
+
+  function viewBuild(ctx) {
+    var m = buildMeta(ctx.arg);
+    if (!m) {
+      ctx.root.appendChild(messagePanel("Not on file", "There's no Build Night called “" + ctx.arg + "”.", null));
+      return null;
+    }
+    var id = m.id;
+    setCourse(ctx, courseOf(m));
+    var proj = projectOf(m);
+    var projTitle = proj.title || m.projectTitle || m.project || "Project";
+    var repo = String(m.repo || proj.repo || m.project || "");
+    var tag = String(m.tag || "");
+    var minutes = m.minutes || 75;
+    var sec = h("section", { class: "wrap section build-view" });
+
+    // crumbs and heading: project, pitch, milestone, minutes
+    var stateChip = h("span", { class: "chip" });
+    sec.appendChild(h("div", { class: "case-crumbs" }, [
+      link("Seasons", "seasons"),
+      h("span", { "aria-hidden": "true", text: "/" }),
+      h("span", { text: "Build Night · " + id + " · " + minutes + " min · weekend" }),
+      courseChip(courseOf(m)),
+      stateChip
+    ]));
+    sec.appendChild(h("header", { class: "sec-head" }, [
+      h("p", { class: "eyebrow", text: "Build Night · " + projTitle }),
+      h("h1", { md: m.title || id }),
+      proj.pitch ? h("p", { class: "lede", md: proj.pitch }) : null,
+      h("p", { class: "build-meta", text: [projTitle, proj.language, repo ? "repo " + repo : "", minutes + " minutes"].filter(Boolean).join(" · ") })
+    ]));
+
+    // unlock status: the cases still needed, linked
+    var unlockBox = h("div", { class: "build-unlock" });
+    function caseTitle(cid) { return (metaFor(cid) || {}).title || cid; }
+    function renderUnlock() {
+      clear(unlockBox);
+      var needs = Array.isArray(m.unlockAfter) ? m.unlockAfter : [];
+      var missing = needs.filter(function (cid) { return !isDone(cid); });
+      unlockBox.setAttribute("data-state", missing.length ? "locked" : "ready");
+      if (!missing.length) {
+        unlockBox.appendChild(h("p", null, [
+          h("strong", { text: "Unlocked." }),
+          needs.length ? " You've closed " + joinList(needs.map(caseTitle)) + "." : ""
+        ]));
+        return;
+      }
+      unlockBox.appendChild(h("p", null, [
+        h("strong", { text: "Locked." }),
+        " Close " + (missing.length === 1 ? "this case" : "these cases") + " first. You can read the whole plan now."
+      ]));
+      unlockBox.appendChild(h("ul", { class: "unlock-list" }, missing.map(function (cid) {
+        var mm = metaFor(cid) || {};
+        var where = [
+          mm.season ? (courseOf(mm) === "lt" ? "LATENT Season " : "Season ") + mm.season : "",
+          mm.status === "ready" ? "" : "being written"
+        ].filter(Boolean).join(" · ");
+        return h("li", null, [link(mm.title || cid, "case/" + cid), where ? h("span", { class: "muted small", text: " (" + where + ")" }) : null]);
+      })));
+    }
+    sec.appendChild(unlockBox);
+
+    // the spec
+    sec.appendChild(h("div", { class: "block" }, [
+      h("h2", { class: "build-h", text: "The spec" }),
+      h("div", { class: "spec" }, specEls(m.spec))
+    ]));
+
+    // the prompt pack: read-only, copied inside the click, or selected for a copy by hand
+    var packText = String(m.promptPack || "");
+    var pack = h("pre", { class: "prompt-pack", tabindex: "0", role: "region", "aria-label": "Prompt pack (read-only)", text: packText });
+    var copyBtn = h("button", { class: "btn btn-primary btn-copy", type: "button", text: "Copy prompt pack" });
+    var copyStatus = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+    copyBtn.addEventListener("click", function () {
+      function fallback() {
+        copyBtn.removeAttribute("data-copied");
+        if (selectNodeText(pack)) sayTo(copyStatus, SELECT_HINT, "");
+        else sayTo(copyStatus, "Copying isn't allowed in this browser. Select the text above by hand.", "bad");
+      }
+      var clip = root.navigator && root.navigator.clipboard;
+      if (!clip || typeof clip.writeText !== "function") { fallback(); return; }
+      try {
+        Promise.resolve(clip.writeText(packText)).then(function () {
+          copyBtn.setAttribute("data-copied", "true");
+          sayTo(copyStatus, "Copied. Paste it into Claude Code in an empty folder for this repo.", "ok");
+        }, fallback);
+      } catch (e) {
+        fallback();
+      }
+    });
+    sec.appendChild(h("div", { class: "block" }, [
+      h("h2", { class: "build-h", text: "Prompt pack" }),
+      h("p", { class: "field-help", text: "What to hand Claude Code for this milestone, repo rules included. Read it first: the decisions stay yours." }),
+      pack,
+      h("div", { class: "btn-row" }, copyBtn),
+      copyStatus
+    ]));
+
+    // done when: local ticks only
+    var doneWhen = Array.isArray(m.doneWhen) ? m.doneWhen : [];
+    if (doneWhen.length) {
+      var ticks = loadChecks(id, doneWhen.length);
+      var tickNote = h("p", { class: "muted small", "aria-live": "polite" });
+      var tickText = function () {
+        return ticks.filter(Boolean).length + " of " + doneWhen.length + " ticked. Ticks stay in this browser only.";
+      };
+      tickNote.textContent = tickText();
+      sec.appendChild(h("div", { class: "block" }, [
+        h("h2", { class: "build-h", text: "Done when" }),
+        h("ul", { class: "checklist" }, doneWhen.map(function (item, i) {
+          var cid = nextId("dw");
+          var cb = h("input", { type: "checkbox", id: cid, checked: ticks[i] });
+          cb.addEventListener("change", function () {
+            ticks[i] = cb.checked;
+            saveChecks(id, ticks);
+            tickNote.textContent = tickText();
+          });
+          return h("li", null, [cb, h("label", { for: cid, md: item })]);
+        })),
+        tickNote
+      ]));
+    }
+
+    // repo and tag, then the GitHub check (on press only)
+    var ownerNow = githubOwner();
+    var ownerShown = ownerNow || "your-username";
+    var verifyBtn = h("button", { class: "btn", type: "button", text: "Verify on GitHub" });
+    var verifyOut = h("div", { class: "verify-result", role: "status", "aria-live": "polite", hidden: true });
+    sec.appendChild(h("div", { class: "block" }, [
+      h("h2", { class: "build-h", text: "Push it and tag it" }),
+      h("p", null, ["Create ", codeEl(ownerShown + "/" + repo), " on GitHub when you're ready, push your work, then add the tag ", codeEl(tag), "."]),
+      h("pre", { class: "cmd-block", tabindex: "0", role: "region", "aria-label": "Commands to tag and push", text: "git tag " + tag + "\ngit push origin " + tag }),
+      h("p", { class: "field-help" }, ["The check looks at the public repos of ", codeEl(ownerShown), ". ", link("Change your GitHub username in Settings", "settings"), "."]),
+      h("div", { class: "btn-row" }, verifyBtn),
+      verifyOut
+    ]));
+    var checking = false;
+    function showVerify(res) {
+      verifyOut.hidden = false;
+      verifyOut.setAttribute("data-status", VERIFY_LABELS[res.status] ? res.status : "error");
+      clear(verifyOut);
+      verifyOut.appendChild(h("p", { class: "verify-k", text: VERIFY_LABELS[res.status] || VERIFY_LABELS.error }));
+      if (res.message) verifyOut.appendChild(h("p", { text: String(res.message) }));
+    }
+    verifyBtn.addEventListener("click", function () {
+      if (checking) return;
+      if (!DL.builds || typeof DL.builds.checkTag !== "function") {
+        showVerify({ status: "error", message: "The GitHub check isn't available here. Reload the page, or mark it as self-reported." });
+        return;
+      }
+      checking = true;
+      var who = githubOwner();
+      verifyBtn.disabled = true;
+      verifyBtn.setAttribute("aria-busy", "true");
+      verifyBtn.textContent = "Checking GitHub...";
+      showVerify({ status: "checking", message: "Looking for the tag " + tag + " on " + (who || "your-username") + "/" + repo + "." });
+      Promise.resolve().then(function () { return DL.builds.checkTag({ owner: who, repo: repo, tag: tag }); })
+        .then(null, function (err) { return { status: "error", message: "The check failed: " + errMsg(err) }; })
+        .then(function (res) {
+          res = res && typeof res === "object" ? res : { status: "error", message: "GitHub gave no answer. Try again in a few minutes." };
+          checking = false;
+          if (res.status === "found") S.verified[id] = true;
+          if (!ctx.alive) return;
+          verifyBtn.disabled = false;
+          verifyBtn.removeAttribute("aria-busy");
+          verifyBtn.textContent = "Verify on GitHub";
+          showVerify(res);
+          refreshDone();
+        });
+    });
+
+    // the decision note: it becomes the model answer of the decision card
+    var noteId = nextId("bnote");
+    var noteTa = h("textarea", { id: noteId, rows: "4", placeholder: m.decisionPrompt || "What did you decide while building this, and why?", "aria-describedby": noteId + "-help" });
+    noteTa.value = buildRec(id).note || "";
+    sec.appendChild(h("div", { class: "block" }, [
+      h("h2", { class: "build-h" }, h("label", { for: noteId, text: "Your decision note" })),
+      h("p", { class: "field-help", id: noteId + "-help", text: "One or two sentences on a choice you made and why. It comes back later as a cold case." }),
+      noteTa
+    ]));
+
+    // mark done: verified once GitHub has the tag, or self-reported
+    var doneBox = h("div", { class: "build-done", hidden: true });
+    var markBtn = h("button", { class: "btn btn-primary", type: "button", text: "Mark done" });
+    var noteBtn = h("button", { class: "btn", type: "button", text: "Save note", hidden: true });
+    var selfBtn = h("button", { class: "btn-link", type: "button", text: "I built it, mark as self-reported" });
+    var markHelp = h("p", { class: "field-help" });
+    var markMsg = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+    var busy = false;
+    function refreshDone() {
+      var r = buildRec(id);
+      var found = !!S.verified[id];
+      stateChip.className = "chip" + (r.done ? " ok" : "");
+      stateChip.textContent = MILESTONE_TEXT[milestoneState(id)];
+      clear(doneBox);
+      doneBox.hidden = !r.done;
+      if (r.done) {
+        doneBox.appendChild(h("p", null, [
+          h("strong", { text: "Done on " + fmtDate(r.done) + "." }), " ",
+          r.verified ? "Verified on GitHub" + (isIso(r.verifiedAt) ? " on " + fmtDate(r.verifiedAt) : "") + "."
+            : "Self-reported. Verify on GitHub any time to make it official."
+        ]));
+        if (r.note) {
+          doneBox.appendChild(h("p", { class: "field-k", text: "Your note" }));
+          paras(r.note, "build-note").forEach(function (p) { doneBox.appendChild(p); });
+        }
+      }
+      markBtn.hidden = !!(r.done && r.verified);
+      markBtn.textContent = r.done ? "Mark as verified" : "Mark done";
+      markBtn.disabled = busy || !found;
+      selfBtn.hidden = !!r.done;
+      selfBtn.disabled = busy;
+      noteBtn.hidden = !r.done;
+      noteBtn.disabled = busy;
+      markHelp.textContent = r.done && r.verified ? ""
+        : found ? "GitHub has your tag." + (r.done ? " Mark it as verified." : " Mark it done.")
+        : r.done ? "Verify on GitHub to make it a verified milestone."
+        : "Mark done opens up once Verify on GitHub finds your tag.";
+      markHelp.hidden = !markHelp.textContent;
+    }
+    function mark(verified) {
+      if (busy) return;
+      var wasDone = !!buildRec(id).done;
+      busy = true;
+      refreshDone();
+      sayTo(markMsg, "Saving...", "");
+      Promise.resolve().then(function () { return DL.builds.markDone(id, { tag: tag, verified: verified, note: noteTa.value }); })
+        .then(function () { return wasDone ? null : countBuildSession(); })
+        .then(function () {
+          busy = false;
+          if (!ctx.alive) return;
+          var r = buildRec(id);
+          sayTo(markMsg, !wasDone ? (r.verified ? "Done and verified. Nice work." : "Marked done, self-reported.")
+            : verified ? "Saved. It's verified now." : "Saved.", "ok");
+          refreshDone();
+        }, function (err) {
+          busy = false;
+          if (!ctx.alive) return;
+          sayTo(markMsg, "Couldn't save: " + errMsg(err), "bad");
+          refreshDone();
+        });
+    }
+    markBtn.addEventListener("click", function () { if (S.verified[id]) mark(true); });
+    selfBtn.addEventListener("click", function () { mark(false); });
+    noteBtn.addEventListener("click", function () { mark(false); });
+    sec.appendChild(h("div", { class: "block" }, [
+      h("h2", { class: "build-h", text: "Mark it done" }),
+      doneBox,
+      h("div", { class: "btn-row" }, [markBtn, noteBtn]),
+      markHelp,
+      h("div", { class: "btn-row" }, selfBtn),
+      markMsg,
+      m.share ? h("p", { class: "share-hint", text: SHARE_HINT }) : null
+    ]));
+    sec.appendChild(h("div", { class: "btn-row mt" }, [link("Back to tonight", "tonight", "btn"), link("Seasons", "seasons", "btn btn-ghost")]));
+
+    renderUnlock();
+    refreshDone();
+    ctx.onProgress = function () { renderUnlock(); refreshDone(); };
+    ctx.root.appendChild(sec);
     return null;
   }
 
@@ -2430,6 +3324,51 @@
       status
     ]));
 
+    // courses and Build Nights (contract 9.9): the schedule and the GitHub username
+    var multi = multiCourse();
+    var hasBuilds = (catalog().builds || []).length > 0;
+    if (multi || hasBuilds) {
+      var cStatus = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+      var cSave = function (fn, msg) {
+        return saveSettings(fn).then(function () { sayTo(cStatus, msg || "Saved.", "ok"); }, function (err) { sayTo(cStatus, "Couldn't save: " + errMsg(err), "bad"); });
+      };
+      var groupKids = [h("h2", { text: "Courses and Build Nights" })];
+      if (multi) {
+        var curSched = set.schedule || "parallel";
+        var sched = h("select", { id: nextId("sched") }, SCHEDULES.map(function (o) {
+          return h("option", { value: o[0], selected: curSched === o[0] }, o[1]);
+        }));
+        sched.addEventListener("change", function () {
+          var v = sched.value, label = "";
+          SCHEDULES.forEach(function (o) { if (o[0] === v) label = o[1]; });
+          if (!label) { v = "parallel"; label = SCHEDULES[0][1]; }
+          S.sess = {};
+          cSave(function (st) { st.schedule = v; }, "Saved. Schedule: " + label + ".");
+        });
+        groupKids.push(field("Schedule", sched, "Which course Tonight draws from. In parallel, the plan alternates the two courses, with Build Nights on weekends."));
+      }
+      if (hasBuilds) {
+        var gh = h("input", { type: "text", id: nextId("gh"), value: githubOwner() || DEFAULT_OWNER, autocomplete: "off", autocapitalize: "off", spellcheck: "false" });
+        gh.addEventListener("change", function () {
+          var v = gh.value.trim();
+          if (!v) {
+            sayTo(cStatus, "Add your GitHub username, like " + DEFAULT_OWNER + ".", "bad");
+            gh.value = githubOwner() || DEFAULT_OWNER;
+            return;
+          }
+          if (!GH_OWNER_RE.test(v)) {
+            sayTo(cStatus, "That doesn't look like a GitHub username: letters, digits and single hyphens, up to 39 characters.", "bad");
+            return;
+          }
+          gh.value = v;
+          cSave(function (st) { st.githubOwner = v; }, "Saved. Build Nights check github.com/" + v + ".");
+        });
+        groupKids.push(field("GitHub username", gh, "Build Nights look for your milestone tags in this account's public repos. The check runs only when you press Verify on GitHub."));
+      }
+      groupKids.push(cStatus);
+      sec.appendChild(h("div", { class: "settings-group" }, groupKids));
+    }
+
     // grading
     var swId = nextId("ai");
     var sw = h("input", { type: "checkbox", role: "switch", id: swId, checked: set.aiGrading !== false });
@@ -2522,7 +3461,7 @@
     var where = DL.store && DL.store.mode === "cloud" ? " from your account and this browser" : " from this browser";
     sec.appendChild(h("div", { class: "settings-group danger" }, [
       h("h2", { text: "Delete my progress" }),
-      h("p", { class: "field-help", text: "Removes every closed case, cold case, note, interview result and setting" + where + ". Copy your progress first if you might want it back." }),
+      h("p", { class: "field-help", text: "Removes every closed case, cold case, note, interview result, Build Night and setting" + where + ". Copy your progress first if you might want it back." }),
       h("div", { class: "btn-row" }, delBtn),
       confirmBox
     ]));
