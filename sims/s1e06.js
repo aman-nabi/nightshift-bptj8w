@@ -1,7 +1,15 @@
-/* sims/s1e06-v1.0.0.js  (published as sims/s1e06.js)
+/* sims/s1e06-v1.0.1.js  (published as sims/s1e06.js)
    Case s1e06 "The Room With Too Many Doors": an API console for the museum's collection API.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: a door's JSON may now carry its catalog number ("catalog":
+     "cdm-001"). A new body preset, the Ashby door with its catalog number, shows the case's fix: a
+     POST whose catalog number is already filed gets 409 Conflict and creates nothing. A POST with a
+     new catalog number is filed as before and keeps the number. PUT refuses (400) a body whose
+     catalog number doesn't match the address, and PATCH refuses (400) to change a door's catalog
+     number. The existing presets and the 3 AM job still send no catalog number, as in the story, so
+     their POSTs keep making copies. selfTest adds one check: the catalog preset POSTed to /v1/doors
+     gets 409 Conflict and the door list doesn't change.
    v1.0.0 (2026-10-06) first version: a small diagram (you, the 3 AM import job, the collection API,
      the door list, the Room 3 kiosk) above a request builder: an editable path, an editable JSON body,
      the API's response and the stored door list. The API is a REST collection at /v1/doors with
@@ -59,6 +67,7 @@
 
   var BODIES = {
     ashby: "{\n  \"name\": \"Ashby front door\",\n  \"year\": 1891,\n  \"material\": \"oak\",\n  \"room\": 3\n}",
+    ashbycat: "{\n  \"catalog\": \"cdm-001\",\n  \"name\": \"Ashby front door\",\n  \"year\": 1891,\n  \"material\": \"oak\",\n  \"room\": 3\n}",
     tenth: "{\n  \"name\": \"Vell Street door\",\n  \"year\": 1899,\n  \"material\": \"oak\",\n  \"room\": 3\n}",
     move: "{\n  \"room\": 5\n}",
     broken: "{\n  \"name\": \"Ashby front door\",\n  \"year\": 1891\n",
@@ -66,6 +75,7 @@
   };
   var BODY_OPTIONS = [
     { value: "ashby", label: "Ashby front door (whole door)" },
+    { value: "ashbycat", label: "Ashby front door with its catalog number" },
     { value: "tenth", label: "Vell Street door (the tenth door)" },
     { value: "move", label: "{\"room\": 5} (one field)" },
     { value: "broken", label: "Broken JSON (missing a brace)" },
@@ -74,7 +84,7 @@
 
   var STATUS_TEXT = {
     200: "OK", 201: "Created", 204: "No Content", 400: "Bad Request",
-    404: "Not Found", 405: "Method Not Allowed"
+    404: "Not Found", 405: "Method Not Allowed", 409: "Conflict"
   };
 
   /* Layout checked at 0.6 x font size per character (label 13px, sub 12px, meta 11px, edge 11px),
@@ -105,8 +115,22 @@
 
   function copyDoor(d) {
     var o = { id: d.id };
-    ["name", "year", "material", "room"].forEach(function (k) { if (d[k] !== undefined) o[k] = d[k]; });
+    ["catalog", "name", "year", "material", "room"].forEach(function (k) { if (d[k] !== undefined) o[k] = d[k]; });
     return o;
+  }
+
+  // The catalog number a body carries, lowercased, or null when it carries none.
+  function catalogOf(v) {
+    return v && v.catalog !== undefined ? String(v.catalog).trim().toLowerCase() : null;
+  }
+
+  // Is a door with this catalog number already filed? The nine original doors and any door stored
+  // with PUT live at /v1/doors/{catalog number}; a POSTed door keeps the number in its catalog field.
+  function catalogTaken(doors, cat) {
+    for (var i = 0; i < doors.length; i++) {
+      if (doors[i].id === cat || doors[i].catalog === cat) return true;
+    }
+    return false;
   }
 
   function startDoors() {
@@ -188,6 +212,7 @@
     if (v.year !== undefined && typeof v.year !== "number") return { error: "year must be a number." };
     if (v.room !== undefined && typeof v.room !== "number") return { error: "room must be a number." };
     if (v.material !== undefined && typeof v.material !== "string") return { error: "material must be text." };
+    if (v.catalog !== undefined && !(typeof v.catalog === "string" && v.catalog.trim())) return { error: "catalog must be text, like \"cdm-001\"." };
     return { value: v };
   }
 
@@ -236,10 +261,17 @@
       if (method === "POST") {
         var p = parseBody(bodyText, true);
         if (p.error) return answer(400, { error: p.error }, { note: p.error });
+        var cat = catalogOf(p.value);
+        if (cat && catalogTaken(doors, cat)) {
+          return answer(409, { error: "Catalog number " + cat + " is already filed." }, {
+            note: "The body carries catalog number " + cat + ", and the API already has that door, so it refuses to file a copy. Nothing changed."
+          });
+        }
         var id = "d-" + S.nextId;
         S.nextId += 1;
         var dup = nameTaken(doors, p.value.name, id);
         var door = fill({ id: id }, p.value);
+        if (cat) door.catalog = cat;
         doors.push(door);
         return answer(201, copyDoor(door), {
           headers: { Location: "/v1/doors/" + id },
@@ -269,6 +301,11 @@
     if (method === "PUT") {
       var q = parseBody(bodyText, true);
       if (q.error) return answer(400, { error: q.error }, { note: q.error });
+      var qc = catalogOf(q.value);
+      if (qc && qc !== r.id) {
+        return answer(400, { error: "The body's catalog number, " + qc + ", doesn't match the address, " + path + "." },
+          { note: "PUT stores the door at the address you named, so a catalog number in the body must match it." });
+      }
       if (at >= 0) {
         doors[at] = fill({ id: r.id }, q.value);
         return answer(200, copyDoor(doors[at]), { note: "Replaced the door at " + path + " with what you sent. Still " + doors.length + " doors." });
@@ -287,6 +324,11 @@
       if (at < 0) return answer(404, { error: "No door at " + path + " to change." }, { note: "PATCH can only change a door that exists." });
       var pp = parseBody(bodyText, false);
       if (pp.error) return answer(400, { error: pp.error }, { note: pp.error });
+      var pc = catalogOf(pp.value);
+      if (pc && pc !== (doors[at].catalog || doors[at].id)) {
+        return answer(400, { error: "A door's catalog number names it, so PATCH can't change it." },
+          { note: "The catalog number is the door's stable ID. Changing it would break every link to the door." });
+      }
       fill(doors[at], pp.value);
       return answer(200, copyDoor(doors[at]), { note: "Changed only the fields you sent. Everything else about the door stayed." });
     }
@@ -497,7 +539,7 @@
         (S.importPut ? "Each row lands on its own fixed address, so running it again changes nothing." : "Each POST means \"add a new door\", so every run adds nine more.");
     },
     api: function () {
-      return "<strong>Collection API.</strong> The front desk for programs. It checks each request, reads or changes the door list, and answers with a status code and JSON. Endpoints: GET, POST on /v1/doors; GET, PUT, PATCH, DELETE on /v1/doors/{id}. Filters: ?room= and ?material=.";
+      return "<strong>Collection API.</strong> The front desk for programs. It checks each request, reads or changes the door list, and answers with a status code and JSON. Endpoints: GET, POST on /v1/doors; GET, PUT, PATCH, DELETE on /v1/doors/{id}. Filters: ?room= and ?material=. A POST whose body carries a catalog number that is already filed gets 409 Conflict. A POST without one can't be checked, so it files a new door.";
     },
     coll: function (S) {
       return "<strong>Door list.</strong> What the API has stored: " + S.doors.length + " doors, " + copies(S.doors) + " of them copies of a door already listed. The real Room 3 has nine. The full list is under the diagram.";
@@ -617,6 +659,12 @@
       // 8. A version that doesn't exist.
       send("GET", "/v2/doors", "none");
       t.expect(t.logText().indexOf("There is no v2") >= 0, "GET /v2/doors answers 404: only version 1 exists");
+
+      // 9. The fix: a POST that carries a catalog number already filed is refused with 409 Conflict.
+      var d9 = doors(), c9 = n("created"), e9 = n("errors");
+      send("POST", "/v1/doors", "ashbycat");
+      t.expect(doors() === d9 && n("created") === c9 && n("errors") === e9 + 1 && t.logText().indexOf("409 Conflict") >= 0,
+        "a POST whose catalog number cdm-001 is already filed gets 409 Conflict and creates nothing");
     }
   });
 })();

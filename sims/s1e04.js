@@ -1,7 +1,14 @@
-/* sims/s1e04-v1.0.0.js  (published as sims/s1e04.js)
+/* sims/s1e04-v1.0.1.js  (published as sims/s1e04.js)
    Case s1e04 "The Letter With No Return Address": a request builder and a toy hotel website.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: PUT and DELETE on /requests with no valid session now answer
+     401 Unauthorized (sign in first) instead of 404, as interviewers expect for a missing or unknown
+     session (RFC 9110 section 15.5.2). GET and POST /requests with no session still answer 200 and
+     print ROOM ???, because that broken behaviour is the story; the log now says a careful website
+     would answer 401 there too. The status box's help text mentions 401. selfTest adds one check:
+     a PUT with the cookie off gets 401. The case's tryThis order (switch on the database, sign in
+     again, then restart) is what selfTest step 7 already does.
    v1.0.0 (2026-10-06) first version: the room 412 tablet sends HTTP requests (method, path, cookie
      on or off) to the Hotel Ashgrove's website, which keeps sessions in its memory or in the
      database. The response's status code, headers and body show in the diagram. Paths: /login,
@@ -35,6 +42,7 @@
   var REASONS = {
     200: "OK",
     301: "Moved Permanently",
+    401: "Unauthorized",
     404: "Not Found",
     405: "Method Not Allowed",
     429: "Too Many Requests",
@@ -210,18 +218,18 @@
           S.requests += 1;
           res = response(200, [plain], "Slip printed: ROOM " + room + ", extra blanket.", "", "ok");
         } else {
-          res = response(200, [plain], "Slip printed: ROOM ???, extra blanket.", note + " A letter with no return address.", "bad");
+          res = response(200, [plain], "Slip printed: ROOM ???, extra blanket.", note + " A letter with no return address. A careful website would answer 401 Unauthorized here and ask the tablet to sign in, as it does for PUT and DELETE.", "bad");
         }
       } else if (method === "PUT") {
         res = room
           ? response(200, [plain], "Replaced: ROOM " + room + " now wants two pillows.", "", "ok")
-          : response(404, [plain], "No requests on file for room ???.", note, "warn");
+          : response(401, [plain], "Please sign in first.", note + " Changing a room's requests needs a valid session, so the website answers 401 Unauthorized: sign in and try again.", "warn");
       } else {
         if (room) {
           S.requests = 0;
           res = response(200, [plain], "Cancelled every request for room " + room + ".", "", "ok");
         } else {
-          res = response(404, [plain], "No requests on file for room ???.", note, "warn");
+          res = response(401, [plain], "Please sign in first.", note + " Cancelling a room's requests needs a valid session, so the website answers 401 Unauthorized: sign in and try again.", "warn");
         }
       }
       res.lookup = !!sid;
@@ -313,7 +321,7 @@
       return "<strong>The last request.</strong> The method and path, then the Cookie header if the tablet sent one. A letter with no cookie has no return address.";
     },
     status: function () {
-      return "<strong>Status code.</strong> The first digit is the family: 2xx it worked, 3xx look elsewhere, 4xx a problem with your request, 5xx a problem on the server's side.";
+      return "<strong>Status code.</strong> The first digit is the family: 2xx it worked, 3xx look elsewhere, 4xx a problem with your request, 5xx a problem on the server's side. 401 Unauthorized means the website doesn't know who you are: sign in again.";
     },
     headers: function () {
       return "<strong>Headers.</strong> Extra lines on the response: Set-Cookie hands over a cookie, Location says where a page moved, Retry-After says how long to wait, Allow lists the methods a path accepts, and Content-Type says what the body is.";
@@ -454,6 +462,14 @@
       await t.run(11);
       await send("GET", "/requests");
       t.expect(body().indexOf("Room 412") === 0, "with sessions in the database, the cookie still works after a restart");
+
+      // 8. No valid session: changing a room's requests answers 401 Unauthorized, not 404.
+      await t.run(4);
+      t.set("cookie", false);
+      var u4 = n("s4");
+      await send("PUT", "/requests");
+      t.expect(status() === "401 Unauthorized" && n("s4") === u4 + 1 && t.logText().indexOf("sign in and try again") >= 0,
+        "a PUT with no valid session answers 401 Unauthorized and asks the tablet to sign in");
     }
   });
 })();

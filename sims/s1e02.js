@@ -1,7 +1,14 @@
-/* sims/s1e02-v1.0.0.js  (published as sims/s1e02.js)
+/* sims/s1e02-v1.0.1.js  (published as sims/s1e02.js)
    Case s1e02 "Knock Knock": a box with five doors (ports) you can knock on.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: a Restart button cuts the power and relaunches the box's start-up
+     list (SSH, the web server, the database, Hal's v1 and Rosa's v2) in a random order from the
+     seeded api.rand(), so Hal's v1 and v2 race for door 8080 and the loser fails with address already
+     in use, as in the case's option B. A toggle takes Hal's v1 off the start-up list (the senior fix),
+     after which v2 gets door 8080 on every restart. Programs started by hand are not on the list, so a
+     restart clears them. selfTest adds two checks: a restart with both boards on the list costs exactly
+     one failed start and leaves one of the two boards on 8080, and with Hal's v1 off the list v2 wins.
    v1.0.0 (2026-10-06) first version: Dell's laptop (outside), a firewall, the box at 192.0.2.40
      with doors 22, 80, 443, 5432 and 8080, and a client inside the box (localhost). Controls: door,
      knock from the laptop, knock from inside, start a program, stop it, firewall on or off for the
@@ -46,6 +53,16 @@
 
   // What the Start button launches on each door.
   var STARTS = { "22": "ssh", "80": "web", "443": "web", "5432": "db", "8080": "v2" };
+
+  // The box's start-up list: what it launches by itself every time it powers on, before shuffling.
+  // Nothing on it uses door 80. Hal's v1 is skipped when the toggle takes it off the list.
+  var BOOT = [
+    { port: "22", key: "ssh" },
+    { port: "443", key: "web" },
+    { port: "5432", key: "db" },
+    { port: "8080", key: "v1" },
+    { port: "8080", key: "v2" }
+  ];
 
   var ABOUT = {
     "22": "Port 22 is the standard door for SSH, the way to log in to a machine from far away.",
@@ -197,6 +214,7 @@
         path: ["laptop", "fw"], cls: "dot-req", r: 5, speed: DOT_SPEED,
         onArrive: function (dot) { dot.cls("dot-wait"); dot.park(); }
       });
+      S.waitDot = waiting;     // a restart removes it, since its timers will never fire
       api.after(dist("laptop", "fw") / DOT_SPEED, function () {
         if (api.state.session !== session) return;
         api.log("The firewall drops the knock on door " + d.port + " without a word. Your laptop doesn't know that. It keeps waiting.", "warn");
@@ -294,6 +312,54 @@
     api.info(INFO.door(S, doorByPort(S.sel)));
   }
 
+  // A power cut: everything running stops, then the start-up list launches its programs in whatever
+  // order the box gets to them. The order comes from the seeded api.rand(), so self-tests repeat.
+  // The firewall isn't part of the box, so its settings stay as they were.
+  function restartBox(api) {
+    var S = api.state;
+    S.session = {};            // knocks still on their way are lost with the power
+    if (S.waitDot) { S.waitDot.remove(); S.waitDot = null; }
+    setBusy(api, false);
+    var list = BOOT.filter(function (b) { return b.key !== "v1" || S.halBoot; });
+    for (var i = list.length - 1; i > 0; i--) {
+      var j = Math.floor(api.rand() * (i + 1));
+      var tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+    }
+    DOORS.forEach(function (d) { S.progs[d.port] = null; });
+    api.log("You trip the breaker and the power comes back. Everything that was running stops, and the start-up list launches its programs in whatever order the box gets to them. Launch order: " +
+      list.map(function (b) { return PROGRAMS[b.key].short; }).join(", ") + ".", "warn");
+    list.forEach(function (b) {
+      var p = makeProgram(b.key);
+      var held = S.progs[b.port];
+      if (held) {
+        S.count.inuse += 1;
+        api.log(capital(p.name) + " asks for port " + b.port + ", but " + held.name + " got there first: address already in use. " + capital(p.name) + " quits.", "bad");
+      } else {
+        S.progs[b.port] = p;
+      }
+    });
+    var board = S.progs["8080"];
+    if (board && board.hal) {
+      api.log("Hal's board v1 won the race for door 8080 this time. The wall screen will say GOOD NIGHT, HAL.", "warn");
+    } else if (S.halBoot) {
+      api.log("Rosa's board v2 won the race for door 8080 this time. Hal's v1 is still on the start-up list, so the next power cut may go the other way.", "warn");
+    } else {
+      api.log("Rosa's board v2 gets door 8080. It's the only board on the start-up list now, so it wins after every power cut.", "ok");
+    }
+    updateStats(api);
+    render(api);
+  }
+
+  function setHalBoot(api, on) {
+    var S = api.state;
+    S.halBoot = !!on;
+    if (S.halBoot) {
+      api.log("Hal's board v1 is back on the start-up list. The next restart will race it against v2 for door 8080.", "warn");
+    } else {
+      api.log("You take Hal's board v1 off the start-up list. If it's running now, it keeps running until you stop it, but it won't come back after a power cut.", "ok");
+    }
+  }
+
   /* ---------- "what is this box" ---------- */
 
   var INFO = {
@@ -335,6 +401,7 @@
         "8080": makeProgram("v1")
       };
       S.fw = { "22": false, "80": true, "443": true, "5432": true, "8080": true };
+      S.halBoot = true;          // the story: Hal's v1 is still on the start-up list
       S.count = { answered: 0, refused: 0, timedout: 0, inuse: 0 };
       api.speed = SPEED;
       api.clock = START;
@@ -352,6 +419,8 @@
       S.ctl.start = api.control.button("start", "Start a program on this door", function () { startProgram(api); });
       S.ctl.stop = api.control.button("stop", "Stop the program on this door", function () { stopProgram(api); });
       S.ctl.fw = api.control.toggle("fw", "Firewall lets outsiders knock on this door", true, function (on) { setFirewall(api, on); });
+      S.ctl.restart = api.control.button("restart", "Restart the box (power cut)", function () { restartBox(api); }, { tone: "danger" });
+      S.ctl.halboot = api.control.toggle("halboot", "Hal's v1 on the start-up list", true, function (on) { setHalBoot(api, on); });
       S.ctl.reset = api.control.button("reset", "Reset", function () { api.reset(); }, { tone: "ghost" });
 
       S.stat = {
@@ -433,6 +502,19 @@
       t.click("knock");
       await t.run(3);
       t.expect(n("answered") === 6 && n("timedout") === 1, "with the firewall letting outsiders in on door 22, the laptop's knock is answered");
+
+      // 9. A power cut: the start-up list relaunches both boards in a random order, and they race for 8080.
+      var u0 = n("inuse");
+      t.click("restart");
+      var winner = t.node("d8080").text.sub;
+      t.expect(n("inuse") === u0 + 1 && (winner === "Hal's board v1" || winner === "Rosa's board v2") && has("Launch order"),
+        "a restart relaunches the start-up list: Hal's v1 and v2 race for door 8080, one wins and the other fails with address already in use");
+
+      // 10. The senior fix: take Hal's v1 off the start-up list, and v2 gets 8080 after every restart.
+      t.click("halboot");
+      t.click("restart");
+      t.expect(t.node("d8080").text.sub === "Rosa's board v2" && n("inuse") === u0 + 1,
+        "with Hal's v1 off the start-up list, v2 gets door 8080 after a restart and nothing fails to start");
     }
   });
 })();

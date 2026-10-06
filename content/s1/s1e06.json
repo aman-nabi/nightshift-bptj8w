@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: option A, its part2 and the fix now say to put each door's catalog number in its JSON (\"catalog\": \"cdm-001\"), because the API can only refuse a POST for a catalog number it already has (409 Conflict) if the body carries one; the sim gains a body preset with the catalog number and a 409 branch, and sim.tryThis mentions it; realWorld[4] no longer says Stripe can't ask clients to pick IDs, which its page doesn't say, and instead says Stripe creates and updates objects with POST, so it accepts an Idempotency-Key header on every POST; r4 option C is now a PATCH that adds one to a counter, sent twice, so it actually repeats one request",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e06",
   "season": 1,
   "n": 6,
@@ -107,10 +110,10 @@
     "prompt": "The job runs again at 3:00 AM tomorrow. What should Theo change? Part 2 follows your advice.",
     "options": [
       {
-        "text": "Make the job use PUT to each door's own address (/v1/doors/cdm-001 and so on), so sending the same row twice just replaces it. Then delete the 27 copies once, and have the API refuse a POST for a catalog number it already has.",
+        "text": "Make the job use PUT to each door's own address (/v1/doors/cdm-001 and so on), so sending the same row twice just replaces it. Then delete the 27 copies once, put each door's catalog number in its JSON, and have the API refuse a POST for a catalog number it already has.",
         "tone": "ok",
         "verdict": "Senior answer",
-        "part2": "Theo changed one word and one path on Thursday afternoon. Margit deleted the 27 copies, and the API now answers a POST for a door it already has with *409 Conflict*. At 3:00 AM I watched nine PUTs go by, nine times *200 OK*, and the kiosk stayed at nine. It has said nine every night since. On my way out I passed the loading bay, where a tenth door leans against the wall, still wrapped. It isn't in the spreadsheet yet. As far as the API knows, it does not exist.",
+        "part2": "Theo changed one word and one path on Thursday afternoon. Margit deleted the 27 copies. Every door's JSON now carries its catalog number, and the API answers a POST for a catalog number it already has with *409 Conflict*. At 3:00 AM I watched nine PUTs go by, nine times *200 OK*, and the kiosk stayed at nine. It has said nine every night since. On my way out I passed the loading bay, where a tenth door leans against the wall, still wrapped. It isn't in the spreadsheet yet. As far as the API knows, it does not exist.",
         "senior": "PUT to an address the client chooses is idempotent: one request or ten leave the same result. A stable ID that already exists in the real world, the catalog number, is what makes that possible. Clean up once, then make duplicates impossible instead of cleaning up forever."
       },
       {
@@ -140,7 +143,7 @@
     "module": "s1e06",
     "title": "Send requests to the museum's API",
     "lede": "You're Theo at his laptop, sending requests to the API by hand on Monday night, before the job's first run: nine doors, each at its own address. Pick a method and an endpoint, edit the JSON body if the method needs one, and press Send. The API's answer appears under the diagram, and the door list changes when the collection does.",
-    "tryThis": "POST the Ashby door to /v1/doors twice and watch two new addresses appear. Then PUT the same body to /v1/doors/cdm-001 twice: nothing new. Run the 3 AM job three times to replay the story, switch it to PUT and run it again. Finally PATCH a door into room 5 and GET /v1/doors?room=3."
+    "tryThis": "POST the Ashby door to /v1/doors twice and watch two new addresses appear. Then PUT the same body to /v1/doors/cdm-001 twice: nothing new. Run the 3 AM job three times to replay the story, switch it to PUT and run it again. PATCH a door into room 5 and GET /v1/doors?room=3. Finally, POST the Ashby door with its catalog number in the body: the API sees cdm-001 is already filed and refuses to file it again."
   },
   "explain": {
     "oneLine": "The building never grew. The nightly job asked the API to create nine new doors every night with POST, and the API did exactly that, each time with a fresh address.",
@@ -190,7 +193,7 @@
     "caption": "Read top to bottom. The same POST on two nights files two new Ashby doors, d-19 and d-28, because POST means \"add one\" and the API picks the address. The same PUT on two nights writes to cdm-001 both times, because the address comes from the request. Same request, same result: that is idempotent.",
     "fix": {
       "title": "The fix: write to addresses you choose, with PUT",
-      "text": "Give every door a stable ID that already exists outside the API, the catalog number, and make the job send PUT /v1/doors/cdm-001 with the full door in the body. Running the job once or fifty times now leaves the same nine doors. Then clean up once: list the doors with GET, and DELETE the 27 copies. Finally, make duplicates impossible: have the API reject a POST whose catalog number is already taken with 409 Conflict. Microsoft's Azure REST guidelines give the same advice: prefer PUT or PATCH to create things, because they let the client name the resource and are idempotent."
+      "text": "Give every door a stable ID that already exists outside the API, the catalog number, and make the job send PUT /v1/doors/cdm-001 with the full door in the body. Running the job once or fifty times now leaves the same nine doors. Then clean up once: list the doors with GET, and DELETE the 27 copies. Finally, make duplicates impossible: put the catalog number in every door's JSON, like \"catalog\": \"cdm-001\", and have the API reject a POST whose catalog number is already taken with 409 Conflict. Today's POST bodies carry only the name and details, so the API has nothing to check them against. Microsoft's Azure REST guidelines give the same advice: prefer PUT or PATCH to create things, because they let the client name the resource and are idempotent."
     },
     "limits": [
       "PUT replaces the whole item. Leave a field out of the body and it may be wiped. To change one field, use PATCH, and when two programs edit the same door at once, the last write silently wins (a later season covers how to stop that).",
@@ -229,7 +232,7 @@
       },
       {
         "title": "Stripe's idempotency keys",
-        "text": "Stripe, a payments company, can't ask clients to pick IDs for charges, so it accepts an Idempotency-Key header on every POST. It saves the status code and body of the first request with each key, and a retry with the same key gets that same result back instead of acting twice. It notes that GET and DELETE need no key, because they are idempotent by definition.",
+        "text": "Stripe, a payments company, creates and updates objects such as customers with POST requests, so it accepts an Idempotency-Key header on every POST. It saves the status code and body of the first request with each key, and a retry with the same key gets that same result back instead of acting twice. It notes that GET and DELETE need no key, because they are idempotent by definition.",
         "source": 6
       }
     ],
@@ -353,11 +356,11 @@
       "options": [
         "POST /v1/doors with a door in the body",
         "PUT /v1/doors/cdm-001 with a door in the body",
-        "Two different PATCH requests that each add one to a counter",
+        "A PATCH that adds one to a counter, sent twice",
         "Pressing Save twice on a form that POSTs"
       ],
       "answer": 1,
-      "why": "PUT stores the whole door at an address the client chose. Sending it again writes the same thing to the same place, so the end state is the same as sending it once."
+      "why": "PUT stores the whole door at an address the client chose. Sending it again writes the same thing to the same place, so the end state is the same as sending it once. The counter PATCH isn't: sent twice, it adds two."
     },
     {
       "id": "s1e06-r5",

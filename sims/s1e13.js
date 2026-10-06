@@ -1,7 +1,14 @@
-/* sims/s1e13-v1.0.0.js  (published as sims/s1e13.js)
+/* sims/s1e13-v1.0.1.js  (published as sims/s1e13.js)
    Case s1e13 "The Black Screen": a pretend Linux terminal in the Starlite's server closet.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: rm now refuses any argument whose last part is . or .., as GNU
+     rm does (with -r: "refusing to remove '.' or '..' directory: skipping ..."; without: "Is a
+     directory"), checked on the path as typed, before ~/sandbox/../.. is collapsed. -f now only
+     silences "No such file or directory", like GNU rm's "ignore nonexistent files", and the
+     messages no longer call the / failsafe rm's only guard. selfTest steps 12 to 14 add
+     rm -rf ~/sandbox/../.., rm -rf * from ~ and rm -rf . from ~: each is refused, and /home, the
+     sandbox and the home folder keep their files.
    v1.0.0 (2026-10-06) first version: a widget-style fake terminal built inside api.root, with a
      small virtual file system (/home/jo with a sandbox, /home/wren locked at rwx------, /srv/keys with
      the last admin's note, encode.sh at rw-r--r--, guests.db and a locked DO_NOT_OPEN file, and
@@ -277,6 +284,23 @@
     if (parts.length <= base.length) return false;
     for (var i = 0; i < base.length; i++) if (parts[i] !== base[i]) return false;
     return true;
+  }
+
+  // True when a path's last part, as typed, is . or .. (trailing slashes ignored), like GNU rm's check.
+  function dotName(p) {
+    var s = String(p).replace(/\/+$/, "");
+    if (!s) return false;
+    var last = s.slice(s.lastIndexOf("/") + 1);
+    return last === "." || last === "..";
+  }
+
+  // The path as rm would see it after the shell turns ~ into the home folder.
+  function typedPath(p) {
+    var home = "/" + HOME.join("/");
+    p = String(p);
+    if (p === "~") return home;
+    if (p.indexOf("~/") === 0) return home + p.slice(1);
+    return p;
   }
 
   function countItems(node) {
@@ -636,11 +660,27 @@
       if (bad === "--no-preserve-root") { print(api, "(sim) Not in this terminal. Not anywhere, really.", "warn"); return; }
       if (bad) { print(api, "rm: invalid option -- '" + bad.slice(1) + "'", "err"); return; }
       if (!targets.length) { print(api, "rm: missing operand", "err"); return; }
+      // GNU rm skips any argument whose last part is . or .. before anything else. Checked on the
+      // path as typed, because resolve() would collapse ~/sandbox/../.. into /home.
+      var dots = targets.filter(dotName);
+      if (dots.length) {
+        dots.forEach(function (p) {
+          print(api, recursive
+            ? "rm: refusing to remove '.' or '..' directory: skipping '" + typedPath(p) + "'"
+            : "rm: cannot remove '" + typedPath(p) + "': Is a directory", "err");
+        });
+        if (recursive) {
+          print(api, "(sim) That's one of GNU rm's two small guards: it won't remove a path that ends in . or .., and it won't remove / itself. Nothing else stops rm -rf.", "dim");
+          api.log("rm refused " + dots.join(", ") + ", because GNU rm never removes a path whose last part is . or .. (one of its two small guards).", "warn");
+        }
+        targets = targets.filter(function (p) { return !dotName(p); });
+        if (!targets.length) return;
+      }
       var all = targets.map(function (p) { return { p: p, parts: resolve(S, p) }; });
       if (recursive && all.some(function (t) { return t.parts.length === 0; })) {
         print(api, "rm: it is dangerous to operate recursively on '/'\nrm: use --no-preserve-root to override this failsafe", "err");
-        print(api, "(sim) That one guard is built into GNU rm. It's the only one. Nothing else stops rm -rf.", "dim");
-        api.log("rm -rf / was refused by rm's own failsafe, the only guard it has.", "warn");
+        print(api, "(sim) That guard is built into GNU rm. Its only other one refuses paths that end in . or .., and nothing else stops rm -rf.", "dim");
+        api.log("rm -rf / was refused by rm's own failsafe, one of only two small guards it has.", "warn");
         return;
       }
       var outside = all.filter(function (t) { return !inside(t.parts, SANDBOX); });
@@ -654,7 +694,8 @@
       all.forEach(function (t) {
         var at = lookup(S, t.p, user);
         if (at.err) {
-          if (!force) print(api, "rm: cannot remove '" + t.p + "': " + at.err, "err");
+          // -f only hides "No such file or directory"; other errors still print, as in GNU rm.
+          if (!force || at.err !== "No such file or directory") print(api, "rm: cannot remove '" + t.p + "': " + at.err, "err");
           return;
         }
         if (at.node.dir && !recursive) { print(api, "rm: cannot remove '" + t.p + "': Is a directory", "err"); return; }
@@ -1054,6 +1095,33 @@
       var paging = S.mode === "less" && out().indexOf("Enter: more") >= 0;
       type("q");
       t.expect(paging && S.mode === "", "less shows a page with a status line, and q closes it");
+
+      // 12. Climbing out of the sandbox with .. : GNU rm refuses a path whose last part is .., so /home survives.
+      type("rm -rf ~/sandbox/../..");
+      var climbed = out();
+      type("ls /home");
+      var homes = out();
+      type("ls /srv/keys");
+      t.expect(climbed.indexOf("refusing to remove '.' or '..' directory: skipping '/home/jo/sandbox/../..'") >= 0 &&
+        homes.indexOf("jo/") >= 0 && homes.indexOf("wren/") >= 0 && out().indexOf("encode.sh") >= 0,
+        "rm -rf ~/sandbox/../.. is refused, because GNU rm never removes a path ending in .., and /home and /srv/keys are untouched");
+
+      // 13. rm -rf * from the home folder: * becomes "sandbox", the sandbox itself rather than something
+      //     inside it, so the sim refuses, and the sandbox keeps its files.
+      type("cd ~");
+      type("rm -rf *");
+      var star = out();
+      type("ls ~/sandbox");
+      t.expect(star.indexOf("rm refused") >= 0 && out().indexOf("README.txt") >= 0 && out().indexOf("old_menu.txt") >= 0,
+        "rm -rf * run from ~ is refused, and the sandbox keeps README.txt and old_menu.txt");
+
+      // 14. rm -rf . from the home folder: GNU rm refuses a path whose last part is ., so home survives.
+      type("rm -rf .");
+      var dot = out();
+      type("ls");
+      t.expect(dot.indexOf("refusing to remove '.' or '..' directory: skipping '.'") >= 0 && out().indexOf("sandbox/") >= 0 &&
+        S.ui.prompt.textContent === "jo@starlite:~$",
+        "rm -rf . in the home folder is refused, because GNU rm never removes a path ending in ., and ~ still holds the sandbox");
     }
   });
 })();

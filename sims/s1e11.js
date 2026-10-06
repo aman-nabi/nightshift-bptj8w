@@ -1,7 +1,9 @@
-/* sims/s1e11-v1.0.0.js  (published as sims/s1e11.js)
+/* sims/s1e11-v1.0.1.js  (published as sims/s1e11.js)
    Case s1e11 "Logs at 3 AM": a log explorer for the Lantern diner's three services.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: the narrator is renamed Otis (Sol was also s1e10's IT man), so
+     the opening log line now reads "Otis opens all three logs". Nothing else changes.
    v1.0.0 (2026-10-06) first version: a widget-style sim built inside api.root. A merged stream of
      log lines from the tablets (fixed columns, diner time), the order API (JSON fields, UTC) and the
      kitchen printer (free text, diner time) arrives from 02:58 at 30 times real speed. Filters by
@@ -595,7 +597,7 @@
       renderList(api);
 
       api.info("<strong>How to read this.</strong> Each service keeps its own log. The tablets write fixed columns and the printer writes free text, both in diner time. The order API writes JSON fields, in UTC. Click any line to read it. A line with a request id (req) can be followed.");
-      api.log("02:58 at the Lantern. Sol opens all three logs. New lines stream in, 30 times faster than real life.", "");
+      api.log("02:58 at the Lantern. Otis opens all three logs. New lines stream in, 30 times faster than real life.", "");
     },
 
     step: function (api) {

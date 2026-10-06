@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: sim.tryThis now says switch on the database, sign in again, then restart (the earlier restart had already wiped 7f3a, so restarting again taught the opposite lesson); the case now covers 401 Unauthorized for a missing or invalid session and 403 Forbidden for not allowed (RFC 9110 sections 15.5.2 and 15.5.4) in explain.steps[2], the fix and the interview answer, with new terms, and the sim answers 401 instead of 404 to PUT and DELETE with no valid session; steps[0] says the letters usually travel over a TCP connection from case 3, which can carry many letters one after another (RFC 9112 section 9.3); steps[3] notes that real session IDs are long and random, at least 64 bits of randomness by OWASP's advice, unlike the easy-to-guess 7f3a; new terms 401 Unauthorized, 403 Forbidden, OWASP and Bit, the Session ID term updated, and RFC 9112 and the OWASP Session Management Cheat Sheet added to sources",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e04",
   "season": 1,
   "n": 4,
@@ -115,14 +118,14 @@
     "module": "s1e04",
     "title": "Write a letter to the hotel's website",
     "lede": "You're the tablet in room 412. Build a request: pick a method and a path, choose whether to send your cookie, and send it to the Hotel Ashgrove's website. The response shows its status code, headers and body. The clock runs 3 times faster than real life. Click any box to see what it does.",
-    "tryThis": "Try this: POST to /login, then GET /requests. Turn the cookie off and ask again: the website has never heard of you. Try /spa and /minibar. Send six requests in a row, quickly. Then restart the website, wait for the 503s to end, and ask again with the cookie on. Last, keep sessions in the database and restart again."
+    "tryThis": "Try this: POST to /login, then GET /requests. Turn the cookie off and ask again: the website has never heard of you. Try /spa and /minibar. Send six requests in a row, quickly. Then restart the website, wait for the 503s to end, and ask again with the cookie on. Last, switch on the database, sign in again, then restart and ask once more."
   },
   "explain": {
     "oneLine": "Nothing was wrong with Mr. Okafor's tablet. Its cookie still said 7f3a, but the website kept the matching session in its memory, and the 3:00 AM restart wiped it.",
     "steps": [
       {
         "title": "HTTP is letters, not a phone call.",
-        "text": "HTTP is the language browsers, apps and websites use. A client sends a request: a method, a path, headers, and sometimes a body. The server sends back a response: a status code, headers and a body. Then it's over. HTTP is stateless: each request has to make sense on its own, and the server remembers nothing about the last one unless someone builds that memory on top."
+        "text": "HTTP is the language browsers, apps and websites use. A client sends a request: a method, a path, headers, and sometimes a body. The server sends back a response: a status code, headers and a body. Then it's over. The letters usually travel over a TCP connection like the ones in case 3, and the tablet can keep that connection open and send letter after letter over it, so it doesn't pay for a new handshake every time. HTTP is still stateless: each request has to make sense on its own, and the server remembers nothing about the last one unless someone builds that memory on top."
       },
       {
         "title": "Methods say what you want.",
@@ -130,11 +133,11 @@
       },
       {
         "title": "Status codes say what happened, by family.",
-        "text": "The first digit is the family. 2xx: it worked (200 OK). 3xx: look elsewhere (301 Moved Permanently, with a Location header saying where). 4xx: a problem with your request (404 Not Found, or 429 Too Many Requests when you send too fast). 5xx: a problem on the server's side (500 Internal Server Error when something broke, 503 Service Unavailable for not now). A 429 or a 503 can carry a Retry-After header saying when to try again, exactly as the website did at 03:00:12."
+        "text": "The first digit is the family. 2xx: it worked (200 OK). 3xx: look elsewhere (301 Moved Permanently, with a Location header saying where). 4xx: a problem with your request (404 Not Found, or 429 Too Many Requests when you send too fast). Two 4xx codes are about who you are. 401 Unauthorized means you haven't proved it: no session, or one the server doesn't recognise, so sign in again. 403 Forbidden means the server knows who you are, or doesn't need to, and still won't do it, like room 309 trying to cancel room 412's requests. 5xx: a problem on the server's side (500 Internal Server Error when something broke, 503 Service Unavailable for not now). A 429 or a 503 can carry a Retry-After header saying when to try again, exactly as the website did at 03:00:12."
       },
       {
         "title": "A cookie is a claim ticket. A session is the coat.",
-        "text": "To remember a guest, the website sends a Set-Cookie header (sid=7f3a) after sign-in. The tablet keeps it and sends it back in a Cookie header on every later request to that site. The cookie is just a ticket number. What the ticket means, *7f3a is room 412*, lives on the server side in a session. Both halves are needed: without the cookie, the website can't tell who you are, and a cookie with no matching session is no better."
+        "text": "To remember a guest, the website sends a Set-Cookie header (sid=7f3a) after sign-in. The tablet keeps it and sends it back in a Cookie header on every later request to that site. The cookie is just a ticket number. What the ticket means, *7f3a is room 412*, lives on the server side in a session. Both halves are needed: without the cookie, the website can't tell who you are, and a cookie with no matching session is no better. And 7f3a is far too easy to guess: four characters like that allow only 65,536 tickets. Real session IDs are long random strings. OWASP, a web security project, says they need at least 64 bits of randomness, so nobody can guess another guest's ticket."
       },
       {
         "title": "The website kept its sessions in memory.",
@@ -165,7 +168,7 @@
     "caption": "Read top to bottom. The cookie is the tablet's half of the ticket, and the session is the website's half. At 3:00 the website's half vanished. The tablet kept sending 7f3a, and the website had nothing to match it with.",
     "fix": {
       "title": "The fix: keep sessions where a restart can't reach them",
-      "text": "Store sessions somewhere that outlives the website program, such as the hotel's database or a store built for sessions. A restart then costs 30 seconds of 503s, not every guest's sign-in. Give every session an end, such as checkout day, and mark the cookie HttpOnly so scripts on the page can't read it. Treat a request with no valid session as a stranger on purpose: ask them to sign in again instead of printing ROOM ???. And have clients handle 503 and 429 politely: wait as long as Retry-After says, then try again, instead of hammering the door."
+      "text": "Store sessions somewhere that outlives the website program, such as the hotel's database or a store built for sessions. A restart then costs 30 seconds of 503s, not every guest's sign-in. Give every session an end, such as checkout day, and mark the cookie HttpOnly so scripts on the page can't read it. Treat a request with no valid session as a stranger on purpose: answer 401 Unauthorized, which tells the tablet to sign in again, instead of printing ROOM ???. Make session IDs long and random, not short like 7f3a. And have clients handle 503 and 429 politely: wait as long as Retry-After says, then try again, instead of hammering the door."
     },
     "limits": [
       "A database for sessions is one more thing that can be slow or down, and every request now waits for a lookup. Teams keep that lookup fast and plan for what happens when the store is unavailable.",
@@ -184,7 +187,7 @@
     "realWorld": [
       {
         "title": "RFC 9110: the rules of the letter",
-        "text": "HTTP's meaning is defined in RFC 9110, published in June 2022. It defines HTTP as a stateless protocol, where each request can be understood on its own. It defines the methods GET, POST, PUT and DELETE, marks GET as safe and GET, PUT and DELETE as idempotent, and sets out the five status code families from 1xx to 5xx, including 301, 404, 500 and 503. MDN's reference lists the same codes in plain words.",
+        "text": "HTTP's meaning is defined in RFC 9110, published in June 2022. It defines HTTP as a stateless protocol, where each request can be understood on its own. It defines the methods GET, POST, PUT and DELETE, marks GET as safe and GET, PUT and DELETE as idempotent, and sets out the five status code families from 1xx to 5xx, including 301, 401, 403, 404, 500 and 503. It defines 401 as a request that lacks valid proof of who is asking, and 403 as one the server understood but refuses to carry out. MDN's reference lists the same codes in plain words.",
         "source": 0
       },
       {
@@ -208,7 +211,7 @@
         "What's the difference between a 4xx and a 5xx error, and what should a client do with each?",
         "HTTP is stateless. So how does a website keep you logged in?"
       ],
-      "answer": "4xx means the request was the problem: a wrong path, a missing permission, or too many requests. Fix the request rather than retrying, except 429, which says wait and try again, often with Retry-After. 5xx means the server failed. Retrying can help for 502, 503 and 504, but with exponential backoff, jitter and a limit, and only for requests that are safe to repeat. HTTP keeps no memory between requests, so after sign-in the server sends a cookie holding a random session ID with Set-Cookie, the browser sends it back in the Cookie header, and the server looks the session up. Then say where the session lives: kept in one server's memory, it dies with a restart and other servers can't see it, so production systems use a shared store or a signed token."
+      "answer": "4xx means the request was the problem: a wrong path (404), no valid sign-in (401), not allowed (403), or too many requests (429). Fix the request rather than retrying: for 401, sign in again; for 403, signing in again won't help. The exception is 429, which says wait and try again, often with Retry-After. 5xx means the server failed. Retrying can help for 502, 503 and 504, but with exponential backoff, jitter and a limit, and only for requests that are safe to repeat. HTTP keeps no memory between requests, so after sign-in the server sends a cookie holding a long random session ID with Set-Cookie, the browser sends it back in the Cookie header, and the server looks the session up. Then say where the session lives: kept in one server's memory, it dies with a restart and other servers can't see it, so production systems use a shared store or a signed token."
     }
   },
   "terms": [
@@ -228,6 +231,8 @@
     { "term": "Status code family", "def": "The first digit of a status code: 1xx information, 2xx success, 3xx look elsewhere, 4xx a problem with the request, 5xx a problem on the server's side." },
     { "term": "200 OK", "def": "The request worked." },
     { "term": "301 Moved Permanently", "def": "The page has a new address for good. The Location header gives the new one." },
+    { "term": "401 Unauthorized", "def": "You haven't proved who you are: no session, or one the server doesn't recognise. Sign in and try again. Despite its name, it's about who you are, not what you may do." },
+    { "term": "403 Forbidden", "def": "The server knows who you are, or doesn't need to, and still refuses, like room 309 asking to cancel room 412's requests. Signing in again won't help." },
     { "term": "404 Not Found", "def": "The server has nothing at that path." },
     { "term": "405 Method Not Allowed", "def": "The path exists, but not for that method, like sending DELETE to a page that only allows GET. The Allow header lists the methods that work." },
     { "term": "429 Too Many Requests", "def": "You sent too many requests in a short time, and the server is limiting you. It may say when to try again with Retry-After." },
@@ -243,7 +248,9 @@
     { "term": "Set-Cookie", "def": "The response header a server uses to hand the browser a cookie." },
     { "term": "Cookie header", "def": "The request header the browser uses to send its cookies back to the site." },
     { "term": "Session", "def": "The server's record of who a cookie belongs to, like 7f3a is room 412. The cookie is the ticket, the session is the coat it claims." },
-    { "term": "Session ID", "def": "The random ticket number inside the cookie, like 7f3a, that points to one session. Here it's stored in a cookie called sid." },
+    { "term": "Session ID", "def": "The random ticket number inside the cookie that points to one session. Real ones are long, with at least 64 bits of randomness, so nobody can guess them. 7f3a is a short stand-in." },
+    { "term": "OWASP", "def": "A non-profit web security project whose free guides, such as its Session Management Cheat Sheet, are a standard reference for building safe websites." },
+    { "term": "Bit", "def": "The smallest piece of computer data: a 0 or a 1. Each extra random bit doubles the guesses needed, so 64 random bits allow about 18 billion billion values." },
     { "term": "Sign in", "def": "Proving who you are once, after which the website gives you a session cookie so you don't have to prove it again on every request." },
     { "term": "HttpOnly", "def": "A cookie setting that keeps scripts on the web page from reading the cookie. Only HTTP requests carry it." },
     { "term": "Signed cookie", "def": "A cookie that carries the session data itself, stamped so the server can tell if anyone changed it. The server then stores nothing." },
@@ -356,6 +363,8 @@
     { "title": "Cloudflare outage on November 18, 2025 (Cloudflare blog)", "url": "https://blog.cloudflare.com/18-november-2025-outage/" },
     { "title": "AWS SDKs and Tools Reference Guide: Retry behavior", "url": "https://docs.aws.amazon.com/sdkref/latest/guide/feature-retry-behavior.html" },
     { "title": "MDN Web Docs: HTTP response status codes", "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status" },
-    { "title": "Elastic Load Balancing: CloudWatch metrics for your Application Load Balancer (4XX and 5XX counts)", "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html" }
+    { "title": "Elastic Load Balancing: CloudWatch metrics for your Application Load Balancer (4XX and 5XX counts)", "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html" },
+    { "title": "RFC 9112: HTTP/1.1, section 9.3 Persistence (many requests and responses over one connection) (IETF, June 2022)", "url": "https://www.rfc-editor.org/rfc/rfc9112.html" },
+    { "title": "OWASP Session Management Cheat Sheet: Session ID Entropy (at least 64 bits)", "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html" }
   ]
 }

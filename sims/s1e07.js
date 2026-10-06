@@ -1,7 +1,11 @@
-/* sims/s1e07-v1.0.0.js  (published as sims/s1e07.js)
+/* sims/s1e07-v1.0.1.js  (published as sims/s1e07.js)
    Case s1e07 "Where It Lives": latency numbers on a human time scale, where 1 nanosecond becomes 1 second.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: the SSD box's help text no longer blames the read time on the
+     drive's controller. Most of an SSD read is sensing the charges in its flash cells (tens of
+     microseconds) plus the operating system's storage code, matching the case's explanation. No
+     numbers, controls or selfTest checks changed.
    v1.0.0 (2026-10-06) first version: a CPU with six places an answer can live (L1 cache, RAM, SSD,
      hard disk, a server in the same data center, a server across the ocean). Fetch one and the dot
      makes the trip while the CPU box counts the wait in human time. Race mode sends 100 lookups each
@@ -319,7 +323,7 @@
     },
     l1: function () { return boxInfo("l1", "The smallest, fastest cache, built into the CPU itself. It holds copies of what the CPU used a moment ago. L2 and L3 sit behind it, bigger and a little slower."); },
     ram: function () { return boxInfo("ram", "Main memory, the CPU's workbench. Fast, all electronic and right next to the CPU, but small compared with disk and wiped when the power goes."); },
-    ssd: function () { return boxInfo("ssd", "Flash storage with no moving parts. It keeps data with the power off. Each read goes through the drive's controller, which is why it's over a thousand times slower than RAM."); },
+    ssd: function () { return boxInfo("ssd", "Flash storage with no moving parts. It keeps data with the power off. Most of each read goes to sensing the tiny charges stored in its flash cells, which takes tens of microseconds, and the operating system's storage code adds more. That's why it's over a thousand times slower than RAM."); },
     hdd: function () { return boxInfo("hdd", "Spinning platters and a moving arm. Before it can read, the arm has to swing to the right track: that's the seek."); },
     dc: function () { return boxInfo("dc", "A question to another machine in the same building, and the answer coming back. The warehouse's back-room server worked like this before Monday."); },
     far: function () { return boxInfo("far", "A question to a machine on another continent and back, like California to the Netherlands in Jeff Dean's list. Nothing beats the speed of light in fiber, so no upgrade makes this shorter. The warehouse's scanners pay it 40 times an order."); }

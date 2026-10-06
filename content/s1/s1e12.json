@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: 'time to first byte' is renamed 'first bit arrives (one-way delay)' in grey_pager's comment, step 1, terms, the lede and the sim, and a term explains that web tools' time to first byte is a round trip plus server time; the sim's 1 GB transfer is 'a 1 GB file', since the story's backup goes to a storage company in town, not to Halden; limit 2 and the sim add the window-over-round-trip cap (about 23 MB in flight to fill 1 Gbps at 182 ms); new terms (First bit arrives, Time to first byte (web tools), TCP window) and sources (RFC 6349, MDN on time to first byte)",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e12",
   "season": 1,
   "n": 12,
@@ -64,7 +67,7 @@
       "author": "u/grey_pager",
       "points": 57,
       "age": "5h",
-      "text": "Think of the line as a pipe. Bandwidth is how wide it is: how many bits it can carry each second, written Mbps, megabits per second. Latency is how long it is: how long one bit takes to get from one end to the other. Desmond made your pipe ten times wider and left it exactly as long. Time to first byte, how long before anything at all arrives, is set by the length. Throughput, how much actually arrives per second, can never beat the width. A voice packet is tiny. Work out how long it takes to squeeze through 100 Mbps, then compare that with 91 ms.",
+      "text": "Think of the line as a pipe. Bandwidth is how wide it is: how many bits it can carry each second, written Mbps, megabits per second. Latency is how long it is: how long one bit takes to get from one end to the other. Desmond made your pipe ten times wider and left it exactly as long. How long before the first bit arrives, the one-way delay, is set by the length. Throughput, how much actually arrives per second, can never beat the width. A voice packet is tiny. Work out how long it takes to squeeze through 100 Mbps, then compare that with 91 ms.",
       "replies": [
         {
           "author": "u/line_two_lena",
@@ -124,15 +127,15 @@
   "sim": {
     "module": "s1e12",
     "title": "Two call centers and a pipe",
-    "lede": "This is the line from Brightwater in Gannet Bay to the phone server in Halden, drawn as a pipe. Drag the distance to make it longer and the bandwidth to make it wider. Then send a 1 KB message or the 1 GB backup and compare the time to first byte, the total time and the throughput. Run traceroute to see the round trip to each hop. The pipe here is perfect: no other traffic and no packet loss.",
-    "tryThis": "Try this: send the 1 KB message at 2,000 km, then make the pipe ten times wider and send it again. Now drag the distance to 18,000 km, the long way round, and send it once more. Then send the 1 GB backup at 100 Mbps and at 1 Gbps. Run traceroute at both distances and find the hop where the time jumps."
+    "lede": "This is the line from Brightwater in Gannet Bay to the phone server in Halden, drawn as a pipe. Drag the distance to make it longer and the bandwidth to make it wider. Then send a 1 KB message or a 1 GB file and compare when the first bit arrives (the one-way delay), the total time and the throughput. Run traceroute to see the round trip to each hop. The pipe here is perfect: no other traffic, no packet loss and none of TCP's limits.",
+    "tryThis": "Try this: send the 1 KB message at 2,000 km, then make the pipe ten times wider and send it again. Now drag the distance to 18,000 km, the long way round, and send it once more. Then send a 1 GB file at 100 Mbps and at 1 Gbps. Run traceroute at both distances and find the hop where the time jumps."
   },
   "explain": {
     "oneLine": "The line didn't get thinner. It got longer. The direct cable was cut, calls took an 18,000 km detour, and every voice crossed it twice. Making a pipe wider can't make it shorter.",
     "steps": [
       {
         "title": "Length and width are different things.",
-        "text": "Picture the line as a pipe. Bandwidth is its width: how many bits it can carry each second. Latency is its length: how long one bit takes to get from one end to the other. Throughput is what you actually get, how much arrives per second over a whole transfer, and it's never more than the width. A message's total time is roughly the latency plus its size divided by the bandwidth. The first bit can't arrive sooner than the latency, however wide the pipe is. That first arrival is the time to first byte."
+        "text": "Picture the line as a pipe. Bandwidth is its width: how many bits it can carry each second. Latency is its length: how long one bit takes to get from one end to the other. Throughput is what you actually get, how much arrives per second over a whole transfer, and it's never more than the width. A message's total time is roughly the latency plus its size divided by the bandwidth. The first bit can't arrive sooner than the latency, however wide the pipe is. That first arrival, the moment the first bit gets there, is the one-way delay."
       },
       {
         "title": "Light is fast, but the planet is big.",
@@ -177,7 +180,7 @@
     },
     "limits": [
       "You can't beat the speed of light. If the people on a call really are far apart, the delay is real. You can only avoid adding to it, for example by not sending local calls the long way round.",
-      "The sim treats the pipe as perfect. Real transfers also lose time to TCP's handshake and its slow start, and a single TCP connection can only have so much unacknowledged data in flight, so on a long pipe it may never fill a wide one.",
+      "The sim treats the pipe as perfect. Real transfers also lose time to TCP's handshake and its slow start, and one TCP connection can never go faster than its window, the data it may have in flight, divided by the round trip. Filling 1 Gbps over the detour's 182 ms round trip needs a window of about 23 MB; with a smaller one, a 1 GB file sent the long way takes longer than the sim's 8 seconds.",
       "ping and traceroute need ICMP answers, and many firewalls drop them. A silent ping or a row of * in traceroute can mean a machine that ignores probes, not a broken path."
     ],
     "tradeoff": {
@@ -222,7 +225,8 @@
     { "term": "Bandwidth", "def": "How much data a link can carry each second: the width of the pipe. Written in bits per second, like 100 Mbps." },
     { "term": "Latency", "def": "How long data takes to get from one end to the other: the length of the pipe. Mostly set by distance and the hops in between." },
     { "term": "Throughput", "def": "How much data actually arrives per second over a whole transfer. Never more than the bandwidth, and often much less." },
-    { "term": "Time to first byte", "def": "How long until the first piece of a message arrives. Set by latency, not bandwidth." },
+    { "term": "First bit arrives", "def": "The moment the first bit of a message reaches the far end: the one-way delay. Set by latency, not bandwidth. The sim shows it in milliseconds." },
+    { "term": "Time to first byte (web tools)", "def": "What browsers and web tools call the time from sending a request to the first byte of the reply: at least a full round trip plus the server's own time. Not the one-way delay." },
     { "term": "Round-trip time", "def": "The time for a message to reach the far end and for a reply to come back. Written RTT. It's what ping measures." },
     { "term": "One-way delay", "def": "The time for data to travel in one direction: about half the round trip." },
     { "term": "Transmission time", "def": "How long it takes to push a whole message into the link: its size in bits divided by the bandwidth. The width part of the total." },
@@ -247,6 +251,7 @@
     { "term": "Route", "def": "The path packets take from one machine to another, hop by hop. When a cable breaks, routers pick another route, often a longer one." },
     { "term": "Congestion", "def": "More traffic than a link can carry, so routers queue packets or drop them. TCP slows down when it sees loss, assuming congestion." },
     { "term": "In flight", "def": "Data that has been sent but not yet acknowledged. TCP limits how much can be in flight, so on a long pipe it may wait instead of filling it." },
+    { "term": "TCP window", "def": "How much data one TCP connection may have in flight before an acknowledgment comes back. Its speed can never beat the window divided by the round trip." },
     { "term": "Long fat network", "def": "RFC 7323's name for a path with both high bandwidth and long delay, where one TCP connection can struggle to use the whole width." },
     { "term": "Transit", "def": "Paid access to the rest of the internet that one network buys from a bigger one. Losing some transit means fewer routes out." },
     { "term": "Cloudflare Radar", "def": "Cloudflare's public website of internet traffic data, which shows outages and disruptions around the world." },
@@ -353,6 +358,8 @@
     { "title": "RFC 7323: TCP Extensions for High Performance (IETF, September 2014): long, fat networks and the bandwidth times delay product", "url": "https://www.rfc-editor.org/rfc/rfc7323.html" },
     { "title": "RFC 5681: TCP Congestion Control (IETF, September 2009): what a sender must do when it detects loss", "url": "https://www.rfc-editor.org/rfc/rfc5681.html" },
     { "title": "AWS Network Manager: How Infrastructure Performance works (round-trip latency between Regions and Availability Zones, median of each five-minute interval)", "url": "https://docs.aws.amazon.com/network-manager/latest/infrastructure-performance/how-nmip-works.html" },
-    { "title": "Amazon EC2 User Guide: Security group rules for different use cases (rules for ping and ICMP)", "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules-reference.html" }
+    { "title": "Amazon EC2 User Guide: Security group rules for different use cases (rules for ping and ICMP)", "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules-reference.html" },
+    { "title": "RFC 6349: Framework for TCP Throughput Testing (IETF, August 2011): BDP = RTT x bottleneck bandwidth, minimum TCP receive window = BDP / 8, TCP throughput = window x 8 / RTT", "url": "https://www.rfc-editor.org/rfc/rfc6349.html" },
+    { "title": "MDN Web Docs glossary: Time to First Byte (from the browser's request to the first byte of the response, including DNS lookup and the TCP and TLS handshakes)", "url": "https://developer.mozilla.org/en-US/docs/Glossary/Time_to_first_byte" }
   ]
 }

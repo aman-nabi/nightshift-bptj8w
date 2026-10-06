@@ -1,7 +1,15 @@
-/* sims/s1e08-v1.0.0.js  (published as sims/s1e08.js)
+/* sims/s1e08-v1.0.1.js  (published as sims/s1e08.js)
    Case s1e08 "The Process That Wouldn't Die": processes, threads, CPU cores, signals and zombies.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: a "Restart chartfeed" control (id restart) ends the parent and
+     starts it again as a new process with the next free PID. Its zombie children become orphans,
+     and init (PID 1) adopts them and collects them at once, so the zombies leave the list. Its
+     running workers are adopted too: they show PPID 1, keep uploading, and init collects each one
+     the moment it ends, so an orphan never lingers as a zombie. Every process now records its own
+     PPID; the parent's row, node and wait() only count its own children; an orphan's edge from
+     chartfeed is drawn cut. selfTest steps 9 and 10 add: after a restart the zombie is gone, the
+     running worker shows PPID 1 under a new chartfeed PID, and when it ends init collects it at once.
    v1.0.0 (2026-10-06) first version: the records server's four CPU cores, the scheduler, chartfeed
      (PID 2210, the parent) and four scanners that can each get a worker process, plus a ps-style
      process table built in api.root under the diagram. Controls: slot (which scanner), start,
@@ -25,7 +33,8 @@
 (function () {
   "use strict";
 
-  var PARENT_PID = 2210;
+  var PARENT_PID = 2210;                    // chartfeed's PID until it is restarted
+  var INIT_PID = 1;                         // init, which adopts orphans and collects them at once
   var FIRST_PID = 3118;
   var CORES = 4;
   var SPEED = 10;                           // sim seconds per real second
@@ -121,24 +130,28 @@
     return list;
   }
 
-  function counts(S) {
+  // With `ppid`, only that parent's children are counted.
+  function counts(S, ppid) {
     var running = 0, zombies = 0;
     S.procs.forEach(function (p) {
+      if (ppid !== undefined && p.ppid !== ppid) return;
       if (alive(p)) running += 1;
       else if (p.state === "zombie") zombies += 1;
     });
     return { running: running, zombies: zombies };
   }
 
+  function orphan(p) { return !!p && p.ppid === INIT_PID; }
+
   function pagesText(p) { return Math.floor(p.done) + "/" + p.pages; }
 
   /* ---------- drawing ---------- */
 
   function tableText(S) {
-    var c = counts(S);
+    var c = counts(S, S.parentPid);
     var lines = [];
     lines.push("  PID  PPID STAT THR    MEM  CMD                 CHART");
-    lines.push(padL(PARENT_PID, 5) + padL(1, 6) + " S   " + padL(1, 4) + padL(PARENT_MB + "MB", 7) + "  " +
+    lines.push(padL(S.parentPid, 5) + padL(INIT_PID, 6) + " S   " + padL(1, 4) + padL(PARENT_MB + "MB", 7) + "  " +
       padR("chartfeed", 20) + "parent of " + (c.running + c.zombies) + " in this list");
     S.procs.forEach(function (p) {
       var slot = SLOTS[p.slot];
@@ -146,8 +159,9 @@
       var cmd = p.state === "zombie" ? "[worker] <defunct>" : "worker " + slot.id.toUpperCase();
       var chart;
       if (p.state === "zombie") chart = "ended at " + pagesText(p) + ", " + p.status;
-      else chart = slot.bed + ": " + pagesText(p) + (p.state === "stopping" ? ", finishing (SIGTERM)" : "");
-      lines.push(padL(p.pid, 5) + padL(PARENT_PID, 6) + " " + stat + "   " + padL(p.state === "zombie" ? 0 : p.threads, 4) +
+      else chart = slot.bed + ": " + pagesText(p) + (p.state === "stopping" ? ", finishing (SIGTERM)" : "") +
+        (orphan(p) ? ", orphan (init adopted it)" : "");
+      lines.push(padL(p.pid, 5) + padL(p.ppid, 6) + " " + stat + "   " + padL(p.state === "zombie" ? 0 : p.threads, 4) +
         padL(memory(p) + "MB", 7) + "  " + padR(cmd, 20) + chart);
     });
     if (!S.procs.length) lines.push("  (no workers yet: pick a scanner and start one)");
@@ -188,21 +202,25 @@
         node.text("meta", "ended " + pagesText(p) + ", 0MB");
         node.set("zombie");
       } else {
-        node.text("sub", p.state === "stopping" ? p.pid + " finishing" : "PID " + p.pid + ", running");
+        node.text("sub", p.state === "stopping" ? p.pid + " finishing" : "PID " + p.pid + (orphan(p) ? ", orphan" : ", running"));
         node.text("meta", pagesText(p) + ", " + p.threads + " thr, " + memory(p) + "MB");
         node.set(p.state === "stopping" ? "warn" : "ok");
       }
+      // An orphan's parent is init now, not chartfeed, so its line from chartfeed is drawn cut.
+      api.edge("parent", slot.node).set(alive(p) && orphan(p) ? "cut" : "");
     });
   }
 
   function draw(api) {
     var S = api.state;
     var c = counts(S);
+    var own = counts(S, S.parentPid);
     var busy = drawCores(api);
     drawSlots(api);
-    var meta = c.running + " running, " + c.zombies + (c.zombies === 1 ? " zombie" : " zombies");
-    api.node("parent").text("meta", (c.running + c.zombies) ? meta : "children: 0");
-    api.node("parent").set(c.zombies ? "warn" : "");
+    var meta = own.running + " running, " + own.zombies + (own.zombies === 1 ? " zombie" : " zombies");
+    api.node("parent").text("sub", "PID " + S.parentPid + ", parent");
+    api.node("parent").text("meta", (own.running + own.zombies) ? meta : "children: 0");
+    api.node("parent").set(own.zombies ? "warn" : "");
     S.stat.running(c.running);
     S.stat.zombies(c.zombies);
     S.stat.cores(busy);
@@ -221,15 +239,23 @@
 
   // The process has ended. Its memory is freed and its threads are gone, but its entry stays
   // until the parent calls wait: it is a zombie. With the fix on, the parent collects it at once.
+  // An orphan's parent is init, which always collects at once. Returns true if it was collected.
   function endProc(api, p, status) {
     var S = api.state;
     p.state = "zombie";
     p.threads = 0;
     p.status = status;
+    if (orphan(p)) {
+      collect(api, p);
+      api.log(p.pid + " ended. Its parent is init (PID 1) now, and init collects it at once with wait(), so it never lingers as a zombie.", "ok");
+      return true;
+    }
     if (S.autowait) {
       collect(api, p);
       api.log("chartfeed got SIGCHLD and collects " + p.pid + " at once with wait(). Its entry is gone, and so is the zombie.", "ok");
+      return true;
     }
+    return false;
   }
 
   function collect(api, p) {
@@ -242,8 +268,7 @@
     var slot = SLOTS[p.slot];
     p.done = p.pages;
     var was = p.state;
-    endProc(api, p, "exit 0");
-    if (!api.state.autowait) {
+    if (!endProc(api, p, "exit 0")) {
       api.log(p.pid + " uploaded all " + p.pages + " pages of " + slot.bed + "'s chart" + (was === "stopping" ? ", as SIGTERM asked," : "") +
         " and exited normally. chartfeed doesn't call wait, so " + p.pid + " stays in the list as a zombie.", "warn");
     }
@@ -294,9 +319,9 @@
     }
     var pid = S.nextPid;
     S.nextPid += 1;
-    S.procs.push({ pid: pid, slot: k, state: "run", threads: 1, done: 0, pages: slot.pages, status: "" });
+    S.procs.push({ pid: pid, ppid: S.parentPid, slot: k, state: "run", threads: 1, done: 0, pages: slot.pages, status: "" });
     S.slotPid[k] = pid;
-    api.log("chartfeed starts a child process for " + slot.name + ": PID " + pid + ", with its own memory (" + BASE_MB + " MB) and one thread. It begins uploading " + slot.bed + "'s chart, " + slot.pages + " pages." +
+    api.log("chartfeed (PID " + S.parentPid + ") starts a child process for " + slot.name + ": PID " + pid + ", with its own memory (" + BASE_MB + " MB) and one thread. It begins uploading " + slot.bed + "'s chart, " + slot.pages + " pages." +
       (p && p.state === "zombie" ? " The old zombie, " + p.pid + ", is still in the list." : ""), "");
     afterChange(api);
   }
@@ -348,8 +373,7 @@
     p.done = at;
     api.log("kill -9 " + p.pid + " sends SIGKILL. It can't be caught: " + p.pid + " ends at once, mid-page. " + SLOTS[k].bed + "'s chart stops at page " + at + " of " + p.pages +
       ": " + left + " pages never uploaded, and whatever it held in memory is gone.", "bad");
-    endProc(api, p, "killed by signal 9");
-    if (!S.autowait) api.log(p.pid + " is now a zombie: dead, but still in the list until chartfeed calls wait.", "warn");
+    if (!endProc(api, p, "killed by signal 9")) api.log(p.pid + " is now a zombie: dead, but still in the list until chartfeed calls wait.", "warn");
     afterChange(api);
   }
 
@@ -365,9 +389,9 @@
 
   function callWait(api) {
     var S = api.state;
-    var zombies = S.procs.filter(function (p) { return p.state === "zombie"; });
+    var zombies = S.procs.filter(function (p) { return p.state === "zombie" && p.ppid === S.parentPid; });
     if (!zombies.length) {
-      api.log("chartfeed calls wait(), but no child has ended. Nothing to collect.", "");
+      api.log("chartfeed calls wait(), but no child of its own has ended. Nothing to collect.", "");
       return;
     }
     zombies.forEach(function (p) {
@@ -388,6 +412,35 @@
     } else {
       api.log("The bug is back: chartfeed never calls wait on its own, like after the contractor's update.", "warn");
     }
+    afterChange(api);
+  }
+
+  // chartfeed itself ends and starts again as a new process. Its children are orphans now:
+  // init (PID 1) adopts them. init collects the zombies at once, and the running workers keep
+  // going with PPID 1 until they end, when init collects them too. The new chartfeed has no children.
+  function restartParent(api) {
+    var S = api.state;
+    var old = S.parentPid;
+    var zombies = S.procs.filter(function (p) { return p.ppid === old && p.state === "zombie"; });
+    var running = S.procs.filter(function (p) { return p.ppid === old && alive(p); });
+    zombies.forEach(function (p) { collect(api, p); });
+    running.forEach(function (p) { p.ppid = INIT_PID; });
+    S.parentPid = S.nextPid;
+    S.nextPid += 1;
+    var parts = [];
+    if (zombies.length) {
+      parts.push("init collects " + (zombies.length === 1 ? "the zombie, " + zombies[0].pid + "," : "all " + zombies.length + " zombies") + " at once with wait(), so " +
+        (zombies.length === 1 ? "it leaves" : "they leave") + " the list");
+    }
+    if (running.length) {
+      parts.push(running.length + (running.length === 1 ? " running worker now shows PPID 1 and keeps" : " running workers now show PPID 1 and keep") +
+        " uploading; init will collect " + (running.length === 1 ? "it" : "each one") + " the moment it ends");
+    }
+    api.log("chartfeed (PID " + old + ") ends and starts again as a new process, PID " + S.parentPid + ". " +
+      (parts.length
+        ? "Its children become orphans, and init, the first process (PID 1), adopts them: " + parts.join(". And ") + "."
+        : "It had no children, so there was nothing for init, the first process (PID 1), to adopt.") +
+      " The new chartfeed has no children yet.", "ok");
     afterChange(api);
   }
 
@@ -441,8 +494,9 @@
       return "<strong>You.</strong> You pick a scanner and send its worker a signal with the kill command. Plain <em>kill</em> sends SIGTERM, a polite request the program can catch. <em>kill -9</em> sends SIGKILL, which the operating system carries out at once.";
     },
     parent: function (S) {
-      return "<strong>chartfeed, PID 2210.</strong> The parent. It starts one child process, a worker, per chart. When a child ends, the parent should call <em>wait</em> to collect it, and only then does the child's entry leave the process table. Right now it " +
-        (S.autowait ? "collects each child as soon as it ends (the fix)." : "never calls wait on its own (the contractor's update). Press <em>wait</em> to make it collect.");
+      return "<strong>chartfeed, PID " + S.parentPid + ".</strong> The parent. It starts one child process, a worker, per chart. When a child ends, the parent should call <em>wait</em> to collect it, and only then does the child's entry leave the process table. Right now it " +
+        (S.autowait ? "collects each child as soon as it ends (the fix)." : "never calls wait on its own (the contractor's update). Press <em>wait</em> to make it collect.") +
+        " If you restart it, this process ends: its children become orphans, init (PID 1) adopts them and collects every zombie at once, and the new chartfeed gets a new PID.";
     },
     sched: function (S) {
       var n = runnable(S).length;
@@ -473,6 +527,7 @@
       S.procs = [];
       S.slotPid = [null, null, null, null];
       S.nextPid = FIRST_PID;
+      S.parentPid = PARENT_PID;
       S.lost = 0;
       S.offset = 0;
       S.autowait = false;
@@ -489,6 +544,7 @@
       S.ctl.exit = api.control.button("exit", "Let it finish and exit now", function () { exitNow(api); });
       S.ctl.wait = api.control.button("wait", "chartfeed calls wait()", function () { callWait(api); }, { tone: "primary" });
       S.ctl.autowait = api.control.toggle("autowait", "The fix: collect each child as it ends", false, function (on) { setAutowait(api, on); });
+      S.ctl.restart = api.control.button("restart", "Restart chartfeed (end the parent)", function () { restartParent(api); });
       S.ctl.reset = api.control.button("reset", "Reset", function () { api.reset(); });
 
       S.stat = {
@@ -565,6 +621,25 @@
       t.click("exit");
       t.expect(n("running") === 0 && n("cores") === 0, "with no workers running, every core is idle");
       t.expect(n("zombies") === 1 && t.logText().indexOf("collects " + (FIRST_PID + 2)) >= 0, "with the fix on, a worker that exits is collected at once, while the older zombie still waits");
+
+      // 9. Restart chartfeed: init (PID 1) adopts its children, collects the zombie at once, and the
+      //    running worker carries on with PPID 1 under a chartfeed that has a new PID.
+      t.set("slot", "d");
+      t.click("start");
+      await t.run(0.1);
+      var orphanPid = FIRST_PID + 3;
+      var zombiesBefore = n("zombies");
+      t.click("restart");
+      t.expect(zombiesBefore === 1 && n("zombies") === 0 && table().indexOf(" Z ") < 0 && t.logText().indexOf("init") >= 0,
+        "restarting chartfeed ends the parent: init adopts the old zombie and collects it, so it leaves the list");
+      t.expect(n("running") === 1 && table().indexOf(padL(orphanPid, 5) + padL(INIT_PID, 6) + " R") >= 0 &&
+        t.node("parent").text.sub === "PID " + (FIRST_PID + 4) + ", parent",
+        "the worker still running after the restart shows PPID 1, and chartfeed comes back with a new PID");
+
+      // 10. An orphan that ends is collected by init at once, so it never becomes a zombie.
+      t.click("exit");
+      t.expect(n("running") === 0 && n("zombies") === 0 && t.logText().indexOf(orphanPid + " ended. Its parent is init") >= 0,
+        "when the orphan ends, init collects it at once and no zombie is left");
     }
   });
 })();

@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: the fix adds three sentences on the guest data that left (a personal-data breach: tell the owner, check whether the law requires a report, as Singapore's PDPA does, and change the secrets guests.db holds) and the senior take treats it as a breach to report; step 5 and the rm -rf and --preserve-root terms now say -f only skips files that don't exist and never prompts, and that rm also refuses paths ending in . or ..; the story says 'the password Dale set for me', not Dale's own; the sim refuses . and .. like GNU rm and tests rm -rf ~/sandbox/../.., rm -rf * from ~ and rm -rf .; new terms (. and .., Personal data, Personal-data breach, PDPA, Regulator) and sources (the PDPC breach guide, GNU coreutils remove.c)",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e13",
   "season": 1,
   "n": 13,
@@ -19,7 +22,7 @@
     "blocks": [
       { "t": "p", "text": "I run the night desk at the Starlite Motor Inn, sixteen rooms off the old highway. Since Friday the key-card machine at the desk makes dead cards. Guests check in at 2 AM, swipe, and get a red light. I've been walking people to their doors with the master key." },
       { "t": "p", "text": "The new owner's nephew, Dale, says the card machine asks a computer in the back closet for every key. Nobody has opened that closet since Wren, the admin who ran the computers here, quit three years ago. Dale made me an account on it last week, my own username and password, and says he \"tightened the security\" on Friday." },
-      { "t": "p", "text": "The closet smells like warm dust. One beige box humming, one monitor, black, with a single blinking line: *starlite login:*. I typed my name and Dale's password, and it answered:" },
+      { "t": "p", "text": "The closet smells like warm dust. One beige box humming, one monitor, black, with a single blinking line: *starlite login:*. I typed my name and the password Dale set for me, and it answered:" },
       { "t": "log", "text": "jo@starlite:~$" },
       { "t": "p", "text": "Dale texted that it's a terminal: you type commands instead of clicking, and the program reading them is the shell. The ~ means my home folder. Everything lives in the file system, folders inside folders, starting from one called /. I tried ls, which lists a folder, and cd, which moves you into one. In /srv/keys I found LAST_NOTE.txt, printed it with cat, and read the end three times:" },
       {
@@ -167,7 +170,7 @@
       },
       {
         "title": "Why rm -rf is the most dangerous line on the machine.",
-        "text": "rm deletes. -r goes into every folder inside, and -f never asks and ignores errors. There's no trash can and no undo. GNU rm, the usual one on Linux, refuses by default to delete / itself, and that's its only guard: with sudo, /home/wren or /srv/keys would be gone in an instant. One stray space turns rm -rf old* into rm -rf old *, and the * then matches everything in the folder you're in. So: pwd, then ls exactly what you mean to delete, a backup you know works, and a second look before Enter."
+        "text": "rm deletes. -r goes into every folder inside, and -f never asks and says nothing about files that don't exist. There's no trash can and no undo. GNU rm, the usual one on Linux, has just two small guards: by default it refuses to delete / itself, and it refuses any path whose last part is . (the folder you're in) or .. (the one above it), so rm -rf . is refused. Everything else goes: with sudo, /home/wren or /srv/keys would be gone in an instant. One stray space turns rm -rf old* into rm -rf old *, and the * then matches everything in the folder you're in. So: pwd, then ls exactly what you mean to delete, a backup you know works, and a second look before Enter."
       }
     ],
     "diagram": {
@@ -187,7 +190,7 @@
     "caption": "Read top to bottom. The server never asks backup-box for a password. It only checks that the key is listed in authorized_keys and that the other side can sign with the matching private key. Taking the public key out of that list is what ends it.",
     "fix": {
       "title": "The fix: give back the x, take away the key",
-      "text": "Before changing anything, copy /srv/keys somewhere safe. Then run sudo chmod +x /srv/keys/encode.sh, and the card machine works again. For Wren: with sudo, delete the one line in /home/wren/.ssh/authorized_keys and disable his account, but keep his folder and every log, because they're the only record of what backup-box took. Then find backup-box and switch it off. From now on everyone gets their own account and their own key, admin work goes through sudo, and once everyone has a key, set PasswordAuthentication to no in the SSH server's settings, so there are no passwords left to guess."
+      "text": "Before changing anything, copy /srv/keys somewhere safe. Then run sudo chmod +x /srv/keys/encode.sh, and the card machine works again. For Wren: with sudo, delete the one line in /home/wren/.ssh/authorized_keys and disable his account, but keep his folder and every log, because they're the only record of what backup-box took. Then find backup-box and switch it off. From now on everyone gets their own account and their own key, admin work goes through sudo, and once everyone has a key, set PasswordAuthentication to no in the SSH server's settings, so there are no passwords left to guess. Three years of guests' names and rooms leaving the building is a personal-data breach, so tell the owner tonight. Then check together whether the local data protection law says you must report it: in Singapore, the PDPA says a breach likely to cause significant harm, or affecting 500 or more people, must be reported to the regulator within 3 calendar days of deciding it qualifies. And change every secret the guest file, guests.db, holds, starting with the room key codes, because whoever has the copy has them too."
     },
     "limits": [
       "Removing one public key stops only that key. If Wren's private key was copied, or other old keys sit in other accounts' authorized_keys files, they still work. Check every account, and check again whenever someone leaves.",
@@ -202,7 +205,7 @@
         ["No open SSH (AWS Session Manager)", "No open inbound port and no SSH keys to manage. Sessions can be logged.", "Needs AWS's agent and permissions set up, and ties you to one provider."]
       ]
     },
-    "seniorTake": "A server's terminal does exactly what you type, as whoever you are, with no undo. Look before you delete, give every person their own key, take keys away the day people leave, and keep a backup you've actually restored from. Most horror stories start with someone who was sure.",
+    "seniorTake": "A server's terminal does exactly what you type, as whoever you are, with no undo. Look before you delete, give every person their own key, take keys away the day people leave, keep a backup you've actually restored from, and when data has walked out the door, treat it as a breach to report, not a secret to keep. Most horror stories start with someone who was sure.",
     "realWorld": [
       {
         "title": "GitLab.com, January 31, 2017",
@@ -265,8 +268,9 @@
     { "term": "root", "def": "The account allowed to do anything on a Linux machine, also called the superuser." },
     { "term": "sudo", "def": "Runs one command as root, if you're allowed to, after asking for your own password. It can log every command run that way." },
     { "term": "rm", "def": "Removes, or deletes, files. There's no trash can and no undo." },
-    { "term": "rm -rf", "def": "rm with -r (go into every folder inside and delete it all) and -f (never ask, ignore errors). The fastest way to lose a lot of data." },
-    { "term": "--preserve-root", "def": "A safety rule in GNU rm, on by default: rm refuses to delete / itself. It protects nothing else." },
+    { "term": "rm -rf", "def": "rm with -r (go into every folder inside and delete it all) and -f (never ask, and stay quiet about files that don't exist). The fastest way to lose a lot of data." },
+    { "term": "--preserve-root", "def": "A safety rule in GNU rm, on by default: rm refuses to delete / itself. It guards / and no other folder." },
+    { "term": ". and ..", "def": "Two names every folder has: . means the folder itself, and .. the one above it. rm refuses any path whose last part is . or .., so rm -rf . is refused." },
     { "term": "Wildcard", "def": "A * in a path, which the shell turns into every name that matches. In rm old * (with a space) it means everything in the folder." },
     { "term": "Sandbox", "def": "A safe place to try dangerous things, like a folder of junk that's yours to wreck." },
     { "term": "Backup", "def": "A copy of data kept somewhere else, so you can restore it after a mistake. It only counts once you've restored from it." },
@@ -279,6 +283,10 @@
     { "term": "Accepted publickey", "def": "What sshd writes when someone logs in with a key: which account, and the address they came from." },
     { "term": "OpenSSH", "def": "The most widely used SSH software, made by the OpenBSD project. Its server program is sshd." },
     { "term": "PasswordAuthentication", "def": "An OpenSSH server setting that says whether passwords are allowed. The default is yes; set it to no once everyone uses keys." },
+    { "term": "Personal data", "def": "Information about a person who can be identified from it, such as a guest's name, room number and dates of stay." },
+    { "term": "Personal-data breach", "def": "Personal data reaching someone who shouldn't have it, whether by theft, by mistake or through a forgotten machine like backup-box." },
+    { "term": "PDPA", "def": "Singapore's Personal Data Protection Act 2012. Among other things, it says when an organization must report a data breach to the regulator and tell the people affected." },
+    { "term": "Regulator", "def": "A government body that makes sure a law is followed. For Singapore's PDPA, it's the Personal Data Protection Commission (PDPC)." },
     { "term": "Disable an account", "def": "Stop an account from being used at all, without deleting its files." },
     { "term": "GNU", "def": "A free software project. Most Linux machines use its versions of basic commands like rm, ls and chmod." },
     { "term": "Primary database", "def": "The main copy of a database, the one that takes all the changes." },
@@ -392,9 +400,11 @@
     { "title": "OpenSSH manual: ssh(1), AUTHENTICATION (ssh-keygen, ~/.ssh/authorized_keys, public key and password methods)", "url": "https://man.openbsd.org/ssh" },
     { "title": "Amazon EC2 User Guide: Amazon EC2 key pairs and Amazon EC2 instances", "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html" },
     { "title": "AWS Systems Manager User Guide: AWS Systems Manager Session Manager (no open inbound ports, no bastion hosts, no SSH keys to manage; session logging)", "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html" },
-    { "title": "rm(1), GNU coreutils, via man7.org (-r, -f, --preserve-root is the default)", "url": "https://man7.org/linux/man-pages/man1/rm.1.html" },
+    { "title": "rm(1), GNU coreutils, via man7.org (-r; -f ignores nonexistent files and arguments and never prompts; --preserve-root is the default; a path whose last component is . or .. is rejected)", "url": "https://man7.org/linux/man-pages/man1/rm.1.html" },
     { "title": "chmod(1), GNU coreutils, via man7.org (symbolic modes ugoa, +-=, rwx; numeric modes from 4, 2 and 1; x means search for folders)", "url": "https://man7.org/linux/man-pages/man1/chmod.1.html" },
     { "title": "sudo manual (sudo.ws): run a command as the superuser or another user, as allowed by the security policy", "url": "https://www.sudo.ws/docs/man/sudo.man/" },
-    { "title": "OpenSSH manual: sshd_config(5) (PasswordAuthentication and PubkeyAuthentication both default to yes; AuthorizedKeysFile defaults to .ssh/authorized_keys)", "url": "https://man.openbsd.org/sshd_config" }
+    { "title": "OpenSSH manual: sshd_config(5) (PasswordAuthentication and PubkeyAuthentication both default to yes; AuthorizedKeysFile defaults to .ssh/authorized_keys)", "url": "https://man.openbsd.org/sshd_config" },
+    { "title": "PDPC: Guide on Managing and Notifying Data Breaches under the PDPA (revised 15 March 2021): assess within 30 calendar days; notify the Commission no later than 3 calendar days after deciding a breach is notifiable; notifiable if likely to cause significant harm or affecting 500 or more individuals", "url": "https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf" },
+    { "title": "GNU coreutils source, src/remove.c: rm refuses a command-line argument whose last component is . or .. (\"refusing to remove '.' or '..' directory: skipping\")", "url": "https://github.com/coreutils/coreutils/blob/master/src/remove.c" }
   ]
 }

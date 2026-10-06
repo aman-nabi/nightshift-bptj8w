@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: the sim's single-database layout now matches the story (power cut at 04:12, power back at 05:37, app servers up at 05:41, the database rebuilt from the 02:00 snapshot until 07:05, 11 bookings lost; with a standby in AZ-c the site keeps serving and loses 0), with a new bookings-lost stat and bookings arriving one every 12 minutes as on Tuesday night; sim.lede and sim.tryThis describe that run; the story says the rebuild took until 7:05; reply option C now loses one booking and stays dark almost three hours, matching the sim's booking rate and outage; the senior answer's Part 2 says the app servers in AZ-b and AZ-c carried the load, matching the cold case's three app servers; realWorld[0] now uses AWS's own times (power lost at 4:11 AM PST, restored at 4:55 AM) instead of The Register's 5:39 AM, The Register's facts get their own entry, and the AWS status text is cited from Pagely's status page instead of InfluxData's.",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e10",
   "season": 1,
   "n": 10,
@@ -21,7 +24,7 @@
       { "t": "p", "text": "He explained the map. The cloud company splits the world into regions, each a cluster of data centers in one area. Each region is split into availability zones, AZs: one or more data centers each, miles from the other zones, with their own power and cooling. Our servers are virtual machines, software computers carved out of the company's real ones. Sol made two of them to run the booking app, plus a database server, and put all three in AZ-b, close together, so they'd talk fast." },
       { "t": "p", "text": "Last Tuesday at 4:12 AM the booking site went dark, and so did the ticket scanners on the dock. The cloud company's status page said a single data center in a single availability zone had lost power, in AZ-b. Ours. The dashboard still listed our three machines. Their health checks said nothing answered." },
       { "t": "log", "text": "04:12  booking-app-1  (AZ-b)  health check failed\n04:12  booking-app-2  (AZ-b)  health check failed\n04:12  bookings-db    (AZ-b)  no connection\n05:37  power restored in AZ-b\n05:41  booking-app-1, booking-app-2  ok\n07:05  bookings-db restored from 02:00 snapshot" },
-      { "t": "p", "text": "Power came back at 5:37. Our app servers woke up. The database's disk had been damaged, and Sol rebuilt it from last night's snapshot, a copy of its disk saved at 2:00 AM. We sailed the 5:40 and the 6:30 with a handwritten list. Eleven bookings made between 2:00 and 4:12 were simply gone. Eleven people came down the dock that morning holding tickets our system says were never sold." },
+      { "t": "p", "text": "Power came back at 5:37. Our app servers woke up. The database's disk had been damaged, and Sol rebuilt it from last night's snapshot, a copy of its disk saved at 2:00 AM. That took until 7:05. We sailed the 5:40 and the 6:30 with a handwritten list. Eleven bookings made between 2:00 and 4:12 were simply gone. Eleven people came down the dock that morning holding tickets our system says were never sold." },
       { "t": "beat", "text": "Somewhere there's a building none of us has ever seen, and our tickets went dark inside it." },
       { "t": "p", "text": "The fishing co-op on the next pier uses the same cloud company. Their auction app didn't blink. Their manager says it lives \"in all three zones\". Sol says ours could too, but it would cost more and he isn't sure how. Our owner asks a simpler question: why did we pay to move into the cloud if the cloud can go dark? What do I tell her?" },
       {
@@ -98,7 +101,7 @@
         "text": "Spread the app servers across at least two zones behind the load balancer, and move the database to a managed service with a standby in another zone. Keep the nightly snapshots too.",
         "tone": "ok",
         "verdict": "Senior answer",
-        "part2": "Sol spent two weekends on it. In February the cloud company had another power problem, in AZ-a this time, where one app server and our main database now live. The other app server took every request. The database failed over to its standby in AZ-c by itself, and the booking site showed errors for about a minute and a half. Then it carried on. Nobody on the dock noticed. The scanners logged one strange thing that morning: a ticket scanned at 4:13 for the 5:40, for a seat we stopped selling when the old harbor office flooded.",
+        "part2": "Sol spent two weekends on it. In February the cloud company had another power problem, in AZ-a this time, where one app server and our main database now live. The app servers in AZ-b and AZ-c took every request. The database failed over to its standby in AZ-c by itself, and the booking site showed errors for about a minute and a half. Then it carried on. Nobody on the dock noticed. The scanners logged one strange thing that morning: a ticket scanned at 4:13 for the 5:40, for a seat we stopped selling when the old harbor office flooded.",
         "senior": "Spread every layer across zones: app servers behind a load balancer, and a database with a standby in another zone that takes over by itself. Any one zone can fail, so design for losing any one. Keep backups as well, because a standby copies mistakes as faithfully as it copies data."
       },
       {
@@ -112,7 +115,7 @@
         "text": "Keep everything in AZ-b, but take a database snapshot every 15 minutes instead of every night.",
         "tone": "warn",
         "verdict": "Trade-off. Loses less, still goes dark",
-        "part2": "At the next outage, Sol rebuilt the database from a snapshot taken eight minutes before the power went. We lost three bookings instead of eleven. The site was still dark for two hours, and the 5:40 still sailed with a handwritten list.",
+        "part2": "At the next outage, Sol rebuilt the database from a snapshot taken eight minutes before the power went. We lost one booking instead of eleven. The site was still dark for almost three hours, and the 5:40 still sailed with a handwritten list.",
         "senior": "More frequent snapshots shrink how much you lose, not how long you're down: everything still sits in one zone. Backups and a standby solve different problems, and you usually want both."
       },
       {
@@ -127,8 +130,8 @@
   "sim": {
     "module": "s1e10",
     "title": "Keep the ferry bookings up",
-    "lede": "You're Sol. The region has three availability zones. Choose where the two app servers go and whether the database gets a standby in another zone, then watch the morning's traffic: each dot is a booking or a ticket scan going through the load balancer. Press Power loss in AZ-b and see what keeps serving. The clock runs 120 times faster than real life, so a minute passes in half a second.",
-    "tryThis": "Try this: run it the way Sol built it, everything in AZ-b, and cut the power. Every request fails until power returns after 85 minutes and the servers boot. Reset, put the app servers in AZ-a and AZ-c, keep the single database in AZ-b, and cut the power again: the servers are fine, but they have no database. Then give the database a standby in AZ-c and try once more: about a minute and a half of errors while it fails over, then the site carries on."
+    "lede": "You're Sol. The region has three availability zones. Choose where the two app servers go and whether the database gets a standby in another zone, then watch the morning's traffic: each dot is a request going through the load balancer, mostly ticket scans and timetable checks, with a new booking every 12 minutes, as on Tuesday night. Press Power loss in AZ-b and see what keeps serving. The clock starts at 04:00 and runs 120 times faster than real life, so a minute passes in half a second.",
+    "tryThis": "Try this: run it the way Sol built it, everything in AZ-b, and press Power loss when the clock reaches 04:12, as on Tuesday. Every request fails. Power returns 85 minutes later, at 05:37, and the app servers are up by 05:41, but the database's disk was damaged, so it has to be rebuilt from the 02:00 snapshot. The site stays down until 07:05, and the 11 bookings made after 02:00 are lost. Reset, put the app servers in AZ-a and AZ-c, keep the single database in AZ-b, and cut the power again: the servers are fine, but they have no database, and the bookings made since the snapshot are lost all the same. Then give the database a standby in AZ-c and try once more: about a minute and a half of errors while it fails over, then the site carries on, with no bookings lost."
   },
   "explain": {
     "oneLine": "The cloud didn't go dark. One data center in one zone lost power, and Greywater had put both app servers and its only database in that zone, so the power still running in the other two zones did it no good.",
@@ -203,12 +206,17 @@
     "realWorld": [
       {
         "title": "AWS us-east-1, December 22, 2021",
-        "text": "On December 22, 2021, AWS reported EC2 launch failures and network connectivity problems for some instances in a single Availability Zone, USE1-AZ4, in its US-EAST-1 Region. The Register reported that 26 minutes later AWS acknowledged a power outage and recommended moving workloads elsewhere, that power was restored at 5:39 AM Pacific time, and that networking problems slowed full recovery. AWS warned that, as is often the case with a loss of power, some hardware might not be recoverable, and that it was unlikely to recover all of the small number of remaining EC2 instances and EBS volumes. The Register also noted that AWS advises customers not to rely on a single Availability Zone, and that Slack and Asana reported problems that day.",
+        "text": "At 4:35 AM Pacific time on December 22, 2021, AWS reported EC2 launch failures and network connectivity problems for some instances in a single Availability Zone, USE1-AZ4, in its US-EAST-1 Region. At 5:01 AM it confirmed a loss of power within a single data center in that zone. Its summary that afternoon gave the times: power was lost at 4:11 AM PST and restored at 4:55 AM, which let most EC2 instances and EBS volumes recover. But the power loss had damaged some of the hardware, which engineers in the building had to fix, and AWS had recovered the vast majority of instances and volumes only by 2:30 PM. Some hardware could not be recovered at all, so AWS told customers still waiting to relaunch the instance or recreate the volume from a snapshot.",
+        "source": 1
+      },
+      {
+        "title": "Who else noticed",
+        "text": "The Register covered the outage the same day. It reported that Slack and Asana had problems as a result, and noted that AWS advises customers not to rely on a single Availability Zone, but that not every customer follows that advice, so when a zone fails, their servers and data become unavailable.",
         "source": 0
       },
       {
         "title": "What AWS's updates said about single-AZ services",
-        "text": "AWS's status updates that morning, reproduced word for word by customers on their own status pages, confirmed a loss of power within a single data center within a single Availability Zone. They said connectivity and power to other data centers in that zone, and to other zones in the Region, were not affected, and recommended failing away from USE1-AZ4 for anyone able to do so. A later update said that services hosting endpoints in the affected data center, such as single-AZ RDS databases and ElastiCache, would have seen impact during the event.",
+        "text": "AWS's updates that morning, reproduced word for word by customers on their own status pages, said connectivity and power to other data centers in that zone, and to other zones in the Region, were not affected, and recommended failing away from USE1-AZ4 for anyone able to do so. At 5:39 AM AWS said that services hosting endpoints in the affected data center, such as single-AZ RDS databases and ElastiCache, would have seen impact during the event. At 6:51 AM single-AZ RDS databases were still seeing some impact, and at 9:28 AM AWS reported recovery for the majority of the affected ones.",
         "source": 1
       },
       {
@@ -366,7 +374,7 @@
   "next": "Next: a 24-hour diner, ordering tablets that fail without a sound, and a night cook who learns to read the logs.",
   "sources": [
     { "title": "AWS power failure in US-EAST-1 region killed some hardware and instances (The Register, Simon Sharwood, December 22, 2021)", "url": "https://www.theregister.com/2021/12/22/aws_outage/" },
-    { "title": "AWS status updates for December 22, 2021 (USE1-AZ4 power loss), reproduced word for word on InfluxData's status page", "url": "https://status.influxdata.com/incidents/403911btsq20" },
+    { "title": "AWS status updates for December 22, 2021 (USE1-AZ4 power loss at 4:11 AM PST, power restored at 4:55 AM, which AWS's text writes as PDT), reproduced word for word on Pagely's status page", "url": "https://status.pagely.com/incidents/f5ggbdqvlzpk" },
     { "title": "AWS RAM User Guide: Availability Zone IDs for your AWS resources (zone names map differently per account; AZ IDs are the same everywhere)", "url": "https://docs.aws.amazon.com/ram/latest/userguide/working-with-az-ids.html" },
     { "title": "Amazon RDS User Guide: Failing over a Multi-AZ DB instance (typically 60 to 120 seconds; the DNS record is changed to the standby)", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.Failover.html" },
     { "title": "Amazon RDS User Guide: Multi-AZ DB instance deployments (synchronous standby in a different Availability Zone; higher write latency)", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html" },

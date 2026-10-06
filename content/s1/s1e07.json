@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: the coldCase no longer says orders took six seconds again for about ten minutes after the restart, which broke rule 11: after the senior fix each order is one batched request, so with the copy empty each order paid one ocean trip, about 150 ms, until the next once-a-minute refresh refilled the whole copy within a minute; the update, keyIdeas and model now say so, and the model is honest that refreshing every second would shorten that gap but costs sixty times the trips all day, while loading the list at startup fixes the restart; explain.steps[2] no longer blames SSD latency on the controller and a slower connection: most of it is sensing the charges in the flash cells (tens of microseconds) plus the operating system's storage code, and the r4 keyIdea and model say the same; the Controller term is replaced by Flash cell; an Intel technology brief and a USENIX FAST 2012 paper added to sources; the sim's SSD box text matches",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e07",
   "season": 1,
   "n": 7,
@@ -139,7 +142,7 @@
       },
       {
         "title": "Why memory is fast and disk is slow.",
-        "text": "RAM is all electronics, wired right next to the CPU, so a read is a short electrical trip. A hard disk has to move: the platter spins under the arm and the arm swings to the right track, and moving metal takes milliseconds. An SSD has no moving parts, which is why it's dozens of times faster than a hard disk seek, but each read still goes through the drive's own controller over a slower connection than RAM's, so it stays over a thousand times slower than memory."
+        "text": "RAM is all electronics, wired right next to the CPU, so a read is a short electrical trip. A hard disk has to move: the platter spins under the arm and the arm swings to the right track, and moving metal takes milliseconds. An SSD has no moving parts, which is why it's dozens of times faster than a hard disk seek. But most of an SSD read goes to the flash itself: the drive has to sense the tiny electric charges stored in its flash cells, which takes tens of microseconds. The operating system's storage code, which sends each request to the drive and handles the answer, adds more on top. So an SSD stays over a thousand times slower than memory."
       },
       {
         "title": "Why distance costs the most.",
@@ -236,7 +239,7 @@
     { "term": "SSD", "def": "Solid-state drive: storage on flash chips with no moving parts. A small random read takes about 150 microseconds in the classic list; modern ones are faster." },
     { "term": "Hard disk", "def": "HDD, hard disk drive: storage on spinning platters read by an arm that moves across them. Much cheaper per byte than an SSD, and much slower to reach a random spot." },
     { "term": "Seek", "def": "The time a hard disk takes to move its arm to the right track before it can read. About 10 ms in Jeff Dean's list." },
-    { "term": "Controller", "def": "The small computer inside a drive that manages where data sits and handles each read and write." },
+    { "term": "Flash cell", "def": "The tiny part of a flash chip that stores data as a trapped electric charge. Reading it means sensing that charge, which takes tens of microseconds, far longer than a RAM read." },
     { "term": "Network", "def": "The links that connect machines to each other. Reaching another machine means a round trip whose time depends mostly on distance." },
     { "term": "Latency", "def": "How long you wait for one thing to finish, such as a memory read or a round trip. Not the same as how much you can move per second." },
     { "term": "Round trip", "def": "A question sent to another machine plus its answer coming back. Its time is set mostly by how far apart they are." },
@@ -325,10 +328,10 @@
       "keyIdeas": [
         { "idea": "RAM is electronic and sits right next to the CPU", "match": ["electronic", "electric", "next to the cpu", "close to the cpu", "no moving", "on the board", "wired"] },
         { "idea": "A hard disk has to physically move: spinning platter and a moving arm", "match": ["spin", "arm", "moving", "move", "mechanical", "platter", "physical"] },
-        { "idea": "An SSD has no moving parts but goes through a controller and a slower connection, so it sits in between", "match": ["flash", "no moving parts", "controller", "in between", "middle", "between"] },
+        { "idea": "An SSD has no moving parts, but reading its flash cells takes tens of microseconds and the operating system adds more, so it sits in between", "match": ["flash", "no moving parts", "cells", "charge", "operating system", "in between", "middle", "between"] },
         { "idea": "Rough numbers: about 100 ns, 150 microseconds, 10 ms", "match": ["100 ns", "100 nanoseconds", "150", "10 ms", "10 milliseconds", "microsecond", "thousand times"] }
       ],
-      "model": "RAM is pure electronics wired right next to the CPU, so a read takes about 100 nanoseconds. A hard disk has to move: the platter spins and an arm swings to the right track, and moving metal takes about 10 milliseconds, a hundred thousand times longer. An SSD stores data on flash chips with no moving parts, so it's far faster than a hard disk, around 150 microseconds in the classic list, but each read still goes through the drive's controller over a slower connection than RAM, so it stays over a thousand times slower than memory."
+      "model": "RAM is pure electronics wired right next to the CPU, so a read takes about 100 nanoseconds. A hard disk has to move: the platter spins and an arm swings to the right track, and moving metal takes about 10 milliseconds, a hundred thousand times longer. An SSD stores data on flash chips with no moving parts, so it's far faster than a hard disk, around 150 microseconds in the classic list. But each read has to sense the charges stored in the flash cells, which takes tens of microseconds, and the operating system's storage code adds more on top, so it stays over a thousand times slower than memory."
     },
     {
       "id": "s1e07-r5",
@@ -345,15 +348,15 @@
     }
   ],
   "coldCase": {
-    "update": "UPDATE, 3 months later. The little server in the back room keeps the bin list in memory and refreshes it from head office every minute. Orders load in a blink. Last night the power flickered at 1:12 AM and the little server restarted. For about ten minutes, orders took six seconds again, then got faster one by one. Dolores asks if the little server is broken, and whether it should refresh every second instead, to be safe.",
+    "update": "UPDATE, 3 months later. The little server in the back room keeps the bin list in memory and refreshes it from head office every minute. Orders load in a blink. Last night the power flickered at 1:12 AM and the little server restarted. For about a minute after it came back, the debug screen showed every order taking about 150 ms, one trip to head office each, instead of under a millisecond. Then everything was instant again. Dolores asks if the little server is broken, and whether it should refresh every second instead, to be safe.",
     "prompt": "Reply to OP. What happened at 1:12 AM, would refreshing every second help, and what would you change?",
     "keyIdeas": [
       { "idea": "Memory is wiped on restart, so the copy started empty", "match": ["wiped", "lost", "empty", "cold", "restart", "forgot", "cleared", "power"] },
-      { "idea": "Until it refilled, lookups crossed the ocean again", "match": ["head office", "ocean", "round trip", "150", "far away", "had to ask", "fell back", "slow again"] },
+      { "idea": "Until the next refresh refilled it, each order's one batched request crossed the ocean", "match": ["head office", "ocean", "round trip", "150", "far away", "had to ask", "fell back", "one trip", "next refresh", "refill", "within a minute"] },
       { "idea": "Load the whole copy at startup, or keep a copy on disk to start from", "match": ["warm", "preload", "pre-load", "at startup", "on startup", "when it starts", "load everything", "load the whole", "disk", "snapshot", "save a copy"] },
-      { "idea": "Refreshing every second wouldn't fix the restart and costs far more trips", "match": ["wouldn't help", "would not help", "doesn't help", "too often", "more trips", "sixty times", "60 times", "more load", "a minute is fine", "trade-off", "tradeoff"] }
+      { "idea": "Refreshing every second would only shrink a rare one-minute gap, at sixty times the trips all day", "match": ["wouldn't help", "would not help", "doesn't help", "too often", "more trips", "sixty times", "60 times", "more load", "a minute is fine", "trade-off", "tradeoff", "not worth", "overkill", "all day"] }
     ],
-    "model": "Nothing is broken. RAM is wiped when the power goes, so after the restart the little server's copy was empty, and until it filled up again its lookups had to cross the ocean at about 150 ms each: six seconds an order, getting better as popular bins came back. Fix it by loading the whole bin list when the server starts, before it answers any scanner, and if you like, by also saving a copy to its own disk so it can start from that. Refreshing every second wouldn't have helped with a restart, and it would send sixty times as many trips to head office for answers that only need to be a minute fresh."
+    "model": "Nothing is broken. RAM is wiped when the power goes, so after the restart the little server's copy was empty, and it doesn't load anything when it starts: it waits for its once-a-minute refresh. Until that came, it passed each order's one batched question to head office, one ocean trip of about 150 ms an order, and the refresh then refilled the whole copy within the minute. Refreshing every second would shrink that gap to a second, but it would send sixty times as many trips to head office all day, every day, to cover one minute after a rare restart. Fix the restart itself: load the whole bin list when the server starts, before it answers any scanner, and if you like, also save a copy to its own disk so it can start from that. And notice what saved you: because each order is now one batched request, an empty copy cost 150 ms an order, not the old six seconds."
   },
   "next": "Next: in a hospital records room, a program was told to stop at midnight. It's still running.",
   "sources": [
@@ -363,6 +366,8 @@
     { "title": "Latency Numbers Every Programmer Should Know, interactive by year (Colin Scott)", "url": "https://colin-scott.github.io/personal_website/research/interactive_latency.html" },
     { "title": "Amazon RDS User Guide: CloudWatch metrics for Amazon RDS (ReadLatency)", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html" },
     { "title": "AWS X-Ray Developer Guide: What is AWS X-Ray?", "url": "https://docs.aws.amazon.com/xray/latest/devguide/aws-xray.html" },
-    { "title": "Amazon ElastiCache User Guide: What is Amazon ElastiCache?", "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html" }
+    { "title": "Amazon ElastiCache User Guide: What is Amazon ElastiCache?", "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html" },
+    { "title": "Achieve Consistent Low Latency for Your Storage-Intensive Workloads (Intel technology brief): a NAND SSD's typical latency is set by the flash read time, tens of microseconds", "url": "https://www.intel.com/content/dam/www/public/us/en/documents/technology-briefs/low-latency-for-storage-intensive-workloads-tech-brief.pdf" },
+    { "title": "When Poll is Better than Interrupt (Yang, Minturn and Hady, Intel, USENIX FAST 2012): the operating system's share of each storage read", "url": "https://www.usenix.org/conference/fast12/when-poll-better-interrupt" }
   ]
 }

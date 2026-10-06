@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: explain.steps[2], the sequence diagram, its aria and caption, the TLS handshake and Session keys terms and the interview answer now follow TLS 1.3 (RFC 8446): the two hellos carry key shares, so everything after them is encrypted, then the certificate and proof arrive encrypted, then the browser's checks, then Finished, then the request; new terms Key share, Finished and TLS 1.3; option D part2, the fix and the r4 model no longer say renew every 60 days, which source 2 says will stop being enough once certificates last 64 days (February 2027): they say renew at two thirds of the lifetime or when ARI says, and part2 defines ARI where it is first used; realWorld[2] quotes that warning; option B part2 now has the 30-day alarm in late March (a 200-day certificate from 6 October 2026 expires about 24 April 2027); realWorld[0] says the status posts, not Microsoft, didn't say which certificate; the Padlock term notes Chrome's tune icon since Chrome 117 (September 2023), with the Chromium blog added to sources; the sim's manual renewal now follows the date's limit (100 days from 15 March 2027)",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e05",
   "season": 1,
   "n": 5,
@@ -108,7 +111,7 @@
         "text": "Keep renewing by hand, but send the reminder emails to a shared pharmacy inbox and put three alarms in the shop calendar: 30, 14 and 7 days before expiry.",
         "tone": "warn",
         "verdict": "Trade-off. Better, still manual",
-        "part2": "We pointed the reminders at the shared inbox and set the alarms. In April the 30-day alarm went off. The owner was on holiday, the relief pharmacist thought I handled it, and I thought the owner did. On day 7 I called Northgate myself, paid with my own card, and spent two hours on hold learning how to install it. The padlock held. Barely.",
+        "part2": "We pointed the reminders at the shared inbox and set the alarms. In late March the 30-day alarm went off. The owner was on holiday, the relief pharmacist thought I handled it, and I thought the owner did. On day 7 I called Northgate myself, paid with my own card, and spent two hours on hold learning how to install it. The padlock held. Barely.",
         "senior": "A shared inbox beats one person's mailbox, but it still depends on a human acting, twice a year now and more often every year as lifetimes shrink. Reminders tell you about a problem. They don't fix it."
       },
       {
@@ -122,7 +125,7 @@
         "text": "Switch to automatic renewal with ACME (Let's Encrypt, or the hosting company's built-in certificates), and add a separate check that alerts a shared team inbox if the live site's certificate has fewer than 20 days left.",
         "tone": "ok",
         "verdict": "Senior answer",
-        "part2": "Wendell from the comments set it up on Saturday. A small program on our server now renews the certificate every 60 days by itself, and a monitoring service checks the live site every night and emails the pharmacy's shared inbox if fewer than 20 days are left. Nobody has touched it since. Last night the monitor emailed anyway. Not about larkspurrx.com. About old-orders.larkspurrx.com, 12 days left. None of us knew it existed. Dev's again. Still running somewhere, still answering, still counting down.",
+        "part2": "Wendell from the comments set it up on Saturday. A small program on our server now renews the certificate by itself once two thirds of its life has passed, or sooner if the certificate authority's ARI says so. ARI, short for ACME Renewal Information, is a note the CA publishes for each certificate saying when it should be renewed. A monitoring service checks the live site every night and emails the pharmacy's shared inbox if fewer than 20 days are left. Nobody has touched it since. Last night the monitor emailed anyway. Not about larkspurrx.com. About old-orders.larkspurrx.com, 12 days left. None of us knew it existed. Dev's again. Still running somewhere, still answering, still counting down.",
         "senior": "Automate the renewal, then watch the result separately, because automation fails quietly. Check the certificate the live site actually serves, not just the renewal job, keep a list of every certificate you own, and send alerts to a team, never to one person."
       }
     ]
@@ -145,8 +148,8 @@
         "text": "A certificate is a small file that says: this public key belongs to larkspurrx.com, from this date until that date. A certificate authority (CA) signs it after checking that Larkspur controls the name. Browsers and operating systems ship with a short list of root certificates they trust. A root signs an intermediate, the intermediate signs the site's certificate, and the browser follows those signatures up to a root it already knows. That trail of signatures is the chain of trust."
       },
       {
-        "title": "The TLS handshake checks the certificate before anything is sent.",
-        "text": "Right after the TCP handshake, the browser says hello and lists what it supports. The server answers with its certificate chain and proves it holds the matching private key. The browser runs three checks: does the chain end at a trusted root, does the name match the address, and is the time now between the certificate's two dates? If all pass, both sides agree on fresh session keys and the HTTP request goes through encrypted. If any check fails, a browser shows a warning page and an app simply gives up."
+        "title": "The TLS handshake checks the certificate before the request goes out.",
+        "text": "Right after the TCP handshake comes the TLS handshake. In TLS 1.3, the browser's hello lists what it supports and carries a key share, its half of a key exchange. The server's hello carries the server's half. From those two halves both sides work out the same fresh session keys, so everything after the hellos is encrypted. Then the server sends its certificate chain, already encrypted, proves it holds the matching private key by signing the handshake, and sends Finished, a seal over the whole exchange. The browser runs three checks: does the chain end at a trusted root, does the name match the address, and is the time now between the certificate's two dates? If all pass, the browser sends its own Finished and the HTTP request goes through encrypted. If any check fails, a browser shows a warning page and an app simply gives up."
       },
       {
         "title": "At 00:00 the date check started failing for everyone.",
@@ -159,23 +162,26 @@
     ],
     "diagram": {
       "type": "sequence",
-      "aria": "The TLS handshake between a browser and the pharmacy server. After the TCP handshake, the browser says hello, the server sends its certificate chain and proof that it holds the private key, the browser checks chain, name and date, both agree on session keys, then the encrypted request and response flow. Outcome: from 00:00 on 6 October the date check fails and the browser shows a red warning page.",
+      "aria": "The TLS 1.3 handshake between a browser and the pharmacy server. After the TCP handshake, the browser and the server each send a hello carrying a key share, and from the two shares both sides make the same session keys, so everything after the hellos is encrypted. The server sends its certificate chain, then proof that it holds the private key and its Finished message. The browser checks chain, name and date, sends its own Finished, and only then do the encrypted request and response flow. Outcome: from 00:00 on 6 October the date check fails and the browser shows a red warning page.",
       "lanes": ["Browser", "Pharmacy server"],
       "steps": [
         { "from": 0, "to": 1, "label": "TCP handshake (case 3)", "tone": "muted" },
-        { "from": 0, "to": 1, "label": "hello: TLS versions I speak" },
-        { "from": 1, "to": 0, "label": "certificate chain + proof of private key" },
+        { "from": 0, "to": 1, "label": "hello + key share (TLS 1.3)" },
+        { "from": 1, "to": 0, "label": "hello + key share" },
+        { "note": 0, "text": "Both make session keys", "sub": "everything after is encrypted" },
+        { "from": 1, "to": 0, "label": "certificate chain (encrypted)" },
+        { "from": 1, "to": 0, "label": "proof of private key, Finished" },
         { "note": 0, "text": "Browser checks 3 things", "sub": "chain, name, date" },
-        { "from": 0, "to": 1, "label": "agree on session keys" },
+        { "from": 0, "to": 1, "label": "Finished" },
         { "from": 0, "to": 1, "label": "GET /refills (encrypted)", "tone": "ok" },
         { "from": 1, "to": 0, "label": "200 OK (encrypted)", "tone": "ok" },
         { "outcome": 0, "text": "From 00:00: date check fails, red page", "tone": "bad" }
       ]
     },
-    "caption": "Read top to bottom. The TCP handshake from case 3 comes first. Then TLS: hello, certificate, the browser's three checks, fresh keys, and only then the encrypted request. From 00:00 on Tuesday the third check, the date, failed, so every customer's conversation stopped at the checks.",
+    "caption": "Read top to bottom. The TCP handshake from case 3 comes first. Then TLS 1.3: two hellos carrying key shares, after which everything is encrypted, the certificate included. The server proves it holds the private key, the browser runs its three checks and sends Finished, and only then does the request go. From 00:00 on Tuesday the third check, the date, failed, so every customer's conversation stopped at the checks.",
     "fix": {
       "title": "The fix: automate renewal, then watch it separately",
-      "text": "Use ACME, the standard protocol certificate authorities use to issue certificates with no human involved. A small ACME client on the server (or your hosting or cloud provider's built-in certificates) proves to the CA that you control the name, usually by publishing a file or a DNS record the CA asks for, then fetches the new certificate and reloads the server. Let's Encrypt, a free CA, issues 90-day certificates and recommends renewing about two thirds of the way through, so roughly every 60 days. Then add an independent monitor that checks the certificate the live site actually serves and alerts a shared team channel when fewer than, say, 20 days remain. Keep a list of every certificate you own, old subdomains included, with an owner for each."
+      "text": "Use ACME, the standard protocol certificate authorities use to issue certificates with no human involved. A small ACME client on the server (or your hosting or cloud provider's built-in certificates) proves to the CA that you control the name, usually by publishing a file or a DNS record the CA asks for, then fetches the new certificate and reloads the server. Let's Encrypt, a free CA, issues 90-day certificates today and will cut that to 64 days in February 2027 and 45 days in February 2028, so don't renew on a fixed timer such as every 60 days. Renew once about two thirds of the certificate's lifetime has passed, or when ARI, the CA's own renewal hint for each certificate, says to. Then add an independent monitor that checks the certificate the live site actually serves and alerts a shared team channel when fewer than, say, 20 days remain. Keep a list of every certificate you own, old subdomains included, with an owner for each."
     },
     "limits": [
       "Automation fails quietly. A firewall change, a DNS change or a server that never reloads the new file can stop renewals with nobody noticing. That is why the separate monitor matters, and why Let's Encrypt, which stopped sending expiry reminder emails in June 2025, tells people to monitor instead.",
@@ -194,7 +200,7 @@
     "realWorld": [
       {
         "title": "Microsoft Teams, February 3, 2020",
-        "text": "TechCrunch reported Teams, Microsoft's workplace chat and meetings app, down from about 8:30 AM US Eastern time on a Monday. Around 10 AM, Microsoft's status account posted that it had \"determined that an authentication certificate has expired causing users to have issues using the service\" and that it was developing a fix to apply a new certificate. It then began deploying the updated certificate. Microsoft didn't say publicly which certificate it was or why it lapsed. One expired certificate was enough to lock users out.",
+        "text": "TechCrunch reported Teams, Microsoft's workplace chat and meetings app, down from about 8:30 AM US Eastern time on a Monday. Around 10 AM, Microsoft's status account posted that it had \"determined that an authentication certificate has expired causing users to have issues using the service\" and that it was developing a fix to apply a new certificate. It then began deploying the updated certificate. The status posts didn't say which certificate it was or why it lapsed. One expired certificate was enough to lock users out.",
         "source": 0
       },
       {
@@ -204,7 +210,7 @@
       },
       {
         "title": "Let's Encrypt: 45 days by 2028",
-        "text": "In December 2025 Let's Encrypt announced it will move its default certificates to 64 days in February 2027 and 45 days in February 2028. Its advice: let your ACME client renew automatically, at about two thirds of the certificate's lifetime if it can't use ACME Renewal Information, don't renew by hand, and monitor so you hear when a renewal fails.",
+        "text": "In December 2025 Let's Encrypt announced it will move its default certificates to 64 days in February 2027 and 45 days in February 2028. Its advice: let your ACME client renew automatically, at about two thirds of the certificate's lifetime if it can't use ACME Renewal Information, don't renew by hand, and monitor so you hear when a renewal fails. It warns that renewing at a hardcoded interval of 60 days will no longer be sufficient.",
         "source": 2
       },
       {
@@ -223,11 +229,11 @@
         "What happens when you visit an https:// website?",
         "A certificate expired and took production down. How do you make sure it never happens again?"
       ],
-      "answer": "Walk the layers: DNS gives the IP address, TCP connects, then the TLS handshake. The server sends its certificate chain and proves it holds the private key, the client checks the chain up to a trusted root, the hostname and the validity dates, they agree on session keys, and HTTP runs encrypted inside. For the outage: automate issuance and renewal with ACME or a managed service such as AWS Certificate Manager, renew at about two thirds of the lifetime, monitor the certificate each live endpoint actually serves with alerts well before expiry going to a team, and keep an inventory of every certificate with an owner. Name the limits before they ask: automation can fail silently, lifetimes are shrinking to 47 days by 2029, and client clocks and trust stores are outside your control."
+      "answer": "Walk the layers: DNS gives the IP address, TCP connects, then the TLS handshake. In TLS 1.3 the two hellos carry key shares, so both sides have session keys after one round trip and everything after is encrypted. The server's certificate chain and its proof of the private key arrive encrypted, the client checks the chain up to a trusted root, the hostname and the validity dates, both sides send Finished, and HTTP runs encrypted inside. For the outage: automate issuance and renewal with ACME or a managed service such as AWS Certificate Manager, renew at about two thirds of the lifetime or when ARI says, never on a fixed timer, monitor the certificate each live endpoint actually serves with alerts well before expiry going to a team, and keep an inventory of every certificate with an owner. Name the limits before they ask: automation can fail silently, lifetimes are shrinking to 47 days by 2029, and client clocks and trust stores are outside your control."
     }
   },
   "terms": [
-    { "term": "Padlock", "def": "The small lock icon next to a web address. It means the browser's TLS checks passed: the connection is encrypted and the site proved its name." },
+    { "term": "Padlock", "def": "The lock icon next to a web address: the TLS checks passed, so the connection is encrypted and the site proved its name. Chrome shows a \"tune\" icon there instead since version 117 (September 2023)." },
     { "term": "HTTPS", "def": "HTTP sent through TLS. The same requests and responses as HTTP, but encrypted, protected from changes, and with the site's identity checked. Addresses start with https://." },
     { "term": "TLS", "def": "Transport Layer Security: the layer that encrypts a connection, detects tampering and proves the server's identity. HTTPS is HTTP running inside TLS." },
     { "term": "SSL", "def": "Secure Sockets Layer, the older protocol TLS replaced. People still say \"SSL certificate\" when they mean a TLS certificate." },
@@ -247,8 +253,11 @@
     { "term": "Hostname", "def": "The name in the address, like larkspurrx.com. The certificate must cover that exact name, or the browser refuses it." },
     { "term": "Subdomain", "def": "A name under your domain, like old-orders.larkspurrx.com. Each one needs a certificate that covers it, and each one can expire on its own." },
     { "term": "Expiry date", "def": "The \"not after\" date in a certificate. From that moment on, browsers and apps treat it as invalid, even if nothing else changed." },
-    { "term": "TLS handshake", "def": "The short exchange at the start of a TLS connection: hello, certificate, the client's checks, and agreeing on session keys. It comes right after the TCP handshake." },
-    { "term": "Session keys", "def": "Fresh, temporary keys the browser and server agree on during the handshake and use to encrypt that one conversation." },
+    { "term": "TLS handshake", "def": "The short exchange at the start of a TLS connection: two hellos that set up session keys, then the server's certificate and proof, the client's checks, and Finished. It comes right after the TCP handshake." },
+    { "term": "TLS 1.3", "def": "The current version of TLS, defined in RFC 8446 (2018). Its handshake takes one round trip, and everything after the two hellos is encrypted." },
+    { "term": "Key share", "def": "In TLS 1.3, each side's half of a key exchange, sent in its hello. From the two halves both sides compute the same session keys, and the keys themselves never cross the network." },
+    { "term": "Session keys", "def": "Fresh, temporary keys both sides work out from the two key shares in the hellos, and use to encrypt the rest of that one conversation." },
+    { "term": "Finished message", "def": "The last TLS handshake message from each side: a seal over the whole handshake that proves both sides saw the same messages and hold the same keys." },
     { "term": "Browser warning", "def": "The full-page alarm a browser shows when a TLS check fails, such as \"Your connection is not private.\" You can click past it, and almost never should." },
     { "term": "Self-signed certificate", "def": "A certificate signed by its own key instead of a CA. No chain leads to a trusted root, so browsers reject it." },
     { "term": "Issue (a certificate)", "def": "What a CA does when it creates and signs a certificate for someone. The site owner then installs it on their server." },
@@ -343,7 +352,7 @@
         { "idea": "Monitor the certificate the live site actually serves", "match": ["live", "actually serve", "what the site serves", "endpoint", "check the site", "external", "monitor", "probe"] },
         { "idea": "Alert a team well before expiry", "match": ["alert", "alarm", "team", "days before", "days left", "on-call", "on call", "page"] }
       ],
-      "model": "Automation fails quietly: a firewall or DNS change can block the CA's validation, the client can crash or stop being scheduled, or the server can keep serving the old file because it never reloaded. Keep the ACME client, and add an independent monitor that connects to the live site, reads the certificate it actually serves and alerts a team when fewer than about 20 days remain. With 90-day certificates renewed at 60 days, an alert at 20 days means renewal has been failing for 10 days, with time left to fix it."
+      "model": "Automation fails quietly: a firewall or DNS change can block the CA's validation, the client can crash or stop being scheduled, or the server can keep serving the old file because it never reloaded. Keep the ACME client, and add an independent monitor that connects to the live site, reads the certificate it actually serves and alerts a team when fewer than about 20 days remain. With a 90-day certificate renewed once two thirds of its life has passed, about 30 days before expiry, an alert at 20 days left means renewal has been failing for 10 days, with time left to fix it. Renew by that fraction or when ARI says, never on a fixed 60-day timer, because lifetimes are shrinking to 64 days in 2027 and 45 in 2028, and keep the alert line below the renewal point as they shrink."
     },
     {
       "id": "s1e05-r5",
@@ -385,6 +394,7 @@
     { "title": "RFC 8555: Automatic Certificate Management Environment (ACME) (IETF, March 2019)", "url": "https://www.rfc-editor.org/rfc/rfc8555.html" },
     { "title": "AWS Certificate Manager User Guide: Managed certificate renewal", "url": "https://docs.aws.amazon.com/acm/latest/userguide/managed-renewal.html" },
     { "title": "AWS Certificate Manager User Guide: Supported CloudWatch metrics (DaysToExpiry)", "url": "https://docs.aws.amazon.com/acm/latest/userguide/cloudwatch-metrics.html" },
-    { "title": "AWS Certificate Manager User Guide: Amazon EventBridge support for ACM (ACM Certificate Approaching Expiration)", "url": "https://docs.aws.amazon.com/acm/latest/userguide/supported-events.html" }
+    { "title": "AWS Certificate Manager User Guide: Amazon EventBridge support for ACM (ACM Certificate Approaching Expiration)", "url": "https://docs.aws.amazon.com/acm/latest/userguide/supported-events.html" },
+    { "title": "An Update on the Lock Icon (Chromium Blog, May 2, 2023): from Chrome 117, a tune icon replaces the lock", "url": "https://blog.chromium.org/2023/05/an-update-on-lock-icon.html" }
   ]
 }

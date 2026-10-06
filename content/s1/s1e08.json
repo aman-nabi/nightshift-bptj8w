@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: the sim gets a Restart chartfeed control (running workers get PPID 1, init collects the zombies) and tryThis points to it; option B says a restart gives a short grace period, then kills; rhea's three threads now include one compressing pages; limit 1 adds that even kill -9 can fail on a process in state D; the cold case model names Fargate's 120 s maximum instead of a general limit; the ECS realWorld item is split so the 120 s figure cites the ECS developer guide (source 8); new terms (Compress, Uninterruptible sleep) and sources (systemd, LWN)",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e08",
   "season": 1,
   "n": 8,
@@ -83,7 +86,7 @@
       "author": "u/radiology_rhea",
       "points": 41,
       "age": "3h",
-      "text": "Fun fact: a worker usually isn't one stream of work. It runs threads, separate streams of work inside one process that share its memory. One reads the scanner, one uploads, one writes the log. That's how one worker can keep three cores busy. The scheduler, part of the operating system, hands out turns on the cores, a short slice of time each, many times a second."
+      "text": "Fun fact: a worker usually isn't one stream of work. It runs threads, separate streams of work inside one process that share its memory. One reads the scanner, one compresses each page, squeezing it smaller so it uploads faster, and one uploads. Reading and uploading mostly wait on the scanner and the network, but compressing is pure number-crunching that keeps a core busy, so a worker running three compressing threads can keep three cores busy. The scheduler, part of the operating system, hands out turns on the cores, a short slice of time each, many times a second."
     },
     {
       "author": "u/ward_clerk_benno",
@@ -106,8 +109,8 @@
         "text": "Restart the records server every night at 11:50, so the list starts clean and nothing is mid-upload at midnight.",
         "tone": "warn",
         "verdict": "Trade-off. Clears them, at a cost",
-        "part2": "The restart cleared all 116 at once. It also stopped every worker in the middle of whatever chart it was on, exactly like kill -9 does. Bed 3's chart now ends at page 31 of 48. The list is empty at midnight and fills up again the next night, four at a time.",
-        "senior": "A restart ends every process, zombies' entries included, so the list starts empty. But it stops every worker without letting it finish, so you trade a slow, harmless-looking leak for lost work every night. It hides the bug in the parent instead of fixing it."
+        "part2": "The restart cleared all 116 at once. It also gave every worker a short grace period and then killed it, in the middle of whatever chart it was on. Bed 3's chart now ends at page 31 of 48. The list is empty at midnight and fills up again the next night, four at a time.",
+        "senior": "A restart ends every process, zombies' entries included, so the list starts empty. But shutting down gives each worker only a short grace period, SIGTERM and then SIGKILL, so any chart that can't finish in time is cut off, and you trade a slow, harmless-looking leak for lost work every night. It hides the bug in the parent instead of fixing it."
       },
       {
         "text": "Fix chartfeed so the parent collects every finished worker with wait. Start the stop at 11:30 with SIGTERM so each worker can finish its chart, and keep SIGKILL for one still running at a hard deadline, with its chart marked to start over.",
@@ -129,7 +132,7 @@
     "module": "s1e08",
     "title": "Run the records server",
     "lede": "You're at the records server at 11:50 PM. The top row is the CPU's four cores, and each one shows which thread it's running right now. chartfeed (PID 2210) is the parent, and each scanner can get a worker process. The table under the diagram is the process list, like ps. The clock runs 10 times faster than real life. Click any box to see what it does.",
-    "tryThis": "Try this: start a worker for Scanner A and give it two more threads, then start workers for B and C, and watch five threads take turns on four cores. Send SIGKILL to A: its unfinished pages are lost and it turns into a zombie. Send kill -9 to the zombie: nothing. Press wait. Then send SIGTERM to B and watch it finish its chart before it exits. Finally, turn on the fix and let C finish."
+    "tryThis": "Try this: start a worker for Scanner A and give it two more threads, then start workers for B and C, and watch five threads take turns on four cores. Send SIGKILL to A: its unfinished pages are lost and it turns into a zombie. Send kill -9 to the zombie: nothing. Press wait. Then send SIGTERM to B and watch it finish its chart before it exits. Next, turn on the fix and let C finish. Last, start a worker for D and restart chartfeed itself: watch what happens to B's old zombie, and to D."
   },
   "explain": {
     "oneLine": "Nothing was haunting the server. A worker that got SIGTERM was finishing its chart as designed, kill -9 cut it off mid-upload, and since the update the parent never calls wait, so every worker that ends stays in the list as a zombie.",
@@ -182,7 +185,7 @@
       "text": "First the bug: the parent must collect every child that ends, by calling wait (or waitpid) whenever a child exits. The operating system even tells it when, with a SIGCHLD signal. Then the shutdown: send SIGTERM early enough that a normal chart can finish, 11:30 for a midnight backup. Each worker catches it, finishes the chart it's on, saves and exits, inside a grace period. Only a worker still running at the deadline gets SIGKILL, and because SIGKILL loses whatever it was doing, the upload must be safe to redo: mark a chart complete only after its last page lands, and start an unfinished one over. Restarting chartfeed once clears the 112 old zombies, because init adopts them and collects them."
     },
     "limits": [
-      "A grace period is a promise, not a guarantee. If a worker hangs or ignores SIGTERM, or the deadline simply arrives first, SIGKILL still cuts it off, so the work itself must be safe to redo. Graceful shutdown reduces lost work. It doesn't remove the need to handle it.",
+      "A grace period is a promise, not a guarantee. If a worker hangs or ignores SIGTERM, or the deadline simply arrives first, SIGKILL still cuts it off, so the work itself must be safe to redo. Graceful shutdown reduces lost work. It doesn't remove the need to handle it. And even kill -9 can fail on a process stuck in uninterruptible sleep, state D in ps, usually waiting on a disk or a network drive. Many such waits ignore every signal until they end, and if the wait never ends, often only a reboot clears it.",
       "Zombies are cheap, not free. Each holds only a process table entry, so a few are harmless, but a parent that leaks one per child can fill the table if it starts children fast enough, and then the server can't start any new process. Fix the parent rather than scheduling restarts around it.",
       "Some programs never see SIGTERM. If a shell starts your program, the shell may receive the signal instead, and AWS's guide to graceful shutdowns on ECS warns that shells ignore SIGTERM by default. Then your program only ever meets the SIGKILL at the end of the grace period."
     ],
@@ -213,8 +216,13 @@
       },
       {
         "title": "Amazon ECS works the same way",
-        "text": "AWS's guide to graceful shutdowns with ECS, from March 2021, says that when a task is stopped, SIGTERM goes to each container's entry process, usually PID 1, and SIGKILL follows after a timeout, 30 seconds by default. You can change it with the stopTimeout setting, which for tasks on Fargate defaults to 30 seconds and can be at most 120. The guide also says that a task behind an Application Load Balancer is removed from the load balancer before it gets SIGTERM, so it stops receiving new requests first.",
+        "text": "AWS's guide to graceful shutdowns with ECS, from March 2021, says that when a task is stopped, SIGTERM goes to each container's entry process, usually PID 1, and SIGKILL follows after a timeout, 30 seconds by default. The guide also says that a task behind an Application Load Balancer is removed from the load balancer before it gets SIGTERM, so it stops receiving new requests first.",
         "source": 7
+      },
+      {
+        "title": "On Fargate, 120 seconds at most",
+        "text": "The ECS developer guide's list of task definition settings describes stopTimeout as how long to wait before a container is forcefully killed if it doesn't exit normally on its own. For tasks on Fargate, it says the default is 30 seconds and the maximum is 120 seconds.",
+        "source": 8
       }
     ],
     "interview": {
@@ -236,6 +244,7 @@
     { "term": "Records system", "def": "The hospital's software that stores every patient's chart. chartfeed's workers upload scanned pages to it." },
     { "term": "Nightly backup", "def": "A copy of all the data, made every night so it can be restored if something is lost. Copying files that are still changing can give a broken copy." },
     { "term": "Thread", "def": "A separate stream of work inside one process. Threads share the process's memory, each has its own stack, and each can run on a different core." },
+    { "term": "Compress", "def": "To squeeze data into fewer bytes by number-crunching, so it takes less time to send or less room to store. Unlike waiting on a disk or the network, it keeps a core busy." },
     { "term": "Stack", "def": "A thread's own scratch memory for the work it is doing right now. Threads in one process share everything else." },
     { "term": "CPU core", "def": "One processor inside a CPU chip. Each core runs one thread at a time, so a 4-core CPU can run four threads at once." },
     { "term": "Scheduler", "def": "The part of the operating system that decides which runnable thread gets a CPU core next, switching between them many times a second." },
@@ -251,6 +260,7 @@
     { "term": "kill", "def": "The command that sends a signal to a process by PID. Despite the name, it sends SIGTERM unless you choose another signal." },
     { "term": "kill -9", "def": "The kill command sending signal 9, SIGKILL. It ends a running process at once. It does nothing to a zombie, which has already ended." },
     { "term": "ps", "def": "A command that lists processes with their PID, parent's PID (PPID), state (STAT) and command. A Z in STAT means zombie." },
+    { "term": "Uninterruptible sleep", "def": "A process state, D in ps: waiting inside the kernel, usually for a disk or a network drive. Many such waits ignore every signal, even SIGKILL, until they end." },
     { "term": "Exit status", "def": "A small number a process leaves behind when it ends, saying how it ended: finished normally, or ended by a signal such as SIGKILL." },
     { "term": "Process table", "def": "The kernel's list of every process. A zombie keeps its entry until its parent calls wait. If the table fills, no new process can start." },
     { "term": "wait() system call", "def": "What a parent calls to collect a child that has ended: it reads the child's exit status, and the child's entry is removed. waitpid() does the same for a chosen child." },
@@ -367,7 +377,7 @@
       { "idea": "Raising the grace period helps only within the platform's limit", "match": ["raise", "longer grace", "increase", "stoptimeout", "120", "limit", "maximum", "grace period"] },
       { "idea": "Stop the work from starting when a stop is coming, or keep jobs short", "match": ["stop taking", "no new", "smaller", "split", "shorter", "batches", "drain"] }
     ],
-    "model": "Not quite. Handling SIGTERM means chartfeed will try to finish the chart it's on, but the platform only waits 30 seconds before SIGKILL, and a chart like Bed 14's needs about 40 minutes. It will be cut off mid-upload, just like on Tuesday. Raise the grace period if the platform allows it, but expect a limit far below 40 minutes (ECS on Fargate, for example, tops out at 120 seconds). So make the work survive being killed: upload in small batches, record which pages have landed, and on SIGTERM stop at the next page boundary and save that progress, so a new worker resumes where the old one stopped. Mark a chart complete only after its last page lands."
+    "model": "Not quite. Handling SIGTERM means chartfeed will try to finish the chart it's on, but the platform only waits 30 seconds before SIGKILL, and a chart like Bed 14's needs about 40 minutes. It will be cut off mid-upload, just like on Tuesday. Raise the grace period if the platform allows it, but check its maximum first: on Fargate, for example, it's 120 seconds at most, nowhere near 40 minutes. So make the work survive being killed: upload in small batches, record which pages have landed, and on SIGTERM stop at the next page boundary and save that progress, so a new worker resumes where the old one stopped. Mark a chart complete only after its last page lands."
   },
   "next": "Next: in a county records office, something opens a folder for every visitor, one at a time, every night at three.",
   "sources": [
@@ -379,6 +389,9 @@
     { "title": "sched(7), Linux manual page: the scheduler is the kernel component that decides which runnable thread will be executed by the CPU next", "url": "https://man7.org/linux/man-pages/man7/sched.7.html" },
     { "title": "Kubernetes documentation: Pod Lifecycle, Termination of Pods (TERM to the main process, default 30-second grace period, then KILL)", "url": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination" },
     { "title": "Graceful shutdowns with ECS (AWS Containers Blog, Jeremy Cowan and Michael Fischer, March 19, 2021)", "url": "https://aws.amazon.com/blogs/containers/graceful-shutdowns-with-ecs/" },
-    { "title": "Amazon ECS Developer Guide: task definition parameters for Fargate (stopTimeout: default 30 seconds, maximum 120 seconds)", "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html" }
+    { "title": "Amazon ECS Developer Guide: task definition parameters for Fargate (stopTimeout: default 30 seconds, maximum 120 seconds)", "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html" },
+    { "title": "systemd.kill(5), via man7.org: on stop, processes first get SIGTERM, and those still left after TimeoutStopSec= get SIGKILL", "url": "https://man7.org/linux/man-pages/man5/systemd.kill.5.html" },
+    { "title": "systemd-system.conf(5), via man7.org: DefaultTimeoutStopSec= defaults to 90 s", "url": "https://man7.org/linux/man-pages/man5/systemd-system.conf.5.html" },
+    { "title": "LWN.net: TASK_KILLABLE, by Jonathan Corbet (July 1, 2008): processes in TASK_UNINTERRUPTIBLE ignore signals, the unkillable D state in ps", "url": "https://lwn.net/Articles/288056/" }
   ]
 }

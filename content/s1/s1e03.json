@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: explain.steps[3] no longer blames the 41 seconds entirely on head-of-line blocking and adds one plain sentence on congestion control (TCP slows down on purpose after every loss, which is most of why speed collapses on a bad line, RFC 5681); limits[1], the diagram caption and the interview answer say the same, without window-size math (limits stays at its maximum of 3 items, so the new point is folded into limits[1]); new term Congestion control and RFC 5681 added to sources; realWorld[0] now gives RFC 9293's principal reason for the three-way handshake (stopping old duplicate connection attempts from causing confusion) before the global-clock reason; the r4 model no longer says opening connections at the same time pays the handshake once: six parallel connections still do six handshakes, only the waiting overlaps, and the r4 keyIdea text says so",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e03",
   "season": 1,
   "n": 3,
@@ -135,7 +138,7 @@
       },
       {
         "title": "TCP hands data over in order, so it waits.",
-        "text": "Packets that arrive early are held in a buffer until the missing one turns up, then everything is handed to the program in order. That's why the weather file was perfect, and why it took 41 seconds instead of two: each lost packet held up the ones behind it until its copy arrived, 29 times over. Engineers call this head-of-line blocking."
+        "text": "Packets that arrive early are held in a buffer until the missing one turns up, then everything is handed to the program in order. That's why the weather file was perfect, and part of why it took 41 seconds instead of two: each lost packet held up the ones behind it until its copy arrived, 29 times over. Engineers call this head-of-line blocking. TCP also slows down on purpose after every loss, in case the network is overloaded, and on a bad line that's most of why the speed collapses."
       },
       {
         "title": "UDP just sends.",
@@ -162,14 +165,14 @@
         { "outcome": 2, "text": "Harbor hands over #1, #2, #3 in order", "tone": "ok" }
       ]
     },
-    "caption": "Read top to bottom. Three calls open the connection before any data moves. Packet #2 is lost, so the harbor holds #3 back and says what it still needs. When the station's timer for #2 runs out with no ACK, it sends #2 again, and the harbor hands all three over in order. On Thursday this happened 29 times, which is why the file took 41 seconds.",
+    "caption": "Read top to bottom. Three calls open the connection before any data moves. Packet #2 is lost, so the harbor holds #3 back and says what it still needs. When the station's timer for #2 runs out with no ACK, it sends #2 again, and the harbor hands all three over in order. On Thursday this happened 29 times, and TCP slowed down after every loss, which is why the file took 41 seconds.",
     "fix": {
       "title": "The fix: pick the transport by what lateness costs",
       "text": "Ask one question about each kind of data: is a late piece still useful? If every piece must arrive, in order (files, logs, payments, web pages), use TCP and accept that loss shows up as delay. If a late piece is worthless because a newer one is already on its way (live voice, video, game positions, a live wind gauge), use UDP and let the program cover the gaps: a call app smooths over a missing sliver of sound, a wind screen just shows the next reading. Don't send copies of everything to fake reliability, and don't run live data over TCP and hope the link stays clean."
     },
     "limits": [
       "UDP doesn't make a bad link good. Programs that use it have to handle loss themselves, for example by smoothing small gaps or lowering picture quality when loss climbs. When loss gets very high, a call still breaks up.",
-      "TCP's promise has a cost. On a lossy link it gets slow, and if packets keep vanishing it eventually gives up and reports the connection broken. Reliable means *eventually, or an error*, not *on time*.",
+      "TCP's promise has a cost. On a lossy link it gets slow, mostly because of congestion control: TCP treats every loss as a sign the network may be overloaded and sends less for a while, even when the real cause is a storm. If packets keep vanishing it eventually gives up and reports the connection broken. Reliable means *eventually, or an error*, not *on time*.",
       "Handshakes add up. Every new TCP connection pays a round trip before any data moves, so programs that open many short connections over a slow link feel it. That's why apps and browsers keep connections open and reuse them."
     ],
     "tradeoff": {
@@ -183,7 +186,7 @@
     "realWorld": [
       {
         "title": "RFC 9293: what TCP promises",
-        "text": "TCP's current specification is RFC 9293, published in August 2022, replacing the original RFC 793. It says TCP provides a reliable, in-order, byte-stream service to applications. Every byte has a sequence number, and acknowledgements are cumulative: acknowledging X means everything before X has arrived. It calls the opening exchange the three-way handshake, and explains that it's needed because sequence numbers aren't tied to a global clock.",
+        "text": "TCP's current specification is RFC 9293, published in August 2022, replacing the original RFC 793. It says TCP provides a reliable, in-order, byte-stream service to applications. Every byte has a sequence number, and acknowledgements are cumulative: acknowledging X means everything before X has arrived. It calls the opening exchange the three-way handshake and gives its principal reason: to stop old duplicate connection attempts, delayed copies of an earlier SYN still wandering the network, from causing confusion. It also explains that the exchange is needed because sequence numbers aren't tied to a global clock.",
         "source": 0
       },
       {
@@ -207,7 +210,7 @@
         "What's the difference between TCP and UDP, and when would you use each?",
         "Walk me through the TCP three-way handshake. What does it cost?"
       ],
-      "answer": "TCP gives a reliable, ordered byte stream: a three-way handshake (SYN, SYN-ACK, ACK) to agree on starting sequence numbers, ACKs for data received, retransmission when a timer runs out, and in-order delivery with buffering. The costs are a round trip to set up each connection and head-of-line blocking when packets are lost. UDP sends independent packets with no setup, no ACKs, no retransmission and no ordering. Use TCP when every byte matters (files, web pages, databases) and UDP when lateness is worse than loss (voice, video, games, live readings), and say that a program on UDP has to handle loss itself. Mention reusing connections to avoid paying the handshake again and again."
+      "answer": "TCP gives a reliable, ordered byte stream: a three-way handshake (SYN, SYN-ACK, ACK) to agree on starting sequence numbers, ACKs for data received, retransmission when a timer runs out, and in-order delivery with buffering. The costs are a round trip to set up each connection, head-of-line blocking when packets are lost, and congestion control, which makes TCP send less after every loss, so its speed collapses on a lossy link. UDP sends independent packets with no setup, no ACKs, no retransmission and no ordering. Use TCP when every byte matters (files, web pages, databases) and UDP when lateness is worse than loss (voice, video, games, live readings), and say that a program on UDP has to handle loss itself. Mention reusing connections to avoid paying the handshake again and again."
     }
   },
   "terms": [
@@ -234,6 +237,7 @@
     { "term": "In order", "def": "Handed to the program in the same order it was sent. TCP guarantees it. UDP doesn't." },
     { "term": "Out of order", "def": "Arriving in a different order than sent, for example packet 5 before packet 4, because packets can take slightly different times." },
     { "term": "Buffer", "def": "A waiting area in memory. TCP's receiver holds early packets in a buffer until the gap in front of them is filled." },
+    { "term": "Congestion control", "def": "TCP's rules for slowing down when packets go missing, in case the network is overloaded. After every loss it sends less, then speeds up again slowly, so a lossy line stays slow." },
     { "term": "Head-of-line blocking", "def": "When one lost packet holds up everything behind it, like a stalled car at a single-lane bridge. TCP's in-order promise causes it." },
     { "term": "Duplicate", "def": "A second copy of the same packet arriving. UDP doesn't detect duplicates for you." },
     { "term": "Satellite link", "def": "A network connection that bounces off a satellite far above the Earth. The long trip makes every round trip slow." },
@@ -302,9 +306,9 @@
       "keyIdeas": [
         { "idea": "Each new connection costs a handshake round trip before any data", "match": ["handshake", "round trip", "syn", "setup", "set up", "three"] },
         { "idea": "Six handshakes add up to about 3 seconds of waiting", "match": ["3 second", "three second", "6 x", "six times", "adds up", "add up", "each one", "every connection"] },
-        { "idea": "Reuse one connection, or open them at the same time", "match": ["reuse", "keep it open", "keep open", "one connection", "same connection", "single connection", "parallel", "at the same time", "fewer connections"] }
+        { "idea": "Reuse one connection, or open them at the same time so the handshake waits overlap", "match": ["reuse", "keep it open", "keep open", "one connection", "same connection", "single connection", "parallel", "at the same time", "fewer connections"] }
       ],
-      "model": "Every new TCP connection pays a handshake, one round trip, before a single byte of the file can move. At half a second a round trip, six connections one after another spend about 3 seconds just shaking hands. Reuse one open connection for all six files, or at least open them at the same time, so the handshake is paid once instead of six times."
+      "model": "Every new TCP connection pays a handshake, one round trip, before a single byte of the file can move. At half a second a round trip, six connections one after another spend about 3 seconds just shaking hands. Reuse one open connection for all six files, so the handshake is paid once instead of six times. Opening the six connections at the same time also helps, though less: there are still six handshakes, but they happen side by side, so you wait about one round trip for all of them instead of six in a row."
     }
   ],
   "coldCase": {
@@ -324,6 +328,7 @@
     { "title": "RFC 6298: Computing TCP's Retransmission Timer (IETF, June 2011)", "url": "https://www.rfc-editor.org/rfc/rfc6298.html" },
     { "title": "High Performance Browser Networking (Ilya Grigorik, O'Reilly): Building Blocks of TCP", "url": "https://hpbn.co/building-blocks-of-tcp/" },
     { "title": "High Performance Browser Networking (Ilya Grigorik, O'Reilly): WebRTC", "url": "https://hpbn.co/webrtc/" },
-    { "title": "Amazon VPC User Guide: Security group rules (protocol TCP or UDP and port range)", "url": "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html" }
+    { "title": "Amazon VPC User Guide: Security group rules (protocol TCP or UDP and port range)", "url": "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html" },
+    { "title": "RFC 5681: TCP Congestion Control (IETF, September 2009): after a loss TCP cuts its sending rate (sections 3.1 and 3.2)", "url": "https://www.rfc-editor.org/rfc/rfc5681.html" }
   ]
 }

@@ -1,7 +1,13 @@
-/* sims/s1e05-v1.0.0.js  (published as sims/s1e05.js)
+/* sims/s1e05-v1.0.1.js  (published as sims/s1e05.js)
    Case s1e05 "The Padlock": customers connecting to the pharmacy through the three TLS checks.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: "Renew by hand" now buys the longest certificate allowed on the
+     sim's date, following the case's schedule (200 days from 15 March 2026, 100 days from 15 March
+     2027, 47 days from 15 March 2029), instead of always 200 days; the button reads "Renew by hand
+     (longest allowed)" and the log names the rule. The browser and TLS-check boxes now say the checks
+     run before the request is sent (in TLS 1.3 the hellos go first). selfTest adds one check: after
+     skipping past 15 March 2027, a renewal by hand buys 100 days.
    v1.0.0 (2026-10-06) first version: a customer's browser and the refill app connect to the pharmacy
      server through the TLS checks (chain, name, date). The chain runs from Northgate Root through
      Northgate Trust CA. An ACME client can renew the certificate by itself. Controls: visit, app,
@@ -20,8 +26,9 @@
      handshake that really takes milliseconds.
    - Automatic customers use api.rand(), so self-tests see the same customers every run. Only manual
      visits and changes in outcome are logged, so the log stays readable.
-   - Lifetimes follow the 2026 rules: 200 days at most for a certificate bought by hand (since
-     15 March 2026), 90 days for a free ACME certificate, renewed with 30 days left.
+   - Lifetimes follow the CA/Browser Forum schedule for a certificate bought by hand: 200 days at most
+     from 15 March 2026, 100 from 15 March 2027, 47 from 15 March 2029. A free ACME certificate lasts
+     90 days and is renewed with 30 days left, two thirds of the way through.
 */
 (function () {
   "use strict";
@@ -32,7 +39,7 @@
   var EXPIRY = DAY;                     // Tue 6 Oct 2026, 00:00
   var ISSUED = -364 * DAY;              // Mon 6 Oct 2025, 00:00
   var SPEED = 60;                       // sim seconds per real second
-  var MANUAL_DAYS = 200;                // longest public certificate allowed since 15 March 2026
+  var MANUAL_DAYS = 200;                // longest public certificate allowed from 15 March 2026 (the story's date)
   var ACME_DAYS = 90;                   // a free ACME certificate in 2026
   var RENEW_LEFT = 30;                  // the ACME client renews with 30 days left (two thirds through)
   var WARN_LEFT = 14;                   // days left at which the server box turns amber
@@ -45,6 +52,19 @@
   var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var EPOCH_MS = Date.UTC(2026, 9, 5);  // Monday 5 October 2026, 00:00 (UTC math only, so no time zones)
+
+  // The longest a public certificate may last, by the date it is issued (CA/Browser Forum Baseline
+  // Requirements). "from" is sim seconds since EPOCH_MS; the sim never goes back before March 2026.
+  var MAX_LIFETIME = [
+    { from: (Date.UTC(2029, 2, 15) - EPOCH_MS) / 1000, days: 47, since: "15 March 2029" },
+    { from: (Date.UTC(2027, 2, 15) - EPOCH_MS) / 1000, days: 100, since: "15 March 2027" },
+    { from: -Infinity, days: MANUAL_DAYS, since: "15 March 2026" }
+  ];
+
+  function manualLimit(now) {
+    for (var i = 0; i < MAX_LIFETIME.length; i++) if (now >= MAX_LIFETIME[i].from) return MAX_LIFETIME[i];
+    return MAX_LIFETIME[MAX_LIFETIME.length - 1];
+  }
 
   var CERT_OPTIONS = [
     { value: "right", label: "larkspurrx.com (the real one)" },
@@ -274,11 +294,12 @@
 
   function renew(api) {
     var S = api.state;
-    S.real = realCert("manual", api.clock, MANUAL_DAYS);
+    var limit = manualLimit(api.clock);
+    S.real = realCert("manual", api.clock, limit.days);
     S.installed = "right";
     S.ctl.cert.set("right");
-    api.log("You buy a new certificate from Northgate and install it by hand. The longest allowed since March 2026 is " +
-      MANUAL_DAYS + " days, so it lasts until " + dateTime(S.real.until) + ".", "ok");
+    api.log("You buy a new certificate from Northgate and install it by hand. The longest allowed since " + limit.since + " is " +
+      limit.days + " days, so it lasts until " + dateTime(S.real.until) + ".", "ok");
     refresh(api);
   }
 
@@ -348,13 +369,13 @@
       return "<strong>Northgate Trust CA (intermediate).</strong> Signed by the root. It signs websites' certificates day to day, so the root's key can stay locked away. Free ACME certificates come from a different CA, whose root is on the same list.";
     },
     browser: function () {
-      return "<strong>Customer's browser.</strong> A person is looking at it. When a check fails, the browser stops before sending anything and shows a full red warning page, with a <em>proceed anyway</em> button nobody should press.";
+      return "<strong>Customer's browser.</strong> A person is looking at it. When a check fails, the browser stops before sending the request and shows a full red warning page, with a <em>proceed anyway</em> button nobody should press.";
     },
     app: function () {
       return "<strong>Refill app.</strong> A program, not a person. When a check fails there's no page to show: the connection just fails and the app reports an error. Nobody sees a warning, so these failures are easy to miss.";
     },
     checks: function () {
-      return "<strong>TLS checks.</strong> Run by the browser or the app during the TLS handshake, before anything is sent. 1: does the chain end at a trusted root? 2: does the certificate cover " + NAME + "? 3: is the time now between its two dates? All three must pass.";
+      return "<strong>TLS checks.</strong> Run by the browser or the app during the TLS handshake, after the two hellos and before the request is sent. 1: does the chain end at a trusted root? 2: does the certificate cover " + NAME + "? 3: is the time now between its two dates? All three must pass.";
     },
     server: function (S, now) {
       var c = presented(S);
@@ -390,7 +411,7 @@
       S.ctl.visit = api.control.button("visit", "A customer opens the site", function () { visit(api, "browser", true); });
       S.ctl.app = api.control.button("app", "The refill app connects", function () { visit(api, "app", true); });
       S.ctl.advance = api.control.button("advance", "Skip ahead " + SKIP_DAYS + " days", function () { advance(api); });
-      S.ctl.renew = api.control.button("renew", "Renew by hand (" + MANUAL_DAYS + " days)", function () { renew(api); });
+      S.ctl.renew = api.control.button("renew", "Renew by hand (longest allowed)", function () { renew(api); });
       S.ctl.autorenew = api.control.toggle("autorenew", "Auto-renew with ACME", false, function (on) { setAuto(api, on); });
       S.ctl.cert = api.control.select("cert", "Certificate on the server", CERT_OPTIONS, "right", function (v) {
         var val = v && v.target ? v.target.value : v;
@@ -486,6 +507,13 @@
       var w4 = n("warnings");
       t.click("visit");
       t.expect(n("warnings") === w4 + 1 && t.node("server").state === "bad", "without automation, the 200-day certificate runs out after 210 days");
+
+      // 9. After 15 March 2027 the rules allow only 100 days, and a renewal by hand follows them.
+      t.click("reset");
+      for (var k = 0; k < 6; k++) t.click("advance");
+      t.click("renew");
+      t.expect(t.node("server").text.meta === "expires in 100d" && t.logText().indexOf("since 15 March 2027 is 100 days") >= 0,
+        "180 days on, past 15 March 2027, a renewal by hand buys only 100 days");
     }
   });
 })();

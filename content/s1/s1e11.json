@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: option C and the fix print the request id on every ticket so the printer skips a repeat (a slow printer can print the first try as well as the retry), and keep waiting orders in a durable queue, not the order API's memory; limits cover both (limit 2 is new, the two logging limits merge into limit 3); 'servers' becomes 'waitstaff'; the narrator Sol, a name s1e10 also uses, is renamed Otis (u/grill_side_otis) everywhere, sim included; new term Durable queue and an AWS Builders' Library source on safe retries",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e11",
   "season": 1,
   "n": 11,
@@ -11,13 +14,13 @@
   "prerequisites": ["s1e01", "s1e03", "s1e04", "s1e06"],
   "rule": null,
   "post": {
-    "author": "u/grill_side_sol",
+    "author": "u/grill_side_otis",
     "flair": "Part 1",
     "age": "7h",
     "votes": 3488,
     "title": "I cook nights at a 24-hour diner. Every night around 3:07, one order goes into the system and never reaches my kitchen.",
     "blocks": [
-      { "t": "p", "text": "I work the grill at the Lantern, a 24-hour diner off Route 9, midnight to eight. The servers take orders on tablets. Each tablet sends the order to the order API, a small program that Rafi, the owner's nephew, runs in the cloud, and the order API tells the kitchen printer to print a ticket. Three programs. Rafi calls them services. A ticket prints, I cook it." },
+      { "t": "p", "text": "I work the grill at the Lantern, a 24-hour diner off Route 9, midnight to eight. The waitstaff take orders on tablets. Each tablet sends the order to the order API, a small program that Rafi, the owner's nephew, runs in the cloud, and the order API tells the kitchen printer to print a ticket. Three programs. Rafi calls them services. A ticket prints, I cook it." },
       { "t": "p", "text": "Three nights running, the same thing. Around 3 AM the bar crowd leaves, the room goes quiet, and a woman sits down in Booth 6. Black coffee, lemon pie. Pearl taps it in. The tablet shows *Sent to kitchen* with a green check. No ticket prints. Pearl comes back twenty minutes later and I'm standing at an empty rail." },
       { "t": "p", "text": "The woman never complains. She waits with her hands folded, watching the kitchen door. The next order, anybody's, prints fine." },
       { "t": "p", "text": "Rafi says every program keeps a log: a diary where it writes one line for everything it does, with the time at the front. He gave me read access, so I can look but not change anything, and went to bed. The tablet's log has her order:" },
@@ -60,7 +63,7 @@
       "text": "Two things. Rafi's order API writes its times in UTC, the one clock servers keep so logs from different places line up, and your diner is four hours behind it. Your 3:07 is its 07:07. And that req=7f3a on the tablet's line is a request id: a tag the tablet sends along with the order, in a header, so every service that touches the order can write the same tag. Search all three logs for 7f3a instead of a time. Read every level while you're at it, not just the loud one.",
       "replies": [
         {
-          "author": "u/grill_side_sol",
+          "author": "u/grill_side_otis",
           "op": true,
           "points": 22,
           "age": "5h",
@@ -99,11 +102,11 @@
         "senior": "Removing the trigger fixes one cause. The real bug is that a failed print gets swallowed while the tablet is told the order is safe. Any other printer problem, paper, power or a network blip, will vanish orders exactly the same way."
       },
       {
-        "text": "When the printer doesn't answer in time, the order API keeps the order and retries until a ticket prints. If it still can't, it logs an ERROR with the request id. The tablet says *printed* only after the printer confirms.",
+        "text": "When the printer doesn't answer in time, the order API saves the order where a restart can't erase it and retries, with the request id printed on the ticket so the printer skips a repeat. A final failure is an ERROR with the request id. The tablet says *printed* only after the printer confirms.",
         "tone": "ok",
         "verdict": "Senior answer",
-        "part2": "Rafi changed it on Wednesday. At 3:07 the printer was asleep again. The order API waited, wrote a WARN, *printer slow, retry 1 of 5*, tried again ten seconds later, and the ticket rolled out. Pearl's tablet flipped from *waiting for kitchen* to *printed*. I plated the pie and turned around. Booth 6 was empty. The coffee was still steaming, and on the table was exact change for three slices.",
-        "senior": "Never drop work quietly. Keep it, retry it, log a real failure as an ERROR with the request id so someone gets told, and don't report success until the work is actually done."
+        "part2": "Rafi changed it on Wednesday. At 3:07 the printer was asleep again. The order API waited, wrote a WARN, *printer slow, retry 1 of 5*, tried again ten seconds later, and one ticket rolled out, with the order's request id printed along the bottom. Pearl's tablet flipped from *waiting for kitchen* to *printed*. I plated the pie and turned around. Booth 6 was empty. The coffee was still steaming, and on the table was exact change for three slices.",
+        "senior": "Never drop work quietly. Keep it somewhere a restart can't erase, retry it in a way that can't print it twice, log a real failure as an ERROR with the request id so someone gets told, and don't report success until the work is actually done."
       },
       {
         "text": "Raise the order API's timeout for the printer from 5 seconds to 30.",
@@ -117,7 +120,7 @@
   "sim": {
     "module": "s1e11",
     "title": "Find the order that vanished",
-    "lede": "You're Sol with read access to all three logs: the tablets, the order API and the kitchen printer. Lines stream in from 02:58, 30 times faster than real life. Filter by level, by service or by any text, click a line to read it, and follow its request id to line up one order's journey. When you know where the pie went, pick your diagnosis and check it.",
+    "lede": "You're Otis with read access to all three logs: the tablets, the order API and the kitchen printer. Lines stream in from 02:58, 30 times faster than real life. Filter by level, by service or by any text, click a line to read it, and follow its request id to line up one order's journey. When you know where the pie went, pick your diagnosis and check it.",
     "tryThis": "Try this: show only ERROR and see what's loud. Search 03:07 and notice which service is missing, then switch the times to UTC. Search 7f3a, click the tablet's line and follow it. Then reproduce it: let 20 quiet minutes pass, send a test order, and send another right after."
   },
   "explain": {
@@ -129,7 +132,7 @@
       },
       {
         "title": "Times only line up in one time zone.",
-        "text": "The order API writes its times in UTC, as most servers do. The tablets and the printer use the diner's clock, four hours behind. Sol searched the API's log for 3:07 and found nothing, because the API wrote 07:07. A timestamp like 2026-10-06T07:07:12Z, date first and Z for UTC, means the same moment everywhere. When every service writes UTC, lines from different machines sort into one story."
+        "text": "The order API writes its times in UTC, as most servers do. The tablets and the printer use the diner's clock, four hours behind. Otis searched the API's log for 3:07 and found nothing, because the API wrote 07:07. A timestamp like 2026-10-06T07:07:12Z, date first and Z for UTC, means the same moment everywhere. When every service writes UTC, lines from different machines sort into one story."
       },
       {
         "title": "Follow the request id, not the clock.",
@@ -141,7 +144,7 @@
       },
       {
         "title": "The method: reproduce, narrow down, guess, check.",
-        "text": "Sol and Rafi let the diner go quiet for 20 minutes and sent a test order from Booth 6. Gone, with the same WARN: reproduced. The request id narrowed it to one step, between the order API and the printer. The guess: the API's 5-second wait is shorter than the printer's 8-second wake-up. The check: they woke the printer with a test page, sent another order, and it printed. A guess that predicts what happens next is a diagnosis."
+        "text": "Otis and Rafi let the diner go quiet for 20 minutes and sent a test order from Booth 6. Gone, with the same WARN: reproduced. The request id narrowed it to one step, between the order API and the printer. The guess: the API's 5-second wait is shorter than the printer's 8-second wake-up. The check: they woke the printer with a test page, sent another order, and it printed. A guess that predicts what happens next is a diagnosis."
       }
     ],
     "diagram": {
@@ -163,12 +166,12 @@
     "caption": "Read top to bottom. The order API tells the tablet 201 Created before the ticket exists, then asks the printer. The printer is asleep and needs about 8 seconds. The API waits 5, writes a WARN and drops the ticket at 07:07:17Z, which is 03:07:17 diner time. The printer is ready at 03:07:20 with nothing to print.",
     "fix": {
       "title": "The fix: never drop an order quietly",
-      "text": "The order API keeps every order until the printer confirms the ticket. When a print fails, it retries a few times with a growing wait, writing each failed try as a WARN. If it still can't print, it writes one ERROR with the request id and raises an alert, so a person hears about it. The tablet shows *printed* only after the printer confirms, and *not printed yet* until then. Then fix the logs that hid it: every line in every service gets a UTC timestamp and the request id, a lost order is an ERROR, not a WARN, and the stats ERRORs get fixed or turned down, so ERROR means \"look at me\" again."
+      "text": "The order API writes every order to a durable queue, a waiting list kept in storage that survives a restart, not just in its own memory, and keeps it there until the printer confirms the ticket. When a print fails, it retries a few times with a growing wait, writing each failed try as a WARN. Every ticket carries its request id, and the printer remembers the ids it has printed and skips a repeat, because a printer that was only slow may print the first try as well as the retry. If it still can't print, it writes one ERROR with the request id and raises an alert, so a person hears about it. The tablet shows *printed* only after the printer confirms, and *not printed yet* until then. Then fix the logs that hid it: every line in every service gets a UTC timestamp and the request id, a lost order is an ERROR, not a WARN, and the stats ERRORs get fixed or turned down, so ERROR means \"look at me\" again."
     },
     "limits": [
-      "Retries only help if the printer comes back. If it's out of paper or unplugged, the order waits forever, so a person has to be told: an alert, or a red banner on the tablet.",
-      "Logs only hold what someone chose to write. The printer never wrote the request id when it was ready, and the API filed a lost order as a WARN. Good logs are designed, not hoped for.",
-      "More logging isn't free. Keeping DEBUG lines on all the time costs storage and money and slows every search, and logs can leak private data such as names or card numbers. Keep details off by default and never log secrets."
+      "Retries only help if the printer comes back. If it's out of paper or unplugged, the order waits forever, so a person has to be told: an alert, or a red banner on the tablet. And an order kept only in the order API's memory isn't really kept: a restart or crash wipes it. Waiting orders belong in a durable queue, stored where a restart can't erase them.",
+      "A retry can print the same ticket twice. A timeout only tells the order API that no answer came back, not that nothing printed, and a printer that was only slow may print the first try when it wakes and then the retry. Print the request id on every ticket and have the printer skip an id it has already printed.",
+      "Logs only hold what someone chose to write: the printer never wrote the request id when it was ready, and the API filed a lost order as a WARN. Good logs are designed, not hoped for. And more logging isn't free. DEBUG lines kept on all the time cost storage and money and slow every search, and logs can leak private data such as names or card numbers. Keep details off by default and never log secrets."
     ],
     "tradeoff": {
       "head": ["Log style", "Good", "Bad"],
@@ -182,7 +185,7 @@
     "realWorld": [
       {
         "title": "Google's SRE book: troubleshooting as a method",
-        "text": "Chapter 12 of Google's book *Site Reliability Engineering*, \"Effective Troubleshooting\", lays debugging out as a loop: a problem report, triage, examine (logs and other data), diagnose, test and treat, and cure. It calls this the hypothetico-deductive method: from what you see, guess a cause, then test the guess. It warns that \"correlation is not causation\", suggests splitting a system in half to narrow down where a fault is, and points at whatever touched the system last, because recent changes are a productive place to start. Sol's reproduce, narrow down, guess and check is the same loop in kitchen words.",
+        "text": "Chapter 12 of Google's book *Site Reliability Engineering*, \"Effective Troubleshooting\", lays debugging out as a loop: a problem report, triage, examine (logs and other data), diagnose, test and treat, and cure. It calls this the hypothetico-deductive method: from what you see, guess a cause, then test the guess. It warns that \"correlation is not causation\", suggests splitting a system in half to narrow down where a fault is, and points at whatever touched the system last, because recent changes are a productive place to start. Otis's reproduce, narrow down, guess and check is the same loop in kitchen words.",
         "source": 0
       },
       {
@@ -210,7 +213,7 @@
     { "term": "Service", "def": "One program in a system that does one job and talks to the others, like the tablets, the order API or the kitchen printer." },
     { "term": "Cloud", "def": "Computers you rent from a company such as Amazon and use over the internet, instead of machines in your own building." },
     { "term": "Read access", "def": "Permission to look at something without being able to change it." },
-    { "term": "Tablet", "def": "A small touch-screen computer. At the Lantern, servers tap orders into them at the table." },
+    { "term": "Tablet", "def": "A small touch-screen computer. At the Lantern, the waitstaff tap orders into them at the table." },
     { "term": "Order API", "def": "The Lantern's program in the cloud. It takes orders from the tablets and tells the kitchen printer what to print." },
     { "term": "Ticket", "def": "The paper slip the kitchen printer prints for each order. The cook works from it." },
     { "term": "Timestamp", "def": "The date and time written at the start of a log line, saying when it happened." },
@@ -233,6 +236,7 @@
     { "term": "Idle", "def": "Not doing anything. The printer counts idle time from its last ticket." },
     { "term": "Heartbeat", "def": "A small message a device writes or sends on a schedule to say it's still alive, like a tablet's battery check." },
     { "term": "Drop", "def": "To throw a piece of work away without doing it. The order API dropped tickets when the printer was slow and only wrote a WARN about it." },
+    { "term": "Durable queue", "def": "A waiting list of work kept in storage that survives a restart, not just in a program's memory, so a crash or restart loses nothing on it." },
     { "term": "Stats server", "def": "A server that collects numbers about other programs, their metrics. The order API's pushes to it failed with 503 every five minutes, harmlessly." },
     { "term": "Reproduce", "def": "To make a problem happen again on purpose, so you can watch it and later check a fix." },
     { "term": "Narrow down", "def": "To shrink where a problem could be, step by step, until one place is left." },
@@ -294,7 +298,7 @@
         "The order waited four hours before reaching the API"
       ],
       "answer": 2,
-      "why": "The Z means UTC. The diner is four hours behind UTC, so 03:07 at the diner and 07:07Z are the same instant. Mixed time zones are why Sol's search for 3:07 found nothing in the API's log."
+      "why": "The Z means UTC. The diner is four hours behind UTC, so 03:07 at the diner and 07:07Z are the same instant. Mixed time zones are why Otis's search for 3:07 found nothing in the API's log."
     },
     {
       "id": "s1e11-r3",
@@ -356,6 +360,7 @@
     { "title": "RFC 3339: Date and Time on the Internet: Timestamps (IETF, July 2002): Z means UTC", "url": "https://www.rfc-editor.org/rfc/rfc3339.html" },
     { "title": "RFC 5424: The Syslog Protocol (IETF, March 2009): eight severity levels, from Emergency to Debug", "url": "https://www.rfc-editor.org/rfc/rfc5424.html" },
     { "title": "OpenTelemetry specification: Logs Data Model (severity ranges TRACE, DEBUG, INFO, WARN, ERROR, FATAL; Timestamp and TraceId fields)", "url": "https://opentelemetry.io/docs/specs/otel/logs/data-model/" },
-    { "title": "W3C Recommendation: Trace Context (the traceparent header and its trace-id)", "url": "https://www.w3.org/TR/trace-context/" }
+    { "title": "W3C Recommendation: Trace Context (the traceparent header and its trace-id)", "url": "https://www.w3.org/TR/trace-context/" },
+    { "title": "Amazon Builders' Library: Making retries safe with idempotent APIs, by Malcolm Featonby (after a timeout, simply retrying can repeat the work; a caller-supplied request identifier lets the service spot a duplicate)", "url": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/" }
   ]
 }

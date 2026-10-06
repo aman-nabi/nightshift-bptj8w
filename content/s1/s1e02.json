@@ -1,5 +1,8 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": [
+    "v1.0.1 (2026-10-06) review fixes: the coldCase model no longer says the security group is almost certainly the cause, because an office firewall that blocks outgoing knocks on 8080 also times out and AWS's troubleshooting guide (source 2) says to check a corporate firewall; it now says most likely the security group or the office's own firewall, and to test from another network to tell them apart, and coldCase keyIdea 2 widens to match; realWorld[1] adds the guide's corporate-firewall step; the sim gains a Restart button that relaunches the start-up list in a seeded random order, so the race in option B can be played, and a toggle that takes Hal's v1 off the start-up list; sim.tryThis mentions both",
+    "v1.0.0 (2026-10-06) first version"
+  ],
   "id": "s1e02",
   "season": 1,
   "n": 2,
@@ -125,7 +128,7 @@
     "module": "s1e02",
     "title": "Knock on the box's doors",
     "lede": "You're Dell, with Rosa's laptop. Each door on the box is a port, and each knock is a client asking a server program to answer. The clock runs 2 times faster than real life, so a knock that gets no answer waits 5 seconds of clock time, then gives up. Click any box to see what it does.",
-    "tryThis": "Try this: knock on 443, then 80, then 22, and compare how each one fails or answers. Knock on 5432 from the laptop, then from inside the box (localhost). Then pick 8080 and press Start: the door is already in use. Stop Hal's program, start v2 and knock again. Finally, let outsiders in on door 22 and knock."
+    "tryThis": "Try this: knock on 443, then 80, then 22, and compare how each one fails or answers. Knock on 5432 from the laptop, then from inside the box (localhost). Then pick 8080 and press Start: the door is already in use. Stop Hal's program, start v2 and knock again. Let outsiders in on door 22 and knock. Finally, press Restart a few times: the start-up list launches Hal's v1 and v2 in a random order, and whichever asks first gets door 8080. Take Hal's v1 off the start-up list and restart once more."
   },
   "explain": {
     "oneLine": "Nothing haunted the board. When the box powered back on, Hal's old program grabbed door 8080 first, so Rosa's new one couldn't start, and every knock on 8080 got Hal's answer.",
@@ -211,7 +214,7 @@
       },
       {
         "title": "AWS's first suspect for Connection timed out",
-        "text": "AWS's guide to EC2 connection problems has a section for the error *Connection timed out*, and its first step is the same suspect as door 22 in this story: check the security group. You need a rule that allows inbound traffic from your computer's public IPv4 address on the right port, such as 22 for SSH. The guide also warns that a rule allowing one address stops matching when that address changes, which is common on home internet.",
+        "text": "AWS's guide to EC2 connection problems has a section for the error *Connection timed out*, and its first step is the same suspect as door 22 in this story: check the security group. You need a rule that allows inbound traffic from your computer's public IPv4 address on the right port, such as 22 for SSH. The guide also warns that a rule allowing one address stops matching when that address changes, which is common on home internet. And if your computer is on a corporate network, it says to ask the network administrator whether the office's own firewall lets that traffic through.",
         "source": 2
       },
       {
@@ -342,10 +345,10 @@
     "prompt": "Reply to OP. What's actually wrong, and what should Rosa do instead?",
     "keyIdeas": [
       { "idea": "The program is fine: it answered on localhost and works from her home", "match": ["program is fine", "board is fine", "v2 is fine", "running", "listening", "localhost", "works from home", "answers"] },
-      { "idea": "A timeout means the security group drops the office's knocks on 8080", "match": ["security group", "inbound", "rule", "dropped", "drop", "office"] },
+      { "idea": "A timeout means something on the way drops the office's knocks on 8080: the security group or the office's own firewall", "match": ["security group", "inbound", "rule", "dropped", "drop", "office", "firewall", "another network", "other network", "mobile data", "hotspot"] },
       { "idea": "Allow port 8080 from the office's address only, not everything", "match": ["only", "office's address", "office address", "office ip", "specific", "source", "don't open", "dont open", "do not open", "not every", "just 8080"] }
     ],
-    "model": "The board program is fine: it answers on localhost and from Rosa's home. A timeout from the office means the knock never reached it, so the security group almost certainly has an inbound rule for 8080 that allows only Rosa's home address. Don't open every port to the internet. Add one inbound rule for port 8080 with the office's public address as the source, knock from the office to check, and leave everything else closed."
+    "model": "The board program is fine: it answers on localhost and from Rosa's home. A timeout from the office means the knock was dropped on the way. The most likely suspects are the security group, which may allow 8080 only from Rosa's home address, or the office's own firewall, which may block outgoing knocks on 8080. Test from a third network, like a phone's mobile data. If that times out too, the security group only lets Rosa's home in: add one inbound rule for port 8080 with the office's public address as the source. If it works, the security group is fine and the office firewall is the guard, so ask whoever runs it. Either way, don't open every port to the internet. Knock from the office to check, and leave everything else closed."
   },
   "next": "Next: a lighthouse keeper's radio log, a storm, and a message from his daughter that arrived with two words missing.",
   "sources": [

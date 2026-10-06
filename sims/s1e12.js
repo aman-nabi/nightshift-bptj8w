@@ -1,7 +1,15 @@
-/* sims/s1e12-v1.0.0.js  (published as sims/s1e12.js)
+/* sims/s1e12-v1.0.1.js  (published as sims/s1e12.js)
    Case s1e12 "The Voice on Line Two": a pipe between two call centers, with a length and a width.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: "time to first byte" is now "first bit arrives (one way)" in the
+     stat label, the results table and the log (web tools use time to first byte for a full round trip
+     plus server time); the stat id stays ttfb. The big transfer is "a 1 GB file", not "the 1 GB
+     backup", because the story's backup goes to a storage company in town, not to Halden (button id
+     stays send1gb). Sending the 1 GB file adds one plain log sentence on the cap this ideal pipe
+     ignores: one TCP connection can't beat its window divided by the round trip (about 23 MB in
+     flight to fill 1 Gbps over the 182.1 ms detour), and the info panel says so too. selfTest adds
+     that check and renames its messages; every old assertion is unchanged.
    v1.0.0 (2026-10-06) first version: a widget-style sim built inside api.root. An SVG pipe from
      Brightwater in Gannet Bay to the phone server in Halden whose length follows the distance
      (100 to 20,000 km of fiber) and whose width follows the bandwidth (1 Mbps to 10 Gbps), both on a
@@ -37,7 +45,7 @@
   var DETOUR_OVER = 6000;                                      // longer than this, the path has a halfway exchange
   var MESSAGES = {
     kb: { bytes: 1000, label: "1 KB message" },
-    gb: { bytes: 1e9, label: "1 GB backup" }
+    gb: { bytes: 1e9, label: "1 GB file" }
   };
   var ANIM = 2.5;                                              // real seconds per send picture
   var TRACE_STEP = 0.3;                                        // real seconds between traceroute rows
@@ -144,7 +152,7 @@
     var tableWrap = el("div", "overflow-x:auto;min-width:0;");
     var table = el("table", MONO + "width:100%;border-collapse:collapse;font-size:12px;");
     var head = el("tr", null);
-    ["Sent", "Time to first byte", "Total time", "Throughput", "Where the time went"].forEach(function (h) {
+    ["Sent", "First bit arrives (one way)", "Total time", "Throughput", "Where the time went"].forEach(function (h) {
       head.appendChild(el("th", "text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:500;", h));
     });
     var thead = el("thead", null);
@@ -274,10 +282,19 @@
     S.anim = api.reducedMotion ? null : { t: 0, pf: Math.max(0.08, Math.min(1, r.lengthShare)) };
     if (!S.anim) placeSlug(api, 0, 1);
     var bound = r.lengthShare >= 0.5 ? "latency-bound: the length decided it" : "bandwidth-bound: the width decided it";
-    api.log(m.label + " over " + commas(S.km) + " km at " + bwText(mbps) + ": first byte after " + r.oneWay.toFixed(2) +
+    api.log(m.label + " over " + commas(S.km) + " km at " + bwText(mbps) + ": the first bit arrives after " + r.oneWay.toFixed(2) +
       " ms, all of it in " + timeText(r.total) + ". " + pct(r.lengthShare) + " of the time was the trip, so it's " + bound + ".",
       r.lengthShare >= 0.5 ? "warn" : "ok");
+    if (kind === "gb") {
+      var rtt = 2 * r.oneWay;
+      api.log("This pipe is ideal. Real TCP can't go faster than its window, the data it may have in flight, divided by the round trip: " +
+        "to fill " + bwText(mbps) + " over this " + rtt.toFixed(1) + " ms round trip, one connection needs a window of about " + mbText(windowMB(mbps, rtt)) + ".", "");
+    }
   }
+
+  // The window one TCP connection needs to fill the pipe: bandwidth x round trip, in megabytes.
+  function windowMB(mbps, rttMs) { return mbps * 1e6 * (rttMs / 1000) / 8 / 1e6; }
+  function mbText(mb) { return (mb >= 10 ? String(Math.round(mb)) : mb >= 1 ? mb.toFixed(1) : mb.toFixed(2)) + " MB"; }
 
   function trace(api) {
     var S = api.state;
@@ -354,17 +371,17 @@
       S.ctl.direct = api.control.button("direct", "The direct cable: 2,000 km", function () { jumpTo(api, DIRECT_KM); });
       S.ctl.detour = api.control.button("detour", "The long way: 18,000 km", function () { jumpTo(api, DETOUR_KM); });
       S.ctl.kb = api.control.button("send1kb", "Send a 1 KB message", function () { send(api, "kb"); }, { tone: "primary" });
-      S.ctl.gb = api.control.button("send1gb", "Send the 1 GB backup", function () { send(api, "gb"); }, { tone: "primary" });
+      S.ctl.gb = api.control.button("send1gb", "Send a 1 GB file", function () { send(api, "gb"); }, { tone: "primary" });
       S.ctl.trace = api.control.button("trace", "Run traceroute", function () { trace(api); }, { wide: true });
       S.ctl.reset = api.control.button("reset", "Reset", function () { api.reset(); });
 
       S.stat = {
-        ttfb: api.stat("ttfb", "time to first byte (ms)", ""),
+        ttfb: api.stat("ttfb", "first bit arrives (ms, one way)", ""),
         total: api.stat("total", "total time (s)", ""),
         throughput: api.stat("throughput", "throughput (Mbps)", "")
       };
 
-      api.info("<strong>How to read the pipe.</strong> Its length grows with distance and its width with bandwidth, both on a log scale. The orange slug is what you sent, slowed down: a 1 KB message is a thin sliver that crosses the whole length, while the 1 GB backup fills the pipe and stays as long as the width makes it.");
+      api.info("<strong>How to read the pipe.</strong> Its length grows with distance and its width with bandwidth, both on a log scale. The orange slug is what you sent, slowed down: a 1 KB message is a thin sliver that crosses the whole length, while the 1 GB file fills the pipe and stays as long as the width makes it. The pipe is ideal: real TCP also can't go faster than its window divided by the round trip, so a long pipe needs a big window to stay full.");
       api.log("Before the cut. The direct cable to Halden: 2,000 km of fiber, and the office line is 100 Mbps.", "");
     },
 
@@ -409,28 +426,31 @@
       t.set("bandwidth", 3);
       t.click("send1kb");
       t.expect(Math.abs(n("total") - before) * 1000 < 0.1 && Math.abs(n("ttfb") - 10.9) < 0.005,
-        "at 1 Gbps the same 1 KB message saves less than 0.1 ms, and its time to first byte doesn't move");
+        "at 1 Gbps the same 1 KB message saves less than 0.1 ms, and the moment its first bit arrives doesn't move");
 
       // 3. The long way round: the length is what grew.
       t.click("detour");
       t.click("send1kb");
       t.expect(S.km === 18000 && Math.abs(n("ttfb") - 91.05) < 0.005 && n("throughput") < 0.1,
-        "over the 18,000 km detour the first byte takes 91.05 ms, and a 1 KB message gets under 0.1 Mbps out of a 1 Gbps pipe");
+        "over the 18,000 km detour the first bit arrives after 91.05 ms, and a 1 KB message gets under 0.1 Mbps out of a 1 Gbps pipe");
 
-      // 4. The 1 GB backup is bandwidth-bound: 8 s at 1 Gbps, 80 s at 100 Mbps.
+      // 4. A 1 GB file is bandwidth-bound on this ideal pipe: 8 s at 1 Gbps, 80 s at 100 Mbps.
       t.click("send1gb");
       var fast = n("total");
+      var windowLog = t.logText();
       t.set("bandwidth", 2);
       t.click("send1gb");
       var slow = n("total");
       t.expect(Math.abs(fast - 8.091) < 0.001 && Math.abs(slow - 80.09) < 0.001 && n("throughput") > 99.8,
-        "the 1 GB backup takes 8.09 s at 1 Gbps and 80.09 s at 100 Mbps, close to the full width");
+        "on this ideal pipe a 1 GB file takes 8.09 s at 1 Gbps and 80.09 s at 100 Mbps, close to the full width");
+      t.expect(windowLog.indexOf("to fill 1 Gbps over this 182.1 ms round trip, one connection needs a window of about 23 MB") >= 0,
+        "sending the 1 GB file at 1 Gbps on the detour notes the real TCP cap: about 23 MB in flight to fill the pipe at 182.1 ms");
 
-      // 5. For the backup, distance hardly matters.
+      // 5. On the ideal pipe, distance hardly matters for a big file.
       t.click("direct");
       t.click("send1gb");
       t.expect(Math.abs(n("total") - 80.01) < 0.001 && Math.abs(slow - n("total")) < 0.1,
-        "at 100 Mbps the backup takes about 80 s whether the pipe is 2,000 km or 18,000 km long");
+        "on this ideal pipe at 100 Mbps a 1 GB file takes about 80 s whether the pipe is 2,000 km or 18,000 km long");
 
       // 6. traceroute on the long way: 7 hops, the jump at hop 4, 182.1 ms at the end.
       t.click("detour");
