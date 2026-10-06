@@ -1,0 +1,368 @@
+{
+  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "id": "s1e07",
+  "season": 1,
+  "n": 7,
+  "title": "Where It Lives",
+  "setting": "a night-shift warehouse",
+  "core": true,
+  "minutes": 12,
+  "concepts": ["cpu", "memory", "disk", "network"],
+  "prerequisites": ["s1e01", "s1e02", "s1e03", "s1e04", "s1e06"],
+  "rule": null,
+  "post": {
+    "author": "u/tote_runner_bea",
+    "flair": "Part 1",
+    "age": "5h",
+    "votes": 2954,
+    "title": "Since Monday our scanners hold their breath before every order. The only fast one sends you to empty shelves.",
+    "blocks": [
+      { "t": "p", "text": "I pick orders on nights at a warehouse off Gantry Lane. Forty aisles, thirty pickers, one handheld scanner each. You scan an empty tote and the scanner lists the bin, the exact shelf spot, for every item on the order. Bin, walk, grab, beep. It used to be instant." },
+      { "t": "p", "text": "On Monday head office moved the stock system out of our back room and into their data center on another continent. Same app. Same scanners. Now every order starts with a pause. Not a crash. A held breath. Then the bins appear one by one, like someone far away reading them out." },
+      { "t": "p", "text": "Dolores, our lead, timed it with her phone: 6.1 seconds on a forty-line order, the usual size. IT showed her the scanner's debug screen:" },
+      { "t": "log", "text": "02:41:07.210  bin? SKU 40117  ->  C-14-03  152 ms\n02:41:07.362  bin? SKU 40118  ->  C-14-04  149 ms\n02:41:07.511  bin? SKU 40121  ->  F-02-11  151 ms\n02:41:13.304  order 88213: 40 lines, 40 lookups, 6.1 s" },
+      { "t": "p", "text": "One question per line. Wait for the answer. Then the next question. Forty times. IT says the new server is fine: its CPU, the chip that does the actual computing, sits at 3%. \"It's barely working,\" he said, like that was good news." },
+      { "t": "p", "text": "Only one scanner is still fast. Ray's, the old one in the cage, which IT forgot to update. It still asks the server in our back room, which nobody switched off. Ray's scanner answers before he lowers it. On Wednesday it sent him to C-14-03 for a box of fuses. The bin was empty. It had been emptied on Monday, after the move." },
+      { "t": "beat", "text": "It answers instantly. It's just answering from Monday." },
+      { "t": "p", "text": "Head office wants to buy us faster scanners. Ray says plug everything back into the old box. Dolores asked me to post here, because I'm the one who reads forums at 4 AM. Who's right?" },
+      {
+        "t": "evidence",
+        "label": "scan_paths.png",
+        "diagram": {
+          "type": "arch",
+          "w": 760,
+          "h": 330,
+          "aria": "Two scanners asking two servers. My scanner asks the head office server on another continent, about 150 ms per round trip, and a 40-line order takes 40 round trips, 6.1 seconds. Ray's old scanner asks the back-room server in the same building, about 0.5 ms per round trip, so 40 round trips take 20 ms, but its data stopped updating on Monday.",
+          "groups": [
+            { "label": "The warehouse", "x": 8, "y": 8, "w": 470, "h": 314 },
+            { "label": "Another continent", "x": 498, "y": 8, "w": 254, "h": 150 }
+          ],
+          "nodes": [
+            { "id": "mine", "label": "My scanner", "sub": "40 lookups an order", "x": 120, "y": 80, "w": 170, "h": 52, "shape": "box", "tone": "warn" },
+            { "id": "ray", "label": "Ray's scanner", "sub": "never updated", "x": 120, "y": 250, "w": 170, "h": 52, "shape": "box", "tone": "" },
+            { "id": "old", "label": "Back-room server", "sub": "0.5 ms a round trip", "meta": "data from Monday", "x": 390, "y": 250, "w": 160, "h": 62, "shape": "box", "tone": "bad" },
+            { "id": "far", "label": "Head office server", "sub": "150 ms a round trip", "meta": "CPU at 3%", "x": 625, "y": 90, "w": 220, "h": 62, "shape": "box", "tone": "ok" }
+          ],
+          "edges": [
+            { "from": "mine", "to": "far", "label": "40 trips: 6.1 s", "tone": "warn" },
+            { "from": "ray", "to": "old", "label": "40 trips: 20 ms" }
+          ]
+        },
+        "caption": "Dolores and I drew this on the back of a pallet label. Same question, two places to ask. Head office has today's answers, about 150 ms away per round trip. The back room has Monday's answers, half a millisecond away. Forty trips each, one after another."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 93,
+      "age": "5h",
+      "text": "Your server's barely working and your pickers are standing still. So who's doing the work? Nobody. Everybody's waiting. Time a one-line order. Then a sixty-line one.",
+      "replies": [
+        {
+          "author": "u/tote_runner_bea",
+          "op": true,
+          "points": 35,
+          "age": "4h",
+          "text": "One line: a blink. Sixty lines: 9.1 seconds. Dolores wrote it on her hand."
+        }
+      ]
+    },
+    {
+      "author": "u/rack_and_stack",
+      "points": 61,
+      "age": "4h",
+      "text": "There's an old list engineers pass around, \"latency numbers every programmer should know\". Latency just means how long you wait. Roughly: the CPU's own tiny caches, called L1, L2 and L3, are built into the chip, and L1 answers in half a nanosecond, a billionth of a second. RAM, the computer's main memory and its fast short-term workspace, takes about 100 nanoseconds. A solid-state drive (SSD) takes about 150 microseconds, millionths of a second. An old spinning hard disk (HDD) needs about 10 milliseconds just to swing its arm into place. A round trip, a question to another machine plus its answer coming back, is about half a millisecond inside one building and about 150 milliseconds across an ocean. Your scanner makes forty ocean trips per order, one after another."
+    },
+    {
+      "author": "u/forklift_faye",
+      "points": 34,
+      "age": "3h",
+      "text": "My old site had this exact thing. IT bought new scanners. They were very fast at waiting."
+    },
+    {
+      "author": "u/coldchain_kofi",
+      "points": 20,
+      "age": "2h",
+      "text": "Ray's scanner is the creepy part for me. Fast and wrong is worse than slow and right. At least the slow one knows what day it is."
+    }
+  ],
+  "reply": {
+    "prompt": "Head office will pay for one change. What should it be? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Buy the faster scanners. A newer, faster CPU will make every lookup quicker.",
+        "tone": "bad",
+        "verdict": "Speeds up the wrong thing",
+        "part2": "The new scanners arrived two weeks later. They start up faster and the screens are lovely. Dolores timed an order: 6.1 seconds. The same 6.1. The scanner spends those seconds waiting for answers from across the ocean, and a faster chip waits exactly as fast.",
+        "senior": "A faster CPU only helps when the CPU is the bottleneck. Here the scanner and the server are both nearly idle. The time is forty round trips of about 150 ms each, set by distance and the speed of light."
+      },
+      {
+        "text": "Change the app to ask for all 40 bins in a single request per order, and keep a copy of the bin list in the memory of a small server in the building, refreshed from head office every minute.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "IT made both changes in a week. Now one question per order crosses the ocean instead of forty, and most orders don't cross it at all: the little server in the back room holds every bin in memory and answers in under a millisecond. Orders load before you've lowered the scanner. Restocks still go to head office, and the little server picks them up within a minute. Ray kept his old scanner. He says it's faster. It still sends him to Monday.",
+        "senior": "Count round trips before buying hardware. Batch the questions you already know you'll ask, and keep frequently read data close, in memory, with a clear rule for how stale it may get. A minute-old bin is fine. A Monday-old bin is Ray's scanner."
+      },
+      {
+        "text": "Do what Ray says: point every scanner back at the back-room server, and have head office copy its changes there every night.",
+        "tone": "warn",
+        "verdict": "Trade-off. Fast, but a day stale",
+        "part2": "Scans were instant again by Friday. Then the Saturday crew restocked aisle C at noon, and head office's copy didn't reach our back room until 2 AM. For fourteen hours the scanners sent people to the old bins with total confidence. Dolores taped a sign to the cage: *IF THE SHELF IS EMPTY, THE SCANNER IS LYING.*",
+        "senior": "Moving the data close fixes the speed, but a nightly copy means answers up to a day old, and now two systems must be kept in step. How stale is acceptable is a business decision, and for bin locations a day is far too much."
+      },
+      {
+        "text": "Ask head office to give their server more CPU and memory so it answers each lookup faster.",
+        "tone": "bad",
+        "verdict": "The server isn't the slow part",
+        "part2": "Head office doubled the server. Its CPU went from 3% to under 2%. Orders still took 6.1 seconds. The answers didn't get any closer.",
+        "senior": "The server spends a tiny fraction of each 150 ms answering. The rest is the trip there and back. More CPU makes a part that wasn't slow even less busy."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s1e07",
+    "title": "Fetch it in human time",
+    "lede": "Computers are too fast to feel, so this sim stretches time: 1 nanosecond becomes 1 second. Pick where the answer lives, from the CPU's own L1 cache to a server across the ocean, and fetch it. The dot shows the trip, and the CPU box counts the wait in human time. Race mode sends 100 lookups each to memory, a disk and the network.",
+    "tryThis": "Fetch from L1, then RAM, then a round trip across the ocean, and compare the human times. Then race: RAM finishes all 100 lookups before the ocean round trip has finished its first. Switch the race's network to the same building, the way the warehouse used to work, and its disk to a hard disk, and race again."
+  },
+  "explain": {
+    "oneLine": "The scanners weren't thinking. Each order made forty round trips to a server on another continent, one after another, and 40 times about 150 milliseconds is six seconds of waiting.",
+    "steps": [
+      {
+        "title": "A computer has four places where work happens, or waits.",
+        "text": "The CPU does the computing, billions of simple steps a second. Memory (RAM) is its workbench: fast, but small, and wiped when the power goes. Disk is the storeroom: an SSD stores data on flash chips, a hard disk (HDD) on spinning platters read by a moving arm, and both keep data with the power off. The network reaches other machines. Inside the CPU sit tiny caches, L1, L2 and L3, smaller and faster the closer they are to the core, holding copies of what it used last."
+      },
+      {
+        "title": "Make the numbers human.",
+        "text": "Pretend 1 nanosecond lasts 1 second. Reading the L1 cache takes half a second. Reading RAM takes 1 min 40 s. Reading 4 KB at random from an SSD takes 1.7 days. A round trip inside one data center takes 5.8 days. A hard disk seek takes 3.8 months. A round trip from California to the Netherlands and back takes 4.8 years. Each step down isn't a little slower. It's a different world."
+      },
+      {
+        "title": "Why memory is fast and disk is slow.",
+        "text": "RAM is all electronics, wired right next to the CPU, so a read is a short electrical trip. A hard disk has to move: the platter spins under the arm and the arm swings to the right track, and moving metal takes milliseconds. An SSD has no moving parts, which is why it's dozens of times faster than a hard disk seek, but each read still goes through the drive's own controller over a slower connection than RAM's, so it stays over a thousand times slower than memory."
+      },
+      {
+        "title": "Why distance costs the most.",
+        "text": "Nothing travels faster than light, and in optical fiber light covers roughly 200 kilometres every millisecond. A round trip across an ocean is thousands of kilometres each way, through many routers along the route, so it takes about 150 ms. No upgrade changes that. A faster CPU, more memory or newer scanners make none of the waiting shorter."
+      },
+      {
+        "title": "The scanner was waiting, not working.",
+        "text": "Each order asked for its 40 bins one at a time, waiting for each answer before sending the next question. Before Monday, each round trip to the back room took about half a millisecond: 40 of them, 20 ms, too fast to notice. After the move, each took about 150 ms: 40 of them, 6 seconds. The server's CPU sat at 3% because answering is quick. The time was all in the trips."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 390,
+      "aria": "Six places an answer can live, with real time and human time where 1 nanosecond becomes 1 second. Inside the computer: L1 cache, 0.5 ns, 0.5 seconds. RAM, 100 ns, 1 min 40 s. SSD random read, 150 microseconds, 1.7 days. Hard disk seek, 10 ms, 3.8 months. Over the network: a round trip in the same data center, 0.5 ms, 5.8 days. A round trip from California to the Netherlands and back, 150 ms, 4.8 years.",
+      "groups": [
+        { "label": "Inside the computer", "x": 8, "y": 8, "w": 724, "h": 190 },
+        { "label": "Over the network", "x": 8, "y": 212, "w": 724, "h": 170 }
+      ],
+      "nodes": [
+        { "id": "l1", "label": "L1 cache", "sub": "0.5 ns", "meta": "human: 0.5 seconds", "x": 100, "y": 110, "w": 160, "h": 62, "shape": "box", "tone": "ok" },
+        { "id": "ram", "label": "RAM read", "sub": "100 ns", "meta": "human: 1 min 40 s", "x": 280, "y": 110, "w": 160, "h": 62, "shape": "box", "tone": "ok" },
+        { "id": "ssd", "label": "SSD read (4 KB)", "sub": "150 μs", "meta": "human: 1.7 days", "x": 460, "y": 110, "w": 160, "h": 62, "shape": "box", "tone": "warn" },
+        { "id": "hdd", "label": "Hard disk seek", "sub": "10 ms", "meta": "human: 3.8 months", "x": 640, "y": 110, "w": 160, "h": 62, "shape": "box", "tone": "bad" },
+        { "id": "dc", "label": "Same data center", "sub": "0.5 ms round trip", "meta": "human: 5.8 days", "x": 280, "y": 300, "w": 220, "h": 62, "shape": "box", "tone": "warn" },
+        { "id": "far", "label": "California to NL", "sub": "150 ms round trip", "meta": "human: 4.8 years", "x": 560, "y": 300, "w": 220, "h": 62, "shape": "box", "tone": "bad" }
+      ],
+      "edges": [],
+      "notes": [
+        { "x": 100, "y": 170, "text": "fastest", "tone": "ok", "anchor": "middle" },
+        { "x": 640, "y": 170, "text": "slowest on this machine", "tone": "bad", "anchor": "middle" },
+        { "x": 560, "y": 360, "text": "the warehouse after Monday", "tone": "bad", "anchor": "middle" },
+        { "x": 280, "y": 360, "text": "the warehouse before Monday", "tone": "warn", "anchor": "middle" }
+      ]
+    },
+    "caption": "Real time on the middle line, human time (1 ns becomes 1 s) on the bottom line. The numbers are Jeff Dean's from 2009 plus the SSD row from the popular 2012 version, rounded. Treat them as orders of magnitude, not measurements of your machine.",
+    "fix": {
+      "title": "The fix: fewer trips, and keep hot data close",
+      "text": "First, count round trips per action before buying anything. Then cut them: send one request that asks for all 40 bins at once, so an order pays for one ocean round trip instead of forty. Then keep frequently read data close: a small server in the building keeps a copy of the bin list in memory (a cache) and refreshes it from head office every minute, so most lookups never leave the building. Changes, like a restock, still go to head office, which stays the source of truth, and reach the copy within a minute."
+    },
+    "limits": [
+      "A copy can be stale. A bin restocked 30 seconds ago may still show its old place until the next refresh, so the refresh interval is a business decision, and anything that must be exact, like the last item in stock, should still ask the source. Ray's scanner is what a copy that never refreshes looks like. Keeping caches correct gets its own cases in Season 2.",
+      "Batching only works when you know the questions up front. If each answer decides the next question, the trips stay one after another, and the only cure is moving the data or the work closer.",
+      "These numbers are approximate and dated. Jeff Dean's list is from 2009 and the popular SSD rows from around 2012. Modern SSDs and networks differ, and Peter Norvig's version gives 8 ms for a disk seek where Dean's gives 10. Use them for orders of magnitude, then measure your own system."
+    ],
+    "tradeoff": {
+      "head": ["Where the answer lives", "Good", "Bad"],
+      "rows": [
+        ["In memory on this machine", "About 100 ns. The fastest place outside the CPU's own caches.", "Small, wiped on restart, and only this machine sees it, so copies elsewhere can go stale."],
+        ["On this machine's SSD", "Survives restarts and holds far more than memory.", "About 150 μs per random read, over a thousand times slower than memory."],
+        ["A server in the same building", "One copy shared by everyone, about 0.5 ms a round trip.", "Every lookup still pays a trip, and code that asks forty times pays forty."],
+        ["A server on another continent", "One copy for the whole company, run by head office.", "About 150 ms a round trip. Forty in a row is six seconds."]
+      ]
+    },
+    "seniorTake": "Before asking how fast a machine is, ask where the data lives and how many times you go to get it. Distance is the one cost you can't upgrade away, so cross it as rarely as you can, and keep what you read most close by.",
+    "realWorld": [
+      {
+        "title": "Jeff Dean's numbers, 2009",
+        "text": "Jeff Dean, a Google Fellow, put a slide called \"Numbers Everyone Should Know\" in his 2009 keynote at LADIS, a workshop on large distributed systems. It lists, among others: L1 cache reference 0.5 ns, L2 cache reference 7 ns, main memory reference 100 ns, round trip within the same datacenter 500,000 ns, disk seek 10,000,000 ns, and sending a packet from California to the Netherlands and back 150,000,000 ns, which is 150 ms.",
+        "source": 0
+      },
+      {
+        "title": "Peter Norvig's table",
+        "text": "Peter Norvig's essay \"Teach Yourself Programming in Ten Years\" gives similar approximate timings for a typical PC: fetch from L1 cache 0.5 ns, fetch from main memory 100 ns, a disk seek 8,000,000 ns, and sending a packet from the US to Europe and back 150 ms. The two lists disagree on the disk seek, 8 ms against 10 ms, and neither claims to be exact.",
+        "source": 1
+      },
+      {
+        "title": "The version everyone shares",
+        "text": "The copy most engineers pass around is a GitHub gist titled \"Latency Numbers Every Programmer Should Know\". It credits Dean and Norvig, labels its table \"Latency Comparison Numbers (~2012)\", and adds SSD rows, such as reading 4 KB at random from an SSD in 150,000 ns, assuming an SSD of about 1 GB per second. This case's SSD number comes from that row.",
+        "source": 2
+      },
+      {
+        "title": "The numbers move",
+        "text": "Colin Scott's interactive version of the list lets you slide the year and watch the numbers change. It estimates them from trends, with assumptions such as disk seek and rotation delay halving about every 10 years. Any list like this is a snapshot, not a law.",
+        "source": 3
+      }
+    ],
+    "interview": {
+      "asked": [
+        "Roughly how long does it take to read from memory, read from an SSD, and make a network round trip?",
+        "A page makes 40 calls to a service in another region and takes six seconds to load. What do you do?"
+      ],
+      "answer": "Know the orders of magnitude: memory around 100 ns, an SSD read around 100 to 150 microseconds, a round trip inside a data center around 0.5 ms, a hard disk seek around 10 ms, a cross-continent round trip around 150 ms. For the slow page, measure first and count round trips: 40 calls in a row at about 150 ms each is the whole six seconds. Batch them into one request or run independent ones in parallel, cache frequently read data close to the caller with a clear limit on staleness, or move the service, or a copy of its data, into the caller's region. Say why bigger machines won't help: the CPU is idle and the time is distance."
+    }
+  },
+  "terms": [
+    { "term": "CPU", "def": "Central processing unit: the chip that does the computing, running billions of simple steps a second. While it waits for data, it does nothing useful." },
+    { "term": "CPU usage", "def": "The share of time a CPU is busy. 3% means it's idle 97% of the time, so it isn't what's slowing things down." },
+    { "term": "Bottleneck", "def": "The slowest step, the one that limits the whole. Speeding up anything else changes nothing." },
+    { "term": "Memory", "def": "Usually means RAM: the fast, temporary storage the CPU works from." },
+    { "term": "RAM", "def": "Random-access memory, the computer's main memory and fast workbench. A read takes about 100 nanoseconds. Much smaller than disk, and wiped when the power goes." },
+    { "term": "L1, L2 and L3 caches", "def": "Small, very fast memories built into the CPU chip that keep copies of recently used data. L1 is the smallest and fastest, about 0.5 ns; L2 and L3 are bigger and a little slower." },
+    { "term": "Disk", "def": "Storage that keeps data with the power off: much bigger and much slower than memory. Today usually an SSD, sometimes a spinning hard disk." },
+    { "term": "SSD", "def": "Solid-state drive: storage on flash chips with no moving parts. A small random read takes about 150 microseconds in the classic list; modern ones are faster." },
+    { "term": "Hard disk", "def": "HDD, hard disk drive: storage on spinning platters read by an arm that moves across them. Much cheaper per byte than an SSD, and much slower to reach a random spot." },
+    { "term": "Seek", "def": "The time a hard disk takes to move its arm to the right track before it can read. About 10 ms in Jeff Dean's list." },
+    { "term": "Controller", "def": "The small computer inside a drive that manages where data sits and handles each read and write." },
+    { "term": "Network", "def": "The links that connect machines to each other. Reaching another machine means a round trip whose time depends mostly on distance." },
+    { "term": "Latency", "def": "How long you wait for one thing to finish, such as a memory read or a round trip. Not the same as how much you can move per second." },
+    { "term": "Round trip", "def": "A question sent to another machine plus its answer coming back. Its time is set mostly by how far apart they are." },
+    { "term": "Nanosecond", "def": "A billionth of a second, written ns. Light in a vacuum travels about 30 cm in one." },
+    { "term": "Microsecond", "def": "A millionth of a second, written μs: a thousand nanoseconds." },
+    { "term": "Millisecond", "def": "A thousandth of a second, written ms: a million nanoseconds." },
+    { "term": "Human time", "def": "This case's trick for feeling computer speeds: pretend 1 nanosecond lasts 1 second, so a RAM read takes 1 min 40 s and an ocean round trip 4.8 years." },
+    { "term": "KB", "def": "Kilobyte, about a thousand bytes. 4 KB is a small chunk of data, roughly two pages of plain text." },
+    { "term": "Optical fiber", "def": "Glass cable that carries data as light. Light in fiber covers roughly 200 km every millisecond, about two thirds of its speed in a vacuum." },
+    { "term": "Router (network)", "def": "A machine that passes data along from one network link to the next on the way to its destination. Each one adds a little delay." },
+    { "term": "Batching", "def": "Sending many questions in one request instead of one request each, so you pay for one round trip instead of many." },
+    { "term": "Parallel", "def": "Running several requests at the same time instead of one after another, so you wait for the slowest one, not the sum of all." },
+    { "term": "Cache", "def": "A saved copy kept close so you don't have to fetch it again. Fast, but it can go stale." },
+    { "term": "Stale", "def": "Out of date: a copy that no longer matches the source, like Ray's scanner sending pickers to bins emptied days ago." },
+    { "term": "Source of truth", "def": "The one place whose data counts as correct. Copies elsewhere must be refreshed from it, and changes go to it first." },
+    { "term": "Refresh interval", "def": "How often a copy is updated from the source, such as every minute. It sets the oldest an answer can be." },
+    { "term": "Bin", "def": "In a warehouse, the exact shelf spot where a product is kept, like C-14-03." },
+    { "term": "Tote", "def": "A plastic crate a picker carries and fills with one order's items." },
+    { "term": "SKU", "def": "Stock-keeping unit: a warehouse's code for one product, like 40117." },
+    { "term": "Stock system", "def": "The warehouse's software that knows what's in stock and which bin each product is in." },
+    { "term": "Debug screen", "def": "A hidden screen that shows what a program is doing, such as each lookup and how long it took." },
+    { "term": "Head office", "def": "The company's central offices, which in this story also run the main stock system in their data center." },
+    { "term": "Jeff Dean", "def": "A long-time Google engineer whose 2009 slide of rough latency numbers became famous among programmers." },
+    { "term": "Peter Norvig", "def": "A computer scientist and author whose essay on learning to program includes a table of approximate timings." },
+    { "term": "LADIS", "def": "A research workshop on large-scale distributed systems, where Jeff Dean gave his 2009 keynote." },
+    { "term": "Gist", "def": "A single shared file or note on GitHub, a website for sharing code." },
+    { "term": "AWS Region", "def": "One of AWS's geographic areas, a group of data centers in one part of the world. A call from one Region to another crosses that distance." },
+    { "term": "AWS X-Ray", "def": "An AWS service that traces one request through every call it makes, to databases, APIs and other services, and shows how long each took." },
+    { "term": "RDS", "def": "Amazon Relational Database Service: databases that AWS runs for you. Its ReadLatency metric is the average time each disk read takes." },
+    { "term": "CloudWatch", "def": "Amazon's monitoring service. It stores metrics, such as a database's read latency, and can raise alarms on them." },
+    { "term": "ElastiCache", "def": "Amazon's managed in-memory data store and cache, compatible with Valkey, Redis OSS and Memcached. Apps keep frequently read data there." }
+  ],
+  "atWork": "Pick one slow page or API call in your system and count its round trips. If your team uses AWS X-Ray, open one trace: it shows every call the request made, to databases, APIs and other services, and how long each took. Note which AWS Region each called service lives in compared with the caller. Then open CloudWatch for your RDS database and read ReadLatency, the average time per disk read in seconds, and compare it with the numbers in this case. Finally, ask whether anything read on every request could live in memory, in the app itself or in ElastiCache, and how stale it would be allowed to get.",
+  "board": {
+    "cards": [
+      { "id": "cpu", "title": "CPU" },
+      { "id": "memory", "title": "Memory" },
+      { "id": "disk", "title": "Disk" },
+      { "id": "network", "title": "Network" }
+    ],
+    "strings": [
+      { "from": "cpu", "to": "memory", "label": "works from" },
+      { "from": "memory", "to": "disk", "label": "far faster than" },
+      { "from": "network", "to": "cpu", "label": "leaves it waiting" },
+      { "from": "network", "to": "packets", "label": "carries" }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s1e07-r1",
+      "kind": "free",
+      "prompt": "A product page calls a pricing service 25 times, one call after another, and takes 3.8 seconds to load. The pricing service runs in another region, about 150 ms away per round trip, and its CPU sits at 5%. A teammate wants to double the pricing service's servers. What do you say, and what would you do instead?",
+      "keyIdeas": [
+        { "idea": "The time is round trips, not CPU: 25 times about 150 ms", "match": ["round trip", "25 x", "25 times", "3.75", "latency", "distance", "network", "waiting", "5%", "cpu isn't", "cpu is not", "not the cpu"] },
+        { "idea": "More servers won't help", "match": ["won't help", "will not help", "doesn't help", "does not help", "wouldn't help", "would not help", "not the bottleneck", "no difference", "pointless"] },
+        { "idea": "Batch the calls into one request, or run them in parallel", "match": ["batch", "one request", "single request", "one call", "single call", "parallel", "at once", "together", "bulk"] },
+        { "idea": "Keep prices close: a cache, or the service or its data in the same region", "match": ["cache", "copy", "closer", "same region", "move", "nearby", "local", "memory"] }
+      ],
+      "model": "Doubling the servers won't help: the pricing service's CPU is at 5%, so it isn't the bottleneck. The 3.8 seconds is almost exactly 25 round trips of about 150 ms, made one after another. Cut the trips: fetch all 25 prices in one batched request, or at least make the independent calls in parallel, and keep frequently read prices in a cache in the page's own region with a short refresh interval, or run a copy of the pricing data there. Then the page pays for one trip, or none, instead of 25."
+    },
+    {
+      "id": "s1e07-r2",
+      "kind": "mcq",
+      "prompt": "In human time, where 1 nanosecond becomes 1 second, roughly how long is a round trip from California to the Netherlands and back (150 ms)?",
+      "options": ["About 2.5 minutes", "About 1.7 days", "About 4.8 years", "About 3.8 months"],
+      "answer": 2,
+      "why": "150 ms is 150,000,000 ns, so 150,000,000 human seconds: about 4.8 years. A RAM read, 100 ns, would take 1 min 40 s."
+    },
+    {
+      "id": "s1e07-r3",
+      "kind": "mcq",
+      "prompt": "Head office's server sat at 3% CPU while every order took 6 seconds. What does that tell you?",
+      "options": [
+        "The server needs a faster CPU",
+        "The CPU isn't the bottleneck: the time goes into waiting for something else",
+        "The scanners' batteries are low",
+        "The server is about to crash"
+      ],
+      "answer": 1,
+      "why": "A nearly idle CPU next to a slow result means the work is quick and the waiting is long. Here the waiting was forty round trips across an ocean."
+    },
+    {
+      "id": "s1e07-r4",
+      "kind": "free",
+      "prompt": "A new teammate asks why reading from RAM is so much faster than a hard disk seek, and where an SSD fits. What do you tell them?",
+      "keyIdeas": [
+        { "idea": "RAM is electronic and sits right next to the CPU", "match": ["electronic", "electric", "next to the cpu", "close to the cpu", "no moving", "on the board", "wired"] },
+        { "idea": "A hard disk has to physically move: spinning platter and a moving arm", "match": ["spin", "arm", "moving", "move", "mechanical", "platter", "physical"] },
+        { "idea": "An SSD has no moving parts but goes through a controller and a slower connection, so it sits in between", "match": ["flash", "no moving parts", "controller", "in between", "middle", "between"] },
+        { "idea": "Rough numbers: about 100 ns, 150 microseconds, 10 ms", "match": ["100 ns", "100 nanoseconds", "150", "10 ms", "10 milliseconds", "microsecond", "thousand times"] }
+      ],
+      "model": "RAM is pure electronics wired right next to the CPU, so a read takes about 100 nanoseconds. A hard disk has to move: the platter spins and an arm swings to the right track, and moving metal takes about 10 milliseconds, a hundred thousand times longer. An SSD stores data on flash chips with no moving parts, so it's far faster than a hard disk, around 150 microseconds in the classic list, but each read still goes through the drive's controller over a slower connection than RAM, so it stays over a thousand times slower than memory."
+    },
+    {
+      "id": "s1e07-r5",
+      "kind": "mcq",
+      "prompt": "Which change makes the warehouse's 40-lookup orders fastest, if every bin must be correct to within a minute?",
+      "options": [
+        "Faster scanners",
+        "A bin list kept in memory on a server in the building, refreshed every minute, and all 40 bins asked for in one request",
+        "Doubling head office's server",
+        "Pointing every scanner at the back-room server that stopped updating on Monday"
+      ],
+      "answer": 1,
+      "why": "It removes the forty ocean round trips: one batched request, answered from memory in the building, with data never more than a minute old. The back-room server is fast too, but its answers are days stale."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 3 months later. The little server in the back room keeps the bin list in memory and refreshes it from head office every minute. Orders load in a blink. Last night the power flickered at 1:12 AM and the little server restarted. For about ten minutes, orders took six seconds again, then got faster one by one. Dolores asks if the little server is broken, and whether it should refresh every second instead, to be safe.",
+    "prompt": "Reply to OP. What happened at 1:12 AM, would refreshing every second help, and what would you change?",
+    "keyIdeas": [
+      { "idea": "Memory is wiped on restart, so the copy started empty", "match": ["wiped", "lost", "empty", "cold", "restart", "forgot", "cleared", "power"] },
+      { "idea": "Until it refilled, lookups crossed the ocean again", "match": ["head office", "ocean", "round trip", "150", "far away", "had to ask", "fell back", "slow again"] },
+      { "idea": "Load the whole copy at startup, or keep a copy on disk to start from", "match": ["warm", "preload", "pre-load", "at startup", "on startup", "when it starts", "load everything", "load the whole", "disk", "snapshot", "save a copy"] },
+      { "idea": "Refreshing every second wouldn't fix the restart and costs far more trips", "match": ["wouldn't help", "would not help", "doesn't help", "too often", "more trips", "sixty times", "60 times", "more load", "a minute is fine", "trade-off", "tradeoff"] }
+    ],
+    "model": "Nothing is broken. RAM is wiped when the power goes, so after the restart the little server's copy was empty, and until it filled up again its lookups had to cross the ocean at about 150 ms each: six seconds an order, getting better as popular bins came back. Fix it by loading the whole bin list when the server starts, before it answers any scanner, and if you like, by also saving a copy to its own disk so it can start from that. Refreshing every second wouldn't have helped with a restart, and it would send sixty times as many trips to head office for answers that only need to be a minute fresh."
+  },
+  "next": "Next: in a hospital records room, a program was told to stop at midnight. It's still running.",
+  "sources": [
+    { "title": "Designs, Lessons and Advice from Building Large Distributed Systems (Jeff Dean, LADIS 2009 keynote), slide \"Numbers Everyone Should Know\"", "url": "https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf" },
+    { "title": "Teach Yourself Programming in Ten Years (Peter Norvig), Answers: approximate timing for various operations on a typical PC", "url": "https://norvig.com/21-days.html#answers" },
+    { "title": "Latency Numbers Every Programmer Should Know (GitHub gist by Jonas Bonér, table labelled ~2012)", "url": "https://gist.github.com/jboner/2841832" },
+    { "title": "Latency Numbers Every Programmer Should Know, interactive by year (Colin Scott)", "url": "https://colin-scott.github.io/personal_website/research/interactive_latency.html" },
+    { "title": "Amazon RDS User Guide: CloudWatch metrics for Amazon RDS (ReadLatency)", "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html" },
+    { "title": "AWS X-Ray Developer Guide: What is AWS X-Ray?", "url": "https://docs.aws.amazon.com/xray/latest/devguide/aws-xray.html" },
+    { "title": "Amazon ElastiCache User Guide: What is Amazon ElastiCache?", "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/WhatIs.html" }
+  ]
+}

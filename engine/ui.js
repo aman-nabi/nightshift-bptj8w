@@ -1,7 +1,45 @@
-/* engine/ui-v1.0.0.js
+/* engine/ui-v1.1.0.js
    Dead Letter UI (DL.ui): the shell, router wiring and every view. Published as engine/ui.js.
-   Contract: docs/dead-letter-engine-contract-v1.0.0.md, section 6.
+   Contract: docs/dead-letter-engine-contract-v1.0.0.md, section 6. Needs engine/core-v1.1.0.js (DL.sync,
+   DL.prompts, the #interview/<id> route). Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
    CHANGELOG
+   v1.1.0 (2026-10-06) the static GitHub Pages build (no window.claude, local storage, offline grading):
+     A. Sync. Boot runs DL.sync.consumeHash() right after DL.store.init() (before the router reads the hash)
+        and shows a one-line note above the view saying what merged, or why the link failed. Settings has a
+        "Move my progress to another device" card: Copy sync link (clipboard inside the click, falling back
+        to a selected read-only field), "Open this link on your other device. It merges; nothing is lost.",
+        and a paste field with a Merge button (DL.sync.apply) that shows the readable sync errors. A merge
+        that changes anything re-renders Settings so the form shows the merged values. The JSON export stays.
+        A "#sync=" link opened while the page is already open is merged too.
+     B. Deeper grading. Free-text answers in Pin it and Cold cases get, after the offline result, a "Get a
+        deeper grade from Claude" button (copies DL.prompts.grade) with "Paste into the Claude app or
+        claude.ai on any account.", and a "Paste Claude's result code" field. A grade code for this case
+        applies that grade: cold cases through onGrade (DL.sched.grade from the card as it was, so it can
+        replace an earlier self-grade), Pin it by setting the self-grade (easy counts as Got it there).
+     C. Interviews. Finale interviews are sessions: Seasons lists and links them, Tonight shows them when
+        due by syllabus order, and closing a season's last case links to its finale. New view
+        #interview/<id>: title and level (the season's rank), three steps, "Open the interview room in
+        Claude" (fetches content/interview-room.html once, fills {{INTERVIEW_ID}}, {{INTERVIEW_TITLE}},
+        {{LEVEL}}, {{SEASON}} in one pass, title and level HTML-escaped, and copies the publish request with
+        the HTML), "Copy a text-only interview" (DL.prompts.interview), a result-code field that stores
+        { score, max, d } (plus a short "tries" history) in state.interviews[id] and marks the session done
+        (cases[id].done and the night's session count, like closing a case), past attempts, and a dim line
+        about /interview <id> in Claude Code. The room file is prefetched when the view opens so the copy
+        happens inside the click.
+     D. Storage line. Away from the cloud store: "Progress saves in this browser. To carry it to another
+        device: Settings, Move my progress." (memory mode says storage is blocked instead, since nothing saves).
+     E. Review fixes. (1) A wipe() that resolves false says "Deleted on this device. Your account copy
+        couldn't be removed yet." with a Retry button. (2) viaAi is set only when the result's source is
+        "ai". (3) The AI notice sits above "Check my answer" before the first answer is sent, shown while
+        aiNoticeSeen is false and DL.ai.available() is true (the setting is on and Claude grading exists
+        here; on the static site nothing is sent, so the notice stays hidden); aiNoticeSeen is set after the
+        first AI-graded result. (4) MCQ options are shuffled once per render (seeded by the render and the
+        prompt); letters, marks and the right answer follow the shuffled positions. (5) DL.pace.plan gets
+        only ready cases plus open interviews as `remaining`. An interview is open when every case or
+        low-level design session before it in its season (in the plan's syllabus order) is closed, and
+        there is at least one. Tonight says "caught up" instead of "every session closed" while unwritten
+        sessions remain. Seasons still lists planned items as "being written". Evidence board skips
+        interview ids.
    v1.0.0 (2026-10-04) first version: boot with loading and error states, masthead and sticky nav with the
      cold-case count, Tonight (first-shift card, pace line, due cold cases, new sessions, storage line),
      case player (post, comments, reply box, lazy sim, explanation, words, spot it at work, pin it, own
@@ -21,7 +59,13 @@
     ["tonight", "Tonight"], ["reviews", "Cold cases"], ["seasons", "Seasons"], ["rules", "Rulebook"],
     ["board", "Evidence"], ["notes", "Notes"], ["settings", "Settings"]
   ];
-  var ROUTES = { tonight: 1, "case": 1, reviews: 1, rules: 1, board: 1, seasons: 1, notes: 1, settings: 1 };
+  var ROUTES = { tonight: 1, "case": 1, interview: 1, reviews: 1, rules: 1, board: 1, seasons: 1, notes: 1, settings: 1 };
+  var ARG_ROUTES = { "case": 1, interview: 1 };
+  var ROOM_PATH = "content/interview-room.html";
+  var ROOM_ASK = "Please publish the HTML below as an interactive artifact exactly as written. Do not redesign, shorten or explain it; just create the artifact.\n\n```html\n";
+  var ROOM_COPIED = "Copied. Paste it into claude.ai or the Claude app (any account). Claude will open the 3 AM Interview room.";
+  var CLAUDE_HINT = "Paste into the Claude app or claude.ai on any account.";
+  var SELECT_HINT = "Selected. Press Ctrl+C (or Cmd+C) to copy.";
   var PIN_REPLY = {
     missed: "That's fine. This is exactly what the cold cases are for.",
     partly: "Halfway there. The cold case will check it again.",
@@ -31,11 +75,12 @@
 
   var S = {
     booted: false, shellReady: false, wired: false, bootPromise: null, catalog: null,
-    route: null, routeKey: "", view: null, lastRender: null, progressTimer: 0, flash: "", uid: 0, sess: {}
+    route: null, routeKey: "", view: null, lastRender: null, progressTimer: 0, flash: null, uid: 0, sess: {},
+    notice: null, room: "", roomP: null, renderSeed: 1
   };
 
   var ui = DL.ui = DL.ui || {};
-  ui.version = "1.0.0";
+  ui.version = "1.1.0";
   ui.diagrams = [];
 
   /* ======================================================================
@@ -97,6 +142,76 @@
   function fmtNum(n) { try { return Number(n).toLocaleString("en-US"); } catch (e) { return String(n); } }
   function isIso(v) { return /^\d{4}-\d{2}-\d{2}$/.test(String(v || "")); }
   function removeNode(n) { if (n && n.parentNode) n.parentNode.removeChild(n); }
+  function joinList(parts) {
+    if (parts.length < 2) return parts.join("");
+    return parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1];
+  }
+  function sameId(a, b) { return String(a || "").toLowerCase() === String(b || "").toLowerCase(); }
+
+  /* A stable shuffle for one render: seeded by the render (S.renderSeed, new on every renderRoute) and a
+     text such as the prompt, so the order never changes while the view is on screen. */
+  function hashStr(t) {
+    var x = 2166136261;
+    t = String(t || "");
+    for (var i = 0; i < t.length; i++) { x ^= t.charCodeAt(i); x = Math.imul(x, 16777619) >>> 0; }
+    return x >>> 0;
+  }
+  function seeded(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function shuffledOrder(n, text) {
+    var order = [];
+    for (var i = 0; i < n; i++) order.push(i);
+    var rand = seeded((hashStr(text) ^ S.renderSeed) >>> 0);
+    for (var j = n - 1; j > 0; j--) {
+      var k = Math.floor(rand() * (j + 1));
+      var tmp = order[j]; order[j] = order[k]; order[k] = tmp;
+    }
+    return order;
+  }
+
+  /* Copies text inside the click that called it. If the clipboard is missing or refuses, the text goes into
+     `field` (a read-only textarea), which is shown and selected so the learner can copy it by hand.
+     o: { field, status, ok, btn, hideField }. hideField hides the field again after a successful copy. */
+  function copyText(text, o) {
+    o = o || {};
+    var field = o.field, status = o.status, btn = o.btn;
+    function say(t, tone) {
+      if (!status) return;
+      status.textContent = t;
+      status.classList.remove("ok", "bad");
+      if (tone) status.classList.add(tone);
+    }
+    function selectIt() {
+      if (btn) btn.removeAttribute("data-copied");
+      if (!field) { say("Copying isn't allowed in this browser.", "bad"); return; }
+      field.value = text;
+      field.hidden = false;
+      try { field.focus(); field.select(); field.setSelectionRange(0, text.length); } catch (e) { /* best effort */ }
+      say(SELECT_HINT, "");
+    }
+    function copied() {
+      if (field && o.hideField) field.hidden = true;
+      if (btn) btn.setAttribute("data-copied", "true");
+      say(o.ok || "Copied.", "ok");
+    }
+    var clip = root.navigator && root.navigator.clipboard;
+    if (clip && typeof clip.writeText === "function") {
+      try { Promise.resolve(clip.writeText(text)).then(copied, selectIt); } catch (e) { selectIt(); }
+    } else {
+      selectIt();
+    }
+  }
+  function copyField(label) {
+    return h("textarea", { class: "copy-field", rows: "4", readonly: true, spellcheck: "false", hidden: true, "aria-label": label });
+  }
 
   function head(eyebrow, title, lede, level) {
     return h("header", { class: "sec-head" }, [
@@ -210,6 +325,35 @@
       status: m.status || o.status || it.status || "planned"
     };
   }
+  function interviewMeta(id) { return findIn(catalog().interviews, id); }
+  function interviewRec(id) { return (state().interviews || {})[id] || null; }
+  function seasonMeta(n) {
+    var list = catalog().seasons || [];
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].n === n) return list[i];
+    return null;
+  }
+  /* Interviews need no written case file (the room is generic), so they can always be opened. */
+  function playable(info) { return info.kind === "interview" || info.status === "ready"; }
+  function routeFor(info) { return (info.kind === "interview" ? "interview/" : "case/") + info.id; }
+  /* An interview is due by syllabus order once every case and low-level design session before it in its
+     season is closed (in the plan's order; the full list for a bonus interview), and there is at least one.
+     Unwritten cases can't be closed, so a finale never jumps ahead of its season. */
+  function interviewOpen(it) {
+    var list = sessionsFor(planOf());
+    var idx = indexOfId(list, it.id);
+    if (idx < 0) { list = sessionsFor("all"); idx = indexOfId(list, it.id); }
+    if (idx < 0) return false;
+    var season = list[idx].season, before = 0;
+    for (var i = 0; i < idx; i++) {
+      var x = list[i];
+      if (x.kind === "interview" || x.season !== season) continue;
+      before += 1;
+      if (!isDone(x.id)) return false;
+    }
+    return before > 0;
+  }
+  /* What DL.pace.plan may schedule: written cases and open interviews. */
+  function plannable(it) { return it.kind === "interview" ? interviewOpen(it) : it.status === "ready"; }
   function dueList() {
     var t = today(), cards = state().cards || {};
     return Object.keys(cards).filter(function (id) {
@@ -229,11 +373,27 @@
     });
     return best;
   }
-  function storageText() {
+  function storageLead() {
     var m = DL.store && DL.store.mode;
     if (m === "cloud") return "Progress saves to your account.";
-    if (m === "local") return "Progress saves in this browser only.";
-    return "Progress isn't being saved here, because this browser blocks storage. You can copy it from Settings.";
+    if (m === "local") return "Progress saves in this browser.";
+    return "Progress isn't being saved here, because this browser blocks storage.";
+  }
+  /* Settings wording: the sync card sits above the line there. */
+  function storageText() {
+    var m = DL.store && DL.store.mode;
+    if (m === "cloud") return storageLead();
+    return storageLead() + " To carry it to another device, use Move my progress above.";
+  }
+  /* Tonight wording, with the way to the sync card as a link. */
+  function storageLine() {
+    var m = DL.store && DL.store.mode;
+    if (m === "cloud") return h("p", { class: "storage-line", text: storageLead() });
+    return h("p", { class: "storage-line" }, [
+      storageLead() + " To carry it to another device: ",
+      link("Settings, Move my progress", "settings"),
+      "."
+    ]);
   }
   function exportText() {
     try { return DL.store.exportJSON(); } catch (e) { return JSON.stringify(state(), null, 2); }
@@ -249,8 +409,8 @@
     if (!r || typeof r !== "object") r = {};
     var name = ROUTES[r.name] ? r.name : "tonight";
     var arg = r.arg === undefined || r.arg === null || r.arg === "" ? null : String(r.arg);
-    if (name === "case" && !arg) name = "tonight";
-    return { name: name, arg: name === "case" ? arg : null };
+    if (ARG_ROUTES[name] && !arg) name = "tonight";
+    return { name: name, arg: ARG_ROUTES[name] ? arg : null };
   }
   function parseRoute(str) {
     var t = String(str || "").replace(/^#/, "");
@@ -303,7 +463,7 @@
      Render pipeline
      ====================================================================== */
   var VIEWS = {
-    tonight: viewTonight, "case": viewCase, reviews: viewReviews, seasons: viewSeasons,
+    tonight: viewTonight, "case": viewCase, interview: viewInterview, reviews: viewReviews, seasons: viewSeasons,
     rules: viewRules, board: viewBoard, notes: viewNotes, settings: viewSettings
   };
 
@@ -337,6 +497,11 @@
     r = normRoute(r);
     S.route = r;
     S.routeKey = keyOf(r);
+    S.renderSeed = (Math.floor(Math.random() * 4294967296) >>> 0) || 1;
+    if (S.notice) {
+      if (S.notice.key === null) S.notice.key = S.routeKey;
+      else if (S.notice.key !== S.routeKey) hideNotice();
+    }
     ui.diagrams = [];
     clear(view);
     var ctx = { root: view, name: r.name, arg: r.arg, alive: true, cleanups: [], rerender: false, onProgress: null };
@@ -404,6 +569,56 @@
   }
 
   /* ======================================================================
+     Sync notice: one line above the view (outside #view, so a re-render of
+     the view keeps it). It goes when dismissed or on the next other route.
+     ====================================================================== */
+  function hideNotice() {
+    if (S.notice) removeNode(S.notice.el);
+    S.notice = null;
+  }
+  function showNotice(text, tone) {
+    hideNotice();
+    var view = doc && doc.getElementById("view");
+    if (!view || !view.parentNode) return;
+    var close = h("button", { class: "btn btn-small btn-ghost", type: "button", text: "Dismiss" });
+    var el = h("div", { class: "wrap notice-bar" + (tone ? " " + tone : ""), role: "status", "aria-live": "polite" }, [
+      h("p", { text: text }),
+      close
+    ]);
+    close.addEventListener("click", hideNotice);
+    view.parentNode.insertBefore(el, view);
+    S.notice = { el: el, key: null };   // the next render claims it
+  }
+  function mergeText(sm) {
+    sm = sm || {};
+    var parts = [];
+    if (sm.cases) parts.push(plural(sm.cases, "case"));
+    if (sm.cards) parts.push(plural(sm.cards, "cold case"));
+    if (sm.notes) parts.push(plural(sm.notes, "note"));
+    if (sm.interviews) parts.push(plural(sm.interviews, "interview result"));
+    if (sm.settings) parts.push("your settings");
+    if (!parts.length && sm.daily) parts.push("your nightly history");
+    if (!parts.length) return "Nothing new in that sync link. This device already had all of it.";
+    return "Merged from your other device: " + joinList(parts) + ". Nothing here was lost.";
+  }
+  function mergeChanged(sm) {
+    sm = sm || {};
+    return !!(sm.cases || sm.cards || sm.notes || sm.interviews || sm.daily || sm.settings);
+  }
+  /* Reads "#sync=<code>" (core clears it from the address first) and says what merged. */
+  function runSyncHash() {
+    if (!DL.sync || typeof DL.sync.consumeHash !== "function") return false;
+    var sm = null;
+    try { sm = DL.sync.consumeHash(); } catch (e) {
+      showNotice("That sync link couldn't be merged. " + errMsg(e), "bad");
+      return true;
+    }
+    if (!sm) return false;
+    showNotice(mergeText(sm), "ok");
+    return true;
+  }
+
+  /* ======================================================================
      Boot
      ====================================================================== */
   function wireEvents() {
@@ -413,7 +628,19 @@
       DL.events.on("route", function () { syncRoute(); });
       DL.events.on("progress", onProgress);
     }
-    if (root.addEventListener) root.addEventListener("hashchange", function () { setTimeout(syncRoute, 0); });
+    if (root.addEventListener) {
+      root.addEventListener("hashchange", function () {
+        var hash = "";
+        try { hash = String(root.location.hash || ""); } catch (e) { hash = ""; }
+        // A sync link opened in a tab that already runs the app: merge it, then show Tonight.
+        if (hash.indexOf("#sync=") === 0 && runSyncHash()) {
+          try { if (DL.router && typeof DL.router.go === "function") DL.router.go("tonight"); } catch (e2) { /* the render below still happens */ }
+          setTimeout(function () { if (S.routeKey !== "tonight") renderRoute({ name: "tonight" }, { focus: true }); }, 0);
+          return;
+        }
+        setTimeout(syncRoute, 0);
+      });
+    }
   }
   function startRouter() {
     var r = DL.router;
@@ -430,6 +657,8 @@
       if (missing.length) throw new Error("The engine core didn't load (missing DL." + missing.join(", DL.") + "). Check engine/core.js.");
       return DL.store.init();
     }).then(function () {
+      // Before the router reads the address: a "#sync=" link is merged and cleared here.
+      runSyncHash();
       return DL.content.loadCatalog();
     }).then(function (cat) {
       S.catalog = cat || DL.content.catalog || {};
@@ -469,9 +698,12 @@
   /* ======================================================================
      View: Tonight
      ====================================================================== */
+  /* Only written cases and open interviews go to the pace plan, so sessions that are still being written
+     never fill Tonight or make the plan look behind. `waiting` counts the open sessions left out. */
   function paceNow() {
     var st = state(), set = st.settings || {}, t = today();
-    var remaining = sessionsFor(planOf()).filter(function (it) { return !isDone(it.id); })
+    var open = sessionsFor(planOf()).filter(function (it) { return !isDone(it.id); });
+    var remaining = open.filter(plannable)
       .map(function (it) { return { id: it.id, kind: it.kind, minutes: it.minutes }; });
     var due = dueList();
     var doneToday = ((st.daily || {})[t] || {}).sessions || 0;
@@ -480,12 +712,14 @@
       weekdayMin: Number(set.weekdayMin) || 30, weekendMin: Number(set.weekendMin) || 60,
       remaining: remaining, due: due, doneToday: doneToday
     }) || {};
-    return { out: out, due: due, target: set.targetDate || addDays(t, 91) };
+    return { out: out, due: due, target: set.targetDate || addDays(t, 91), waiting: open.length - remaining.length };
   }
-  function paceText(out, target) {
+  function paceText(out, target, waiting) {
     var tgt = fmtDate(target);
     switch (out.status) {
-      case "done": return "Every session on your plan is closed.";
+      case "done":
+        return waiting > 0 ? "You're caught up on everything written so far. The next cases are being written."
+          : "Every session on your plan is closed.";
       case "past-target": return "Your date, " + tgt + ", has passed. Pick a new one whenever you like.";
       case "behind":
         return "Behind: about " + Math.max(1, Math.round(Number(out.extraMinutes) || 0)) + " extra minutes a day" +
@@ -506,8 +740,8 @@
   }
   function sessionCard(it) {
     var info = sessionInfo(it);
-    var ready = info.status === "ready";
-    var title = h("h3", { class: "session-title" }, ready ? link(info.title, "case/" + info.id) : h("span", { text: info.title }));
+    var ready = playable(info);
+    var title = h("h3", { class: "session-title" }, ready ? link(info.title, routeFor(info)) : h("span", { text: info.title }));
     return h("li", { class: "session " + (ready ? "ready" : "planned") }, [
       h("span", { class: "session-k", "aria-hidden": "true", text: sessionKey(info) }),
       h("div", null, [
@@ -595,7 +829,7 @@
     var sec = h("section", { class: "wrap section" });
     sec.appendChild(head("Tonight · " + weekdayOf(t) + " " + fmtDate(t), "Tonight's shift"));
 
-    var box = h("div", { class: "pace-box", "data-status": out.status || "on-track" }, h("p", { class: "pace", text: paceText(out, p.target) }));
+    var box = h("div", { class: "pace-box", "data-status": out.status || "on-track" }, h("p", { class: "pace", text: paceText(out, p.target, p.waiting) }));
     var sub = [];
     if (typeof out.minutesToday === "number") sub.push("Your night: " + Math.round(out.minutesToday) + " minutes");
     if (typeof out.daysLeft === "number" && out.status !== "done" && out.status !== "past-target") sub.push(plural(out.daysLeft, "day") + " to go");
@@ -629,13 +863,15 @@
     var items = out.newItems || [];
     if (items.length) {
       sec.appendChild(h("ol", { class: "sessions" }, items.map(sessionCard)));
+    } else if (out.status === "done" && p.waiting > 0) {
+      sec.appendChild(h("p", { class: "muted", text: "You've closed everything that's written so far. New cases show up here as soon as they're ready. Cold cases keep coming back in the meantime." }));
     } else if (out.status === "done") {
       sec.appendChild(h("p", { class: "muted", text: "Every session on your plan is closed. Cold cases keep coming back so it stays with you." }));
     } else {
       sec.appendChild(h("p", { class: "muted", text: "That's tonight's new work done. You can always play more from Seasons." }));
     }
     sec.appendChild(h("p", { class: "more-line" }, ["Want more? Every case is in ", link("Seasons", "seasons"), "."]));
-    sec.appendChild(h("p", { class: "storage-line", text: storageText() }));
+    sec.appendChild(storageLine());
     ctx.root.appendChild(sec);
     return null;
   }
@@ -697,24 +933,30 @@
     return Promise.resolve().then(function () { return DL.ai.available(); }).then(function (ok) {
       if (!ok) return offline();
       return Promise.resolve(DL.ai.gradeFree({ prompt: item.prompt, keyIdeas: keyIdeas, model: item.model, answer: answer }))
-        .then(function (r) { var n = normalizeGrade(r, keyIdeas); n.viaAi = true; return n; });
+        .then(function (r) { var n = normalizeGrade(r, keyIdeas); n.viaAi = !!r && r.source === "ai"; return n; });
     }).then(null, function () { return offline(); });
   }
 
   /* An answer box for one prompt. item: {kind: "mcq"|"free", prompt, options, answer, why, keyIdeas, model}.
-     opts: {showPrompt, grades, allowEasy, label, onGrade(g) -> text shown after grading, after(container)} */
+     opts: {showPrompt, grades, allowEasy, label, onGrade(g) -> text shown after grading, after(container),
+     deep: {caseId, caseTitle} to offer a deeper grade from Claude on free-text answers} */
   function answerWidget(item, opts) {
     return item && item.kind === "mcq" ? mcqWidget(item, opts) : freeWidget(item || {}, opts);
   }
+  /* Options are shown in a shuffled order. `pos` is a display position, order[pos] the authored index,
+     and item.answer stays an authored index. */
   function mcqWidget(item, opts) {
     var box = h("div", { class: "recall" });
     if (opts.showPrompt && item.prompt) box.appendChild(h("p", { class: "recall-q", md: item.prompt }));
     var fb = h("div", { class: "feedback", "aria-live": "polite" });
     var answer = Number(item.answer);
     var answered = false;
-    var buttons = (item.options || []).map(function (o, i) {
-      var b = h("button", { class: "opt", type: "button" }, [h("span", { class: "sr-only", text: "Answer " + LETTERS[i] + ": " }), h("span", { md: o })]);
-      b.addEventListener("click", function () { choose(i); });
+    var options = item.options || [];
+    var order = shuffledOrder(options.length, String(item.prompt || "") + "|" + options.length);
+    var answerPos = order.indexOf(answer);
+    var buttons = order.map(function (orig, pos) {
+      var b = h("button", { class: "opt", type: "button" }, [h("span", { class: "sr-only", text: "Answer " + LETTERS[pos] + ": " }), h("span", { md: options[orig] })]);
+      b.addEventListener("click", function () { choose(pos); });
       return b;
     });
     box.appendChild(h("div", { class: "opts", role: "group", "aria-label": "Answers" }, buttons));
@@ -724,14 +966,14 @@
       b.insertBefore(h("span", { "aria-hidden": "true", text: ok ? "✓ " : "✗ " }), b.firstChild);
       b.insertBefore(h("span", { class: "sr-only", text: ok ? "Right answer. " : "Your pick, not right. " }), b.firstChild);
     }
-    function choose(i) {
+    function choose(pos) {
       if (answered) return;
       answered = true;
-      var right = i === answer;
+      var right = pos === answerPos;
       buttons.forEach(function (b) { b.disabled = true; });
-      buttons[i].setAttribute("aria-pressed", "true");
-      mark(buttons[i], right);
-      if (!right && buttons[answer]) mark(buttons[answer], true);
+      buttons[pos].setAttribute("aria-pressed", "true");
+      mark(buttons[pos], right);
+      if (!right && answerPos >= 0 && buttons[answerPos]) mark(buttons[answerPos], true);
       clear(fb);
       fb.appendChild(h("p", { class: "verdict-line " + (right ? "ok" : "bad"), text: right ? "Right." : "Not quite. The right answer is marked." }));
       paras(item.why).forEach(function (p) { fb.appendChild(p); });
@@ -761,6 +1003,8 @@
     var out = h("div", { class: "feedback", "aria-live": "polite" });
     box.appendChild(h("label", { class: "field-k", for: id, text: opts.label || "Your answer, in your own words" }));
     box.appendChild(ta);
+    var notice = aiNoticeBefore();
+    if (notice) box.appendChild(notice);
     box.appendChild(check);
     box.appendChild(out);
     var graded = false;
@@ -775,11 +1019,11 @@
       check.disabled = true;
       ta.readOnly = true;
       out.appendChild(h("p", { class: "loading-inline", text: "Reading your answer..." }));
-      gradeAnswer(item, answer).then(function (res) { clear(out); showResult(res); });
+      gradeAnswer(item, answer).then(function (res) { clear(out); showResult(res, answer); });
     });
-    function showResult(res) {
+    function showResult(res, answer) {
+      // The notice was shown above the button before sending; the first AI-graded result retires it.
       if (res.viaAi && !settings().aiNoticeSeen) {
-        out.appendChild(h("p", { class: "ai-notice", text: AI_NOTICE }));
         saveSettings(function (st) { st.aiNoticeSeen = true; }).then(null, function () { /* shown again next time */ });
       }
       var ideas = item.keyIdeas || [];
@@ -802,19 +1046,94 @@
         var b = h("button", { class: "btn" + (g === res.suggested ? " suggested" : ""), type: "button", "aria-pressed": "false", text: GRADE_LABELS[g] || g });
         b.addEventListener("click", function () {
           if (graded) return;
-          graded = true;
-          btns.forEach(function (x) { x.disabled = true; });
-          b.setAttribute("aria-pressed", "true");
-          next.textContent = opts.onGrade ? (opts.onGrade(g) || "") : "";
-          if (opts.after) opts.after(out);
+          setGrade(g);
         });
         return b;
       });
+      /* One path for a self-grade click and for Claude's result code. A later call (Claude's code after a
+         self-grade) replaces the grade; `after` (the Next button) still runs only once. */
+      function setGrade(g) {
+        var first = !graded;
+        graded = true;
+        btns.forEach(function (x, i) {
+          x.disabled = true;
+          x.setAttribute("aria-pressed", String(grades[i] === g));
+        });
+        next.textContent = opts.onGrade ? (opts.onGrade(g) || "") : "";
+        if (first && opts.after) opts.after(out);
+      }
       out.appendChild(h("div", { class: "btn-row", role: "group", "aria-label": "Grade yourself" }, btns));
       if (GRADE_LABELS[res.suggested]) out.appendChild(h("p", { class: "muted small", text: "Suggested: " + GRADE_LABELS[res.suggested] + ". You know best." }));
       out.appendChild(next);
+      if (opts.deep && DL.prompts) out.appendChild(deepGrade(item, answer, opts.deep, grades, setGrade));
     }
     return box;
+  }
+  /* The AI notice, placed above "Check my answer" before anything is sent. It shows only while the notice
+     is unseen and DL.ai.available() says answers really go to Claude here (on the static site they don't). */
+  function aiNoticeBefore() {
+    var set = settings();
+    if (set.aiNoticeSeen || set.aiGrading === false || !DL.ai || typeof DL.ai.available !== "function") return null;
+    var p = h("p", { class: "ai-notice", hidden: true, text: AI_NOTICE });
+    Promise.resolve().then(function () { return DL.ai.available(); }).then(function (ok) {
+      if (ok && !settings().aiNoticeSeen) p.hidden = false;
+    }, function () { /* stays hidden */ });
+    return p;
+  }
+  /* Claude's grade may be one this widget doesn't offer (Pin it has no Easy): use the nearest one below. */
+  function fitGrade(g, grades) {
+    if (grades.indexOf(g) >= 0) return g;
+    if (g === "easy" && grades.indexOf("good") >= 0) return "good";
+    return grades.indexOf("partly") >= 0 ? "partly" : grades[0];
+  }
+  /* "Get a deeper grade from Claude": copies DL.prompts.grade for this answer, then takes Claude's result
+     code (DL-G-<case>-<grade>) and applies it through setGrade. */
+  function deepGrade(item, answer, deep, grades, setGrade) {
+    var caseId = String(deep.caseId || "");
+    var copyBtn = h("button", { class: "btn btn-copy", type: "button", text: "Get a deeper grade from Claude" });
+    var copyStatus = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+    var fallback = copyField("Grading prompt to copy");
+    copyBtn.addEventListener("click", function () {
+      var text = DL.prompts.grade({
+        caseId: caseId, caseTitle: deep.caseTitle || "", prompt: item.prompt || "",
+        keyIdeas: item.keyIdeas || [], model: item.model || "", answer: answer
+      });
+      copyText(text, { field: fallback, status: copyStatus, btn: copyBtn, hideField: true,
+        ok: "Copied. " + CLAUDE_HINT + " Then paste Claude's result code below." });
+    });
+    var pid = nextId("code");
+    var paste = h("textarea", { id: pid, class: "paste-field", rows: "2", spellcheck: "false", autocomplete: "off",
+      placeholder: "DL-G-" + (caseId || "case") + "-good" });
+    var use = h("button", { class: "btn", type: "button", text: "Use Claude's grade" });
+    var msg = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+    function say(t, tone) {
+      msg.textContent = t;
+      msg.classList.remove("ok", "bad");
+      if (tone) msg.classList.add(tone);
+    }
+    use.addEventListener("click", function () {
+      var raw = paste.value;
+      if (!raw.trim()) { say("Paste Claude's result code first.", "bad"); paste.focus(); return; }
+      var r = DL.prompts.parseCode(raw);
+      if (!r) { say("No result code found. Claude's reply ends with a line like DL-G-" + (caseId || "case") + "-good.", "bad"); return; }
+      if (r.kind !== "grade") { say("That's a 3 AM interview code. Paste it on that interview's page.", "bad"); return; }
+      if (!sameId(r.id, caseId)) { say("That code is for case " + r.id + ", not this one.", "bad"); return; }
+      var g = fitGrade(r.grade, grades);
+      setGrade(g);
+      say("Claude's grade: " + (GRADE_LABELS[r.grade] || r.grade) +
+        (g !== r.grade ? ", counted as " + (GRADE_LABELS[g] || g) : "") + ". It's set above.", "ok");
+    });
+    return h("div", { class: "deep-grade" }, [
+      h("p", { class: "field-k", text: "Want a closer read?" }),
+      h("div", { class: "btn-row" }, copyBtn),
+      h("p", { class: "field-help", text: CLAUDE_HINT }),
+      copyStatus,
+      fallback,
+      h("label", { class: "field-k", for: pid, text: "Paste Claude's result code" }),
+      paste,
+      h("div", { class: "btn-row" }, use),
+      msg
+    ]);
   }
 
   /* ======================================================================
@@ -822,6 +1141,8 @@
      ====================================================================== */
   function viewCase(ctx) {
     var id = ctx.arg;
+    // An interview id under #case/ opens the interview view instead of a "being written" panel.
+    if (interviewMeta(id) && !(DL.content.caseMeta && DL.content.caseMeta(id))) return viewInterview(ctx);
     var meta = metaFor(id);
     if (!meta) {
       ctx.root.appendChild(messagePanel("Not on file", "There's no case called “" + id + "”.", null));
@@ -1201,7 +1522,8 @@
         showPrompt: true,
         grades: ["missed", "partly", "good"],
         allowEasy: false,
-        onGrade: function (g) { return PIN_REPLY[g] || ""; }
+        onGrade: function (g) { return PIN_REPLY[g] || ""; },
+        deep: { caseId: c.id, caseTitle: (metaFor(c.id) || {}).title || c.title || c.id }
       })
     ]);
   }
@@ -1274,8 +1596,11 @@
       var nx = nextSessionAfter(c.id);
       if (nx) {
         var info = sessionInfo(nx);
-        if (info.status === "ready") row.appendChild(link("Next: " + info.title, "case/" + info.id, "btn btn-primary"));
-        else box.appendChild(h("p", { class: "muted", text: "Next up: " + info.title + " (being written)." }));
+        if (playable(info)) {
+          row.appendChild(link((info.kind === "interview" ? "Next: the 3 AM interview, " : "Next: ") + info.title, routeFor(info), "btn btn-primary"));
+        } else {
+          box.appendChild(h("p", { class: "muted", text: "Next up: " + info.title + " (being written)." }));
+        }
       } else {
         box.appendChild(h("p", { class: "muted", text: "That was the last session on the list." }));
       }
@@ -1339,6 +1664,8 @@
       grades: ["missed", "partly", "good", "easy"],
       allowEasy: true,
       label: isCold ? "Your reply to OP, in your own words" : "Your answer, in your own words",
+      deep: { caseId: id, caseTitle: (metaFor(id) || {}).title || c.title || id },
+      // Always graded from the card as it was when the view opened, so Claude's code can replace a self-grade.
       onGrade: function (g) {
         var next = DL.sched.grade(orig, g, t);
         var first = !committed;
@@ -1433,19 +1760,26 @@
     for (var i = 0; i < list.length; i++) if (!isDone(list[i].id)) return list[i].season || null;
     return null;
   }
+  /* Interviews are always linked (the room needs no written case). Their chip says "ready" once they're due
+     by syllabus order, and "after the cases" before that. */
   function seasonItem(it) {
     var info = sessionInfo(it);
-    var done = isDone(it.id), ready = info.status === "ready";
-    var kind = info.kind === "interview" ? "Finale · 3 AM interview" : info.kind === "lld" ? "Low-level design" : info.setting;
+    var isIv = info.kind === "interview";
+    var done = isDone(it.id), canOpen = playable(info);
+    var ready = isIv ? interviewOpen(it) : canOpen;
+    var kind = isIv ? "Finale · 3 AM interview" : info.kind === "lld" ? "Low-level design" : info.setting;
+    var rec = isIv ? interviewRec(it.id) : null;
+    var doneText = "done ✓" + (rec && typeof rec.score === "number" && typeof rec.max === "number" ? " " + rec.score + "/" + rec.max : "");
+    var stateText = ready ? "ready" : isIv ? "after the cases" : "being written";
     return h("li", { class: "season-item" }, [
       h("span", { class: "si-mark" + (done ? " done" : ready ? " ready" : ""), "aria-hidden": "true", text: done ? "✓" : ready ? "•" : "·" }),
       h("div", { class: "si-title" }, [
-        ready ? link(info.title, "case/" + it.id) : h("span", { text: info.title }),
+        canOpen ? link(info.title, routeFor(info)) : h("span", { text: info.title }),
         kind ? h("span", { class: "si-kind", text: kind }) : null
       ]),
       h("div", { class: "chips" }, [
         h("span", { class: "chip" + (info.core ? " core" : ""), text: info.core ? "core" : "bonus" }),
-        done ? h("span", { class: "chip ok", text: "done ✓" }) : h("span", { class: "chip", text: ready ? "ready" : "being written" })
+        done ? h("span", { class: "chip ok", text: doneText }) : h("span", { class: "chip", text: stateText })
       ])
     ]);
   }
@@ -1571,11 +1905,13 @@
   /* ======================================================================
      View: evidence board (an SVG built here, columns by season)
      ====================================================================== */
+  /* Closed cases with a case file. Interviews are marked done in `cases` too, but pin nothing. */
   function doneCaseIds() {
     var cases = state().cases || {};
-    var ids = sessionsFor("all").map(function (it) { return it.id; }).filter(function (id) { return cases[id] && cases[id].done; });
+    var ids = sessionsFor("all").filter(function (it) { return it.kind !== "interview"; })
+      .map(function (it) { return it.id; }).filter(function (id) { return cases[id] && cases[id].done; });
     Object.keys(cases).sort().forEach(function (id) {
-      if (cases[id] && cases[id].done && ids.indexOf(id) < 0 && metaFor(id)) ids.push(id);
+      if (cases[id] && cases[id].done && ids.indexOf(id) < 0 && metaFor(id) && !interviewMeta(id)) ids.push(id);
     });
     return ids;
   }
@@ -1766,12 +2102,285 @@
   }
 
   /* ======================================================================
+     View: 3 AM interview  #interview/<id>
+     The interview runs in Claude (the room artifact, or a text-only
+     prompt); the learner brings back the result code DL-I-<id>-<n>/<max>.
+     ====================================================================== */
+  /* The room template, fetched once per page load and kept. */
+  function loadRoom() {
+    if (S.room) return Promise.resolve(S.room);
+    if (S.roomP) return S.roomP;
+    var f = root.fetch;
+    if (typeof f !== "function") return Promise.reject(new Error("This browser can't load the interview room."));
+    var p = Promise.resolve().then(function () { return f.call(root, ROOM_PATH); }).then(function (res) {
+      if (!res || res.ok === false) throw new Error("The interview room couldn't be loaded (" + ROOM_PATH + (res && res.status ? ", HTTP " + res.status : "") + ").");
+      return res.text();
+    }).then(function (text) {
+      text = String(text || "");
+      if (!text.trim()) throw new Error("The interview room file is empty.");
+      S.room = text;
+      return text;
+    });
+    S.roomP = p;
+    p.then(function () { if (S.roomP === p) S.roomP = null; }, function () { if (S.roomP === p) S.roomP = null; });
+    return p;
+  }
+  /* One pass over the template, so a filled value is never filled again. Title and level land in HTML text,
+     so they are escaped; the id lands in JS strings too and is kept to [A-Za-z0-9_-]. */
+  function fillRoom(html, iv, level) {
+    var values = {
+      INTERVIEW_ID: String(iv.id || "").replace(/[^A-Za-z0-9_-]/g, ""),
+      INTERVIEW_TITLE: escapeHtml(iv.title || iv.id || ""),
+      LEVEL: escapeHtml(level || ""),
+      SEASON: escapeHtml(typeof iv.season === "number" ? String(iv.season) : "")
+    };
+    return String(html).replace(/\{\{(INTERVIEW_ID|INTERVIEW_TITLE|LEVEL|SEASON)\}\}/g, function (m, k) { return values[k]; });
+  }
+  function attemptsOf(id) {
+    var rec = interviewRec(id);
+    if (!rec || typeof rec !== "object") return [];
+    var list = Array.isArray(rec.tries) && rec.tries.length ? rec.tries.slice()
+      : typeof rec.score === "number" ? [{ score: rec.score, max: rec.max, d: rec.d }] : [];
+    return list.filter(function (a) { return a && typeof a.score === "number"; }).reverse();   // newest first
+  }
+  /* Stores the latest attempt as { score, max, d } (core's merge keeps the newer one) with a short history in
+     `tries`, and marks the session done the way closing a case does. Resolves false for a repeat paste. */
+  function saveInterview(id, score, max) {
+    var t = today(), repeat = false;
+    return Promise.resolve(DL.store.update(function (d) {
+      d.interviews = d.interviews || {};
+      var prev = d.interviews[id];
+      var tries = prev && Array.isArray(prev.tries) ? prev.tries.slice()
+        : prev && typeof prev.score === "number" ? [{ score: prev.score, max: prev.max, d: prev.d }] : [];
+      var last = tries[tries.length - 1];
+      if (last && last.score === score && last.max === max && last.d === t) { repeat = true; return; }
+      tries.push({ score: score, max: max, d: t });
+      if (tries.length > 12) tries = tries.slice(-12);
+      d.interviews[id] = { score: score, max: max, d: t, tries: tries };
+      d.cases = d.cases || {};
+      var r = d.cases[id] || (d.cases[id] = {});
+      if (!r.done) {
+        r.done = t;
+        var day = dayRec(d, t);
+        day.sessions = (day.sessions || 0) + 1;
+      }
+    })).then(function () { return !repeat; });
+  }
+  function attemptsEl(id) {
+    var list = attemptsOf(id);
+    if (!list.length) return h("p", { class: "muted small", text: "No attempts yet. Your scores land here." });
+    return h("ol", { class: "attempts" }, list.map(function (a) {
+      return h("li", null, [
+        h("span", { class: "attempt-score", text: a.score + "/" + (typeof a.max === "number" ? a.max : "?") }),
+        h("span", { class: "muted", text: isIso(a.d) ? fmtDate(a.d) : "" })
+      ]);
+    }));
+  }
+  function viewInterview(ctx) {
+    var iv = interviewMeta(ctx.arg);
+    if (!iv) {
+      ctx.root.appendChild(messagePanel("Not on file", "There's no interview called “" + ctx.arg + "”.", null));
+      return null;
+    }
+    var id = iv.id;
+    var season = typeof iv.season === "number" ? iv.season : null;
+    var se = season ? seasonMeta(season) : null;
+    var level = (se && se.rank) || "";
+    var sec = h("section", { class: "wrap section" });
+    var crumbs = h("div", { class: "case-crumbs" }, [
+      link("Seasons", "seasons"),
+      h("span", { "aria-hidden": "true", text: "/" }),
+      h("span", { text: (season ? "Season " + season + " finale" : "Finale") + " · 3 AM interview · about 45 min" }),
+      h("span", { class: "chip" + (iv.core ? " core" : ""), text: iv.core ? "core" : "bonus" })
+    ]);
+    var doneChip = h("span", { class: "chip ok", text: "done", hidden: !isDone(id) });
+    crumbs.appendChild(doneChip);
+    sec.appendChild(crumbs);
+    sec.appendChild(h("header", { class: "sec-head" }, [
+      h("h1", { md: iv.title || id }),
+      level ? h("p", { class: "iv-level", text: "Level: " + level }) : null
+    ]));
+
+    var steps = h("ol", { class: "iv-steps" }, [
+      h("li", null, [h("strong", { text: "Open the room in Claude." }), " The first button below copies it. Paste it into claude.ai or the Claude app, on any account."]),
+      h("li", null, [h("strong", { text: "Do the interview." }), " About 45 minutes. Claude plays the interviewer and scores you at the end."]),
+      h("li", null, [h("strong", { text: "Paste your result code here." }), " It's the last line Claude gives you, like DL-I-" + id + "-21/28."])
+    ]);
+
+    var roomBtn = h("button", { class: "btn btn-primary btn-copy", type: "button", text: "Open the interview room in Claude" });
+    var textBtn = h("button", { class: "btn btn-copy", type: "button", text: "Copy a text-only interview" });
+    var copyStatus = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+    var fallback = copyField("Interview text to copy");
+    function roomText(html) { return ROOM_ASK + fillRoom(html, iv, level) + "\n```"; }
+    roomBtn.addEventListener("click", function () {
+      var o = { field: fallback, status: copyStatus, btn: roomBtn, hideField: true, ok: ROOM_COPIED };
+      if (S.room) { copyText(roomText(S.room), o); return; }   // cached: the copy stays inside the click
+      copyStatus.textContent = "Fetching the room...";
+      copyStatus.classList.remove("ok", "bad");
+      roomBtn.disabled = true;
+      loadRoom().then(function (html) {
+        roomBtn.disabled = false;
+        if (ctx.alive) copyText(roomText(html), o);
+      }, function (err) {
+        roomBtn.disabled = false;
+        if (!ctx.alive) return;
+        copyStatus.textContent = errMsg(err) + " Try again, or copy the text-only interview.";
+        copyStatus.classList.remove("ok");
+        copyStatus.classList.add("bad");
+      });
+    });
+    textBtn.addEventListener("click", function () {
+      if (!DL.prompts || typeof DL.prompts.interview !== "function") {
+        copyStatus.textContent = "The interview text isn't available. Reload the page and try again.";
+        return;
+      }
+      var text = DL.prompts.interview({ id: id, title: iv.title || id, season: season, rubric: iv.rubric });
+      copyText(text, { field: fallback, status: copyStatus, btn: textBtn, hideField: true,
+        ok: "Copied. Paste it into claude.ai or the Claude app (any account) to start the interview." });
+    });
+    sec.appendChild(h("div", { class: "iv-room" }, [
+      steps,
+      h("div", { class: "btn-row" }, [roomBtn, textBtn]),
+      copyStatus,
+      fallback,
+      h("p", { class: "dim-line" }, ["or run it in Claude Code with ", h("code", { text: "/interview " + id })])
+    ]));
+
+    // the result code
+    var pid = nextId("ivcode");
+    var paste = h("textarea", { id: pid, class: "paste-field", rows: "2", spellcheck: "false", autocomplete: "off", placeholder: "DL-I-" + id + "-21/28" });
+    var saveBtn = h("button", { class: "btn btn-primary", type: "button", text: "Save my result" });
+    var msg = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+    var attemptsHost = h("div", null, attemptsEl(id));
+    function say(t, tone) {
+      msg.textContent = t;
+      msg.classList.remove("ok", "bad");
+      if (tone) msg.classList.add(tone);
+    }
+    saveBtn.addEventListener("click", function () {
+      var raw = paste.value;
+      if (!raw.trim()) { say("Paste your result code first.", "bad"); paste.focus(); return; }
+      var r = DL.prompts && typeof DL.prompts.parseCode === "function" ? DL.prompts.parseCode(raw) : null;
+      if (!r) { say("No result code found. The interview ends with a line like DL-I-" + id + "-21/28.", "bad"); return; }
+      if (r.kind !== "interview") { say("That's a grading code for a case answer. Paste it under that answer instead.", "bad"); return; }
+      if (!sameId(r.id, id)) { say("That code is for interview " + r.id + ", not this one.", "bad"); return; }
+      saveBtn.disabled = true;
+      saveInterview(id, r.score, r.max).then(function (isNew) {
+        saveBtn.disabled = false;
+        if (!ctx.alive) return;
+        paste.value = "";
+        say(isNew ? "Saved: " + r.score + "/" + r.max + ". This session is marked done." : "That result is already saved.", "ok");
+      }, function (err) {
+        saveBtn.disabled = false;
+        if (ctx.alive) say("Couldn't save: " + errMsg(err), "bad");
+      });
+    });
+    sec.appendChild(h("div", { class: "block" }, [
+      h("h2", { class: "part-head", text: "Your result" }),
+      h("label", { class: "field-k", for: pid, text: "Paste your result code" }),
+      paste,
+      h("div", { class: "btn-row" }, saveBtn),
+      msg,
+      h("h3", { text: "Past attempts" }),
+      attemptsHost
+    ]));
+    sec.appendChild(h("div", { class: "btn-row mt" }, [link("Back to tonight", "tonight", "btn"), link("Seasons", "seasons", "btn btn-ghost")]));
+
+    ctx.onProgress = function () {
+      clear(attemptsHost);
+      attemptsHost.appendChild(attemptsEl(id));
+      doneChip.hidden = !isDone(id);
+    };
+    ctx.root.appendChild(sec);
+    loadRoom().then(null, function () { /* the button tries again and says what went wrong */ });
+    return null;
+  }
+
+  /* ======================================================================
      View: settings
      ====================================================================== */
+  function flashEl(f) {
+    var text = h("p", { text: f.text || "" });
+    var box = h("div", { class: "flash mb" + (f.tone ? " " + f.tone : ""), role: "status", "aria-live": "polite" }, text);
+    if (f.retry) {
+      var retry = h("button", { class: "btn btn-small", type: "button", text: "Retry" });
+      retry.addEventListener("click", function () {
+        retry.disabled = true;
+        Promise.resolve().then(function () { return DL.store.wipe(); }).then(function (ok) {
+          if (ok === false) {
+            retry.disabled = false;
+            text.textContent = "Deleted on this device. Your account copy still couldn't be removed. Try again in a moment.";
+            return;
+          }
+          removeNode(retry);
+          box.classList.remove("warn");
+          text.textContent = "Your account copy is removed too. Tonight starts fresh.";
+        }, function (err) {
+          retry.disabled = false;
+          text.textContent = "Deleted on this device. Your account copy couldn't be removed yet (" + errMsg(err) + ").";
+        });
+      });
+      box.appendChild(retry);
+    }
+    return box;
+  }
+  /* "Move my progress to another device": a sync link to copy, and a field to merge one from elsewhere. */
+  function syncCard(ctx) {
+    var copyBtn = h("button", { class: "btn btn-primary btn-copy", type: "button", text: "Copy sync link" });
+    var copyStatus = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+    var linkField = copyField("Your sync link");
+    copyBtn.addEventListener("click", function () {
+      var url;
+      try { url = DL.sync.linkFor(state()); } catch (e) {
+        copyStatus.textContent = "The sync link couldn't be made: " + errMsg(e);
+        return;
+      }
+      copyText(url, { field: linkField, status: copyStatus, btn: copyBtn, hideField: true,
+        ok: "Copied. Open it on your other device (send it to yourself in a note or a message)." });
+    });
+    var pid = nextId("sync");
+    var paste = h("textarea", { id: pid, class: "paste-field", rows: "3", spellcheck: "false", autocomplete: "off",
+      placeholder: "A sync link from your other device, or just its code (DL1...)" });
+    var mergeBtn = h("button", { class: "btn", type: "button", text: "Merge" });
+    var msg = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
+    function say(t, tone) {
+      msg.textContent = t;
+      msg.classList.remove("ok", "bad");
+      if (tone) msg.classList.add(tone);
+    }
+    mergeBtn.addEventListener("click", function () {
+      var sm;
+      try { sm = DL.sync.apply(paste.value); } catch (e) {
+        say(errMsg(e), "bad");
+        paste.focus();
+        return;
+      }
+      paste.value = "";
+      if (!mergeChanged(sm)) { say(mergeText(sm), "ok"); return; }
+      // Settings may have changed too, so the whole view is drawn again with the merged values.
+      S.flash = { text: mergeText(sm), tone: "ok" };
+      if (S.progressTimer) { clearTimeout(S.progressTimer); S.progressTimer = 0; }
+      updateNav();
+      if (ctx.alive) renderRoute({ name: "settings" }, { focus: true });
+    });
+    return h("div", { class: "settings-group sync-card" }, [
+      h("h2", { text: "Move my progress to another device" }),
+      h("p", { class: "sync-lead", text: "Open this link on your other device. It merges; nothing is lost." }),
+      h("div", { class: "btn-row" }, copyBtn),
+      copyStatus,
+      linkField,
+      h("div", { class: "field" }, [
+        h("label", { class: "field-k", for: pid, text: "Or paste a link or code from your other device" }),
+        paste
+      ]),
+      h("div", { class: "btn-row" }, mergeBtn),
+      msg
+    ]);
+  }
   function viewSettings(ctx) {
     var set = settings();
     var sec = h("section", { class: "wrap section" }, head("Your shift", "Settings"));
-    if (S.flash) { sec.appendChild(h("p", { class: "ai-notice mb", role: "status", text: S.flash })); S.flash = ""; }
+    if (S.flash) { sec.appendChild(flashEl(typeof S.flash === "string" ? { text: S.flash } : S.flash)); S.flash = null; }
     var status = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
     function save(fn, msg) {
       return saveSettings(fn).then(function () { status.textContent = msg || "Saved."; }, function (err) { status.textContent = "Couldn't save: " + errMsg(err); });
@@ -1851,27 +2460,18 @@
     ]));
     checkAvail();
 
+    // move my progress to another device
+    if (DL.sync && typeof DL.sync.linkFor === "function") sec.appendChild(syncCard(ctx));
+
     // progress
     var taId = nextId("json");
     var ta = h("textarea", { id: taId, rows: "10", readonly: true, spellcheck: "false" });
     ta.value = exportText();
     var storeLine = h("p", { class: "field-help", text: storageText() });
     var copyStatus = h("span", { class: "status-line", role: "status", "aria-live": "polite" });
-    var copyBtn = h("button", { class: "btn", type: "button", text: "Copy" });
+    var copyBtn = h("button", { class: "btn btn-copy", type: "button", text: "Copy" });
     copyBtn.addEventListener("click", function () {
-      var text = ta.value;
-      function selectIt() {
-        try { ta.focus(); ta.select(); ta.setSelectionRange(0, text.length); } catch (e) { /* best effort */ }
-        copyStatus.textContent = "Selected. Press Ctrl+C (or Cmd+C) to copy.";
-      }
-      var clip = root.navigator && root.navigator.clipboard;
-      if (clip && typeof clip.writeText === "function") {
-        try {
-          clip.writeText(text).then(function () { copyStatus.textContent = "Copied."; }, selectIt);
-        } catch (e) { selectIt(); }
-      } else {
-        selectIt();
-      }
+      copyText(ta.value, { field: ta, status: copyStatus, btn: copyBtn, ok: "Copied." });
     });
     sec.appendChild(h("div", { class: "settings-group" }, [
       h("h2", { text: "Your progress" }),
@@ -1906,8 +2506,11 @@
     yes.addEventListener("click", function () {
       yes.disabled = true;
       no.disabled = true;
-      Promise.resolve().then(function () { return DL.store.wipe(); }).then(function () {
-        S.flash = "Your progress is deleted. Tonight starts fresh.";
+      Promise.resolve().then(function () { return DL.store.wipe(); }).then(function (ok) {
+        // wipe() resolves false when this device is cleared but the account copy couldn't be deleted.
+        S.flash = ok === false
+          ? { text: "Deleted on this device. Your account copy couldn't be removed yet.", tone: "warn", retry: true }
+          : { text: "Your progress is deleted. Tonight starts fresh." };
         if (ctx.alive) renderRoute({ name: "settings" }, { focus: true });
         else updateNav();
       }, function (err) {
@@ -1919,7 +2522,7 @@
     var where = DL.store && DL.store.mode === "cloud" ? " from your account and this browser" : " from this browser";
     sec.appendChild(h("div", { class: "settings-group danger" }, [
       h("h2", { text: "Delete my progress" }),
-      h("p", { class: "field-help", text: "Removes every closed case, cold case, note and setting" + where + ". Copy your progress first if you might want it back." }),
+      h("p", { class: "field-help", text: "Removes every closed case, cold case, note, interview result and setting" + where + ". Copy your progress first if you might want it back." }),
       h("div", { class: "btn-row" }, delBtn),
       confirmBox
     ]));

@@ -1,7 +1,12 @@
-/* sims/s1e01-v1.0.0.js  (published as sims/s1e01.js)
+/* sims/s1e01-v1.0.1.js  (published as sims/s1e01.js)
    Case s1e01 "The Building That Doesn't Exist": a DNS lookup you can watch.
 
    CHANGELOG
+   v1.0.1 (2026-10-06) review fixes: a 5-minute (300s) TTL option, the value the senior answer
+     recommends, with its own label; the log now says the laptop holds the saved copy (the long-lived
+     copy lives in the operating system, not the browser); the root and .com boxes explain that real
+     resolvers keep those pointers for about two days; selfTest adds one check that a 300s copy is
+     still saved after 240 sim-seconds and gone after 360.
    v1.0.0 (2026-10-04) first version: listener with a browser and OS cache, an ISP resolver whose
      cached answer counts down its TTL, root, .com TLD and the station's nameserver, the old server
      (switched off after the move) and the new one. Controls: lookup, move, ttl, flush, reset.
@@ -29,6 +34,7 @@
   var DEFAULT_TTL = 86400;    // the story: one day, and nobody lowered it before the move
   var TTL_OPTIONS = [
     { value: "60", label: "60 seconds" },
+    { value: "300", label: "5 minutes" },
     { value: "3600", label: "1 hour" },
     { value: "86400", label: "1 day" }
   ];
@@ -39,7 +45,7 @@
     type: "arch",
     w: 740,
     h: 430,
-    aria: "DNS lookup sim. The listener's browser asks the ISP resolver for hollowpinefm.com. On a cache miss the resolver asks the root server, the .com TLD server and the station's nameserver in turn, then the listener connects to the old or the new web server.",
+    aria: "DNS lookup sim. The listener's laptop asks the ISP resolver for hollowpinefm.com. On a cache miss the resolver asks the root server, the .com TLD server and the station's nameserver in turn, then the listener connects to the old or the new web server.",
     groups: [
       { label: "DNS NAMESERVERS", x: 70, y: 4, w: 666, h: 112 }
     ],
@@ -68,6 +74,7 @@
 
   function ttlLabel(sec) {
     if (sec === 60) return "60 seconds";
+    if (sec === 300) return "5 minutes";
     if (sec === 3600) return "1 hour";
     if (sec === 86400) return "1 day";
     return fmtLeft(sec);
@@ -79,6 +86,16 @@
     if (s >= 3600) return Math.floor(s / 3600) + "h " + pad2(Math.floor((s % 3600) / 60)) + "m";
     if (s >= 60) return Math.floor(s / 60) + "m " + pad2(s % 60) + "s";
     return s + "s";
+  }
+
+  // The reverse of fmtLeft for a cache line from cacheText (the address, a middle dot, then "4m 50s"):
+  // the seconds shown, or -1 when the line holds no countdown ("cache: empty", "asking around...").
+  function secondsLeft(text) {
+    var part = String(text).split(" " + String.fromCharCode(0xB7) + " ")[1];
+    if (!part) return -1;
+    var total = 0, re = /(\d+)([hms])/g, m;
+    while ((m = re.exec(part)) !== null) total += Number(m[1]) * (m[2] === "h" ? 3600 : m[2] === "m" ? 60 : 1);
+    return total;
   }
 
   function center(id) {
@@ -255,7 +272,7 @@
     updateStats(api);
 
     if (kind === "local") {
-      api.log("You visit " + NAME + ". Your browser already has " + ip + " saved (" + fmtLeft(S.you.exp - now) + " left), so nobody is asked.", stale);
+      api.log("You visit " + NAME + ". Your laptop already has " + ip + " saved (" + fmtLeft(S.you.exp - now) + " left), so nobody is asked.", stale);
       walk(api, ["you", dest], {
         1: function (d) { arrive(api, d, dest, dead); }
       });
@@ -272,7 +289,7 @@
         2: function (d) {
           youEntry.pending = false;
           if (d) d.cls("dot-accent");
-          api.log("Your browser saves that copy and connects to " + ip + ".", "");
+          api.log("Your laptop saves that copy and connects to " + ip + ".", "");
         },
         3: function (d) { arrive(api, d, dest, dead); }
       });
@@ -295,7 +312,7 @@
       8: function () {
         youEntry.exp = resEntry.exp;
         youEntry.pending = false;
-        api.log("Your browser and laptop save a copy too, then connect to " + ip + ".", "");
+        api.log("Your laptop saves a copy too, then connects to " + ip + ".", "");
       },
       9: function (d) { arrive(api, d, dest, dead); }
     });
@@ -355,16 +372,16 @@
 
   var INFO = {
     you: function (S, now) {
-      return "<strong>Listener (Ivy).</strong> Her browser and her laptop's operating system each keep a small cache of addresses they looked up. If a saved copy is still fresh, they skip DNS entirely. <em>Flush my own cache</em> clears only these. Right now: " + describe(S.you, now) + ".";
+      return "<strong>Listener (Ivy).</strong> Her laptop keeps a cache of addresses it looked up, in its operating system, shared by every app including the browser. Each saved copy counts down the time the resolver's copy had left. If a saved copy is still fresh, nobody is asked. <em>Flush my own cache</em> clears only the copies on her laptop. Right now: " + describe(S.you, now) + ".";
     },
     res: function (S, now) {
       return "<strong>ISP resolver (Bramblewire).</strong> Her internet provider runs it. It does the asking around for every customer and keeps each answer until its TTL runs out. Listeners can't flush it. Only Bramblewire can. Right now: " + describe(S.res, now) + ".";
     },
     root: function () {
-      return "<strong>Root server.</strong> The first stop in a full lookup. It doesn't know any website's address. It only knows which servers look after each ending, like .com, and points the resolver there.";
+      return "<strong>Root server.</strong> The first stop in a full lookup. It doesn't know any website's address. It only knows which servers look after each ending, like .com, and points the resolver there. Real resolvers save that pointer for about two days, so they rarely ask the root. This sim walks the whole path on every full lookup so you can see it.";
     },
     tld: function () {
-      return "<strong>.com TLD server.</strong> Knows, for every name ending in .com, which nameserver holds its records. It points the resolver to the station's nameserver.";
+      return "<strong>.com TLD server.</strong> Knows, for every name ending in .com, which nameserver holds its records. It points the resolver to the station's nameserver. Real resolvers save this pointer for about two days too, so when only the station's address has expired, they usually ask the station's nameserver directly.";
     },
     auth: function (S) {
       return "<strong>Station's nameserver (authoritative).</strong> Holds the station's official records. Its A record says <strong>" + (S.moved ? NEW_IP : OLD_IP) + "</strong>, and its TTL tells every resolver how long it may keep a copy: <strong>" + ttlLabel(S.ttl) + "</strong>. Changing the TTL here does nothing to copies already saved.";
@@ -479,6 +496,25 @@
       t.click("lookup");
       await t.run(6);
       t.expect(n("new") === 1 && n("dead") === 0 && n("full") === 2, "after the move with a 60s TTL and 60 sim-seconds passing, a lookup reaches the new server");
+
+      // 6. The 5-minute TTL the senior answer recommends. The clock is paused while the dot walks, so
+      //    wait until the resolver's copy has started counting down, then time it from there.
+      t.click("reset");
+      t.set("ttl", "300");
+      t.click("lookup");
+      var left = -1;
+      for (var i = 0; i < 200 && left < 0; i++) {
+        await t.run(0.05);
+        var meta = String(t.node("res").text.meta);
+        var shown = secondsLeft(meta);
+        if (meta.indexOf(OLD_IP) === 0 && shown >= 0 && shown < 300) left = shown;
+      }
+      var started = left > 200 && left < 300;
+      await t.run(Math.max(0, left - 60) / SPEED);                 // 240 sim-seconds after the copy was saved
+      var savedBefore = String(t.node("res").text.meta).indexOf(OLD_IP) === 0;
+      await t.run(120 / SPEED);                                     // 360 sim-seconds after it was saved
+      var goneAfter = t.node("res").text.meta === "cache: empty";
+      t.expect(started && savedBefore && goneAfter, "with the 300s option the resolver's copy is still saved after 240 sim-seconds and has expired after 360");
     }
   });
 })();
