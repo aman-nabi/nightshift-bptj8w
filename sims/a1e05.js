@@ -1,8 +1,10 @@
-/* sims/a1e05-v1.0.0.js  (published as sims/a1e05.js)
+/* sims/a1e05-v1.0.1.js  (published as sims/a1e05.js)
    Case a1e05 "Paying Attention": a switchboard attention lab built from Gwilym's exhibit, the 1950s
    switchboard where every line listens to every other.
 
    CHANGELOG
+   v1.0.1 (2026-10-07) the scaling note says square root of the count of numbers in each key, as the
+     paper divides by the square root of 64
    v1.0.0 (2026-10-07) first version: a widget-style sim built inside api.root (no diagram), drawn as
      two inline SVG pictures and one table that use theme classes only. One attention head in plain JS:
      ten words from Clemency's slip, each with three hand-set cards of 3 numbers (query, key, value),
@@ -94,7 +96,7 @@
   };
 
   var DIM = 3;                          // numbers per card
-  var SCALE = 1 / Math.sqrt(DIM);       // scores are divided by the square root of the key length
+  var SCALE = 1 / Math.sqrt(DIM);       // scores are divided by the square root of 3, the count of numbers in each key, as the 2017 paper divides by the square root of 64
   var HUM = 0.25;                       // how loud each line's hum is
   var SLOW = 4;                         // the slow wave turns 4 times slower than the fast one
   var ZERO = [0, 0, 0];
@@ -515,8 +517,8 @@
         "brighter for bigger, with the brightest outlined. Words marked cut were dropped before the board. The grid is the whole heat map, " +
         "one row per listening word, and every row adds up to 1. The table is every word's output: the values of every word on the board, " +
         "mixed by its weights. Each card holds 3 hand-set numbers, read as a person, a woman, an action: a teaching simplification. " +
-        "A score is the query and the key multiplied number by number and added up, divided by the square root of 3, as the 2017 paper divides " +
-        "by the square root of the key length. With the hums on, each line adds its own small sine and cosine numbers to all three cards of the word on it.");
+        "A score is the query and the key multiplied number by number and added up, divided by the square root of 3, the count of numbers in each key, " +
+        "as the 2017 paper divides by the square root of 64. With the hums on, each line adds its own small sine and cosine numbers to all three cards of the word on it.");
       draw(api);
       api.log("Four in the morning. The laptop copy, set like Saturday's board: " + BOARD_LINES + " lines, " + lamps(BOARD_LINES) +
         " lamps, hums on. Cut before the board: " + cutOff(S.order, S.lines).join(", ") + ". " + lampLine(S), "bad");

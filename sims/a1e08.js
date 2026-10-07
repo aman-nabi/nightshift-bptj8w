@@ -1,8 +1,9 @@
-/* sims/a1e08-v1.0.0.js  (published as sims/a1e08.js)
+/* sims/a1e08-v1.0.1.js  (published as sims/a1e08.js)
    Case a1e08 "Bigger Isn't Always Better": a library-growth lab built from Eskil's night at the
    Wexcombe Library, which adds a wing a year and trains a bigger reader for every one.
 
    CHANGELOG
+   v1.0.1 (2026-10-07) the routed bill counts the small reader on every question plus 10% sent up: $540; tiny numbers keep two significant digits
    v1.0.0 (2026-10-07) first version: a widget-style sim built inside api.root (no diagram), drawn as
      one inline SVG chart and one table that use theme classes only. Part A, scaling: pick a training
      compute budget and a number of parameters; the tokens that size can afford follow from the
@@ -32,7 +33,7 @@
    equation 3): E = 1.8172, A = 482.01, B = 2085.43, alpha = 0.3478, beta = 0.3658. Used only in
    selfTest, to check that every comparison in the case comes out the same way with them.
 
-   Where every number comes from (conventions rule 14; the case is content/latent/a1/a1e08-v1.0.0.json).
+   Where every number comes from (conventions rule 14; the case is content/latent/a1/a1e08-v1.0.1.json).
    Losses come from the formula above; values in brackets are unrounded.
    - post: wings a year since 2024; readers of 1B (West Wing, 2024), 2B (East Wing, 2025) and 4B (New
      Wing, this spring) parameters, each twice the last (WINGS); the catalogue, 20 billion tokens
@@ -58,9 +59,10 @@
      at 5.76 x 10^23, 70B gives 1.938 (1.937590) on 1.37 trillion tokens and 280B gives 1.984
      (1.984042) on 343 billion, best 32.2B (32.18986) on 2,982B (2982.31) tokens, 93 per parameter
      (92.65), 1.931 (1.930748); bar 85 percent picks the reading room reader at $60.00 a month; bar 89
-     picks the frontier model at $4,800.00; 10 percent sent up gives $534.00.
-   - reply part 2: $60, $240 and $4,800 a month (600 million tokens x the prices); $534 with one
-     question in ten sent up (90 x 6,000 + 10 x 480,000 cents, over 100); 0.5, 1.4 and 2.6 seconds;
+     picks the frontier model at $4,800.00; 10 percent sent up gives $540.00.
+   - reply part 2: $60, $240 and $4,800 a month (600 million tokens x the prices); $540 with one
+     question in ten sent up (the small reader still reads every question: 6,000 + 10 x 480,000 / 100
+     cents); 0.5, 1.4 and 2.6 seconds;
      352, 324 and 380 of 400; 2.401 against 2.408; 2.333 within a thousandth of the best split's
      2.333 (difference 0.00037); eight times the cost per question (8B at $0.80 against 1B at $0.10).
    - explanation: drops of 0.074 (0.07432) and 0.059 (0.05871) as the wings doubled; 2^-0.34 = 0.79,
@@ -191,10 +193,10 @@
     return null;
   }
   function monthlyCents(m) { return MTOK_PER_MONTH * m.priceCents; }
-  // A share `pct` percent of questions sent up to the frontier model, the rest answered by `m`.
+  // `m` reads every question, and a share `pct` percent of them is also sent up to the frontier model.
   function routedCents(m, pct) {
     if (m === FRONTIER) return monthlyCents(FRONTIER);
-    return ((100 - pct) * monthlyCents(m) + pct * monthlyCents(FRONTIER)) / 100;
+    return monthlyCents(m) + pct * monthlyCents(FRONTIER) / 100;
   }
 
   /* ---------- formatting ---------- */
@@ -207,7 +209,7 @@
     return i + out + (parts.length > 1 ? "." + parts[1] : "");
   }
   // Billions, for stats (no commas) and for text (commas).
-  function bil(x) { var v = x / 1e9; return v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2); }
+  function bil(x) { var v = x / 1e9; return v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v >= 0.01 ? v.toFixed(2) : v.toPrecision(2); }
   function bilText(x) { return commas(bil(x)); }
   function sizeText(N) { return N >= 1e9 ? String(N / 1e9) + "B" : String(N / 1e6) + "M"; }
   function dollarsStat(cents) { return (cents / 100).toFixed(2); }
@@ -363,7 +365,7 @@
 
   function tpp(N, D) {
     var r = D / N;
-    return r >= 10 ? String(Math.round(r)) : r >= 1 ? r.toFixed(1) : r.toFixed(2);
+    return r >= 10 ? String(Math.round(r)) : r >= 1 ? r.toFixed(1) : r.toPrecision(2);
   }
 
   /* ---------- drawing Part B ---------- */
@@ -610,15 +612,15 @@
       ok = true;
       for (k = 0; k <= MAX_UP; k += UP_STEP) {
         var rc = routedCents(MODELS[0], k);
-        if (rc !== 6000 + 4740 * k || rc !== Math.round(rc)) ok = false;
+        if (rc !== 6000 + 4800 * k || rc !== Math.round(rc)) ok = false;
       }
       for (i = 0; i < 3; i++) if (MODELS[i].priceCents !== CENTS_PER_MTOK_PER_B * MODELS[i].params / 1e9) ok = false;
       t.expect(ok && MTOK_PER_MONTH === 600 && QUESTIONS_PER_NIGHT * NIGHTS * TOKENS_PER_QUESTION === 600000000 &&
         monthlyCents(MODELS[0]) === 6000 && monthlyCents(MODELS[1]) === 12000 && monthlyCents(MODELS[2]) === 24000 &&
-        monthlyCents(FRONTIER) === 480000 && routedCents(MODELS[0], STORY_UP) === 53400 && routedCents(FRONTIER, 30) === 480000 &&
-        dollars(480000) === "4,800.00" && dollars(53400) === "534.00" && dollarsStat(6000) === "60.00" &&
+        monthlyCents(FRONTIER) === 480000 && routedCents(MODELS[0], STORY_UP) === 54000 && routedCents(FRONTIER, 30) === 480000 &&
+        dollars(480000) === "4,800.00" && dollars(54000) === "540.00" && dollarsStat(6000) === "60.00" &&
         NORTH_PRICE_CENTS === 80 && NORTH_PRICE_CENTS / MODELS[0].priceCents === 8 && monthlyCents(MODELS[2]) / monthlyCents(MODELS[0]) === 4,
-        "the cost math is exact in whole cents: 10,000 questions × 30 nights × 2,000 tokens = 600 million tokens; $60, $120, $240 and $4,800 a month; every share sent up from 0 to 50 percent gives 6,000 + 4,740 × share cents, so 10 percent is $534.00; the readers follow the $0.10 per billion parameters rule; the 8B plan costs 8 times the reading room per question");
+        "the cost math is exact in whole cents: 10,000 questions × 30 nights × 2,000 tokens = 600 million tokens; $60, $120, $240 and $4,800 a month; every share sent up from 0 to 50 percent gives 6,000 + 4,800 × share cents, the reading room reader still reading every question, so 10 percent is $540.00; the readers follow the $0.10 per billion parameters rule; the 8B plan costs 8 times the reading room per question");
 
       // 7. The choice is always the smallest model that clears the bar.
       ok = true;
@@ -702,12 +704,12 @@
       t.set("bar", 85);
       t.set("up", 10);
       await t.run(1);
-      var upView = t.stat("pick") === "reading room" && n("bill") === 534 && t.logText().indexOf("10 percent sent up") >= 0;
+      var upView = t.stat("pick") === "reading room" && n("bill") === 540 && t.logText().indexOf("10 percent sent up") >= 0;
       t.click("reset");
       await t.run(1);
       t.expect(rrView && eightView && northView && planView && westView && eastView && chinView && gophView && barView && noneView && upView &&
         st().bi === STORY_BI && st().ni === STORY_NI && st().bar === 85 && st().up === 0 && n("loss") === 2.447 && n("bill") === 60,
-        "the controls: 1B reads 80.0B for 2.408, 8B reads 10.0B for 2.515, next year 8B gives 2.401 and 2B 2.333 against a best of 1.79B at 2.333, the West Wing 2.580, the East Wing 2.506, Chinchilla-like 1.938 and Gopher-like 1.984 against a best of 32.2B at 1.931; a bar of 89 picks the frontier model at $4,800, 96 picks none, 85 with 10 percent sent up costs $534; reset returns to the New Wing");
+        "the controls: 1B reads 80.0B for 2.408, 8B reads 10.0B for 2.515, next year 8B gives 2.401 and 2B 2.333 against a best of 1.79B at 2.333, the West Wing 2.580, the East Wing 2.506, Chinchilla-like 1.938 and Gopher-like 1.984 against a best of 32.2B at 1.931; a bar of 89 picks the frontier model at $4,800, 96 picks none, 85 with 10 percent sent up costs $540; reset returns to the New Wing");
     }
   });
 })();

@@ -1,8 +1,9 @@
-/* sims/a1e07-v1.0.0.js  (published as sims/a1e07.js)
+/* sims/a1e07-v1.0.1.js  (published as sims/a1e07.js)
    Case a1e07 "How It Was Raised": a schooling lab built from Florian's night tutor at Bellcote, a
    boarding school that still teaches manners.
 
    CHANGELOG
+   v1.0.1 (2026-10-07) the lean control is labelled as a weight (50 is even); info text matches the lede
    v1.0.0 (2026-10-07) first version: a widget-style sim built inside api.root (no diagram), drawn as
      two inline SVG pictures and one table that use theme classes only. A toy tutor that, instead of
      writing words, chooses among four kinds of answer to the first-year's question: more questions,
@@ -21,7 +22,7 @@
      inspectors raising flattery, the pull-back never letting the distance grow, determinism, every
      story number, and the controls.
 
-   Where every number comes from (conventions rule 14; the case is content/latent/a1/a1e07-v1.0.0.json).
+   Where every number comes from (conventions rule 14; the case is content/latent/a1/a1e07-v1.0.1.json).
    All of them follow from LIBRARY, STEP, CORRECT, AGREEABLE, SHARP, PER_PAIR and the formulas below;
    the values in brackets are the unrounded results:
    - post: the copybook is 200 answers, 5 batches of 40 (BATCH_SIZE x STORY_BATCHES); six inspectors,
@@ -526,7 +527,7 @@
         { value: "more", label: "more questions" },
         { value: "refuse", label: "a refusal" }
       ], STORY_DEMO, function (v) { setDemo(api, v); });
-      S.ctl.lean = api.control.range("lean", "Inspectors favour agreeable over correct", 0, 100, 5, STORY_LEAN,
+      S.ctl.lean = api.control.range("lean", "Inspectors' weight on agreeable vs correct (50 is even)", 0, 100, 5, STORY_LEAN,
         function (v) { setLean(api, v); },
         { format: function (v) { return Math.round(Number(v)) + " percent"; } });
       S.ctl.pull = api.control.range("pull", "Pull-back (higher holds it nearer the copybook copy)", PULL_MIN, PULL_MAX, PULL_STEP, STORY_PULL,
@@ -545,7 +546,7 @@
       api.info("<strong>How to read it.</strong> The bars are the chances of the four kinds of answer to her question, on each saved copy; " +
         "the outlined column is the copy the stats describe. The library copy's chances are the library's own counts. Each copybook batch " +
         "moves the chances 30 percent of the remaining way toward the kind the copybook shows. Six inspectors compare every pair of kinds " +
-        "60 times, and the lean is how much they favour the agreeable answer over the correct one. The reward model gives each kind a mark " +
+        "60 times, and the lean is the weight they put on agreeable over correct: at 50 they are even, and at 80 the agreeing answer wins 55 of 60. The reward model gives each kind a mark " +
         "fitted to those ticks. The inspected copy is the copybook copy tuned toward high marks: each chance is multiplied by a boost that " +
         "grows with its mark and shrinks as the pull-back grows, then all four are rescaled to add up to 1. KL measures how far a copy has " +
         "moved from where its stage started. Four kinds of answer instead of words is a teaching simplification.");

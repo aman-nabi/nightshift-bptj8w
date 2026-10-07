@@ -1,7 +1,9 @@
-/* sims/a1e04-v1.0.0.js  (published as sims/a1e04.js)
+/* sims/a1e04-v1.0.1.js  (published as sims/a1e04.js)
    Case a1e04 "Things That Mean the Same": a scent-shelf lab built from Honorine Vasseur's twelve index cards.
 
    CHANGELOG
+   v1.0.1 (2026-10-07) labels of arrows on the left axis drawn to the left so they don't overlap; the two
+     note selects can't pick the same note
    v1.0.0 (2026-10-07) first version: a widget-style sim built inside api.root (no diagram), copying the
      a1e03 template, with one inline SVG drawing in the a1e02 style (theme classes only). Every card is a
      vector of six scores, one per note. The drawing shows every card as an arrow from zero on two notes
@@ -96,6 +98,7 @@
   var CLEANUP_LINE = 0.99;              // Lucien's clean-up: a pair at or above this cosine is "the same"
   var START_CLOCK = 20 * 60;            // twenty past midnight in the archive
   var EPS = 1e-9;                       // values closer than this count as a tie in a ranking
+  var SAME_NOTE = "Pick two different notes for the two directions.";
 
   var MEASURES = [
     { value: "cos", label: "cosine similarity (angle)", name: "cosine similarity" },
@@ -371,11 +374,14 @@
       if (item.kind !== "rest") groups[key].strong = true;
     }
 
-    // One label per tip position, so bottles that land on the same point share a label.
+    // One label per tip position, so bottles that land on the same point share a label. A tip on the
+    // left axis (0 on the note across) gets its label on the left, so labels there don't overlap.
     for (var m = 0; m < order.length; m++) {
       var gp = groups[order[m]];
       var sorted = gp.ids.slice().sort(function (a, c) { return BOTTLES.indexOf(bottle(a)) - BOTTLES.indexOf(bottle(c)); });
-      txt(doc, ui.marks, c1(gp.x + 6), c1(gp.y - 6), sorted.join(", "), gp.strong ? "dg-note" : "dg-axis", "start");
+      var lx = gp.x + 6, an = "start";
+      if (gp.x - OX < 1) { lx = gp.x - 6; an = "end"; }
+      txt(doc, ui.marks, c1(lx), c1(gp.y - 6), sorted.join(", "), gp.strong ? "dg-note" : "dg-axis", an);
     }
     S.drawn = drawn;
   }
@@ -532,10 +538,20 @@
         function (v) { S.measure = measureBy(v).value; draw(api); logMeasure(api); });
       S.ctl.norm = api.control.toggle("norm", "Normalize to length 1", false,
         function (on) { S.norm = !!on; draw(api); logNorm(api); });
+      // The two directions must be different notes: a pick that matches the other select is not applied,
+      // the select goes back to its previous note (ctl.set changes the shown value without firing again).
       S.ctl.xnote = api.control.select("xnote", "Drawing: note across", noteOpts, START_X,
-        function (v) { S.xn = NOTES.indexOf(v) >= 0 ? v : START_X; draw(api); logAxes(api); });
+        function (v) {
+          var nx = NOTES.indexOf(v) >= 0 ? v : START_X;
+          if (nx === S.yn) { S.ctl.xnote.set(S.xn); api.log(SAME_NOTE, "warn"); return; }
+          S.xn = nx; draw(api); logAxes(api);
+        });
       S.ctl.ynote = api.control.select("ynote", "Drawing: note up", noteOpts, START_Y,
-        function (v) { S.yn = NOTES.indexOf(v) >= 0 ? v : START_Y; draw(api); logAxes(api); });
+        function (v) {
+          var ny = NOTES.indexOf(v) >= 0 ? v : START_Y;
+          if (ny === S.xn) { S.ctl.ynote.set(S.yn); api.log(SAME_NOTE, "warn"); return; }
+          S.yn = ny; draw(api); logAxes(api);
+        });
       S.ctl.pairs = api.control.button("pairs", "Check every pair at 0.99", function () { checkPairs(api); }, { tone: "primary" });
       S.ctl.reset = api.control.button("reset", "Reset to 47 and 212", function () { api.reset(); });
 
