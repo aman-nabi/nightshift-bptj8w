@@ -1,0 +1,1217 @@
+{
+  "_changelog": [
+    "v1.0.1 (2026-10-07) QA: removed the \"30/s\" label on the phones-to-load-balancer edge in the fix diagram, which overlapped the phones box (the box already says 30 req/s)",
+    "v1.0.0 (2026-10-07) first version"
+  ],
+  "id": "s2e03",
+  "season": 2,
+  "n": 3,
+  "title": "Nobody Remembers You",
+  "setting": "a coat check",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "stateless-services",
+    "sticky-sessions-vs-a-shared-session-store"
+  ],
+  "prerequisites": [
+    "s2e02",
+    "s2e01",
+    "s1e01",
+    "s1e02",
+    "s1e03",
+    "s1e04",
+    "s1e05",
+    "s1e06",
+    "s1e07",
+    "s1e08",
+    "s1e09",
+    "s1e10",
+    "s1e11"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/cloakroom_carys",
+    "flair": "Part 1",
+    "age": "5h",
+    "votes": 3871,
+    "title": "I run the cloakroom at an old ballroom. Our coat tickets live on guests' phones now, and all night the website kept telling them that nobody here remembers them.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I run the cloakroom at the Mirabel Ballroom: a dance every Saturday until 3 AM, one hatch, nine hundred hooks. Above the hatch hangs a photo from 1962 of the three women who ran it then, Maud, Ellis and Vera, and beside it the old enamel sign: NO TICKET, NO COAT. NOBODY HERE REMEMBERS YOU."
+      },
+      {
+        "t": "p",
+        "text": "We stopped printing tickets in October. Guests sign in to the Mirabel's website on their phones, and a ticket page shows their hook number. It refreshes itself every 20 seconds, to show the line at my hatch. The website used to run on one server. Now it runs on three, behind a load balancer that hands each request to the next server in turn. Ansel, our contractor, named them maud, ellis and vera."
+      },
+      {
+        "t": "p",
+        "text": "On the first Saturday, 600 guests signed in, 200 on each server, and soon they were lining up at my hatch holding out the same screen:"
+      },
+      {
+        "t": "note",
+        "title": "THE MIRABEL BALLROOM",
+        "items": [
+          "NOBODY HERE REMEMBERS YOU.",
+          "PLEASE SIGN IN AGAIN."
+        ],
+        "sig": "- copied from the sign by the hatch"
+      },
+      {
+        "t": "p",
+        "text": "They signed in, and it happened again, two refreshes in every three. Ansel says the server that answers your sign-in writes your session, the note saying who you are, into its own memory. The other two have never met you. His log counted 20 sign-in screens a second. At 12:40 he turned on sticky sessions: the load balancer gives each phone a second cookie naming its server, and sends every request from that phone back there. The screens stopped. Then:"
+      },
+      {
+        "t": "log",
+        "text": "01:30:00  signed in 600   maud 200   ellis 200   vera 200\n01:52:10  maud    crashed: 200 sessions lost\n01:52:40  maud    back, memory empty\n01:58:00  nora    added\n02:00:00  maud 0   ellis 300   vera 300   nora 0"
+      },
+      {
+        "t": "p",
+        "text": "Two hundred guests saw the screen in the same second. They signed in again and landed on ellis and vera. And maud came back empty. At 1:58 Ansel added a fourth server, nora, to share the load. Nobody went to nora either."
+      },
+      {
+        "t": "beat",
+        "text": "Maud, the old staff say, never forgot a face. Her namesake forgot two hundred in one second."
+      },
+      {
+        "t": "p",
+        "text": "On New Year's Eve we expect 600 guests again, and Ansel has to update the website in the middle of the night. What should he change?"
+      },
+      {
+        "t": "evidence",
+        "label": "ansel_dashboard_0200.png",
+        "diagram": {
+          "type": "arch",
+          "w": 760,
+          "h": 300,
+          "aria": "Ansel's dashboard at 2 AM on Saturday. 600 guests' phones send 30 requests a second to a load balancer with sticky sessions on, which sends each guest back to one server. maud restarted at 1:52 and has 0 guests. ellis and vera have 300 guests each and get 15 requests a second each. nora, added at 1:58, has 0 guests. 200 guests were logged out at 1:52.",
+          "nodes": [
+            {
+              "id": "phones",
+              "label": "Guests' phones",
+              "sub": "600 signed in, 30 req/s",
+              "x": 380,
+              "y": 40,
+              "w": 260,
+              "h": 52,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "lb",
+              "label": "Load balancer",
+              "sub": "sticky cookie: on",
+              "meta": "each guest to one server",
+              "x": 380,
+              "y": 140,
+              "w": 280,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "maud",
+              "label": "maud",
+              "sub": "restarted at 1:52",
+              "meta": "0 guests",
+              "x": 110,
+              "y": 250,
+              "w": 160,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "ellis",
+              "label": "ellis",
+              "sub": "300 guests",
+              "meta": "15 req/s",
+              "x": 290,
+              "y": 250,
+              "w": 160,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "vera",
+              "label": "vera",
+              "sub": "300 guests",
+              "meta": "15 req/s",
+              "x": 470,
+              "y": 250,
+              "w": 160,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "nora",
+              "label": "nora",
+              "sub": "added at 1:58",
+              "meta": "0 guests",
+              "x": 650,
+              "y": 250,
+              "w": 160,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            }
+          ],
+          "edges": [
+            {
+              "from": "phones",
+              "to": "lb",
+              "label": "30/s"
+            },
+            {
+              "from": "lb",
+              "to": "maud",
+              "label": "0/s",
+              "dash": true,
+              "tone": "muted"
+            },
+            {
+              "from": "lb",
+              "to": "ellis",
+              "label": "15/s",
+              "tone": "ok"
+            },
+            {
+              "from": "lb",
+              "to": "vera",
+              "label": "15/s",
+              "tone": "ok"
+            },
+            {
+              "from": "lb",
+              "to": "nora",
+              "label": "0/s",
+              "dash": true,
+              "tone": "muted"
+            }
+          ],
+          "notes": [
+            {
+              "x": 110,
+              "y": 40,
+              "text": "Saturday, 02:00",
+              "tone": "muted",
+              "anchor": "middle"
+            },
+            {
+              "x": 650,
+              "y": 140,
+              "text": "200 logged out at 1:52",
+              "tone": "bad",
+              "anchor": "middle"
+            }
+          ]
+        },
+        "caption": "Ansel's dashboard at 2 AM, redrawn. 600 phones send 30 requests a second. Every guest is stuck to the server they signed in on, so ellis and vera take 300 guests and 15 requests a second each, while maud, empty since 1:52, and nora, added at 1:58, get nobody."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 88,
+      "age": "5h",
+      "text": "A session has to live somewhere, and there are only four places to put it. In one server's memory, where yours started. In one server's memory with a sticky cookie pinning each guest to that server, where yours is now: fine until that server crashes, restarts or leaves. In a shared session store, one place outside the servers that all of them read and write, so no server keeps anything about a guest between requests. That makes the servers stateless. Or in the ticket itself: the guest carries the whole session, signed so nobody can change it. Each one moves the risk somewhere. Where? And what does each one do when Ansel updates three servers, one at a time, on New Year's Eve?",
+      "replies": [
+        {
+          "author": "u/cloakroom_carys",
+          "op": true,
+          "points": 29,
+          "age": "4h",
+          "text": "Ansel drew four boxes on a napkin and crossed out the first two. Then he looked at the last two for a long time."
+        }
+      ]
+    },
+    {
+      "author": "u/hatcheck_hugo",
+      "points": 57,
+      "age": "4h",
+      "text": "I ran sticky sessions at a theater for six years. They're the quickest patch, because no code changes and they add no wait. But a server that crashes or restarts takes its guests' sessions with it. A new server only gets guests who sign in after it starts, so scaling out helps hours late. Scaling in at closing logs out everyone on the server you remove, even if you drain it first: draining lets requests finish, it can't move a session. And a rolling deploy, updating the servers one at a time so the site stays up, logs out every guest at least once. Some of ours twice."
+    },
+    {
+      "author": "u/one_ledger_lin",
+      "points": 46,
+      "age": "3h",
+      "text": "Give the attendants one ledger. We keep sessions in Redis, a fast store that holds its data in memory: each session saved under its session ID and set to expire after a few hours. Every server reads it, so any server can answer anyone. It costs one extra round trip per request, about a millisecond on ours. And the ledger becomes the thing that must not fall over. Run it with a standby copy in another zone that takes over within seconds. Without one, a failed store can come back empty, and all 600 of your guests are logged out at once."
+    },
+    {
+      "author": "u/stamped_ticket_suki",
+      "points": 38,
+      "age": "3h",
+      "text": "Or skip the ledger and let the guest carry the session. At sign-in the server writes who you are and your hook number into a token, signs it with a key every server shares, and hands it to the phone as a cookie. Any server can check the signature without asking anyone, so nobody has to remember anything. Ours came to about 700 bytes, riding on every request. Two catches. Signed isn't secret: anyone holding the token can read it. And you can't take one back: a stolen phone's ticket works until it expires.",
+      "replies": [
+        {
+          "author": "u/cloakroom_carys",
+          "op": true,
+          "points": 17,
+          "age": "2h",
+          "text": "A woman's phone was stolen on the dance floor in November. With paper, I'd have hung a STOLEN card on her hook."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "New Year's Eve: 600 guests, three servers, and an update in the middle of the night. What should Ansel do? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Keep sticky sessions and make the cookie last a full week, so a guest is never moved to another server. Do the update at 1 AM, one server at a time, so the website never goes down.",
+        "tone": "bad",
+        "verdict": "Stickier, not safer",
+        "part2": "On New Year's Eve 600 guests signed in, 200 on each server. At 1 AM Ansel updated maud first, then ellis, then vera, each one off for 30 seconds. Every server he restarted took its guests' sessions with it, and they signed in again on the two still running, which included the next one he was about to restart. The sign-in screen came up 950 times for 600 guests. By 2 AM maud carried 375 guests, ellis 225 and vera none. At 1:31 a man in a tuxedo held his phone up to the photo of Maud above my hatch, as if she could vouch for him.",
+        "senior": "A longer cookie makes the pin stronger, not safer. The session still lives in one server's memory, so every crash, restart, deploy and scale-in still throws it away, and stickiness keeps the load uneven: a server that restarts or joins gets nobody."
+      },
+      {
+        "text": "Go back to one big server. With only one memory there's nothing to be sticky about, and nobody is ever sent to a stranger.",
+        "tone": "warn",
+        "verdict": "Trade-off: one memory, one door",
+        "part2": "Ansel moved the website to one large server. Nobody saw the sign-in screen at 11 PM, or at midnight. At 1 AM he updated it, and for 30 seconds there was no website at all. When it came back its memory was empty, and all 600 guests were asked to sign in again at once. The line at my hatch reached the stairs. At 1:47 the server stopped answering, and the whole website went with it until Ansel restarted it at 1:55.",
+        "senior": "One server does remember everyone, which is why the bug only appeared with three. But it brings back everything from the first case of this season: a ceiling, a price, and a single point of failure. And a restart still wipes every session in its memory."
+      },
+      {
+        "text": "Make the servers stateless: keep every session in a shared store, such as Redis, with a standby copy in another zone. Give each session an expiry and delete it on sign-out. Then turn off sticky sessions, so any server can answer any guest.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Ansel rented a managed Redis store with a standby copy in a second zone and moved the sessions there. Each page got about a millisecond slower, and nobody noticed. On New Year's Eve 600 guests signed in, and the load balancer spread their 30 requests a second evenly, 10 to each server. At 1 AM he updated maud, ellis and vera one at a time, and nobody was logged out. At 1:40 ellis crashed: its requests went to the other two, and it came back 30 seconds later to its share of the work. At 2:14 the store's main copy failed, and the standby took over within seconds. Nobody was logged out then either. When a woman reported her phone stolen at 2:30, Ansel deleted her session, and the thief got the sign-in screen. At 3:15 he removed two servers for the quiet hours. At 3:20, after I'd locked up, the store still held one session, for hook 1, where a grey coat has hung since 1962. Ansel checked. It was his own test account from October. He'd named it Maud.",
+        "senior": "Take the state out of the servers and they become interchangeable again: crashes, deploys, scaling in and scaling out cost nobody their session, and the load balancer can spread the load evenly. The state didn't vanish. It moved to a store that now needs a standby, an expiry on every session, and a plan for when it's slow."
+      },
+      {
+        "text": "Use signed tickets: each phone carries its whole session in a cookie signed with a key all three servers share, so neither the servers nor any store has to remember anything.",
+        "tone": "warn",
+        "verdict": "Trade-off: nobody forgets, nobody can take it back",
+        "part2": "Ansel set each ticket to expire at 6 AM, when the cleaners leave. On New Year's Eve the update at 1 AM logged out nobody, and no page waited for a store. Each request carried about 700 bytes of ticket instead of a short session ID. At 1:20 a woman's phone was stolen near the bar. She reported it at 1:25. Ansel looked for a way to cancel her ticket and found none: any server that checked the signature would accept it until 6 AM. At 1:31 a man showed her ticket at my hatch, and I handed him a camel coat. Then Ansel found something else. He had put each guest's phone number inside the ticket, and anyone holding one could read it.",
+        "senior": "Signed tokens make servers stateless without a store, and many APIs work that way. But you can't take one back before it expires unless every server checks a list of cancelled tickets, which lives in a shared store again. Keep them short-lived and small, sign them with a key you can replace, and never put anything secret in them: signed isn't encrypted."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e03",
+    "title": "Run the Mirabel's website",
+    "lede": "You're Ansel, replaying Saturday at the Mirabel from 1:30 AM. 600 guests are signed in, and each phone refreshes its ticket page every 20 seconds: 30 requests a second, which the load balancer hands to the running servers in turn. The dots are a sample of those requests, and the numbers count all of them. Pick where sessions live. A guest whose request reaches a server that doesn't have their session is logged out, signs in again at once and lands on the next server in turn. A crashed or updated server is back 30 seconds later with its memory empty. The load balancer here notices a stopped server at once; the last case showed how long that really takes. Reading a shared store adds about 1 ms to each request, as on u/one_ledger_lin's store. Changing where sessions live replays the night from 1:30. The clock runs 10 times faster than real life. Click any box to see what it does.",
+    "tryThis": "Try this: with sessions in each server's memory, watch two requests in three reach a server that has never met the guest, 20 logouts a second. Remove a server, then add two, and watch the rate change. Switch to sticky sessions: nobody is logged out until you crash maud. Then 200 at once, and maud comes back to nobody while ellis and vera carry 300 each. Add a server: nora gets nobody either. Reset, pick sticky sessions again and run a rolling deploy: 950 logouts for 600 guests. Then the shared store: crash, remove and deploy all you like, for 1 ms a request. Fail the store, turn its standby copy off and fail it again. Last, switch to signed tickets, cancel a stolen phone's ticket, and try the same with the store."
+  },
+  "explain": {
+    "oneLine": "Nothing haunted the cloakroom. Each guest's session lived in one server's memory, and a load balancer that spreads requests sent two refreshes in three to a server that had never met them. Sticky sessions hid that, until a server restarted and took 200 sessions with it.",
+    "steps": [
+      {
+        "title": "A session has to live somewhere.",
+        "text": "HTTP is stateless: each request arrives as if from a stranger. A website remembers a guest with a cookie holding a session ID, and a session, the note saying who that ID belongs to. State is anything a server remembers between requests, and sessions are the commonest kind. The Mirabel's website kept them in each server's memory. On one server that worked, apart from losing them all on a restart. Behind a load balancer it can't: round robin hands each request to the next server in turn, so a guest's refresh reaches the one server holding their session only one time in three. 30 requests a second, two in three to a stranger: 20 sign-in screens a second. Each server you add makes it worse, three in four with four servers. The cure is stateless servers, where nothing a guest needs between requests lives in one server's memory. There are two real ways there, and one way to pretend."
+      },
+      {
+        "title": "Sticky sessions: one attendant per guest.",
+        "text": "Sticky sessions, also called session affinity, leave each session where it is and make the load balancer send every request from a guest back to the server holding it. An L7 load balancer does it with a cookie of its own: on the first request it picks a server with its usual algorithm and hands the browser a cookie naming that server, and after that it reads the cookie and skips the algorithm. It needs no code change and adds no wait, which is why it's the usual first patch. But the session still lives in one server's memory. A crash or restart throws away everyone on that server: 200 guests at 1:52. Scaling in does too, even with draining, because draining lets requests finish but can't move a session. A rolling deploy restarts every server, so every guest is logged out at least once. And the load stops being balanced: guests stay where they first landed, so a server that restarts or joins gets only newcomers. That's why maud and nora sat empty while ellis and vera carried 300 guests each."
+      },
+      {
+        "title": "A shared session store: one ledger for every attendant.",
+        "text": "Move the sessions out of the servers into one store they all read and write, each session saved under its session ID. Now any server can answer any guest, and the servers are stateless: a crash, a deploy, or scaling in or out costs nobody their session, and round robin spreads requests evenly again. The usual store is an in-memory key-value store such as Redis, often a managed one like Amazon ElastiCache; a database table works when traffic is light. Give every session an expiry, so the store forgets guests who left, refresh it while the guest is active, and delete it on sign-out. The price is one more round trip on every request, about a millisecond on u/one_ledger_lin's store, and one more dependency that every page needs. If it's slow, every page is slow. If it fails with no copy, it can come back empty and every guest is logged out at once. So make it highly available: a replica in another availability zone, promoted automatically if the primary fails. Replicas are usually updated asynchronously, so a failover can lose the last few sessions written."
+      },
+      {
+        "title": "A signed token: the guest carries the coat's description.",
+        "text": "The other way to make servers stateless keeps nothing on the server side at all. At sign-in the server writes the session's facts, called claims, such as who you are, your hook number and when the token expires, signs them with a key every server shares, and hands the result to the phone, usually in a cookie. On each request any server checks the signature: no lookup, no store, almost no added wait. A JWT, JSON Web Token, is the common format. It has four costs. Size: the token rides on every request, about 700 bytes at the Mirabel against a few dozen bytes for a session ID, and browsers only promise to keep 4,096 bytes per cookie. Revocation: a valid token works until it expires, and cancelling one sooner means every server checks a list of cancelled tokens, which lives in a shared store again. Secrecy: signed isn't encrypted, the claims are only encoded, so anyone holding the token can read them. Keys: every server needs the same signing key, kept secret and replaced from time to time, or a token signed on one server fails on another."
+      },
+      {
+        "title": "Stateless servers are what the rest of this season stands on.",
+        "text": "Once no server holds anything a guest needs between requests, the load balancer can send any request anywhere, a health check can throw out a server without logging anyone out, draining is free, and an Auto Scaling group can add and remove servers whenever it likes. The state didn't disappear. It moved into a store or onto the client, and that's where the design work goes now: the store's availability and speed, or the token's size, lifetime and keys. Keep stickiness for things that truly can't move, such as an open WebSocket connection, which stays on one server for its whole life anyway, or as a speed-up for a server's own cache, but never let it be the only place a session lives."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 430,
+      "aria": "The fix, drawn for New Year's Eve. 600 guests' phones send 30 requests a second to a load balancer that is no longer sticky and hands any request to any server. maud, ellis and vera each get 10 requests a second and keep no sessions. All three read sessions from a shared session store in zone A, which holds 600 sessions and is copied to a standby copy in zone B that takes over if it fails. Each request spends about 1 ms reading its session.",
+      "groups": [
+        {
+          "label": "Stateless servers",
+          "x": 90,
+          "y": 170,
+          "w": 560,
+          "h": 112
+        }
+      ],
+      "nodes": [
+        {
+          "id": "phones",
+          "label": "Guests' phones",
+          "sub": "600 signed in, 30 req/s",
+          "x": 370,
+          "y": 36,
+          "w": 260,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "lb",
+          "label": "Load balancer",
+          "sub": "round robin, not sticky",
+          "meta": "any request, any server",
+          "x": 370,
+          "y": 128,
+          "w": 300,
+          "h": 62,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "maud",
+          "label": "maud",
+          "sub": "10 req/s",
+          "meta": "keeps no sessions",
+          "x": 190,
+          "y": 236,
+          "w": 160,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "ellis",
+          "label": "ellis",
+          "sub": "10 req/s",
+          "meta": "keeps no sessions",
+          "x": 370,
+          "y": 236,
+          "w": 160,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "vera",
+          "label": "vera",
+          "sub": "10 req/s",
+          "meta": "keeps no sessions",
+          "x": 550,
+          "y": 236,
+          "w": 160,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "store",
+          "label": "Session store",
+          "sub": "Redis, zone A",
+          "meta": "600 sessions",
+          "x": 370,
+          "y": 370,
+          "w": 240,
+          "h": 62,
+          "shape": "db",
+          "tone": "accent"
+        },
+        {
+          "id": "standby",
+          "label": "Standby copy",
+          "sub": "zone B",
+          "meta": "takes over",
+          "x": 630,
+          "y": 370,
+          "w": 180,
+          "h": 62,
+          "shape": "db",
+          "tone": "muted"
+        }
+      ],
+      "edges": [
+        {
+          "from": "phones",
+          "to": "lb"
+        },
+        {
+          "from": "lb",
+          "to": "maud",
+          "label": "10/s",
+          "tone": "ok"
+        },
+        {
+          "from": "lb",
+          "to": "ellis",
+          "label": "10/s",
+          "tone": "ok"
+        },
+        {
+          "from": "lb",
+          "to": "vera",
+          "label": "10/s",
+          "tone": "ok"
+        },
+        {
+          "from": "maud",
+          "to": "store"
+        },
+        {
+          "from": "ellis",
+          "to": "store"
+        },
+        {
+          "from": "vera",
+          "to": "store"
+        },
+        {
+          "from": "store",
+          "to": "standby",
+          "label": "copies",
+          "dash": true,
+          "tone": "muted"
+        }
+      ],
+      "notes": [
+        {
+          "x": 370,
+          "y": 420,
+          "text": "each request: +1 ms to read its session",
+          "tone": "muted",
+          "anchor": "middle"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for New Year's Eve. The load balancer is no longer sticky, so it spreads 30 requests a second evenly, 10 to each server. maud, ellis and vera keep no sessions: each one reads the guest's session from the store, which adds about a millisecond, and the store's standby copy in a second zone is ready to take over if the main copy fails. Any server can crash, update or leave, and nobody is logged out.",
+    "fix": {
+      "title": "The fix: stateless servers, sessions in a shared store, and a standby for the store",
+      "text": "Keep every session in a shared store that all servers read, such as a managed Redis with a replica in a second availability zone and automatic failover. Save each session under a long random session ID, issue a fresh ID at sign-in, and give it two expiries: an idle timeout refreshed while the guest is active, and an absolute one, here closing time. Delete it on sign-out. Turn sticky sessions off, so the load balancer spreads requests evenly and any server can crash, update or leave without anyone noticing. Measure what the store adds to each request, about a millisecond here, alert on its latency, memory and failovers, and decide in advance what pages do when it's slow. Keep signed tokens for places where waiting for expiry is acceptable, keep them short-lived and small, and never put anything secret in them."
+    },
+    "limits": [
+      "The store is now a dependency every request needs. If it's slow, every page is slow; if it fails without a replica, everyone is logged out; and because replicas are usually updated asynchronously, a failover can lose the sessions written in the last moments. You've moved the single point of failure, not removed it, until the store is replicated and watched.",
+      "Signed tokens can't be taken back before they expire unless every server checks a list of cancelled tokens, which is a shared store again. Short lifetimes shrink the window, but they mean more sign-ins or a way to renew tokens.",
+      "Stateless servers don't make the system stateless. Carts, uploads in progress and open WebSocket connections still live somewhere, and a deploy still cuts open connections unless you drain. The shared store and the database behind it become the next things to scale, which is where caching, the next case, begins."
+    ],
+    "tradeoff": {
+      "head": [
+        "Where the session lives",
+        "When a server crashes, restarts or leaves",
+        "Load and added wait",
+        "Watch out for"
+      ],
+      "rows": [
+        [
+          "One server's memory",
+          "Its sessions are gone. Behind round robin, guests are lost even without a crash: two refreshes in three with three servers.",
+          "Even load, no added wait.",
+          "Works only with one server, which brings back the ceiling and the single point of failure."
+        ],
+        [
+          "Sticky sessions",
+          "Everyone pinned to that server is logged out: 200 at 1:52. A rolling deploy logs out every guest at least once.",
+          "Uneven: guests stay where they landed, so a restarted or new server gets nobody. No added wait.",
+          "A patch, not a fix. Crashes, scaling in and deploys all cost sessions."
+        ],
+        [
+          "A shared session store",
+          "Nothing is lost. Any server can answer any guest.",
+          "Even load. One extra round trip per request, about 1 ms here.",
+          "One more dependency: keep it highly available, give every session an expiry, and plan for it being slow."
+        ],
+        [
+          "A signed token",
+          "Nothing is lost. Any server holding the key can check it.",
+          "Even load. Almost no added wait, but the token rides on every request: about 700 bytes here.",
+          "Can't be cancelled before it expires without a shared list, can be read by anyone holding it, and needs a key every server shares."
+        ]
+      ]
+    },
+    "seniorTake": "Say where the state lives before you say how many servers. A server that keeps anything a user needs between requests can't be scaled, replaced or deployed freely, so make the web tier stateless and put sessions somewhere built for them: a replicated in-memory store when you need to see and cancel sessions, signed tokens when you can live with expiry as the only way to cancel. Sticky sessions are a fine bridge while you get there, and a fine speed-up afterwards, but never the only copy. Then name the new dependency with numbers: about a millisecond per request, a replica that takes over in seconds, an expiry on every session, and what users see when the store is slow.",
+    "realWorld": [
+      {
+        "title": "Sticky sessions on an AWS Application Load Balancer",
+        "text": "AWS's Application Load Balancer routes each request on its own by default, and offers sticky sessions, which it also calls session affinity, per target group. With stickiness on, the routing algorithm picks the first target, and later requests from the same client go to the same target, bypassing the algorithm. Duration-based stickiness uses a cookie the load balancer makes itself, AWSALB; application-based stickiness follows a cookie your application sets and adds the load balancer's own AWSALBAPP cookie. The load balancer encrypts its cookies with a rotating key, resets their expiry after every request, and gives them their own expiry of 7 days, which you can't change. If the cookie points to a target that was deregistered or is unhealthy, it picks a new target. The weighted random algorithm can't be used with sticky sessions. And the guide warns that when the number of targets increases considerably, stickiness can leave the load unequally distributed, and suggests rebalancing by expiring the application's cookie or setting a very short stickiness duration, such as 1 second.",
+        "source": 0
+      },
+      {
+        "title": "How long the pin lasts",
+        "text": "AWS's API Reference gives the same range for both kinds of stickiness: a duration from 1 second to 1 week (604,800 seconds), with a default of 1 day (86,400 seconds). After that time the load balancer treats the cookie as stale, and the client is no longer pinned.",
+        "source": 1
+      },
+      {
+        "title": "The logged-out-on-refresh pattern, as Microsoft documents it",
+        "text": "Microsoft's guide to hosting ASP.NET Core in a web farm, several servers behind a load balancer, describes the pattern this case is built on. By default each server keeps its own key ring, so no server can decrypt data that another encrypted, including the sign-in cookie. A user who signs in on one server is fine while their next request reaches that server, and fails when it reaches a different one. The guide lists the symptoms, which appear intermittently: authentication breaks, session state loses data, cached items disappear. Its fixes are a shared key ring and a cache every server shares, such as a common Redis cache or a shared SQL Server database, and it names the alternative: always routing a user's requests to the same server.",
+        "source": 2
+      },
+      {
+        "title": "A session store that says it won't scale",
+        "text": "express-session is a widely used session library for Node.js web servers. It keeps only the session ID in the cookie and the session data on the server side. Its documentation warns that the default store, MemoryStore, is purposely not designed for a production environment: it will leak memory under most conditions, does not scale past a single process, and is meant for debugging and developing. Run two copies of a server like that behind a load balancer and you have the Mirabel's first Saturday.",
+        "source": 3
+      },
+      {
+        "title": "AWS on why sessions belong in a central store",
+        "text": "AWS's caching overview says that with modern application architectures, a centralized session management data store is the ideal solution, giving consistent user experiences across all web servers, better session durability when a fleet of web servers is elastic, and higher availability when session data is replicated across cache servers. The same page describes reading from an in-memory cache as extremely fast, sub-millisecond.",
+        "source": 4
+      },
+      {
+        "title": "Keeping the store up: ElastiCache Multi-AZ",
+        "text": "For its Redis-compatible engines, Amazon ElastiCache recommends Multi-AZ for high availability: replicas sit in other availability zones, and if the primary node fails, the replica with the least replication lag is promoted automatically, and writes can resume within seconds. Without Multi-AZ, a failed primary is replaced, and if there are no replicas the new primary starts empty and the data is lost unless you restore it from a snapshot. Replication is asynchronous, so when a primary fails over, a small amount of data might be lost to replication lag.",
+        "source": 5
+      },
+      {
+        "title": "Letting the store forget: Redis EXPIRE",
+        "text": "Redis's EXPIRE command sets a timeout on a key, and once it passes the key is deleted automatically, which is how a session store forgets guests who left. Calling EXPIRE again on a key that already has a timeout updates it, so refreshing it on each request turns it into an idle timeout. One catch: commands that overwrite the key, such as SET, clear its timeout, so a session rewritten with SET stays forever unless its expiry is set again.",
+        "source": 6
+      },
+      {
+        "title": "What OWASP asks of any session",
+        "text": "The OWASP Session Management Cheat Sheet asks for session IDs with at least 64 bits of randomness, whose value is meaningless, with the meaning kept on the server side. It gives common idle timeouts of 2 to 5 minutes for high-value applications and 15 to 30 minutes for low-risk ones, and absolute timeouts of 4 to 8 hours for an application used through an office day. When a session expires or the user logs out, the application must invalidate it on the server side, and it must issue a new session ID at sign-in.",
+        "source": 7
+      },
+      {
+        "title": "JWTs as sessions: OWASP's caution",
+        "text": "OWASP's JSON Web Token Cheat Sheet notes that JWTs are often suggested for stateless user sessions, and that if you use them that way you need a way to invalidate sessions, such as a deny list of revoked tokens, after which the sessions won't be completely stateless any more, which might defeat the point. It also warns that a signed JWT gives integrity and authenticity but not confidentiality: the claims are only base64url encoded, so anyone who obtains the token can read every one. Its advice is to keep sensitive data on the server side, behind a reference that means nothing by itself.",
+        "source": 8
+      },
+      {
+        "title": "What a JWT is",
+        "text": "RFC 7519 defines a JSON Web Token as a compact, URL-safe means of representing claims to be transferred between two parties. The claims are a JSON object, which can be signed, encrypted, or both.",
+        "source": 9
+      },
+      {
+        "title": "How big a cookie can be",
+        "text": "RFC 6265, the standard for HTTP cookies, asks browsers to support at least 4,096 bytes per cookie, counting its name, value and attributes, and at least 50 cookies per domain. It also says servers SHOULD encrypt and sign the contents of cookies they send, even over a secure connection. Every byte of a cookie rides on every request to that site.",
+        "source": 10
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How do you scale a stateful web app horizontally?",
+        "Sticky sessions or a shared session store? What happens to a signed-in user when you deploy?"
+      ],
+      "answer": "Start by finding the state: anything a server remembers between requests, usually sessions, sometimes carts or uploads. You can't scale out freely while it lives in one server's memory, because the load balancer may send the next request anywhere. Name the options and pick. Sticky sessions pin each user to a server with a load balancer cookie: no code change, but crashes, scaling in and deploys still log people out, and the load stays uneven. A shared session store, such as Redis on ElastiCache with a replica in another availability zone, makes the servers stateless: any server answers anyone, and deploys and scaling cost nobody their session, for about a millisecond per request and one more dependency that must be highly available. Signed tokens such as JWTs keep the server side empty, but they're hard to cancel before they expire and must never hold secrets. My default for a web app with sign-in is the shared store, an expiry on every session, and stickiness off. Then say what you'd watch: the store's latency, memory and failovers. You'll build session affinity into your own load balancer later, in Gatekeeper's Build Night G4."
+    }
+  },
+  "terms": [
+    {
+      "term": "Cloakroom",
+      "def": "A room or counter where guests leave coats and bags and get a ticket to claim them later. Also called a coat check."
+    },
+    {
+      "term": "Hatch",
+      "def": "The window in a cloakroom counter where coats are handed over and collected."
+    },
+    {
+      "term": "Hook number",
+      "def": "The number of the hook a coat hangs on. At the Mirabel, the ticket page shows it."
+    },
+    {
+      "term": "Ticket page",
+      "def": "The Mirabel's web page that shows a signed-in guest's hook number and the line at the hatch. It refreshes itself every 20 seconds."
+    },
+    {
+      "term": "Sign-in screen",
+      "def": "The page a website shows when it doesn't know who you are. At the Mirabel it reads NOBODY HERE REMEMBERS YOU."
+    },
+    {
+      "term": "Logged out",
+      "def": "No longer recognized by a website, so it asks you to sign in again. Here it happens when a request reaches a server that doesn't have your session."
+    },
+    {
+      "term": "Sign out",
+      "def": "Ending a session on purpose. The server should delete the session itself, not just the cookie. Also called logging out."
+    },
+    {
+      "term": "State",
+      "def": "Anything a program remembers between one request and the next, such as who a guest is or what's in their cart."
+    },
+    {
+      "term": "Stateful server",
+      "def": "A server that keeps state, such as sessions, in its own memory, so only it can answer a guest's next request properly."
+    },
+    {
+      "term": "Stateless service",
+      "def": "A service whose servers keep nothing a user needs between requests, so any copy can answer any request. The state lives in a shared store or with the client."
+    },
+    {
+      "term": "Crash",
+      "def": "When a program stops suddenly because of an error. Everything it kept in memory is lost."
+    },
+    {
+      "term": "Share (of requests)",
+      "def": "The part of all requests one server gets, as a percentage. Round robin over three servers gives each about 33%."
+    },
+    {
+      "term": "Sticky sessions",
+      "def": "A load balancer setting that sends every request from one client to the same server, usually by giving the client a cookie naming it. Also called session affinity."
+    },
+    {
+      "term": "Session affinity",
+      "def": "Another name for sticky sessions: tying each client to the one server that holds its session."
+    },
+    {
+      "term": "Pinned",
+      "def": "Tied to one server by a stickiness cookie, so every request goes there."
+    },
+    {
+      "term": "Stickiness cookie",
+      "def": "The cookie a load balancer adds to remember which server a client is pinned to. On AWS: AWSALB, or AWSALBAPP for application-based stickiness."
+    },
+    {
+      "term": "Duration-based stickiness",
+      "def": "Stickiness that lasts for a time you set, using a cookie the load balancer makes itself. On an AWS Application Load Balancer the cookie is AWSALB."
+    },
+    {
+      "term": "Application-based stickiness",
+      "def": "Stickiness that follows a session cookie your own application sets. An AWS Application Load Balancer adds its own AWSALBAPP cookie alongside it."
+    },
+    {
+      "term": "AWSALB",
+      "def": "The encrypted cookie an AWS Application Load Balancer makes for duration-based stickiness. It records which target the client is pinned to."
+    },
+    {
+      "term": "AWSALBAPP",
+      "def": "The encrypted cookie an AWS Application Load Balancer makes for application-based stickiness, sent alongside the application's own cookie."
+    },
+    {
+      "term": "Stickiness duration",
+      "def": "How long a load balancer keeps sending a client to the same target. On an AWS Application Load Balancer: 1 second to 7 days, 1 day by default."
+    },
+    {
+      "term": "Rebalance",
+      "def": "To spread load evenly again after it has piled up on some servers, for example by letting stickiness cookies expire."
+    },
+    {
+      "term": "Rolling deploy",
+      "def": "Putting a new version live one server at a time: each is drained, restarted and returned while the others keep serving, so the site never goes down."
+    },
+    {
+      "term": "Shared session store",
+      "def": "One store outside the web servers where every server reads and writes sessions, each saved under its session ID. Redis and database tables are common choices."
+    },
+    {
+      "term": "Ledger",
+      "def": "A book of records. In the comments, a nickname for a shared session store."
+    },
+    {
+      "term": "Redis",
+      "def": "A widely used data store that keeps its data in memory, so reads are very fast. Often used for sessions and caches. Amazon ElastiCache can run it for you."
+    },
+    {
+      "term": "In-memory store",
+      "def": "A data store that keeps its data in RAM instead of on disk, which makes reads very fast."
+    },
+    {
+      "term": "Key-value store",
+      "def": "A store that saves each value under a name, its key, and finds it by that key, like a session saved under its session ID."
+    },
+    {
+      "term": "Expiry",
+      "def": "The moment something stops being valid. A session store deletes a session at its expiry, and servers refuse a token after its expiry."
+    },
+    {
+      "term": "Idle timeout",
+      "def": "How long a session may go unused before it expires. Each request resets the clock."
+    },
+    {
+      "term": "Absolute timeout",
+      "def": "The longest a session may last, however active it is. After it, the user must sign in again."
+    },
+    {
+      "term": "EXPIRE",
+      "def": "The Redis command that sets a timeout on a key. When the timeout passes, Redis deletes the key. Calling it again resets the timeout."
+    },
+    {
+      "term": "SET",
+      "def": "The Redis command that stores a value under a key. Overwriting a key with SET clears any timeout it had."
+    },
+    {
+      "term": "Replica",
+      "def": "A copy of a data store that receives the main copy's changes and can take its place if it fails. The comments call it a standby copy."
+    },
+    {
+      "term": "Primary node",
+      "def": "The copy of a replicated store that accepts writes. If it fails, a replica can be promoted to take its place."
+    },
+    {
+      "term": "Promote",
+      "def": "To make a replica the new primary after the primary fails."
+    },
+    {
+      "term": "Replication lag",
+      "def": "How far a replica is behind the primary: changes made on the primary that haven't reached the replica yet."
+    },
+    {
+      "term": "Asynchronous replication",
+      "def": "Copying each change to replicas after the write is already done. Writes stay fast, but a failover can lose the newest changes."
+    },
+    {
+      "term": "Highly available",
+      "def": "Built to keep working when a part fails, usually by running copies in different places with automatic failover."
+    },
+    {
+      "term": "Snapshot",
+      "def": "A saved copy of a store's data at one moment, which can be restored later."
+    },
+    {
+      "term": "Cluster",
+      "def": "A group of machines that together run one service, such as an ElastiCache cluster with a primary and replicas."
+    },
+    {
+      "term": "Node",
+      "def": "One machine, or one running copy, in a group that works together, such as a web server in a web farm or a member of a cluster."
+    },
+    {
+      "term": "Token",
+      "def": "A small piece of data a client presents to prove something, such as who it is."
+    },
+    {
+      "term": "Signed token",
+      "def": "A token holding the session's facts, signed with a key the servers hold, so any of them can check nobody changed it. The server stores nothing."
+    },
+    {
+      "term": "Signed ticket",
+      "def": "The comments' name for a signed token that holds a guest's session."
+    },
+    {
+      "term": "Claim",
+      "def": "One fact inside a token, such as who the user is, their hook number or when the token expires."
+    },
+    {
+      "term": "JWT",
+      "def": "JSON Web Token: a standard format for tokens, defined in RFC 7519. A signed JWT has three parts, a header, the claims and a signature, each base64url encoded."
+    },
+    {
+      "term": "base64url",
+      "def": "A way to write any bytes using only letters, digits, - and _, so they fit in web addresses and cookies. It's an encoding, not encryption: anyone can decode it."
+    },
+    {
+      "term": "Encoded",
+      "def": "Written in a different form, like base64url, that anyone can turn back. Unlike encryption, encoding hides nothing."
+    },
+    {
+      "term": "URL-safe",
+      "def": "Made only of characters that can sit in a web address without being changed or escaped."
+    },
+    {
+      "term": "Signing key",
+      "def": "The secret a server uses to sign tokens. Every server that checks them needs the same key, or the matching public key."
+    },
+    {
+      "term": "Rotating key",
+      "def": "A key that is replaced on a schedule, so an old or stolen key stops working. Replacing a signing key also cancels every token signed with the old one."
+    },
+    {
+      "term": "Key ring",
+      "def": "A set of keys a framework uses to protect cookies. ASP.NET Core keeps one per server by default, so servers in a web farm must share one."
+    },
+    {
+      "term": "Revocation",
+      "def": "Cancelling a session or token before it expires. Easy when sessions live in a store; hard for signed tokens."
+    },
+    {
+      "term": "Deny list",
+      "def": "A list of cancelled tokens that every server checks before accepting one. It must live in a shared store, which brings the store back."
+    },
+    {
+      "term": "Authentication",
+      "def": "Checking who someone is, such as when they sign in."
+    },
+    {
+      "term": "Authenticity",
+      "def": "Proof of who made something. A valid signature shows a token came from someone holding the key."
+    },
+    {
+      "term": "Confidentiality",
+      "def": "Keeping data secret from anyone who isn't meant to read it. Encryption gives it; a signature doesn't."
+    },
+    {
+      "term": "Web farm",
+      "def": "Microsoft's term for two or more web servers running copies of one app behind a load balancer."
+    },
+    {
+      "term": "ASP.NET Core",
+      "def": "Microsoft's free framework for building web apps and APIs with .NET."
+    },
+    {
+      "term": "Session state",
+      "def": "ASP.NET Core's name for data kept in a user's session between requests."
+    },
+    {
+      "term": "Framework",
+      "def": "Ready-made code a web app is built on, which handles common jobs such as sessions and sign-in."
+    },
+    {
+      "term": "Library",
+      "def": "Ready-made code a program uses for one job, such as express-session for sessions."
+    },
+    {
+      "term": "Node.js",
+      "def": "A program that runs JavaScript on servers. Many web servers are written for it."
+    },
+    {
+      "term": "express-session",
+      "def": "A widely used session library for Node.js web servers. It keeps only the session ID in the cookie and the session on the server side."
+    },
+    {
+      "term": "MemoryStore",
+      "def": "express-session's default session store, which keeps sessions in one process's memory. Its documentation says it isn't designed for production."
+    },
+    {
+      "term": "Memory leak",
+      "def": "When a program keeps memory it no longer needs, so its memory use grows until it slows down or crashes."
+    },
+    {
+      "term": "Debugging",
+      "def": "Finding and fixing what makes a program misbehave."
+    },
+    {
+      "term": "Distributed cache",
+      "def": "A cache several servers share over the network, such as Redis, instead of each keeping its own."
+    },
+    {
+      "term": "SQL Server",
+      "def": "Microsoft's relational database. ASP.NET Core can use it as a cache that every server in a web farm shares."
+    },
+    {
+      "term": "Fleet",
+      "def": "All the servers running one service."
+    },
+    {
+      "term": "Elastic",
+      "def": "Able to grow and shrink as load changes, as a fleet does when servers are added and removed."
+    },
+    {
+      "term": "API Reference",
+      "def": "The part of AWS's documentation that lists every setting and call a service accepts, with their ranges and defaults."
+    },
+    {
+      "term": "Gatekeeper",
+      "def": "The load balancer you build yourself, from scratch, in this course's Build Nights."
+    },
+    {
+      "term": "Build Night",
+      "def": "A session in this course where you build part of a real project with what the recent cases taught. Gatekeeper's G4 adds session affinity."
+    }
+  ],
+  "atWork": "Open the EC2 console for your team's production account (read-only access is enough), go to Target Groups, pick the one in front of a web app you know, and open its Attributes tab. Is stickiness on? Which type, and for how long? If it's on, ask why, and find where the app keeps its sessions. In the code or its config, look for the session setup: an in-memory default such as express-session's MemoryStore, files on a server's own disk, a Redis or ElastiCache endpoint, a database table, or signed tokens such as JWTs. If it's a store, open it in the ElastiCache console and check whether it has a replica in another availability zone and Multi-AZ turned on, and whether sessions are written with an expiry. If it's tokens, find their lifetime and how a stolen one would be cancelled. Last, look at your most recent deploy: did sign-ins, or 401 responses, jump in the logs or the load balancer's metrics while it rolled?",
+  "board": {
+    "cards": [
+      {
+        "id": "stateless-services",
+        "title": "Stateless services"
+      },
+      {
+        "id": "sticky-sessions-vs-a-shared-session-store",
+        "title": "Sticky vs shared store"
+      }
+    ],
+    "strings": [
+      {
+        "from": "stateless-services",
+        "to": "horizontal-scaling",
+        "label": "lets you scale out"
+      },
+      {
+        "from": "stateless-services",
+        "to": "load-balancers",
+        "label": "any server works"
+      },
+      {
+        "from": "stateless-services",
+        "to": "cookies",
+        "label": "client holds ID"
+      },
+      {
+        "from": "stateless-services",
+        "to": "connection-draining",
+        "label": "drains are free"
+      },
+      {
+        "from": "sticky-sessions-vs-a-shared-session-store",
+        "to": "load-balancers",
+        "label": "affinity cookie"
+      },
+      {
+        "from": "sticky-sessions-vs-a-shared-session-store",
+        "to": "memory",
+        "label": "lost on restart"
+      },
+      {
+        "from": "sticky-sessions-vs-a-shared-session-store",
+        "to": "availability-zones",
+        "label": "replica in another"
+      },
+      {
+        "from": "sticky-sessions-vs-a-shared-session-store",
+        "to": "single-point-of-failure",
+        "label": "store can be one"
+      },
+      {
+        "from": "sticky-sessions-vs-a-shared-session-store",
+        "to": "sessions-vs-jwts",
+        "label": "tokens, deeper"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e03-r1",
+      "kind": "free",
+      "prompt": "Your team's web app runs on 4 EC2 instances behind an Application Load Balancer with sticky sessions on, and each instance keeps sessions in its own memory. After every deploy, support gets a wave of 'I was logged out' tickets, and for hours afterwards one instance runs hot while the newest sits nearly idle. What's happening, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "Sessions live in each instance's memory, so the deploy's restarts wipe them and log those users out",
+          "match": [
+            "memory",
+            "restart",
+            "wipe",
+            "lost",
+            "in-memory",
+            "local",
+            "logged out",
+            "logs out"
+          ]
+        },
+        {
+          "idea": "Stickiness keeps users pinned where they landed, so restarted or new instances get few users: uneven load",
+          "match": [
+            "sticky",
+            "pinned",
+            "stuck",
+            "uneven",
+            "unequal",
+            "new instance",
+            "idle",
+            "affinity",
+            "rebalance",
+            "hot"
+          ]
+        },
+        {
+          "idea": "Make the instances stateless: move sessions to a shared store such as Redis on ElastiCache, or to signed tokens",
+          "match": [
+            "shared",
+            "store",
+            "redis",
+            "elasticache",
+            "database",
+            "stateless",
+            "token",
+            "jwt",
+            "central"
+          ]
+        },
+        {
+          "idea": "Then turn stickiness off, and make the store highly available: a replica in another zone, with failover",
+          "match": [
+            "turn off",
+            "turn it off",
+            "disable",
+            "switch off",
+            "replica",
+            "multi-az",
+            "standby",
+            "failover",
+            "another zone"
+          ]
+        }
+      ],
+      "model": "Each deploy restarts every instance, and the sessions in its memory go with it, so everyone pinned to it is logged out. Stickiness then keeps users where they landed: the instances that restarted, or a new one, get only fresh sign-ins, so the load stays uneven for hours. Sticky sessions hid the real problem, which is that the instances aren't stateless. Move sessions to a shared store, for example ElastiCache with a replica in another availability zone and Multi-AZ failover, with an expiry on each session, and the instances can restart, scale in or out, and deploy without logging anyone out. Then turn stickiness off so the load balancer spreads requests evenly. The cost is a round trip to the store on each request, and the store itself now has to be highly available."
+    },
+    {
+      "id": "s2e03-r2",
+      "kind": "mcq",
+      "prompt": "Three servers sit behind round robin, and each keeps sessions in its own memory. A signed-in user refreshes. Roughly how often does the refresh reach a server that doesn't know them?",
+      "options": [
+        "Never: the cookie tells every server who they are",
+        "One time in three",
+        "Two times in three",
+        "Only when a server restarts"
+      ],
+      "answer": 2,
+      "why": "The cookie carries only the session ID. The session itself is in one server's memory, and round robin may send the request to any of the three, so two in three reach a server that has never seen that ID. With four servers it's three in four."
+    },
+    {
+      "id": "s2e03-r3",
+      "kind": "free",
+      "prompt": "You moved sessions out of the web servers into a single Redis node. Deploys are calm now. Your manager asks: so what's the new risk, and what do we do about it?",
+      "keyIdeas": [
+        {
+          "idea": "Every request now depends on the store: if it's slow or down, every page is",
+          "match": [
+            "depend",
+            "every request",
+            "single point",
+            "spof",
+            "down",
+            "slow",
+            "outage",
+            "one node"
+          ]
+        },
+        {
+          "idea": "With no replica, a failure can lose every session and log everyone out",
+          "match": [
+            "replica",
+            "lose",
+            "lost",
+            "empty",
+            "everyone",
+            "all users",
+            "log out",
+            "logged out",
+            "logs out"
+          ]
+        },
+        {
+          "idea": "Run a replica in another zone with automatic failover, knowing asynchronous replication can lose the newest writes",
+          "match": [
+            "replica",
+            "multi-az",
+            "standby",
+            "another zone",
+            "failover",
+            "promot",
+            "async",
+            "lag"
+          ]
+        },
+        {
+          "idea": "Give sessions an expiry, watch the store's latency and memory, and decide what pages do when it's slow",
+          "match": [
+            "expire",
+            "expiry",
+            "ttl",
+            "timeout",
+            "monitor",
+            "alert",
+            "memory",
+            "latency",
+            "fallback"
+          ]
+        }
+      ],
+      "model": "The store is now a dependency of every request, and with one node it's a single point of failure: if it's slow, every page is slow, and if it fails it can come back empty and log everyone out. I'd run it with a replica in another availability zone and automatic failover, for example ElastiCache with Multi-AZ, accepting that replication is asynchronous, so a failover can lose the last few sessions written. I'd give every session an expiry so the store doesn't fill up, alert on its latency, memory and failovers, and decide in advance what pages do if a lookup times out, such as keeping public pages working and asking for sign-in only where it's needed."
+    },
+    {
+      "id": "s2e03-r4",
+      "kind": "mcq",
+      "prompt": "A guest's phone is stolen. Which way of keeping sessions makes it hardest to stop the thief's ticket working right now?",
+      "options": [
+        "Sessions in a shared Redis store",
+        "Sticky sessions, with sessions in each server's memory",
+        "Signed tokens that expire at 6 AM, with no list of cancelled tokens",
+        "Sessions in a database table"
+      ],
+      "answer": 2,
+      "why": "Any server that checks a signed token's signature accepts it until it expires. In every other option the session lives somewhere a server can delete it. To cancel tokens early, every server must check a list of cancelled ones, which is a shared store again."
+    },
+    {
+      "id": "s2e03-r5",
+      "kind": "mcq",
+      "prompt": "With sticky sessions on, you add two servers at 9 PM while 1,000 users are already signed in. What share of the traffic do the new servers get at first?",
+      "options": [
+        "An equal share at once",
+        "Almost none: signed-in users stay pinned to the old servers, and only new sign-ins reach the new ones",
+        "All of it, because new servers are preferred",
+        "Half, split between them"
+      ],
+      "answer": 1,
+      "why": "Stickiness bypasses the algorithm for anyone already pinned. New servers get only clients without a stickiness cookie, so they stay nearly idle until the pins expire. AWS's own guide warns about unequal load after scaling up with stickiness."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. The store worked, but Ansel wanted one less thing to run, so in April he moved the Mirabel to signed tickets that last until 6 AM. To save the hatch tablet a lookup, he put each guest's name, phone number and hook number in the ticket, and the code for the cloakroom's back door, so the tablet could open it. On Saturday a guest's phone was stolen at 11:40 PM. She reported it at 11:45, and Ansel found no way to cancel her ticket. At 12:15 someone showed it at my hatch and left with her coat. On Monday morning the back door was unlocked. Nothing was missing. Every coat had been moved one hook to the left.",
+    "prompt": "Reply to OP. What went wrong, and what should Ansel do now?",
+    "keyIdeas": [
+      {
+        "idea": "A signed ticket can't be cancelled before it expires unless every server checks a shared list of cancelled tickets",
+        "match": [
+          "revoke",
+          "revocation",
+          "cancel",
+          "can't take",
+          "cannot take",
+          "until it expires",
+          "until 6",
+          "expiry",
+          "deny",
+          "blocklist",
+          "block list",
+          "list of cancelled"
+        ]
+      },
+      {
+        "idea": "Signed isn't encrypted: anyone holding the ticket can read it, so it must never hold secrets like the door code",
+        "match": [
+          "secret",
+          "read it",
+          "readable",
+          "encrypt",
+          "not encrypted",
+          "base64",
+          "door code",
+          "phone number",
+          "decode",
+          "anyone can read"
+        ]
+      },
+      {
+        "idea": "Change the door code and the signing key now, then go back to a shared session store and keep private data on the server side",
+        "match": [
+          "change the code",
+          "new code",
+          "change the door",
+          "rotate",
+          "new key",
+          "signing key",
+          "session store",
+          "shared store",
+          "redis",
+          "server side",
+          "server-side",
+          "short-lived"
+        ]
+      }
+    ],
+    "model": "Two mistakes. First, a signed ticket can't be taken back: any server that checks the signature accepts it until it expires, so a ticket stolen at 11:40 PM was good until 6 AM. To cancel one sooner, every server has to check a list of cancelled tickets, and that list lives in a shared store, the very thing he was trying to get rid of. Second, signed isn't secret. The claims are only encoded, so anyone holding a ticket could read the guest's phone number and the back-door code. Change the door code today, and replace the signing key, which cancels every ticket at once, the stolen one included, at the price of logging everyone out. Then go back to the shared session store for guest sign-ins, where deleting a session cancels it at once, and keep anything private on the server side. If he keeps tokens anywhere, make them short-lived, small and free of secrets."
+  },
+  "next": "Next, The Jar on the Counter: an all-night bakery where the baker keeps the loaves people ask for most in a jar by the till, and at 4 AM the jar starts handing out bread that sold out yesterday.",
+  "sources": [
+    {
+      "title": "Elastic Load Balancing, Application Load Balancers: Edit target group attributes, Sticky sessions (also known as session affinity; the routing algorithm picks the first target and later requests bypass it; duration-based AWSALB and application-based AWSALBAPP cookies, encrypted with a rotating key; expiry reset after every request; the generated cookies' own non-configurable 7-day expiry; a new target when the cookie refers to a deregistered or unhealthy target; weighted random can't be used with sticky sessions; manual rebalancing after scaling up)",
+      "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-target-group-attributes.html"
+    },
+    {
+      "title": "Elastic Load Balancing API Reference: TargetGroupAttribute (stickiness.lb_cookie.duration_seconds and stickiness.app_cookie.duration_seconds: 1 second to 1 week, 604800 seconds; default 1 day, 86400 seconds; the cookie is considered stale afterwards)",
+      "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_TargetGroupAttribute.html"
+    },
+    {
+      "title": "Microsoft Learn: Host ASP.NET Core in a web farm (a unique key ring stored on each node by default; always routing user requests to the same node as the alternative; a common Redis cache or a shared SQL Server database for caching; intermittent symptoms when Data Protection or caching isn't configured)",
+      "url": "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/web-farm"
+    },
+    {
+      "title": "expressjs/session README (session data is not saved in the cookie itself, just the session ID; the default MemoryStore is purposely not designed for a production environment, will leak memory under most conditions and does not scale past a single process)",
+      "url": "https://github.com/expressjs/session"
+    },
+    {
+      "title": "AWS: What is Caching and How it Works, Session Management section (a centralized session management data store is the ideal solution; reading data from an in-memory cache is sub-millisecond)",
+      "url": "https://aws.amazon.com/caching/"
+    },
+    {
+      "title": "Amazon ElastiCache User Guide: Minimizing downtime in ElastiCache by using Multi-AZ with Valkey and Redis OSS (automatic promotion of the replica with the least replication lag; writes can resume within seconds; with no replicas a new primary starts empty; replication is asynchronous, so a small amount of data might be lost)",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/AutoFailover.html"
+    },
+    {
+      "title": "Redis documentation: EXPIRE (sets a timeout on a key, which is deleted automatically when it passes; calling EXPIRE again updates the timeout; commands that overwrite the key, including SET, clear it)",
+      "url": "https://redis.io/docs/latest/commands/expire/"
+    },
+    {
+      "title": "OWASP Session Management Cheat Sheet (at least 64 bits of entropy; meaningless session ID values with the meaning stored on the server side; idle timeouts of 2 to 5 minutes for high-value and 15 to 30 minutes for low-risk applications; absolute timeouts of 4 to 8 hours; server-side invalidation on logout; session ID renewal at authentication)",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    },
+    {
+      "title": "OWASP JSON Web Token Cheat Sheet (JWTs often suggested for stateless user sessions; invalidation needs a deny list, after which sessions won't be completely stateless; signed JWTs are not confidential, the payload is only base64url encoded)",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_Cheat_Sheet.html"
+    },
+    {
+      "title": "RFC 7519: JSON Web Token (JWT), May 2015 (a compact, URL-safe means of representing claims to be transferred between two parties; claims can be signed, integrity protected and/or encrypted)",
+      "url": "https://www.rfc-editor.org/rfc/rfc7519"
+    },
+    {
+      "title": "RFC 6265: HTTP State Management Mechanism, April 2011 (user agents should support at least 4096 bytes per cookie and at least 50 cookies per domain; servers SHOULD encrypt and sign the contents of cookies)",
+      "url": "https://www.rfc-editor.org/rfc/rfc6265"
+    }
+  ]
+}
