@@ -1,0 +1,993 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-07) first version"
+  ],
+  "id": "s2e05",
+  "season": 2,
+  "n": 5,
+  "title": "Stale Milk",
+  "setting": "a dairy delivery route",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "cache-invalidation",
+    "write-through",
+    "write-back",
+    "stale-reads"
+  ],
+  "prerequisites": [
+    "s2e04",
+    "s2e03",
+    "s2e02",
+    "s2e01",
+    "s1e01",
+    "s1e02",
+    "s1e03",
+    "s1e04",
+    "s1e05",
+    "s1e06",
+    "s1e07",
+    "s1e08",
+    "s1e09",
+    "s1e10",
+    "s1e11",
+    "s1e13"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/milk_float_maeve",
+    "flair": "Part 1",
+    "age": "7h",
+    "votes": 3518,
+    "title": "I drive a milk float before dawn. The depot cancelled No. 14's milk in March. My sheet still says two pints, and every morning yesterday's empties are back on the step, rinsed.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I drive Round 6 for Kettlewell Dairy: forty houses on Mallow Street, one stop a minute from 04:30. I took the round over in August, when Norris retired after 31 years. The float's handheld runs the route app, and the route app shows me the sheet: every house, and what to leave."
+      },
+      {
+        "t": "p",
+        "text": "Orders live in a database on a small server in the depot office, at the end of a slow line. Thirty-nine of our forty houses have the dairy's app, which checks tomorrow's order every hour, and the route app checks at every stop. So at midnight on 14 March, Ruairi, the owner's nephew, switched on a cache in front of the database. He calls it the sheet: one card per house, a copy of its order, kept in memory. Every check looks in the sheet first. If there's no card, it asks the database and leaves a copy. Cards never expire, \"because a standing order stands\". When a customer changes an order in the app, the app updates the database and deletes that house's card, so the next check fetches the new one."
+      },
+      {
+        "t": "p",
+        "text": "No. 14 takes two pints. Nobody has opened that door since I've had the round: curtains drawn, a March calendar in the kitchen window, post up to the letterbox. But every morning, yesterday's two empties are back on the step, rinsed, the way Norris says Mrs Farrow always left them."
+      },
+      {
+        "t": "beat",
+        "text": "Somebody rinses them."
+      },
+      {
+        "t": "p",
+        "text": "In September the depot started checking pints loaded against pints billed. Every morning the sheet sends Round 6 out with 79 pints, and billing, which reads the database, charges for 77. Ruairi put the order service's log next to the database's history for No. 14:"
+      },
+      {
+        "t": "log",
+        "text": "14 Mar 00:00:00  sheet          switched on, empty\n14 Mar 04:43:00  route app      No. 14  sheet: no card   database: 2 pints\n14 Mar 13:59:00  office screen  No. 14  son's phone number added\n14 Mar 13:59:58  website        No. 14  viewed by son    sheet: 2 pints\n14 Mar 14:00:00  office screen  No. 14  standing order CANCELLED\n07 Oct 04:43:00  route app      No. 14  sheet: 2 pints"
+      },
+      {
+        "t": "p",
+        "text": "The office screen is older than the sheet. It writes to the database and nothing else. So No. 14's card has said two pints since 04:43 on 14 March, and nothing has ever made the sheet fetch it again: 207 mornings, 414 pints nobody ordered. What should Ruairi change?"
+      },
+      {
+        "t": "evidence",
+        "label": "ruairi_round6_0443.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 420,
+          "aria": "Ruairi's drawing of Round 6 at 04:43 on 7 October. Thirty-nine houses' phones check their orders every hour and the route app reads each stop, all through the order service, which looks in the sheet first and asks the order database only on a miss. Changes made in the app delete that house's card. The office screen writes straight to the database. The sheet's card for No. 14, fetched on 14 March and never expiring, says 2 pints, while the database has said cancelled since 14:00 on 14 March. 207 mornings, 414 pints.",
+          "nodes": [
+            {
+              "id": "phones",
+              "label": "Houses' phones",
+              "sub": "39 apps, check hourly",
+              "x": 125,
+              "y": 50,
+              "w": 220,
+              "h": 52,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "route",
+              "label": "Route app",
+              "sub": "Round 6, 7 October",
+              "meta": "No. 14: leave 2 pints",
+              "x": 370,
+              "y": 50,
+              "w": 220,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "office",
+              "label": "Office screen",
+              "sub": "older than the sheet",
+              "meta": "writes the database only",
+              "x": 615,
+              "y": 50,
+              "w": 220,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "service",
+              "label": "Order service",
+              "sub": "the sheet first, then database",
+              "meta": "app changes delete the card",
+              "x": 370,
+              "y": 175,
+              "w": 320,
+              "h": 62,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "sheet",
+              "label": "The sheet (cache)",
+              "sub": "40 cards, never expire",
+              "meta": "No. 14: 2 pints, 14 Mar",
+              "x": 170,
+              "y": 320,
+              "w": 270,
+              "h": 72,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "db",
+              "label": "Order database",
+              "sub": "source of truth",
+              "meta": "No. 14: cancelled 14 Mar",
+              "x": 570,
+              "y": 320,
+              "w": 270,
+              "h": 72,
+              "shape": "db",
+              "tone": "ok"
+            }
+          ],
+          "edges": [
+            {
+              "from": "phones",
+              "to": "service"
+            },
+            {
+              "from": "route",
+              "to": "service"
+            },
+            {
+              "from": "service",
+              "to": "sheet",
+              "label": "1. sheet first"
+            },
+            {
+              "from": "service",
+              "to": "db",
+              "label": "2. on a miss"
+            },
+            {
+              "from": "office",
+              "to": "db",
+              "label": "writes",
+              "tone": "warn"
+            }
+          ],
+          "notes": [
+            {
+              "x": 170,
+              "y": 385,
+              "text": "207 mornings, 414 pints",
+              "tone": "bad",
+              "anchor": "middle"
+            },
+            {
+              "x": 720,
+              "y": 405,
+              "text": "7 October, 04:43",
+              "tone": "muted",
+              "anchor": "end"
+            }
+          ]
+        },
+        "caption": "Ruairi's drawing of the round at 04:43 on 7 October. Thirty-nine phones check their orders every hour and the route app reads each stop, all through the order service, which looks in the sheet first and asks the database only on a miss. A change made in the app deletes that house's card. The office screen writes straight to the database, so No. 14's card, fetched at 04:43 on 14 March, still says 2 pints, while the database has said cancelled since 14:00 that day."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 96,
+      "age": "6h",
+      "text": "Your sheet is a cache, and a cache never hears about a change on its own. Telling it is called invalidation: when the source of truth changes, update the cached copy or remove it. There are three usual ways. Delete on write: change the database, then delete the card, so the next read fetches the new one. That's what your app does. Write-through: write the new order to the database and the card together. Write-back, also called write-behind: write the card now and copy it to the database later, in a batch called a flush. Under all three sits the TTL, which tells the cache nothing but makes it forget. Now count how many things at your depot can change an order. Which of them told the sheet at 14:00 on 14 March? And when one forgets, what's left to make No. 14's card go?",
+      "replies": [
+        {
+          "author": "u/milk_float_maeve",
+          "op": true,
+          "points": 31,
+          "age": "5h",
+          "text": "Two things change orders: the app and the office screen. Ruairi says that whenever someone phoned to say their change hadn't come through, he deleted their card by hand. He thought the office line was slow."
+        }
+      ]
+    },
+    {
+      "author": "u/sorting_office_petra",
+      "points": 58,
+      "age": "5h",
+      "text": "We ran write-back on a parcel depot's shelf counts. Every scan updated the cache at once, and the cache flushed to the database every ten minutes, so scans were instant and ten scans of one shelf became a single database write. Then at 9:58 a cache node, one of the machines that hold the cache, died two minutes before a flush. Eight minutes of scans had existed nowhere else. Until the flush, the cache holds the only copy, and caches are built to be thrown away."
+    },
+    {
+      "author": "u/late_reply_ayodele",
+      "points": 44,
+      "age": "4h",
+      "text": "Even delete on write has a gap, and it's a race: two things happening at once, where the result depends on which finishes first. A reader that misses reads the database, then puts its copy in the cache. If it's slow, it can read the old order before your change and put it in after your delete, and nothing deletes it again. Your log has the setup for one. If the office screen had deleted No. 14's card at 13:59, the son's phone would have missed at 13:59:58, read two pints from the database, and could have put them back after the 14:00 delete. It's rare. At a few thousand changes a year, rare happens."
+    },
+    {
+      "author": "u/standing_order_hettie",
+      "points": 37,
+      "age": "3h",
+      "text": "Before picking a fix, ask how stale each thing may be, because that's a product decision, not a cache setting. A delivery only has to be right when the float leaves. Someone who just changed their own order expects to see it at once. A bill can't be stale at all, which is why yours reads the database. Write a number next to each one.",
+      "replies": [
+        {
+          "author": "u/milk_float_maeve",
+          "op": true,
+          "points": 19,
+          "age": "2h",
+          "text": "Our leaflet says changes made by 8 PM make the next morning's round. And I found out who rinses the empties. Mr Teague at No. 16 has a key. In March Mrs Farrow asked him to take the milk in every morning, so the house wouldn't look empty while she was in hospital, and to put the bottles out rinsed, the way she always did. He has, every morning, for seven months. He says she still asks about the milk."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "The leaflet promises that changes made by 8 PM make the next morning's round. What should Ruairi change before tomorrow's round? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Turn it around: every change goes into the sheet first, and the sheet copies its changes to the database every hour. The sheet is never behind, and the office screen gets faster.",
+        "tone": "bad",
+        "verdict": "The sheet becomes the only copy",
+        "part2": "Ruairi deleted No. 14's card by hand, and the next morning I left nothing on its step. Then he switched the sheet to write-back. Every change went into the sheet first, and on the hour the sheet copied what had changed to the database. The office screen's saves were instant, and for three weeks the sheet was never behind. On a Thursday the office took five phone changes between 16:00 and 16:50, and at 16:52 the cache node restarted for an update, eight minutes before the 17:00 flush. Those five changes had only ever been in the sheet. It came back empty, every card was fetched again from the database, and the database had never heard of them. At 04:38 the next morning I left three pints at No. 9, who had cut down to one. Four more houses got their old orders. On Friday Wanda took the same five calls again, and each caller said they'd already phoned.",
+        "senior": "Write-back makes writes fast and can merge several changes into one database write, but until the flush the cache holds the only copy, and caches are built to be thrown away. A restart, an eviction or a failover loses whatever wasn't flushed. It also leaves the database, and billing with it, behind by up to a flush. Keep it for data you can lose a few minutes of, like view counts, not orders or money."
+      },
+      {
+        "text": "Leave the office screen as it is, but give every card a 1-hour TTL. No card can be more than an hour out of date, so even a missed change is right long before the round.",
+        "tone": "warn",
+        "verdict": "Trade-off: fresh, and barely a cache",
+        "part2": "Ruairi gave every card a 1-hour TTL on Monday and cleared the sheet, so every card would get one. The next morning No. 14's read went to the database, and I left nothing on the step. Changes from the office reached the sheet within the hour. But every house's app checks once an hour, so every check now found its card exactly an hour old, expired, and went to the database. The sheet answered 4 reads in 100 instead of all of them, and the database went from almost nothing to 937 reads a day for Round 6 alone. Every check took two seconds again, as it had before the sheet. Ruairi says the sheet is now a very fast way to ask the database.",
+        "senior": "A TTL bounds how long a card can be wrong, and what it costs depends on how often each card is read. Here every card is read about once an hour, so a 1-hour TTL makes almost every read a miss: always fresh, and barely a cache. Use a TTL as the safety net under invalidation, sized from how stale an order may be, and let the changes themselves fix the cards."
+      },
+      {
+        "text": "Make the office screen write every change to the database and to the sheet together, so the sheet always holds the newest order. Cards can still never expire, as now.",
+        "tone": "warn",
+        "verdict": "Trade-off: current, until a write misses",
+        "part2": "Ruairi changed the office screen on Monday to write every change to the database and the sheet together. Each change now took two writes, and the office screen waited for both. The sheet answered every read, and the database only saw the writes. But the next morning No. 14's card still said two pints. Write-through fixes a card when something writes it again, and nobody was going to cancel No. 14 twice. Ruairi deleted it by hand. Then on 9 December at 17:10 the sheet stopped answering for 30 seconds during an update, and in those 30 seconds Wanda cancelled No. 22's milk. The database took the change. The write to the sheet failed, and with cards that never expire, the old card stayed. No. 22 got milk for six mornings, until her daughter phoned.",
+        "senior": "Write-through keeps the cache current for every write that goes through it and succeeds, for the price of a second write each time and cards stored whether anyone reads them or not. It can't fix a card no write touches, a failed cache write leaves the old card behind, and two writers saving one order at once can leave the older value in the cache. With cards that never expire, each of those lasts forever. Pair it with a TTL."
+      },
+      {
+        "text": "Send every write, the office screen's too, through one place that updates the database, then deletes the card. Give cards a 6-hour TTL as a safety net. Delete No. 14's card today.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Ruairi deleted No. 14's card on Monday, and the next morning the route app asked the database and I left nothing on the step. He moved the office screen's saves into the order service, so every write, from the app or the office, now updates the database and then deletes the card, and he gave every card a 6-hour TTL. The sheet now answers about 84 reads in 100 instead of all of them, and the database gets 157 reads a day from Round 6. It didn't notice. On 4 November at 18:24 a woman at No. 25 changed her order on the website at the very moment her app's hourly check, on one bar of signal, found her card had just run out and was reading her old order from the database. Its copy landed in the sheet after the delete. Her app showed the old order until the TTL threw it out at 00:24, four and a half hours before I reached her step. That week Mr Teague brought the last two empties back to the depot himself, with the note Mrs Farrow had given him in March: Two pints until I'm home.",
+        "senior": "Invalidating on every write path fixes the normal case: a card goes the moment its order changes, and deleting rather than updating is safe to repeat and never stores a value nobody asked for. The TTL is the safety net for whatever slips through: a missed path, a failed delete, a slow reader putting an old copy back. Size it from the promise. Changes by 8 PM must make the 04:30 round, so six hours is enough, and it costs about 16 hits in 100."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e05",
+    "title": "Run the sheet at Kettlewell Dairy",
+    "lede": "You're Ruairi, replaying Round 6 from 00:00 on 14 March, when you switched the sheet on, empty. Thirty-nine houses' apps each check their order once an hour, and from 04:30 the route app reads one house a minute, No. 14 at 04:43. Every read looks in the sheet first; a miss reads the database and leaves a copy. At 13:59 Wanda adds Graham's phone number to No. 14's account, at 13:59:58 Graham opens his mother's order on his phone, and at 14:00 Wanda cancels its milk. Pick what the office's changes do: TTL only (as now), delete on write, write-through, or write-back, which flushes to the database every hour on the hour. A stale delivery is milk left that the house no longer ordered. Database load counts the reads and writes that reached the database in the last 24 hours, and the hit ratio covers reads in the same 24 hours. If his read misses the sheet, it reads the database and leaves a copy; with the slow reader race on, his phone, on one bar of signal, leaves that copy two seconds after the cancellation instead of at once. Changing the strategy, the TTL or the race replays from 14 March. The clock runs an hour a second, and the date is on the route app. Click any box to see what it does.",
+    "tryThis": "Try this: with TTL only and cards that never expire, skip a day and watch the float leave 2 pints at No. 14 at 04:43, then skip to 7 October: 207 stale deliveries, 414 pints. Set the TTL to 7 days: No. 14 gets 6, then its card runs out. Set it back to never and switch to delete on write: nothing stale. Now turn on the slow reader race: the card says 2 pints again, for good, until you give it a TTL of 7 days (7 stale deliveries), 1 day (1) or 6 hours (none). Watch what each TTL, and 1 hour, does to the hit ratio and the database load. Try write-through and count the office's writes. Then write-back: after 16:00, send five office changes and kill the cache node before the 17:00 flush. Last, kill the node under TTL only and watch No. 14's card disappear."
+  },
+  "explain": {
+    "oneLine": "Nothing at No. 14 was haunted. The sheet is a cache, and a cache never hears about a change unless something tells it. The app told it. The office screen didn't, and with cards that never expire, nothing else would ever make No. 14's card go.",
+    "steps": [
+      {
+        "title": "A cache only knows what it's told.",
+        "text": "The sheet is a cache-aside cache, like the bakery's jar in the last case: a read looks in the sheet first, and a miss fetches the order from the database and keeps a copy. Nothing on the read path checks whether a copy is still right. So when the source of truth changes, something on the write path has to tell the cache: update the copy, or remove it so the next read fetches the new one. That's cache invalidation. Ruairi's app did it. The office screen, older than the sheet, wrote to the database and nothing else. Without invalidation, the only thing that makes a cache forget is its TTL, and Ruairi's cards never expire. So No. 14's card, fetched at 04:43 on 14 March, answered every morning after: 207 stale deliveries, 414 pints. A cache with no TTL turns one forgotten invalidation into a permanent one."
+      },
+      {
+        "title": "Four ways to keep the sheet honest.",
+        "text": "TTL only: changes go to the database, and a card is fixed only when it expires. Nothing can forget to do it, but every card may be wrong for a whole TTL. Delete on write: update the database, then delete the card, and the next read misses and fetches the new order. It's the usual partner for cache-aside, and the one Facebook's memcache uses: a delete is idempotent, safe to repeat, and nobody stores a value nobody asked for. Each change costs one miss later. Write-through: write the new order to the database and the card together. The next read hits and is current, but every change costs a second write, the cache stores values whether or not anyone reads them, and a cache write that fails leaves the old card behind. Write-back, also called write-behind: write the card now and flush it to the database later. Writes are fast, and several changes to one card become one database write, but until the flush the cache holds the only copy. If the cache node dies first, those changes are gone."
+      },
+      {
+        "title": "The race: a slow reader puts the old order back.",
+        "text": "Delete on write leaves one gap. A reader that misses reads the database first and puts its copy in the cache afterwards. If a change lands in between, the reader has read the old order and puts it into the cache after the delete, and nothing deletes it again. That's a race, and Facebook's memcache paper calls the result a stale set. It needs a miss just before a change and a slow reader, so it's rare, but a busy system makes rare happen every day. Two things bound it. A TTL caps how long the old copy can live: with cards that never expire, one lost race lasts forever; with a 6-hour TTL it's gone before the round. Versioned values or leases stop it outright. With versions, every order carries a number that goes up with each change, the change leaves its number in the cache, and the cache refuses any copy with a lower one. With leases, a miss hands the reader a token, a delete cancels it, and the cache refuses a copy whose token was cancelled."
+      },
+      {
+        "title": "Every write path, or none.",
+        "text": "Invalidation covers only the writes that do it. Ruairi's app deleted cards, but the office screen was a second write path, and nobody noticed for seven months: people who phone the office tend to be the ones without the app, and when they complained, Ruairi deleted their card by hand. List every way your data can change: the app, an admin screen, a bulk import, a batch job, a fix typed straight into the database. Then put the invalidation where all of them pass, such as the order service, or underneath them all, driven by what the database commits. Facebook's databases commit the deletes along with each change, and daemons on every database send them on, so a delete that was lost or misrouted can simply be sent again. And check it. The depot found No. 14 by comparing pints loaded with pints billed. A nightly check that compares a sample of cards with the database, and raises an alert on any difference, would have found it the next day."
+      },
+      {
+        "title": "How stale may it be? Ask the product, not the cache.",
+        "text": "Every cached copy is a little stale. The real question is how stale each kind of data may be, and that's a product decision. A delivery must be right when the float leaves: the leaflet promises that changes made by 8 PM make the next morning's round, so a card may lag by hours as long as it's right by 04:30. That makes the TTL six hours. Someone who just changed their own order expects to see it at once, which delete on write gives them. A bill must never be stale, so it reads the database. Elsewhere the numbers differ: a price on a shop's page may lag for a few minutes, the price charged at checkout usually not at all, and a bank balance on a phone only if the screen says when it was last updated. Facebook's memcache paper treats the chance of reading stale data as a parameter to tune against the load on its databases. Write the number down for each field, and the TTLs, and the places that must skip the cache, follow from it."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 470,
+      "aria": "The fix, drawn for the next morning. Houses' phones and the route app read through the order service, which looks in the sheet first. The office screen now saves through the order service too. Every change updates the order database first, then deletes that house's card. The sheet holds 40 cards with a 6-hour TTL, and No. 14's card says cancelled. The database orders 77 pints. A nightly check compares a sample of cards with the database.",
+      "nodes": [
+        {
+          "id": "phones",
+          "label": "Houses' phones",
+          "sub": "39 apps, check hourly",
+          "x": 125,
+          "y": 50,
+          "w": 220,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "route",
+          "label": "Route app",
+          "sub": "Round 6, next morning",
+          "meta": "No. 14: leave nothing",
+          "x": 370,
+          "y": 50,
+          "w": 220,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "office",
+          "label": "Office screen",
+          "sub": "saves via the order service",
+          "x": 615,
+          "y": 50,
+          "w": 220,
+          "h": 52,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "service",
+          "label": "Order service",
+          "sub": "delete on write",
+          "meta": "database first, then delete card",
+          "x": 370,
+          "y": 175,
+          "w": 320,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "sheet",
+          "label": "The sheet (cache)",
+          "sub": "40 cards, TTL 6 hours",
+          "meta": "No. 14: cancelled",
+          "x": 170,
+          "y": 320,
+          "w": 270,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "db",
+          "label": "Order database",
+          "sub": "source of truth",
+          "meta": "77 pints ordered",
+          "x": 570,
+          "y": 320,
+          "w": 270,
+          "h": 72,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "check",
+          "label": "Nightly check",
+          "sub": "sample of cards vs database",
+          "x": 370,
+          "y": 430,
+          "w": 260,
+          "h": 52,
+          "shape": "box",
+          "tone": "accent"
+        }
+      ],
+      "edges": [
+        {
+          "from": "phones",
+          "to": "service"
+        },
+        {
+          "from": "route",
+          "to": "service"
+        },
+        {
+          "from": "office",
+          "to": "service",
+          "label": "changes",
+          "tone": "accent"
+        },
+        {
+          "from": "service",
+          "to": "db",
+          "label": "1. update"
+        },
+        {
+          "from": "service",
+          "to": "sheet",
+          "label": "2. delete card"
+        },
+        {
+          "from": "check",
+          "to": "sheet",
+          "dash": true,
+          "tone": "muted"
+        },
+        {
+          "from": "check",
+          "to": "db",
+          "dash": true,
+          "tone": "muted"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for the next morning. Every change, from the app or the office screen, goes through the order service, which updates the database first and then deletes that house's card. Reads still look in the sheet first. Every card lasts at most 6 hours, so anything that slips past a delete is gone before the 04:30 round, at a cost of about 16 hits in 100. Every night a check compares a sample of cards with the database.",
+    "fix": {
+      "title": "The fix: delete on every write, a 6-hour safety net, and a nightly check",
+      "text": "Delete No. 14's card today. Move the office screen's saves into the order service, so every write, from the app or the office, updates the database and then deletes that house's card. Give every card a 6-hour TTL, set from the 8 PM cut-off and the 04:30 round, so whatever slips through, a slow reader, a failed delete or a write path nobody knew about, is gone before the float leaves. It costs a miss per card every six hours: about 84 hits in 100 instead of all of them, and 157 database reads a day for Round 6. Keep billing on the database. Then add the check the pints count did by accident: every night, compare a sample of cards with the database and raise an alert on any difference."
+    },
+    "limits": [
+      "A TTL bounds staleness, it doesn't end it. A card that slips through can be wrong for up to six hours, and that only protects the round because changes stop at 8 PM: a change at 23:00 that loses a race can still be on the step at 04:30. Where hours are too long, close the race itself with versioned values or leases.",
+      "Delete on write turns every change into a miss. For one house that's nothing, but a card that thousands of readers want, deleted at once, sends all of them to the database together: a cache stampede, the next case.",
+      "Invalidation covers only the writes that go through it. A bulk import, a fix typed straight into the database or a second copy, such as one kept on a phone, skips it. Driving invalidation from the database's own log of committed changes puts it below every program that writes, which catches the first two, at the cost of another system to build and run."
+    ],
+    "tradeoff": {
+      "head": [
+        "Strategy",
+        "On a change",
+        "Wins when",
+        "Loses when"
+      ],
+      "rows": [
+        [
+          "TTL only",
+          "Database only. The card is fixed when it expires.",
+          "Data may be stale for a whole TTL, and there are too many write paths to change. Nothing can forget to invalidate.",
+          "Changes matter sooner than the TTL. With cards that never expire: 207 stale deliveries at No. 14. With a 1-hour TTL: fresh, but 4% hits and 937 database reads a day for one round."
+        ],
+        [
+          "Delete on write",
+          "Database first, then delete the card. The next read misses and fetches it.",
+          "Most systems that use cache-aside: a delete is safe to repeat and nobody caches a value nobody asked for. With a 6-hour TTL behind it: about 84% hits and no stale deliveries, even when the race happens.",
+          "A slow reader puts the old value back after the delete. With no TTL that lasts forever: 207 stale deliveries at No. 14 in the sim. Each change also costs one miss."
+        ],
+        [
+          "Write-through",
+          "Database and cache together.",
+          "Reads straight after a write must be fast and current. No miss after a change: 100% hits, and the database sees only the writes.",
+          "Every change is two writes, the cache stores values nobody may read, and a failed cache write or two writers saving at once leave an old value, forever if nothing expires."
+        ],
+        [
+          "Write-back (write-behind)",
+          "Cache now, database at the next flush.",
+          "Writes must be fast and losing the last few minutes is acceptable, like view counts. Repeated changes to one key become one database write.",
+          "The cache node dies before the flush: the five changes since 16:00 are gone, and five houses get their old orders. The database, and billing with it, lag by up to an hour."
+        ]
+      ]
+    },
+    "seniorTake": "A cache is a copy, and a copy is only as right as the last thing that told it about a change. Start from the product: write down how stale each kind of data may be, and which reads must skip the cache altogether. Then make invalidation part of the write itself, in one place every write passes through, or in the database's own log of changes. Delete rather than update, unless reads right after a write must hit. Add a TTL sized from the staleness budget as the safety net for races and missed paths, never as the main mechanism. Use write-back only where losing the last flush is acceptable. And measure it: sample cached copies against the source of truth, because a stale cache looks exactly like a healthy one.",
+    "realWorld": [
+      {
+        "title": "Facebook, 23 September 2010",
+        "text": "Robert Johnson's post that day says Facebook was down or unreachable for many people for approximately 2.5 hours, the worst outage it had had in over four years. The key flaw, it says, was an unfortunate handling of an error condition: an automated system for verifying configuration values ended up causing much more damage than it fixed. The system checked for configuration values that were invalid in the cache and replaced them with updated values from the persistent store, which works well for a transient problem with the cache, the post says, but not when the persistent store is invalid. That day a change to the persistent copy of a configuration value was interpreted as invalid. Every single client saw the invalid value and tried to fix it with a query to a cluster of databases, which was quickly overwhelmed by hundreds of thousands of queries a second. Worse, every time a client got an error from one of those databases, it interpreted it as an invalid value and deleted the corresponding cache key, so the queries continued even after the original problem had been fixed: a feedback loop that didn't allow the databases to recover. Facebook stopped all traffic to the cluster, which meant turning off the site, let people back on slowly once the databases had recovered, and turned off the system that attempts to correct configuration values. The lesson for this case: code that repairs or invalidates a cache is part of how a system can fail.",
+        "source": 0
+      },
+      {
+        "title": "Facebook's write path: update the database, then delete",
+        "text": "In Scaling Memcache at Facebook (NSDI 2013), Rajesh Nishtala and colleagues describe memcache as a demand-filled look-aside cache. For write requests, the web server issues SQL statements to the database and then sends a delete request to memcache that invalidates any stale data. They chose to delete cached data instead of updating it because deletes are idempotent. One of the paper's two major design goals is to treat the probability of reading transient stale data as a parameter to be tuned, like responsiveness: Facebook is willing to expose slightly stale data in exchange for insulating a backend storage service from excessive load.",
+        "source": 1
+      },
+      {
+        "title": "Leases against stale sets",
+        "text": "The paper defines a stale set as a web server setting a value in memcache that does not reflect the latest value that should be cached, which can occur when concurrent updates to memcache get reordered. Its answer is leases. A memcached instance gives a client a lease when that client has a cache miss: a 64-bit token bound to the key the client asked for. The client provides the token when it sets the value, so memcached can verify whether the data should be stored, and verification can fail if memcached has invalidated the token because it received a delete request for that item. The slow reader in this case would have been refused.",
+        "source": 1
+      },
+      {
+        "title": "Invalidations from what the database commits",
+        "text": "Facebook doesn't rely on each web server alone to remember its deletes. SQL statements that modify authoritative state are amended to include the memcache keys that need to be invalidated once the transaction commits, and invalidation daemons named mcsqueal run on every database. Each one inspects the SQL statements its database commits, extracts any deletes and broadcasts them to the memcache deployment in every frontend cluster in that region. Batching those deletes into fewer packets gave an 18 times improvement in the median number of deletes per packet. Having web servers broadcast invalidations is simpler, the paper says, but gives little recourse when a systemic invalidation problem arises, such as deletes misrouted by a configuration error, while invalidations embedded in SQL statements, which databases commit and store in reliable logs, can simply be replayed. A web server that modifies data still sends invalidations to its own cluster, to provide read-after-write semantics for a single user request and reduce the time stale data stays in its local cache.",
+        "source": 1
+      },
+      {
+        "title": "Measuring how long stale data survives",
+        "text": "The paper calls the timeliness of invalidations a critical factor in the probability of exposing stale data, so Facebook measures it. It samples one out of a million deletes, records when each was issued, then queries memcache across all frontend clusters at regular intervals and logs an error if an item remains cached despite a delete that should have invalidated it. Over 30 days, deletes sent and received within the master region reached four nines, 99.99%, within 1 second and five nines after one hour; between replica regions, three nines within a second and four nines within 10 minutes. When an invalidation is missing after only a few seconds, the most common reason is that the first attempt failed, and later retries resolve it.",
+        "source": 1
+      },
+      {
+        "title": "AWS: lazy loading, write-through and TTL",
+        "text": "Amazon ElastiCache's guide to caching strategies says lazy loading can leave data in the cache stale, because there are no updates to the cache when data is changed in the database, and points to write-through and adding a TTL to address it. Write-through adds or updates data in the cache whenever data is written to the database, so, in the guide's words, data in the cache is never stale. That holds for the writes that go through it and succeed. Its costs: a write penalty, because every write involves two trips, a write to the cache and a write to the database; a new node, after a failure or scaling out, is missing data until it's added or updated on the database, which lazy loading alongside write-through minimizes; and cache churn, because most data is never read. A TTL doesn't guarantee that a value isn't stale, the guide says, but it keeps data from getting too stale, and its examples use 300 seconds.",
+        "source": 2
+      },
+      {
+        "title": "Write-behind in Oracle Coherence",
+        "text": "Oracle's Coherence documentation describes write-behind as modified cache entries being asynchronously written to the data source after a configured delay, whether after 10 seconds, 20 minutes, a day, a week or even longer. Removals, it notes, go to the data source synchronously. Several changes to the same entry within the interval are coalesced and written once. Because write-behind effectively makes the cache the system of record until the write-behind queue has been written to disk, it says, business regulations must allow cluster-durable rather than disk-durable storage of data and transactions. Its write-through, by contrast, doesn't complete until the data has been stored in the data source, which the documentation says does not improve write performance at all.",
+        "source": 3
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How do you keep a cache consistent with the database?",
+        "Write-through, write-back or cache-aside: when would you use each?",
+        "What's the race in delete on write, and how do you bound it?"
+      ],
+      "answer": "Start by asking how stale each piece of data may be, because keeping two stores exactly in step is expensive and rarely needed. Then the default: cache-aside reads, and on every write, update the database first and then delete the key, so a reader that misses after the delete can only fetch the new value. A delete is safe to repeat and never caches a value nobody asked for. Put that delete where every write path passes, or drive it from the database's own log of commits, the way Facebook's mcsqueal reads what each database commits. Then name the race: a reader misses and reads the old row, the writer updates the row and deletes the key, and the reader sets the old value, which nothing removes. Bound it with a TTL sized from the staleness budget, and close it where it matters with versioned values or leases that a delete cancels. Write-through suits data that is read straight after it's written; it costs a second write per change and still needs a TTL for failed or reordered writes. Write-back suits high-rate writes you can afford to lose a little of, like counters, because the cache holds the only copy until it flushes. Finish with monitoring: sample cached keys against the database and alert when they drift."
+    }
+  },
+  "terms": [
+    {
+      "term": "Milk float",
+      "def": "A small, quiet electric van that delivers milk to doorsteps before dawn."
+    },
+    {
+      "term": "Round",
+      "def": "A delivery route a driver covers every morning. Round 6 is forty houses on Mallow Street, one stop a minute from 04:30."
+    },
+    {
+      "term": "Depot",
+      "def": "The dairy's base, where the floats are loaded and the office takes orders by phone."
+    },
+    {
+      "term": "Standing order",
+      "def": "An order that repeats every morning until someone changes or cancels it, such as two pints a day."
+    },
+    {
+      "term": "Empties",
+      "def": "Rinsed, empty milk bottles left on the step for the driver to collect and reuse."
+    },
+    {
+      "term": "Handheld",
+      "def": "The small computer the driver carries on the float. It runs the route app."
+    },
+    {
+      "term": "Route app",
+      "def": "The app on the handheld that reads each house's order at its stop and shows the driver what to leave."
+    },
+    {
+      "term": "The sheet",
+      "def": "Ruairi's cache of every house's order, one card per house, kept in memory. Named after the paper sheets drivers used to carry."
+    },
+    {
+      "term": "Card (on the sheet)",
+      "def": "One cached copy of one house's order, saved under the house's number. In cache terms, a key and its value."
+    },
+    {
+      "term": "Order service",
+      "def": "Ruairi's program that the dairy's app, its website and the route app call for orders. It does cache-aside: the sheet first, the database on a miss."
+    },
+    {
+      "term": "Office screen",
+      "def": "The depot's older program for typing in phone changes. It writes to the order database and nothing else."
+    },
+    {
+      "term": "Billing",
+      "def": "Working out what each customer owes. Kettlewell's billing reads the order database, not the sheet."
+    },
+    {
+      "term": "Cut-off",
+      "def": "The latest time a change counts for the next delivery. Kettlewell's leaflet says 8 PM."
+    },
+    {
+      "term": "Stale delivery",
+      "def": "Milk left that the house no longer ordered, because the order the route app read was out of date. The sim counts them."
+    },
+    {
+      "term": "Cache invalidation",
+      "def": "Updating or removing a cached copy when the source of truth changes, so the cache stops serving the old answer."
+    },
+    {
+      "term": "Delete on write",
+      "def": "Update the database, then delete the cached key, so the next read misses and fetches the new value. The usual partner for cache-aside."
+    },
+    {
+      "term": "Write-through",
+      "def": "Write each change to the database and the cache together, so the cache holds the new value at once. Every change costs two writes."
+    },
+    {
+      "term": "Write-back",
+      "def": "Write each change to the cache now and copy it to the database later, in a flush. Fast, but until then the cache holds the only copy."
+    },
+    {
+      "term": "Write-behind",
+      "def": "Another name for write-back."
+    },
+    {
+      "term": "Flush",
+      "def": "Copying the changes a write-back cache is holding to the database, usually in one batch on a timer. In the sim, every hour on the hour."
+    },
+    {
+      "term": "Cache node",
+      "def": "One of the machines a cache runs on. When it dies or restarts, it comes back empty."
+    },
+    {
+      "term": "Race",
+      "def": "When two things happen at once and the result depends on which finishes first, such as a slow read and a write."
+    },
+    {
+      "term": "Slow reader race",
+      "def": "The sim's switch for one race: Graham's phone misses at 13:59:58 and puts its old copy in the sheet two seconds after the cancellation."
+    },
+    {
+      "term": "Stale set",
+      "def": "Facebook's term for setting a cached value that isn't the latest one, such as a slow reader putting an old copy in after a delete."
+    },
+    {
+      "term": "Lease (memcache)",
+      "def": "In Facebook's memcache, a token a client gets on a miss and must show when it sets the value. A delete cancels it, so a late copy is refused."
+    },
+    {
+      "term": "Versioned value",
+      "def": "A value stored with a number that goes up on every change, so a cache can refuse a copy older than the newest it has seen."
+    },
+    {
+      "term": "Safety net (TTL)",
+      "def": "A TTL used not as the main way to fix stale copies but to bound how long one that slipped past invalidation can live."
+    },
+    {
+      "term": "Staleness budget",
+      "def": "How stale a piece of data may be before it causes harm, decided by the product. It sets the TTL and which reads must skip the cache."
+    },
+    {
+      "term": "Nightly check",
+      "def": "A job that compares a sample of cached copies with the database every night and raises an alert on any difference."
+    },
+    {
+      "term": "Bulk import",
+      "def": "A script or job that writes many records at once, often straight into the database."
+    },
+    {
+      "term": "Write penalty",
+      "def": "AWS's name for write-through's cost: every write makes two trips, one to the cache and one to the database."
+    },
+    {
+      "term": "Cache churn",
+      "def": "Filling a cache with values that are never read, which wastes its memory. AWS lists it as a cost of write-through."
+    },
+    {
+      "term": "Coalesce",
+      "def": "To merge several changes to the same item into one write, as a write-back cache does at its flush."
+    },
+    {
+      "term": "System of record",
+      "def": "The store whose copy counts as correct. Oracle says write-behind makes the cache the system of record until its queue is written."
+    },
+    {
+      "term": "Data source",
+      "def": "Oracle Coherence's name for whatever sits behind the cache, usually a database."
+    },
+    {
+      "term": "Cluster-durable and disk-durable",
+      "def": "Cluster-durable data survives only while enough of the cache's machines stay up. Disk-durable data is written to a disk that survives a power cut."
+    },
+    {
+      "term": "Synchronous and asynchronous",
+      "def": "Synchronous: the caller waits until the work is done. Asynchronous: the work happens later, and the caller carries on without waiting."
+    },
+    {
+      "term": "Change log (database)",
+      "def": "The record a database keeps of every change it commits. Invalidations can be driven from it, so the programs that write don't have to remember them."
+    },
+    {
+      "term": "Oracle Coherence",
+      "def": "Oracle's in-memory data grid: a cache spread over many servers that can write through or write behind to a database."
+    },
+    {
+      "term": "Outage",
+      "def": "A time when a service is down or unreachable for its users."
+    },
+    {
+      "term": "Configuration value",
+      "def": "A setting a program reads to decide how to behave, such as a limit or an on-off switch."
+    },
+    {
+      "term": "Persistent store",
+      "def": "Storage that keeps data when power is lost, such as a database on disk. Facebook's post fixed cached values from one."
+    },
+    {
+      "term": "Transient",
+      "def": "Short-lived and likely to clear up by itself, like a brief network glitch."
+    },
+    {
+      "term": "Feedback loop",
+      "def": "When the result of an action causes more of the same action, as Facebook's failed queries caused more deletes and so more queries."
+    },
+    {
+      "term": "Commit",
+      "def": "The moment a database makes a change permanent. Until it commits, the change can still be undone."
+    },
+    {
+      "term": "Transaction",
+      "def": "A group of database changes that are committed together, or not at all."
+    },
+    {
+      "term": "Daemon",
+      "def": "A program that runs in the background without anyone at the keyboard, such as Facebook's mcsqueal on every database server."
+    },
+    {
+      "term": "mcsqueal",
+      "def": "Facebook's invalidation daemon. It reads the SQL statements each database commits, picks out the cache deletes and sends them to memcache."
+    },
+    {
+      "term": "Frontend cluster",
+      "def": "In Facebook's paper, a group of web servers and memcached servers that serve users from a shared set of databases."
+    },
+    {
+      "term": "Region (Facebook)",
+      "def": "In Facebook's paper, a group of clusters in one place. The master region's databases take the writes; replica regions hold copies."
+    },
+    {
+      "term": "Read-after-write",
+      "def": "A guarantee that once you've written something, your own next read sees it."
+    },
+    {
+      "term": "Nines",
+      "def": "Shorthand for reliability: three nines is 99.9%, four nines 99.99%, five nines 99.999%."
+    }
+  ],
+  "atWork": "Pick one cached thing your team owns, such as a product's price in Redis or ElastiCache. List every way that data can change: the app, an admin screen, a bulk import, a batch job, a fix typed straight into the database. For each one, find in the code whether it deletes or updates the cached key, and note the key's TTL and where that number came from. Then ask the product owner how stale it may be. A pricing page that showed the old price for an hour after a sale ended is fine for some shops and a pile of refunds for others, so choose staleness per field: price on the page, price at checkout, stock, order status, balance. Check that the TTLs match the answers, and that anything charged reads the database. Last, with read-only access, compare a sample of cached keys with the database and count the differences.",
+  "board": {
+    "cards": [
+      {
+        "id": "cache-invalidation",
+        "title": "Cache invalidation"
+      },
+      {
+        "id": "write-through",
+        "title": "Write-through"
+      },
+      {
+        "id": "write-back",
+        "title": "Write-back"
+      },
+      {
+        "id": "stale-reads",
+        "title": "Stale reads"
+      }
+    ],
+    "strings": [
+      {
+        "from": "cache-invalidation",
+        "to": "cache-aside",
+        "label": "delete on write"
+      },
+      {
+        "from": "cache-invalidation",
+        "to": "ttl",
+        "label": "TTL as safety net"
+      },
+      {
+        "from": "cache-invalidation",
+        "to": "cache-stampede",
+        "label": "a delete, a miss"
+      },
+      {
+        "from": "write-back",
+        "to": "durability",
+        "label": "lost if node dies"
+      },
+      {
+        "from": "stale-reads",
+        "to": "replication-lag",
+        "label": "same lag, replicas"
+      },
+      {
+        "from": "stale-reads",
+        "to": "read-your-writes",
+        "label": "your own changes"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e05-r1",
+      "kind": "free",
+      "prompt": "A shop keeps each product's price in Redis for 24 hours, and its checkout charges whatever that copy says. Last week marketing ended a sale with a script that changed 3,000 prices straight in PostgreSQL. For most of a day the product pages, and checkout, charged sale prices. The app's own price editor never caused this. What happened, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "The script changed the database without telling the cache; only the price editor invalidates the cached prices",
+          "match": [
+            "invalidat",
+            "never told",
+            "didn't tell",
+            "did not tell",
+            "didn't delete",
+            "did not delete",
+            "write path",
+            "bypass",
+            "went around",
+            "skipped the cache"
+          ]
+        },
+        {
+          "idea": "Make every write path, scripts included, delete the cached price after the database write, from one shared place or the database's change log",
+          "match": [
+            "delete the key",
+            "delete the cached",
+            "delete the price",
+            "evict",
+            "every write",
+            "all writes",
+            "one place",
+            "shared",
+            "change log",
+            "trigger",
+            "after the database",
+            "after updating"
+          ]
+        },
+        {
+          "idea": "Keep a TTL well under how long a wrong price is acceptable, as a safety net",
+          "match": [
+            "ttl",
+            "shorter",
+            "safety net",
+            "backstop",
+            "expire",
+            "expiry",
+            "minutes",
+            "an hour",
+            "lower the"
+          ]
+        },
+        {
+          "idea": "Checkout should charge the price it reads from the database, the source of truth",
+          "match": [
+            "source of truth",
+            "from the database",
+            "read the database",
+            "query the database",
+            "skip the cache",
+            "not from the cache",
+            "authoritative",
+            "database at checkout"
+          ]
+        }
+      ],
+      "model": "The sale script wrote straight to PostgreSQL, so nothing deleted or updated the cached prices; only the app's editor did that. The pages kept the sale prices until each copy's 24 hours ran out. Make every write path invalidate: route the script through the same code that updates the database and then deletes the key, or drive the deletes from the database's change log so no script can skip them. Keep a TTL as the safety net, set from how long a wrong price may show, minutes rather than a day. And have checkout charge the price it reads from the database, the source of truth, so a stale copy can mislead a shopper but never set what they pay."
+    },
+    {
+      "id": "s2e05-r2",
+      "kind": "mcq",
+      "prompt": "A service uses cache-aside reads, and on every write it updates the database and then deletes the key. Which order of events leaves an old value in the cache?",
+      "options": [
+        "Writer updates the row and deletes the key; a reader then misses and fetches the new row",
+        "A reader misses and reads the old row; the writer updates and deletes; the reader then caches the old row",
+        "Writer updates the row; a reader hits the old cached value; the writer then deletes the key",
+        "Two readers miss at the same moment, and both fetch the new row and cache it"
+      ],
+      "answer": 1,
+      "why": "The slow reader read before the write and set after the delete, so nothing removes its old copy until a TTL runs out or the next write deletes it. In the third order a reader sees one stale value during the write, but the delete then removes it. A TTL bounds the damage; versioned values, or leases that a delete cancels, stop it."
+    },
+    {
+      "id": "s2e05-r3",
+      "kind": "mcq",
+      "prompt": "A cache uses write-back and flushes to the database every 10 minutes, on the tens. The cache node holding a busy key dies at 12:07. What's lost?",
+      "options": [
+        "Nothing, because the database already has every change",
+        "The changes made since the 12:00 flush that were only in that node",
+        "Every change made since that cache node last restarted",
+        "Only the reads in flight at 12:07, never any writes"
+      ],
+      "answer": 1,
+      "why": "Until a flush, a write-back cache holds the only copy of each change. The 12:00 flush made the earlier changes safe; whatever arrived from 12:00 to 12:07 existed only in that node. Oracle's Coherence documentation says write-behind makes the cache the system of record until its queue is written, which is why it suits data you can afford to lose a few minutes of."
+    },
+    {
+      "id": "s2e05-r4",
+      "kind": "mcq",
+      "prompt": "Which of these suits a write-back cache best?",
+      "options": [
+        "Bank transfers between accounts",
+        "A video's view counter",
+        "Customers cancelling their orders",
+        "Password changes"
+      ],
+      "answer": 1,
+      "why": "A view counter changes constantly, many updates to one key merge into one database write, and losing a few seconds of counts harms nobody. The others are changes people rely on: losing one at a flush leaves money, milk or access in the wrong state. Use delete on write or write-through for those."
+    },
+    {
+      "id": "s2e05-r5",
+      "kind": "mcq",
+      "prompt": "On 23 September 2010 Facebook was down or unreachable for many people for about 2.5 hours. According to its engineering post, what kept the databases from recovering?",
+      "options": [
+        "A disk failure on the cache servers that took most of the day to repair",
+        "Clients took database errors for invalid values and deleted cache keys, so queries grew",
+        "A TTL set so long that every cached configuration value went stale at once",
+        "A write-back cache that lost its whole queue of unflushed configuration changes"
+      ],
+      "answer": 1,
+      "why": "An automated system replaced configuration values it judged invalid in the cache with values from the persistent store. A change to the stored value was read as invalid, so every client tried to fix it, sending hundreds of thousands of queries a second to a database cluster. Errors from that cluster were treated as invalid values too, and the cache keys deleted, so the queries kept coming: a feedback loop. Facebook stopped all traffic to the cluster, which meant turning off the site."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. March again. The sheet has been right every morning since October. In February Ruairi made the route app keep its own copy of the whole round on the handheld, because the top of Mallow Street has no signal. The handheld downloads the round at 18:00, when I plug it in to charge at the depot, and uses that copy until the next download. Last Tuesday the man at No. 31 cancelled in the app at 19:40, before the 8 PM cut-off, and the order service deleted his card at 19:40:01. At 05:00 the next morning the handheld told me to leave him one pint, and I did. Wanda wants to move the cut-off to 6 PM.",
+    "prompt": "Reply to OP. What's going on, and what should Ruairi change?",
+    "keyIdeas": [
+      {
+        "idea": "The handheld's copy is a second cache that the delete never reaches, and it was taken at 18:00, before the cancellation",
+        "match": [
+          "second cache",
+          "another cache",
+          "two caches",
+          "local copy",
+          "offline copy",
+          "cached on the",
+          "on the device",
+          "never reached",
+          "didn't reach",
+          "doesn't reach",
+          "does not reach",
+          "layer",
+          "before he cancelled",
+          "before the cancel"
+        ]
+      },
+      {
+        "idea": "Download the round again after the cut-off, before the float leaves, or have the handheld fetch changes whenever it has signal",
+        "match": [
+          "after 8",
+          "after the cut",
+          "after 20:00",
+          "re-download",
+          "redownload",
+          "download again",
+          "download it again",
+          "refresh",
+          "sync",
+          "before the round",
+          "before leaving",
+          "before the float",
+          "check for changes",
+          "fetch the changes"
+        ]
+      },
+      {
+        "idea": "Every cached copy needs its own bound; moving the cut-off to 6 PM only hides the problem",
+        "match": [
+          "every layer",
+          "each layer",
+          "each cache",
+          "every cache",
+          "every copy",
+          "each copy",
+          "own ttl",
+          "own expiry",
+          "hides",
+          "hide the",
+          "doesn't fix",
+          "won't fix",
+          "not fix",
+          "same problem",
+          "keep 8"
+        ]
+      }
+    ],
+    "model": "The order service did its job: it deleted No. 31's card at 19:40:01. But the handheld keeps its own copy of the round, a second cache, and that copy was downloaded at 18:00, before he cancelled. Nothing tells the handheld about a delete, and it keeps its copy until the next download, so the delete never reached what I read at 05:00. Moving the cut-off to 6 PM hides the gap without closing it, and makes the promise worse for everyone. Give the handheld's copy its own bound, set from the same promise: download the round again after 8 PM, or better, at the depot just before the float leaves, where there's signal, and keep the 18:00 copy only as a fallback for the hill. Every layer of caching needs its own invalidation, or its own TTL shorter than the promise."
+  },
+  "next": "Next, The Stampede at 6 AM: a department store whose doors open at six for the winter sale, where every phone in the queue outside asks for the same price in the same second, and the moment its cached copy expires, they all go to the database together.",
+  "sources": [
+    {
+      "title": "Robert Johnson, More Details on Today's Outage, Facebook Engineering (now Engineering at Meta), 23 September 2010 (down or unreachable for approximately 2.5 hours; the worst outage in over four years; an automated system for verifying configuration values in the cache against the persistent store; every client tried to fix the value, hundreds of thousands of queries a second; errors treated as invalid values and cache keys deleted, a feedback loop; all traffic to the database cluster stopped; the correcting system turned off)",
+      "url": "https://engineering.fb.com/2010/09/23/uncategorized/more-details-on-today-s-outage/"
+    },
+    {
+      "title": "Rajesh Nishtala et al., Scaling Memcache at Facebook, 10th USENIX Symposium on Networked Systems Design and Implementation (NSDI '13), 2013 (delete after the database write because deletes are idempotent; stale data as a parameter to be tuned; leases against stale sets, a 64-bit token invalidated by a delete; mcsqueal invalidation daemons reading committed SQL, 18 times better batching, replayable invalidations; read-after-write in the local cluster; invalidation latency sampled from one in a million deletes)",
+      "url": "https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf"
+    },
+    {
+      "title": "Amazon ElastiCache User Guide: Caching strategies for Memcached (lazy loading leaves stale data; write-through, never stale in the guide's words, with a write penalty of two trips, missing data on a new node and cache churn; adding TTL keeps data from getting too stale, with 300-second examples)",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/Strategies.html"
+    },
+    {
+      "title": "Oracle, Developing Applications with Oracle Coherence 14.1.1.2206: Caching Data Sources (write-through completes only after the data source is updated; write-behind writes asynchronously after a configured delay, coalesces changes and makes the cache the system of record until its queue is written; removals are synchronous)",
+      "url": "https://docs.oracle.com/en/middleware/standalone/coherence/14.1.1.2206/develop-applications/caching-data-sources.html"
+    }
+  ]
+}
