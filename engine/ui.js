@@ -1,9 +1,11 @@
-/* engine/ui-v1.2.2.js
+/* engine/ui-v1.2.3.js
    Dead Letter UI (DL.ui): the shell, router wiring and every view. Published as engine/ui.js.
    Contract: docs/dead-letter-engine-contract-v1.1.0.md, sections 6 and 9.9. Needs engine/core-v1.2.0.js (the merged
    catalog, state v2, DL.builds, DL.credits, decision cards; DL.sync, DL.prompts and the #interview/<id> route from
    v1.1). Styles: index-v1.1.0.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
    CHANGELOG
+   v1.2.3 (2026-10-07) the first-shift card's date hint matches the default plan: "About 4 months out fits both courses in
+        parallel at the default nights." (it said 3 months, from before plan B).
    v1.2.2 (2026-10-07) cold-case and decision-card replies come from the case's own course guide (the course
         registry's `guide`: u/grey_pager for Dead Letter, u/gradient_ghost for LATENT), found by guideOf(course id).
    v1.2.1 (2026-10-07) the first-shift card and the pace line default to a finish date about 4 months out (plan B: both courses in parallel).
@@ -1108,7 +1110,7 @@
         h("p", { class: "lede", text: "Pick a date to finish by and how long a normal night is. If you miss a night, the rest spreads out again on its own. Nothing nags." })
       ]),
       h("div", { class: "fields" }, [
-        field("Finish by", target, "About 3 months out is a good start."),
+        field("Finish by", target, "About 4 months out fits both courses in parallel at the default nights."),
         field("Weekday nights (minutes)", wd),
         field("Weekend nights (minutes)", we)
       ]),
