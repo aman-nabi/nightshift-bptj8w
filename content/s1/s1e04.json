@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.1 (2026-10-06) review fixes: sim.tryThis now says switch on the database, sign in again, then restart (the earlier restart had already wiped 7f3a, so restarting again taught the opposite lesson); the case now covers 401 Unauthorized for a missing or invalid session and 403 Forbidden for not allowed (RFC 9110 sections 15.5.2 and 15.5.4) in explain.steps[2], the fix and the interview answer, with new terms, and the sim answers 401 instead of 404 to PUT and DELETE with no valid session; steps[0] says the letters usually travel over a TCP connection from case 3, which can carry many letters one after another (RFC 9112 section 9.3); steps[3] notes that real session IDs are long and random, at least 64 bits of randomness by OWASP's advice, unlike the easy-to-guess 7f3a; new terms 401 Unauthorized, 403 Forbidden, OWASP and Bit, the Session ID term updated, and RFC 9112 and the OWASP Session Management Cheat Sheet added to sources",
     "v1.0.0 (2026-10-06) first version"
   ],
@@ -293,7 +294,7 @@
       "kind": "free",
       "prompt": "Your team's website logs everyone out every time it's deployed. People sign back in and everything works until the next deploy. What's probably happening, and what would you change?",
       "keyIdeas": [
-        { "idea": "Sessions are kept in the server's memory and wiped when it restarts", "match": ["memory", "in-memory", "restart", "wiped", "lost", "cleared", "deploy"] },
+        { "idea": "Sessions are kept in the server's memory and wiped when it restarts", "match": ["memory", "in-memory", "restart", "wiped", "lost", "cleared", "reboot", "in ram"] },
         { "idea": "The browser's cookie still arrives but matches no session", "match": ["cookie", "session id", "ticket", "sid", "no match", "doesn't match", "does not match", "unknown"] },
         { "idea": "Store sessions somewhere that survives restarts", "match": ["database", "store", "redis", "persist", "survive", "shared", "outside the server", "signed cookie"] }
       ],
@@ -327,7 +328,7 @@
       "keyIdeas": [
         { "idea": "After sign-in the server sets a cookie, which the browser sends back on every request", "match": ["cookie", "set-cookie"] },
         { "idea": "The server keeps a session that the cookie points to", "match": ["session", "look up", "lookup", "looks it up", "stored", "record", "signed"] },
-        { "idea": "Stateless means each request carries what's needed, not that nothing can be remembered", "match": ["each request", "every request", "carries", "sends it back", "on every", "with every"] }
+        { "idea": "Stateless means each request carries what's needed, not that nothing can be remembered", "match": ["each request", "every request", "carries", "sends it back", "each time", "every call", "with every"] }
       ],
       "model": "Stateless means each request must carry everything the server needs. It doesn't mean nothing can be remembered. After sign-in, the server sends a cookie holding a random session ID with Set-Cookie. The browser sends it back in the Cookie header on every request, and the server looks up the session to see who it is. The password is typed once."
     },
@@ -349,7 +350,7 @@
     "update": "UPDATE, 5 months later. Bram moved the sessions into the database, and the hotel stopped forgetting guests at 3 AM. Now there's a new booking app. When a booking gets a 503, or no answer within one second, the app sends the same POST /bookings again every 100 milliseconds until something comes back. Friday was a slow night for the website, and three guests were booked twice. Bram's plan: make the website faster.",
     "prompt": "Reply to OP. What's really going wrong, and what should the app do instead?",
     "keyIdeas": [
-      { "idea": "Slow isn't failed: the first POST often worked, and POST isn't idempotent, so the retry booked twice", "match": ["twice", "double", "duplicate", "already worked", "went through", "processed", "idempotent", "post isn't", "post is not"] },
+      { "idea": "Slow isn't failed: the first POST often worked, and POST isn't idempotent, so the retry booked twice", "match": ["second booking", "two bookings", "double", "duplicate", "already worked", "went through", "processed", "idempotent", "post isn't", "post is not"] },
       { "idea": "Respect Retry-After and back off with a little randomness instead of retrying every 100 ms", "match": ["retry-after", "back off", "backoff", "back-off", "jitter", "exponential", "random", "slow down", "wait longer"] },
       { "idea": "Make the retry safe: a unique booking ID the server checks, so a repeat is recognized", "match": ["unique", "booking id", "request id", "idempotency", "dedup", "only once", "same id", "check if", "check whether"] }
     ],

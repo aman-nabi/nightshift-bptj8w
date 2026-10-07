@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.1 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.0 (2026-10-07) first version"
   ],
   "id": "s2e02",
@@ -375,7 +376,7 @@
       "kind": "free",
       "prompt": "Your API runs on 6 EC2 instances behind an Application Load Balancer with the default health checks: every 30 seconds, out after 2 failures in a row. At 3 PM one instance freezes while 600 requests a second arrive. Roughly how long until the load balancer stops sending it requests, how many requests fail meanwhile, and what would you change?",
       "keyIdeas": [
-        { "idea": "Up to about a minute: the interval times the unhealthy threshold, 30 s times 2", "match": ["minute", "60", "30 x 2", "30 times 2", "interval times", "two checks", "2 checks", "2 failed"] },
+        { "idea": "Up to about a minute: the interval times the unhealthy threshold, 30 s times 2", "match": ["minute", "60 s", "two intervals", "30 x 2", "30 times 2", "interval times", "two checks", "2 checks", "2 failed"] },
         { "idea": "Its share fails until then: about 100 a second, up to about 6,000 requests", "match": ["100", "6,000", "6000", "a sixth", "one sixth", "1/6", "sixth"] },
         { "idea": "Notice sooner with a shorter interval or lower threshold, accepting more false alarms", "match": ["shorter", "shorten", "lower", "reduce", "smaller", "10 seconds", "10 s", "5 seconds", "faster"] },
         { "idea": "Retry idempotent requests on another instance, and alert a person to fix the frozen one", "match": ["retry", "retries", "idempot", "alert", "page someone", "another instance", "passive"] }
@@ -415,7 +416,7 @@
       "keyIdeas": [
         { "idea": "Stopping it cuts the requests in progress, and its share fails until the checks notice", "match": ["in progress", "in-flight", "in flight", "cut", "lost", "fail", "errors", "until"] },
         { "idea": "Drain it first: deregister it so it gets nothing new, and let current requests finish", "match": ["drain", "deregist", "stop sending", "out of rotation", "take it out first", "remove it from"] },
-        { "idea": "Then stop it gracefully, and add it back once it passes its health checks", "match": ["graceful", "sigterm", "shut down", "shutdown", "add it back", "register", "passes", "health check"] },
+        { "idea": "Then stop it gracefully, and add it back once it passes its health checks", "match": ["graceful", "sigterm", "shut down", "shutdown", "add it back", "register", "passes", "put it back", "rejoin"] },
         { "idea": "Check the other three can carry its share", "match": ["three", "capacity", "headroom", "room to spare", "other servers", "carry", "busy"] }
       ],
       "model": "Not like that. Health checks are for failures you didn't plan. If you just stop it, every request it's working on is cut, and for up to 30 seconds the load balancer keeps sending it a quarter of the traffic, which all fails. Drain it instead: deregister it so the load balancer sends it nothing new, wait for the requests in progress to finish, which the deregistration delay caps, then stop it with a graceful shutdown. First check the other three can carry its share at 2 PM. After patching, register it again and let it pass its health checks before it takes traffic."
@@ -438,7 +439,7 @@
     "update": "UPDATE, 5 months later. After a guest's key card failed at 2 AM, Cas made /health check everything: the reservations database, the payment service and the key-card machine. On Friday at 11:40 PM the payment service went slow for two minutes. Every room failed its health check three times in a row, so the Doorman took all four out, and for nearly two minutes the website answered 503 to everyone, even guests who only wanted to look at photos of the rooms. All four rooms were running fine the whole time.",
     "prompt": "Reply to OP. What went wrong, and how should /health be written?",
     "keyIdeas": [
-      { "idea": "One shared dependency failed every room's check at once, so all four were taken out together", "match": ["all four", "every room", "at once", "same time", "shared", "dependency", "payment", "together", "all of them"] },
+      { "idea": "One shared dependency failed every room's check at once, so all four were taken out together", "match": ["one service", "whole hotel", "not the rooms", "at once", "same time", "shared", "dependency", "depends on", "downstream", "together", "all of them"] },
       { "idea": "Keep /health shallow: test the server itself, not everything it depends on", "match": ["shallow", "itself", "local", "only the server", "not the database", "not depend", "own process", "simple"] },
       { "idea": "Watch dependencies separately, with their own alerts, and let only the pages that need them fail", "match": ["alert", "monitor", "separate", "degrade", "fail open", "timeout", "only the pages", "circuit"] }
     ],

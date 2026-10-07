@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.1 (2026-10-06) review fixes: the coldCase no longer says orders took six seconds again for about ten minutes after the restart, which broke rule 11: after the senior fix each order is one batched request, so with the copy empty each order paid one ocean trip, about 150 ms, until the next once-a-minute refresh refilled the whole copy within a minute; the update, keyIdeas and model now say so, and the model is honest that refreshing every second would shorten that gap but costs sixty times the trips all day, while loading the list at startup fixes the restart; explain.steps[2] no longer blames SSD latency on the controller and a slower connection: most of it is sensing the charges in the flash cells (tens of microseconds) plus the operating system's storage code, and the r4 keyIdea and model say the same; the Controller term is replaced by Flash cell; an Intel technology brief and a USENIX FAST 2012 paper added to sources; the sim's SSD box text matches",
     "v1.0.0 (2026-10-06) first version"
   ],
@@ -293,9 +294,9 @@
       "kind": "free",
       "prompt": "A product page calls a pricing service 25 times, one call after another, and takes 3.8 seconds to load. The pricing service runs in another region, about 150 ms away per round trip, and its CPU sits at 5%. A teammate wants to double the pricing service's servers. What do you say, and what would you do instead?",
       "keyIdeas": [
-        { "idea": "The time is round trips, not CPU: 25 times about 150 ms", "match": ["round trip", "25 x", "25 times", "3.75", "latency", "distance", "network", "waiting", "5%", "cpu isn't", "cpu is not", "not the cpu"] },
+        { "idea": "The time is round trips, not CPU: 25 times about 150 ms", "match": ["back and forth", "travel", "25 x", "3.75", "latency", "distance", "network", "waiting", "idle", "not busy", "cpu isn't", "cpu is not", "not the cpu"] },
         { "idea": "More servers won't help", "match": ["won't help", "will not help", "doesn't help", "does not help", "wouldn't help", "would not help", "not the bottleneck", "no difference", "pointless"] },
-        { "idea": "Batch the calls into one request, or run them in parallel", "match": ["batch", "one request", "single request", "one call", "single call", "parallel", "at once", "together", "bulk"] },
+        { "idea": "Batch the calls into one request, or run them in parallel", "match": ["batch", "one request", "single request", "combine", "all in one", "single call", "parallel", "at once", "together", "bulk"] },
         { "idea": "Keep prices close: a cache, or the service or its data in the same region", "match": ["cache", "copy", "closer", "same region", "move", "nearby", "local", "memory"] }
       ],
       "model": "Doubling the servers won't help: the pricing service's CPU is at 5%, so it isn't the bottleneck. The 3.8 seconds is almost exactly 25 round trips of about 150 ms, made one after another. Cut the trips: fetch all 25 prices in one batched request, or at least make the independent calls in parallel, and keep frequently read prices in a cache in the page's own region with a short refresh interval, or run a copy of the pricing data there. Then the page pays for one trip, or none, instead of 25."
@@ -351,8 +352,8 @@
     "update": "UPDATE, 3 months later. The little server in the back room keeps the bin list in memory and refreshes it from head office every minute. Orders load in a blink. Last night the power flickered at 1:12 AM and the little server restarted. For about a minute after it came back, the debug screen showed every order taking about 150 ms, one trip to head office each, instead of under a millisecond. Then everything was instant again. Dolores asks if the little server is broken, and whether it should refresh every second instead, to be safe.",
     "prompt": "Reply to OP. What happened at 1:12 AM, would refreshing every second help, and what would you change?",
     "keyIdeas": [
-      { "idea": "Memory is wiped on restart, so the copy started empty", "match": ["wiped", "lost", "empty", "cold", "restart", "forgot", "cleared", "power"] },
-      { "idea": "Until the next refresh refilled it, each order's one batched request crossed the ocean", "match": ["head office", "ocean", "round trip", "150", "far away", "had to ask", "fell back", "one trip", "next refresh", "refill", "within a minute"] },
+      { "idea": "Memory is wiped on restart, so the copy started empty", "match": ["wiped", "lost", "empty", "cold", "reboot", "erased", "forgot", "cleared", "volatile", "gone"] },
+      { "idea": "Until the next refresh refilled it, each order's one batched request crossed the ocean", "match": ["remote", "long way", "ocean", "round trip", "distance", "network", "far away", "had to ask", "fell back", "next refresh", "refill", "within a minute"] },
       { "idea": "Load the whole copy at startup, or keep a copy on disk to start from", "match": ["warm", "preload", "pre-load", "at startup", "on startup", "when it starts", "load everything", "load the whole", "disk", "snapshot", "save a copy"] },
       { "idea": "Refreshing every second would only shrink a rare one-minute gap, at sixty times the trips all day", "match": ["wouldn't help", "would not help", "doesn't help", "too often", "more trips", "sixty times", "60 times", "more load", "a minute is fine", "trade-off", "tradeoff", "not worth", "overkill", "all day"] }
     ],

@@ -1,5 +1,5 @@
 {
-  "_changelog": ["v1.0.0 (2026-10-06) first version"],
+  "_changelog": ["v1.0.1 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores", "v1.0.0 (2026-10-06) first version"],
   "id": "s1e09",
   "season": 1,
   "n": 9,
@@ -281,7 +281,7 @@
       "kind": "free",
       "prompt": "An orders page lists 50 orders with each customer's name. It's slow, and the database log shows 51 queries for every page view: one for the orders, then one per order for its customer. What's going on, and how do you fix it?",
       "keyIdeas": [
-        { "idea": "It's the N+1 problem: 1 + 50 queries, one round trip each", "match": ["n+1", "n + 1", "one per order", "51", "round trip", "loop", "per row"] },
+        { "idea": "It's the N+1 problem: 1 + 50 queries, one round trip each", "match": ["n+1", "n + 1", "separately", "one at a time", "one by one", "1 + 50", "round trip", "loop", "per row"] },
         { "idea": "Fetch orders and customers together with one join", "match": ["join", "one query", "single query"] },
         { "idea": "Or fetch all the customers in one batched query (WHERE id IN), eager loading in an ORM", "match": ["in (", "where id in", "batch", "eager", "includes", "select_related", "prefetch", "two queries", "2 queries"] },
         { "idea": "Use a left join, or check counts, if some orders might have no matching customer", "match": ["left join", "outer join", "no match", "null", "missing customer", "count"] }
@@ -338,10 +338,10 @@
     "update": "UPDATE, 3 months later. The night report is one left join now and takes a quarter of a second. The county added a new page to its website: for each deed, the owner's name and their last three visits. The contractor's first version loads the 50 deeds on a page, then asks for each deed's owner, then asks for that owner's visits. A page takes 1.4 seconds, and the database log shows 101 queries for every page view.",
     "prompt": "Reply to OP. What's happening, and what should the contractor change?",
     "keyIdeas": [
-      { "idea": "It's the N+1 problem twice: 1 + 50 + 50 = 101 round trips", "match": ["n+1", "n + 1", "101", "1 + 50", "twice", "loop", "round trip", "per deed"] },
-      { "idea": "Get deeds and owners in one query with a join", "match": ["join", "one query", "single query"] },
-      { "idea": "Get every owner's visits in one batched query and pick the last three per owner", "match": ["in (", "where resident_id in", "batch", "one more query", "all the visits", "last three", "eager", "prefetch"] },
-      { "idea": "Count queries per page so the next loop is caught early", "match": ["count queries", "query count", "test", "alert", "monitor", "pg_stat_statements", "log"] }
+      { "idea": "It's the N+1 problem twice: 1 + 50 + 50 = 101 round trips", "match": ["n+1", "n + 1", "two loops", "one at a time", "1 + 50", "twice", "loop", "round trip", "per deed"] },
+      { "idea": "Get deeds and owners in one query with a join", "match": ["joining", "a join", "one query", "single query"] },
+      { "idea": "Get every owner's visits in one batched query and pick the last three per owner", "match": ["in (", "where resident_id in", "batch", "one more query", "all the visits", "most recent", "latest", "eager", "prefetch"] },
+      { "idea": "Count queries per page so the next loop is caught early", "match": ["count queries", "query count", "test", "alert", "monitor", "pg_stat_statements", "measure", "catch"] }
     ],
     "model": "It's the N+1 problem twice over: one query for the 50 deeds, then 50 for the owners and 50 more for their visits, 101 round trips for one page. Get the deeds and their owners in one query by joining deeds to residents, a left join if a deed might have no owner on file. Then fetch every owner's visits in a single batched query, WHERE resident_id IN (...) with those owners' ids, ordered by date, and keep the last three per owner in the code. If the site uses an ORM, that's eager loading. Two queries instead of 101. Then add a check that counts queries per page view, so the next loop is caught before an auditor finds it."
   },

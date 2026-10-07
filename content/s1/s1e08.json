@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.1 (2026-10-06) review fixes: the sim gets a Restart chartfeed control (running workers get PPID 1, init collects the zombies) and tryThis points to it; option B says a restart gives a short grace period, then kills; rhea's three threads now include one compressing pages; limit 1 adds that even kill -9 can fail on a process in state D; the cold case model names Fargate's 120 s maximum instead of a general limit; the ECS realWorld item is split so the 120 s figure cites the ECS developer guide (source 8); new terms (Compress, Uninterruptible sleep) and sources (systemd, LWN)",
     "v1.0.0 (2026-10-06) first version"
   ],
@@ -310,7 +311,7 @@
       "kind": "free",
       "prompt": "Your web service runs in containers. After every deploy, a few customers find half-saved orders, and the logs show the old containers being killed exactly 30 seconds after the deploy starts. What is happening, and what do you change?",
       "keyIdeas": [
-        { "idea": "The platform sends SIGTERM, then SIGKILL after a 30-second grace period, cutting off work in progress", "match": ["sigterm", "sigkill", "kill -9", "grace period", "30 seconds", "stop timeout", "stoptimeout", "killed"] },
+        { "idea": "The platform sends SIGTERM, then SIGKILL after a 30-second grace period, cutting off work in progress", "match": ["sigterm", "sigkill", "kill -9", "grace period", "cut off", "time limit", "stop timeout", "stoptimeout", "force", "deadline"] },
         { "idea": "The app must handle SIGTERM: stop taking new work, finish what it's doing, exit", "match": ["handle sigterm", "catch", "handler", "finish", "stop taking", "no new", "drain", "graceful", "exit cleanly"] },
         { "idea": "Give it a grace period long enough for normal work, or keep each piece of work short", "match": ["longer", "raise", "increase", "grace period", "stoptimeout", "termination", "shorter jobs", "smaller"] },
         { "idea": "Make the work safe to redo if it is cut off anyway", "match": ["idempotent", "redo", "retry", "resume", "transaction", "all or nothing", "safe to repeat", "start over"] }
@@ -372,7 +373,7 @@
     "update": "UPDATE, 3 months later. chartfeed collects its workers now and the list stays clean. Next week the hospital moves chartfeed onto a container platform. To stop a container, the platform sends SIGTERM and, 30 seconds later, SIGKILL. A chart like Bed 14's takes about 40 minutes to upload. The contractor says: \"chartfeed already handles SIGTERM. We're fine.\"",
     "prompt": "Reply to OP. Is the contractor right? What needs to change before the move?",
     "keyIdeas": [
-      { "idea": "Handling SIGTERM isn't enough: 30 seconds is far shorter than a 40-minute chart, so SIGKILL will cut it off", "match": ["30 seconds", "not enough", "too short", "40 minutes", "sigkill", "cut off", "killed anyway", "won't finish"] },
+      { "idea": "Handling SIGTERM isn't enough: 30 seconds is far shorter than a 40-minute chart, so SIGKILL will cut it off", "match": ["not long enough", "not enough", "too short", "much longer", "far short", "can't finish", "halfway", "mid-upload", "cut off", "killed anyway", "won't finish"] },
       { "idea": "Make the upload survive being cut off: save progress and resume, or mark complete only at the end", "match": ["resume", "checkpoint", "save progress", "page by page", "start over", "mark complete", "redo", "idempotent", "where it left off"] },
       { "idea": "Raising the grace period helps only within the platform's limit", "match": ["raise", "longer grace", "increase", "stoptimeout", "120", "limit", "maximum", "grace period"] },
       { "idea": "Stop the work from starting when a stop is coming, or keep jobs short", "match": ["stop taking", "no new", "smaller", "split", "shorter", "batches", "drain"] }

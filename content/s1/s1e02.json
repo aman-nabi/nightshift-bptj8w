@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.1 (2026-10-06) review fixes: the coldCase model no longer says the security group is almost certainly the cause, because an office firewall that blocks outgoing knocks on 8080 also times out and AWS's troubleshooting guide (source 2) says to check a corporate firewall; it now says most likely the security group or the office's own firewall, and to test from another network to tell them apart, and coldCase keyIdea 2 widens to match; realWorld[1] adds the guide's corporate-firewall step; the sim gains a Restart button that relaunches the start-up list in a seeded random order, so the race in option B can be played, and a toggle that takes Hal's v1 off the start-up list; sim.tryThis mentions both",
     "v1.0.0 (2026-10-06) first version"
   ],
@@ -296,7 +297,7 @@
       "kind": "free",
       "prompt": "You start your app and it quits with address already in use on port 8080. A coworker says: just use 8081. What do you do instead, and why?",
       "keyIdeas": [
-        { "idea": "Find out which program holds port 8080", "match": ["which program", "who holds", "who is using", "what is using", "what's using", "ss ", "lsof", "netstat", "holding", "find the"] },
+        { "idea": "Find out which program holds port 8080", "match": ["which program", "who holds", "who is using", "what is using", "what's using", "ss -l", "which process", "lsof", "netstat", "holding", "find the"] },
         { "idea": "Clients still knock on 8080 and get the old program", "match": ["client", "still knock", "old one", "old program", "wrong program", "still answer", "still connect", "still go to"] },
         { "idea": "Stop it and fix what starts it, so it can't come back", "match": ["stop", "kill", "start-up", "startup", "boot", "restart", "remove it", "take it off"] }
       ],
@@ -333,9 +334,9 @@
       "kind": "free",
       "prompt": "Your team launches a new EC2 instance running a web server on port 443. From home, the browser spins and then says the connection timed out. On the instance itself, a knock on localhost port 443 is answered. Where's the problem, and what do you check?",
       "keyIdeas": [
-        { "idea": "The program is fine: it answers from inside", "match": ["program is fine", "server is fine", "app is fine", "running", "listening", "localhost works", "answers locally", "inside"] },
+        { "idea": "The program is fine: it answers from inside", "match": ["program is fine", "server is fine", "app is fine", "server is up", "not the program", "listening", "localhost works", "answers locally", "inside"] },
         { "idea": "A timeout points at the security group or firewall", "match": ["security group", "firewall", "inbound", "rule"] },
-        { "idea": "The rule must allow port 443 from the right source", "match": ["443", "source", "0.0.0.0", "my ip", "your ip", "address", "anyone", "everyone", "allow"] }
+        { "idea": "The rule must allow port 443 from the right source", "match": ["open the port", "port is open", "source", "0.0.0.0", "my ip", "your ip", "address", "anyone", "everyone", "allow"] }
       ],
       "model": "The web server is running and listening, because the knock from inside the instance was answered. A timeout from outside means the knock was dropped on the way, so check the instance's security group: it needs an inbound rule for port 443 from the people who should reach it (for a public website, 0.0.0.0/0). If there's also a firewall on the instance itself, check that it allows 443 too."
     }
@@ -344,8 +345,8 @@
     "update": "UPDATE, 4 months later. Rosa moved the order board to a new EC2 instance on AWS. It works from her laptop at home. From the office, the screen by the lifts spins and then says *connection timed out*. On the instance itself, a knock on localhost port 8080 answers ORDER BOARD v2. Rosa's plan for tonight: open every port in the security group to 0.0.0.0/0, just to see.",
     "prompt": "Reply to OP. What's actually wrong, and what should Rosa do instead?",
     "keyIdeas": [
-      { "idea": "The program is fine: it answered on localhost and works from her home", "match": ["program is fine", "board is fine", "v2 is fine", "running", "listening", "localhost", "works from home", "answers"] },
-      { "idea": "A timeout means something on the way drops the office's knocks on 8080: the security group or the office's own firewall", "match": ["security group", "inbound", "rule", "dropped", "drop", "office", "firewall", "another network", "other network", "mobile data", "hotspot"] },
+      { "idea": "The program is fine: it answered on localhost and works from her home", "match": ["program is fine", "board is fine", "v2 is fine", "running", "listening", "works locally", "server is fine", "app is fine", "not the program", "works from home"] },
+      { "idea": "A timeout means something on the way drops the office's knocks on 8080: the security group or the office's own firewall", "match": ["block", "on the way", "in the way", "never reach", "inbound", "rule", "dropped", "drop", "firewall", "another network", "other network", "mobile data", "hotspot"] },
       { "idea": "Allow port 8080 from the office's address only, not everything", "match": ["only", "office's address", "office address", "office ip", "specific", "source", "don't open", "dont open", "do not open", "not every", "just 8080"] }
     ],
     "model": "The board program is fine: it answers on localhost and from Rosa's home. A timeout from the office means the knock was dropped on the way. The most likely suspects are the security group, which may allow 8080 only from Rosa's home address, or the office's own firewall, which may block outgoing knocks on 8080. Test from a third network, like a phone's mobile data. If that times out too, the security group only lets Rosa's home in: add one inbound rule for port 8080 with the office's public address as the source. If it works, the security group is fine and the office firewall is the guard, so ask whoever runs it. Either way, don't open every port to the internet. Knock from the office to check, and leave everything else closed."
