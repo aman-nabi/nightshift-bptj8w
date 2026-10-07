@@ -1,8 +1,16 @@
-/* sims/a1e01-v1.0.0.js  (published as sims/a1e01.js)
+/* sims/a1e01-v1.0.1.js  (published as sims/a1e01.js)
    Case a1e01 "What Learning Means": a curve-fitting lab for the Skerrow Head storm predictor.
    LATENT's first sim and its template.
 
    CHANGELOG
+   v1.0.1 (2026-10-07) independent review fixes: the error note says choosing the degree by the
+     held-back storms makes them a validation set, which flatters the winner's score a little;
+     reshuffle keeps Tuesday's storm held back and picks the other held-back storms around it (its
+     Fisher-Yates pass now draws one api.rand() fewer); the "over" verdict starts at 1.25 times the
+     lowest test error (was 1.5); stronger self-tests: the lowest test error exactly at degree 3, test
+     errors of 39.9 and 3.4 knots checked directly, the degree-12 logbook curve at -12.5673 knots for
+     7.5 hPa and -139.388 for 1.8 hPa, Tuesday still held back after a reshuffle, and every message now
+     states exactly what it checks.
    v1.0.0 (2026-10-07) first version: a widget-style sim built inside api.root (no diagram), drawn as
      two inline SVG charts that use theme classes only. The storm chart plots every storm (barometer
      fall in hPa across, strongest gust in knots up): training storms, held-back test storms, Tuesday's
@@ -17,7 +25,7 @@
      more data shrinking the degree-12 gap, a deterministic split for a fixed seed, and the paper
      logbooks running out.
 
-   Where every number comes from (conventions rule 14; the case is content/latent/a1/a1e01-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/latent/a1/a1e01-v1.0.1.json):
    - post: the 13 logbook storms of 2013 to 2025 (LOGBOOK below, all 13 in the training set), degree 1
      missing them by about 6 knots (5.7 here), degree 12 with 13 numbers to tune and a replay miss of
      0 knots, Tuesday's fall of 7.5 hPa at 01:40, the -13 knot forecast (-12.57 rounded) and the 58
@@ -48,6 +56,7 @@
      "shuffle" runs one Fisher-Yates pass. The engine reseeds api.rand() on every reset.
    - The mildest and the worst storm always stay in training, so a reshuffle never asks the model to
      extrapolate beyond what it studied (a degree-12 curve would answer in thousands of knots).
+     Tuesday's storm always stays held back, so its forecast is always a test of something unseen.
    - Stats get bare numbers (units live in the labels), so t.stat() returns numbers.
    - Colors come only from theme classes: dot, dot-req, dot-fail, dot-bad, dot-ok, dot-accent, dg-edge
      with tone-*, dg-axis, dg-marker and dg-note. In LATENT views tone-accent and dot-accent turn cyan,
@@ -192,7 +201,7 @@
   function regime(res, d) {
     var low = res.test[res.best];
     if (d < res.best && res.test[d] > low * 1.15) return "under";
-    if (d > res.best && res.test[d] > low * 1.5) return "over";
+    if (d > res.best && res.test[d] > low * 1.25) return "over";
     return "near";
   }
 
@@ -239,11 +248,15 @@
   }
 
   // Hold back a different set of storms, the same number as before. One Fisher-Yates pass.
+  // Tuesday's storm always stays held back; the mildest and the worst always stay in training.
   function reshuffle(api) {
-    var pool = api.state.pool, nTest = 0, i;
+    var pool = api.state.pool, nTest = 0, tue = -1, i;
     for (i = 0; i < pool.length; i++) if (pool[i].test) nTest++;
     var ex = extremes(pool), rest = [];
-    for (i = 0; i < pool.length; i++) if (i !== ex.lo && i !== ex.hi) rest.push(i);
+    for (i = 0; i < pool.length; i++) {
+      if (pool[i].src === "tue") tue = i;
+      else if (i !== ex.lo && i !== ex.hi) rest.push(i);
+    }
     for (i = rest.length - 1; i > 0; i--) {
       var j = Math.floor(api.rand() * (i + 1));
       var tmp = rest[i];
@@ -251,7 +264,8 @@
       rest[j] = tmp;
     }
     for (i = 0; i < pool.length; i++) pool[i].test = false;
-    for (i = 0; i < nTest; i++) pool[rest[i]].test = true;
+    pool[tue].test = true;
+    for (i = 0; i < nTest - 1; i++) pool[rest[i]].test = true;
   }
 
   function splitSignature(pool) {
@@ -484,8 +498,8 @@
     if (d + 1 >= r.nTrain) s += " As many numbers as storms: it can pass through every one.";
     if (dipsBelowZero(c)) s += " Somewhere on this curve, the wind goes below zero.";
     S.ui.fitNote.textContent = s;
-    S.ui.errNote.textContent = "Lowest test error: degree " + r.best + ", " + f1(r.test[r.best]) +
-      " knots. Training error never rises as the degree goes up; test error only falls while the curve is learning the pattern.";
+    S.ui.errNote.textContent = "Lowest error on the held-back storms: degree " + r.best + ", " + f1(r.test[r.best]) +
+      " knots. Choosing by it makes them a validation set, so that number flatters the winner a little.";
   }
 
   function drawStats(S) {
@@ -551,7 +565,7 @@
   function shuffle(api) {
     reshuffle(api);
     refresh(api);
-    api.log("You reshuffle which " + api.state.res.nTest + " storms are held back. The mildest storm (1.4 hPa) and the worst (11.8 hPa) stay in training, so the test never asks about a fall beyond anything it studied. Lowest test error now: degree " + api.state.res.best + ".", "");
+    api.log("You reshuffle which " + api.state.res.nTest + " storms are held back. Tuesday's storm stays held back, and the mildest storm (1.4 hPa) and the worst (11.8 hPa) stay in training, so the test never asks about a fall beyond anything it studied. Lowest test error now: degree " + api.state.res.best + ".", "");
     logVerdict(api);
   }
 
@@ -608,37 +622,39 @@
 
       // 1. Tuesday's setup: degree 12, trained on the 13 logbook storms, six held back.
       await t.run(1);
-      t.expect(n("train") === 0 && near(n("test"), 39.9) && near(n("gap"), 39.9) && n("tue") === -13 &&
+      t.expect(st().deg === MAX_DEG && n("train") === 0 && near(n("test"), 39.9) && near(n("gap"), 39.9) && n("tue") === -13 &&
         n("ntrain") === 13 && n("ntest") === 6 && t.logText().indexOf("Overfitting") >= 0,
-        "Tuesday's setup: degree 12 on the 13 logbook storms gives training error 0.0, test error 39.9 knots on the six held-back storms, and a forecast of -13 knots for Tuesday");
+        "Tuesday's setup: degree 12 with 13 storms in training and 6 held back shows training error 0.0, test error 39.9 and gap 39.9 knots, a forecast of -13 knots for Tuesday, and an Overfitting verdict in the log");
 
       // 2. Training error never rises as the degree rises, on the same storms (full precision).
+      //    r is Tuesday's setup (the 13 logbook storms in training); tests 3, 4 and 7 reuse it.
       var r = st().res, mono = true;
       for (d = 1; d < MAX_DEG; d++) if (r.train[d + 1] > r.train[d] + 1e-9 * (1 + r.train[d])) mono = false;
       t.expect(mono && r.train[MAX_DEG] < 1e-6 && r.train[1] > r.train[3],
-        "training error never rises as the degree rises on the same storms, from 5.7 knots at degree 1 down to 0.0 at degree 12");
+        "on the 13 logbook storms, training error never rises from one degree to the next, is below 1e-6 knots at degree 12, and is higher at degree 1 than at degree 3");
 
-      // 3. The lowest test error sits at a middle degree, and a straight line underfits.
-      t.expect(r.best >= 2 && r.best <= 8 && r.test[1] > 1.5 * r.test[r.best],
-        "the lowest test error sits at a middle degree (3 here), and degree 1 misses the held-back storms by more than 1.5 times as much");
+      // 3. The lowest test error is at degree 3, and a straight line underfits.
+      t.expect(r.best === 3 && r.test[1] > 1.5 * r.test[r.best],
+        "the lowest test error is at degree 3, and degree 1's test error is more than 1.5 times that lowest test error");
 
       // 4. At the highest degree the test error is far above the best.
-      t.expect(r.test[MAX_DEG] > 5 * r.test[r.best],
-        "at degree 12 the test error (39.9 knots) is more than five times the lowest test error (3.4 knots)");
+      t.expect(r.test[MAX_DEG] > 5 * r.test[r.best] && near(r.test[MAX_DEG], 39.9) && near(r.test[r.best], 3.4),
+        "the test error is 39.9 knots at degree 12 and 3.4 knots at the lowest-error degree, and the first is more than five times the second");
 
       // 5. Degree 1: a straight line, underfitting.
       t.set("degree", 1);
       await t.run(1);
       t.expect(near(n("train"), 5.7) && near(n("test"), 7.8) && n("tue") === 44 && t.logText().indexOf("Underfitting") >= 0,
-        "degree 1 underfits: training error 5.7, test error 7.8 knots, and a forecast of 44 knots for Tuesday");
+        "degree 1 shows training error 5.7 and test error 7.8 knots, a forecast of 44 knots for Tuesday, and an Underfitting verdict in the log");
 
       // 6. Degree 3: close to the lowest test error.
       t.set("degree", 3);
       await t.run(1);
       t.expect(near(n("train"), 3.6) && near(n("test"), 3.4) && n("tue") === 51 && t.logText().indexOf("Close to the lowest test error") >= 0,
-        "degree 3 follows the pattern: training error 3.6, test error 3.4 knots, and a forecast of 51 knots for Tuesday");
+        "degree 3 shows training error 3.6 and test error 3.4 knots, a forecast of 51 knots for Tuesday, and a \"Close to the lowest test error\" verdict in the log");
 
-      // 7. Least squares recovers a known line exactly from noise-free points.
+      // 7. Least squares recovers a known line exactly from noise-free points, and the degree-12 curve
+      //    on the 13 logbook storms (r, from Tuesday's setup) gives the story's forecasts at full precision.
       var pts = [], xs = [], ys = [];
       for (i = 0; i <= 22; i++) {
         var x = 1 + i * 0.5;
@@ -648,8 +664,9 @@
       }
       var fit = qrFit(xs, ys), line = coeffsFor(fit, 1), five = coeffsFor(fit, 5);
       var a = predict(line, 0), b = predict(line, 1) - a;
-      t.expect(Math.abs(a - 2) < 1e-9 && Math.abs(b - 3) < 1e-9 && rmse(line, pts) < 1e-9 && Math.abs(predict(five, 7.5) - 24.5) < 1e-8,
-        "least squares recovers the line y = 2 + 3x exactly from noise-free points, at degree 1 and at degree 5");
+      t.expect(Math.abs(a - 2) < 1e-9 && Math.abs(b - 3) < 1e-9 && rmse(line, pts) < 1e-9 && Math.abs(predict(five, 7.5) - 24.5) < 1e-8 &&
+        Math.abs(predict(r.coefs[MAX_DEG], 7.5) + 12.5673) < 1e-3 && Math.abs(predict(r.coefs[MAX_DEG], 1.8) + 139.388) < 1e-2,
+        "least squares recovers y = 2 + 3x from 23 noise-free points (intercept, slope and a zero miss at degree 1, and 24.5 at x = 7.5 at degree 5), and the degree-12 curve on the 13 logbook storms forecasts -12.5673 knots at 7.5 hPa (within 0.001) and -139.388 knots at 1.8 hPa (within 0.01)");
 
       // 8. More data shrinks the degree-12 gap.
       t.click("reset");
@@ -662,9 +679,9 @@
       var r2 = st().res, after = r2.test[MAX_DEG] - r2.train[MAX_DEG];
       t.expect(n("ntrain") === 34 && n("ntest") === 15 && st().deg === MAX_DEG && after < before / 4 && r2.train[MAX_DEG] > 1 &&
         near(n("gap"), after),
-        "three batches from the paper logbooks give 34 storms to train on: 13 numbers can no longer memorize them, and the degree-12 gap shrinks from 39.9 knots to a fraction of that");
+        "after three batches from the paper logbooks at degree 12: 34 storms in training and 15 held back, training error above 1 knot, the gap stat matches the computed gap, and that gap is under a quarter of its value before the batches");
 
-      // 9. The split is deterministic for a fixed seed.
+      // 9. The split is deterministic for a fixed seed, and Tuesday's storm stays held back.
       t.click("reset");
       var startSig = splitSignature(st().pool);
       t.click("shuffle");
@@ -673,10 +690,13 @@
       t.click("reset");
       t.click("shuffle");
       var sig2 = splitSignature(st().pool);
-      var held = 0;
-      for (i = 0; i < pool1.length; i++) if (pool1[i].test) held++;
-      t.expect(sig1 === sig2 && sig1 !== startSig && held === 6 && !pool1[7].test && !pool1[4].test,
-        "the split is deterministic for a fixed seed: after a reset the same reshuffle holds back the same 6 storms, and the mildest and worst storms stay in training");
+      var held = 0, tueHeld = false;
+      for (i = 0; i < pool1.length; i++) {
+        if (pool1[i].test) held++;
+        if (pool1[i].src === "tue" && pool1[i].test === true) tueHeld = true;
+      }
+      t.expect(sig1 === sig2 && sig1 !== startSig && held === 6 && tueHeld && !pool1[7].test && !pool1[4].test,
+        "a reshuffle changes the starting split, and after a reset the same reshuffle gives the same split: 6 storms held back, Tuesday's storm among them, and the mildest (2020) and worst (2017) storms in training");
 
       // 10. The paper logbooks run out after 60 more storms; the hidden pattern can be shown.
       t.click("reset");
@@ -685,7 +705,7 @@
       var truth = st().ui.truth;
       t.expect(n("ntrain") === 55 && n("ntest") === 24 && st().ctl.more.el.disabled === true &&
         truth.getAttribute("display") === "inline" && String(truth.getAttribute("d")).length > 100,
-        "the paper logbooks run out after 60 more storms (55 to train on, 24 held back), and the hidden pattern can be shown");
+        "after 7 presses of more, the paper logbooks have run out at 60 more storms (55 in training, 24 held back) and the more button is disabled; the hidden pattern toggle shows its curve");
     }
   });
 })();

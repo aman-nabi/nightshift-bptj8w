@@ -1,9 +1,11 @@
-/* engine/ui-v1.2.0.js
+/* engine/ui-v1.2.2.js
    Dead Letter UI (DL.ui): the shell, router wiring and every view. Published as engine/ui.js.
    Contract: docs/dead-letter-engine-contract-v1.1.0.md, sections 6 and 9.9. Needs engine/core-v1.2.0.js (the merged
    catalog, state v2, DL.builds, DL.credits, decision cards; DL.sync, DL.prompts and the #interview/<id> route from
    v1.1). Styles: index-v1.1.0.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
    CHANGELOG
+   v1.2.2 (2026-10-07) cold-case and decision-card replies come from the case's own course guide (the course
+        registry's `guide`: u/grey_pager for Dead Letter, u/gradient_ghost for LATENT), found by guideOf(course id).
    v1.2.1 (2026-10-07) the first-shift card and the pace line default to a finish date about 4 months out (plan B: both courses in parallel).
    v1.2.0 (2026-10-07) two courses on one forum (Dead Letter and LATENT) plus Build Nights, contract section 9.9:
      1. Board switcher in the masthead: All, Dead Letter (/n/nightshift), LATENT (/n/latent), from catalog.courses.
@@ -32,7 +34,7 @@
         number), each with its cases and finale interviews as before. Below them, Projects: Gatekeeper, Loadout
         and Nightwatch with each milestone's state (locked, ready, done verified or done self-reported). Cases with
         creditedFrom show "Credited from LATENT" (also on the case page).
-     6. Cold cases: decision cards (build:<id>) render as "u/grey_pager asks about your build:" plus the prompt.
+     6. Cold cases: decision cards (build:<id>) render as "<course guide> asks about your build:" plus the prompt.
         After an answer, your own note is shown as the model answer, then the self-grade buttons (no key-idea
         check and no Claude code for these). The Evidence board keys its columns by course and season.
      7. Settings: a schedule select (both courses in parallel, Dead Letter only, LATENT only) and a GitHub
@@ -409,6 +411,12 @@
   function courseInfo(id) { return findIn(courseList(), id); }
   function multiCourse() { return courseList().length > 1; }
   function courseOf(x) { return x && typeof x.course === "string" && x.course ? x.course : "dl"; }
+  /* The course's guide in replies and cold cases: the registry's `guide`, else the built-in one. */
+  function guideOf(id) {
+    var c = courseInfo(id);
+    if (c && typeof c.guide === "string" && c.guide) return c.guide;
+    return id === "lt" ? "u/gradient_ghost" : "u/grey_pager";
+  }
   function courseTitle(id) {
     var c = courseInfo(id);
     return (c && c.title) || (id === "lt" ? "LATENT" : "Dead Letter");
@@ -1991,7 +1999,7 @@
       paras(prompt.update).forEach(function (p) { story.appendChild(p); });
     } else {
       story.appendChild(h("div", { class: "gp-reply" }, [
-        h("p", { class: "c-meta" }, [h("span", { class: "user", text: "u/grey_pager" }), " replied to your case:"]),
+        h("p", { class: "c-meta" }, [h("span", { class: "user", text: guideOf(courseOf(metaFor(id))) }), " replied to your case:"]),
         h("p", { md: prompt.prompt || "" })
       ]));
     }
@@ -2102,7 +2110,7 @@
       ]),
       h("h2", { class: "post-title small", tabindex: "-1", text: (proj.title ? proj.title + ": " : "") + (m.title || bid) }),
       h("div", { class: "story" }, h("div", { class: "gp-reply" }, [
-        h("p", { class: "c-meta" }, [h("span", { class: "user", text: "u/grey_pager" }), " asks about your build:"]),
+        h("p", { class: "c-meta" }, [h("span", { class: "user", text: guideOf(courseOf(m)) }), " asks about your build:"]),
         h("p", { md: prompt.prompt || "" })
       ]))
     ]));
