@@ -1,0 +1,389 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-07) first version. Board cards use the catalog's four a1e06 concept ids (next-token-prediction, sampling, why-answers-vary, where-hallucination-comes-from); strings point back to attention (a1e05) and forward to pretraining (a1e07) and grounding (a3e06). Honours a1e05's tease: a spirit board in a closed café, a planchette that only ever chooses the next word, and a question that gets a different answer every night"
+  ],
+  "id": "a1e06",
+  "season": 1,
+  "n": 6,
+  "title": "The Next Word",
+  "setting": "a spirit board in a closed café",
+  "core": true,
+  "minutes": 12,
+  "concepts": ["next-token-prediction", "sampling", "why-answers-vary", "where-hallucination-comes-from"],
+  "prerequisites": ["a1e01", "a1e02", "a1e03", "a1e04", "a1e05"],
+  "rule": null,
+  "post": {
+    "author": "u/table_six_anouk",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 3311,
+    "title": "Our café closed in August. Every night I ask its spirit board why, and every night it spells a different answer. Last night it spelled a fire that never happened.",
+    "blocks": [
+      { "t": "p", "text": "Café Brume closed in August after forty-one years. Agathe, who ran it the whole time, retired and still lives upstairs. On Saturday she's opening it one last night for the regulars, and she wants the spirit board on table six to answer their questions. It's a wooden board printed with the alphabet, YES, NO and GOODBYE, and a little pointer called a planchette slides between the letters. Her husband used to nudge it from under the table with his knee." },
+      { "t": "p", "text": "I washed dishes there at sixteen. Now I'm a junior developer, so I made the planchette move by itself: a magnet under the table, steered by a small language model on an old laptop in the back room. I followed a tutorial. The model reads the question and the answer so far and gives every possible next word a chance. My script draws one by those chances, like a weighted die, which the tutorial calls sampling. The planchette spells the word, rests, and the loop runs again, until the model picks its stop word and the planchette slides to GOODBYE. I left the tutorial's two settings alone, temperature 1.0 and top_p 1.0, and the script logs the likeliest words at every step." },
+      { "t": "p", "text": "Every night at midnight I test it with the same question: why did Café Brume close? Six nights, six answers. SHE RETIRED. AFTER THE FLOOD. SHE STAYED, which the log says it drew at 0.45, over RETIRED at 0.55. SPOONS, and nothing else. AFTER MIDNIGHT. And last night:" },
+      { "t": "log", "text": "night 6   why did café brume close?\nstep 1    after 0.52    she 0.45    spoons 0.03    drew after\nstep 2    the 0.85    midnight 0.15                drew the\nstep 3    fire 0.65    flood 0.35                  drew fire\nstep 4    GOODBYE 1.00                             drew GOODBYE" },
+      { "t": "p", "text": "There has never been a fire at Café Brume. Agathe says not so much as a burnt pan in forty-one years." },
+      { "t": "beat", "text": "It has never once spelled that it doesn't know." },
+      { "t": "p", "text": "So I stayed until two and asked it twenty more times. Six fires, five floods, four SHE STAYED, three SHE RETIRED, one AFTER MIDNIGHT, one SPOONS. On Saturday sixty people who loved that café will ask it about the café, and Agathe says they'll believe whatever it spells. Is the board broken, or am I? What do I change before Saturday?" },
+      {
+        "t": "evidence",
+        "label": "step_three.png",
+        "diagram": {
+          "type": "arch",
+          "w": 760,
+          "h": 336,
+          "aria": "Anouk's drawing of step 3 of last night's answer to the question why did Café Brume close. The board had spelled AFTER THE. The small model, which gives a chance to every next word, gave fire 0.65, which was drawn, and flood 0.35, which was not. Neither ever happened at the café. Underneath: twenty more runs of the same question ended 6 times in the fire, 5 in the flood, 4 she stayed, 3 she retired, 1 after midnight and 1 spoons.",
+          "nodes": [
+            { "id": "sofar", "label": "So far", "sub": "AFTER THE", "meta": "step 3, last night", "x": 120, "y": 150, "w": 200, "h": 72, "shape": "box", "tone": "" },
+            { "id": "model", "label": "Small model", "sub": "a chance for", "meta": "every next word", "x": 380, "y": 150, "w": 160, "h": 72, "shape": "box", "tone": "accent" },
+            { "id": "fire", "label": "fire 0.65", "sub": "drawn", "meta": "never happened", "x": 630, "y": 70, "w": 190, "h": 72, "shape": "box", "tone": "bad" },
+            { "id": "flood", "label": "flood 0.35", "sub": "not drawn", "meta": "never happened", "x": 630, "y": 230, "w": 190, "h": 72, "shape": "box", "tone": "warn" }
+          ],
+          "edges": [
+            { "from": "sofar", "to": "model", "label": "reads" },
+            { "from": "model", "to": "fire", "label": "0.65" },
+            { "from": "model", "to": "flood", "label": "0.35" }
+          ],
+          "notes": [
+            { "x": 120, "y": 56, "text": "question: why did it close?", "tone": "", "anchor": "middle" },
+            { "x": 380, "y": 318, "text": "20 more runs: fire 6, flood 5, stayed 4, retired 3, midnight 1, spoons 1", "tone": "warn", "anchor": "middle" }
+          ]
+        },
+        "caption": "Drawn on the back of a menu at two in the morning: step 3 of last night's answer. The board had spelled AFTER THE, and the model gave fire 0.65 and flood 0.35. Neither ever happened here. Underneath, the twenty runs after it."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/gradient_ghost",
+      "points": 124,
+      "age": "5h",
+      "text": "Nothing in that café is haunted, and the board knows nothing about it. A language model has one job: given the text so far, give every token in its vocabulary a probability of coming next. Turning those probabilities into a choice is called decoding. Greedy decoding always takes the top token; your script does the other thing, sampling. Temperature reshapes the probabilities before the draw: below 1 it sharpens them toward the favourite, above 1 it flattens them toward the long shots. Top-p, also called nucleus sampling, keeps only the most likely tokens whose probabilities add up to at least p, the nucleus, and draws from those. And when a model states something false as smoothly as something true, engineers call it a hallucination. Two questions. At step 3, was fire the long shot or the favourite? And in everything the board reads before it answers, where is a single fact about Café Brume?",
+      "replies": [
+        {
+          "author": "u/table_six_anouk",
+          "op": true,
+          "points": 61,
+          "age": "5h",
+          "text": "The favourite, 0.65 against 0.35. And nowhere. It reads the question and one line I copied from the tutorial: The spirit of the house answers. That's all it has ever read about this place."
+        }
+      ]
+    },
+    {
+      "author": "u/magic_shop_osric",
+      "points": 86,
+      "age": "4h",
+      "text": "I ran séance nights in the back of a magic shop for twenty-two years. Nobody pushes the planchette, and everybody pushes it a little, toward whatever the table expects to come next. Ask a room of strangers why an old house stands empty and it spells FIRE far more often than it ever spells MORTGAGE. A room likes an answer that sounds like a story.",
+      "replies": [
+        {
+          "author": "u/table_six_anouk",
+          "op": true,
+          "points": 72,
+          "age": "2h",
+          "text": "Asked Agathe about the fire tonight. She laughed. Then she sat down at table six, asked the board a question of her own, and wouldn't tell me what it was. It spelled SHE STAYED, then GOODBYE. She went upstairs without a word."
+        }
+      ]
+    },
+    {
+      "author": "u/refund_queue_dagny",
+      "points": 49,
+      "age": "3h",
+      "text": "Same thing at work, no planchette. Our support chatbot told a customer we refund anything within 60 days, no receipt needed. We have never had that policy. It wrote it in the same calm voice it uses for the real ones, and she had a screenshot."
+    }
+  ],
+  "reply": {
+    "prompt": "The regulars come on Saturday, and they'll ask the board about the café all night. What should Anouk do first? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Set the temperature to 0. Then the board always takes its likeliest word and gives the same answer every night, so no two regulars go home on Saturday with two different stories about the café.",
+        "tone": "bad",
+        "verdict": "Repeatable, and wrong every time",
+        "part2": "I set the temperature to 0 and asked the question twenty times: AFTER THE FIRE, twenty out of twenty. Repeatable, I thought, means safe. On Saturday every regular who asked heard about the fire. By ten o'clock three of them were arguing about which year it had been. Agathe spent the night saying there was never a fire, and the board, every time anyone asked, said there was.",
+        "senior": "Temperature 0 takes the top token every time. That makes the answer repeat, not true: when the likeliest continuation is false, greedy decoding says it to everyone, every time. Consistency is not a fact check."
+      },
+      {
+        "text": "Put Agathe's own history in front of every question, let the board spell I DON'T KNOW when her history is silent, then ask it each question the regulars are likely to ask, 20 times, and read every answer.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Agathe dictated three pages: who opened Café Brume and when, the menu, the winter the sign blew down, why she retired. I put the pages in front of every question, with one line under them: if the pages don't say, answer I DON'T KNOW. Then I wrote down the twenty questions she expected and asked each one 20 times. Why did it close came back SHE RETIRED every time. Who painted the sign came back I DON'T KNOW seventeen times and a stranger's name three times, so I added the painter to the pages and tested again. On Saturday, near midnight, Agathe asked it whether anyone would remember the café. It spelled I DON'T KNOW, then GOODBYE. She said it was the first honest thing it had said all month.",
+        "senior": "A language model writes the likeliest text, not checked facts. Give it the facts to read, make I don't know an allowed answer, and test the real questions many times before anyone relies on it. Answers that change between runs mean it is guessing, and grounding reduces guessing without ending it."
+      },
+      {
+        "text": "Turn the temperature down to 0.5 and top_p down to 0.9. That trims the strange answers like SPOONS and AFTER MIDNIGHT, but leaves enough variety that the board still feels alive on Saturday.",
+        "tone": "warn",
+        "verdict": "Trade-off: fewer odd answers, more fire",
+        "part2": "I set temperature 0.5 and top_p 0.9 and asked twenty times. SPOONS was gone, and so was AFTER MIDNIGHT. AFTER THE FIRE came back ten times out of twenty, up from six. Turning the temperature down had pushed the odds toward the board's favourite, and its favourite was the fire. I caught it on Friday night, with only enough time left to tape a card to table six: for fun, not for facts.",
+        "senior": "Lower temperature and top-p trim the unlikely tail, which keeps text coherent, but they also push the draw toward the likeliest answer, true or not. They control variety, not accuracy. And OpenAI's reference advises changing one of them, not both."
+      },
+      {
+        "text": "Add one line to what the board reads before every question: The spirit of Café Brume only ever tells the truth. The model will follow that instruction and stop spelling things that never happened.",
+        "tone": "bad",
+        "verdict": "It can't tell a truth it was never given",
+        "part2": "I added the line and asked twenty times. The fire still came back, and now every answer started with TRULY. TRULY, AFTER THE FIRE. TRULY, SHE STAYED. The instruction had changed how the board sounded, not what it knew, and it had never known anything about Café Brume. On Saturday I unplugged it after the first guest asked about the fire.",
+        "senior": "An instruction to tell the truth gives the model no facts. It still continues the text with what is likely, now in a more confident voice. True answers need a source to read, permission to say I don't know, and a check."
+      }
+    ]
+  },
+  "sim": {
+    "module": "a1e06",
+    "title": "Work the planchette yourself",
+    "lede": "You're Anouk in the back room at a quarter past two, replaying last night. The board runs on a toy next-word table copied from your log: at each step, the words the log printed and their chances, and after the last word of every answer, GOODBYE at 1.00. It is a teaching simplification: a real model gives a probability to every token in its vocabulary, tens of thousands of them, worked out fresh for any text, while here six short answers are all the board can say and each word stands for a token. You start where last night's answer had reached AFTER THE. The bars show the next word's chances: the dashed outline is the table's chance, the filled bar the chance after temperature and then top-p, and a word outside the nucleus is marked cut. Sample draws by those chances, as the board does; greedy always takes the top word. The sim's dice are fixed, so reset replays exactly the same draws. Run 20 times asks the whole question 20 more times from the start and counts how each answer ends.",
+    "tryThis": "Try this: press Next word: FIRE, drawn at 0.65. Press it again: GOODBYE, just like last night. Press Write to the end: the board asks again from the start and spells SPOONS. Press Reset, then Next word: the same FIRE, because the dice are the same. Now Reset and Run 20 times: fire 6, flood 5, she stayed 4, she retired 3, after midnight 1, spoons 1. That's 30 percent fire, against an exact chance of 28.73 percent, which is 0.52 x 0.85 x 0.65. Switch to greedy: AFTER THE FIRE, 20 times in 20, and the same at temperature 0. Reset, set temperature 0.5 and top-p 0.9, and Run 20 times: fire 10, and no spoons or midnight. At temperature 1 with top-p 0.5, the nucleus is one word at every step. Last, finish an answer so the bars show the first word, and set temperature 1.5: spoons rise from 0.03 to 0.07, and top-p 0.9 cuts them again."
+  },
+  "explain": {
+    "oneLine": "Nothing at Café Brume is haunted. The board runs a language model, and a language model does one thing: give every possible next token a probability. The script drew from those chances, so the answer changed every night. And the fire was no long shot: it was the model's favourite, the likeliest-sounding way to continue a text that held no facts about the café.",
+    "steps": [
+      {
+        "title": "One job: a probability for every next token.",
+        "text": "A language model never plans an answer. Given the tokens so far, here the question and AFTER THE, it gives every token in its vocabulary a probability of coming next, and the probabilities add up to 1: a probability distribution. Something else picks one token, the token is added to the text, and the model is asked again with the longer text. The loop stops when it picks a stop token, which on Anouk's board sends the planchette to GOODBYE, or when a length limit is reached. This is next-token prediction, and chat assistants write every answer this way too, one token at a time. Case 1 gave the training side in one line: the feature is the words so far and the label is the next token. Anthropic's glossary describes pretraining the same way: training on a large unlabeled corpus of text, so that the model learns to predict the next word, given the previous context of text in the document. The probabilities are what the model took from that text. In the sim they come from a small table copied from Anouk's log, a teaching simplification; a real model works out a fresh probability for each of tens of thousands of tokens, for any text it is given."
+      },
+      {
+        "title": "Decoding: greedy or a weighted die.",
+        "text": "Turning the probabilities into a choice is decoding. Greedy decoding takes the top token every time. On the board that means AFTER at 0.52, THE at 0.85, FIRE at 0.65, then GOODBYE: the same answer every night, and it is the false one. Sampling draws a token at random in proportion to its probability, the way Anouk's script does, so the same question can get a different answer every time: in the 20 runs, all six of the board's answers turned up. That is why answers vary. Greedy has a cost beyond repeating itself. Holtzman and colleagues found that decoding which goes for the most probable text, greedy or beam search, makes long text bland and gets it stuck in loops; beam search keeps several of the likeliest partial answers at each step instead of one. Pure sampling has the opposite fault: now and then it draws a token from the long, unlikely tail of the distribution, and the text wanders into nonsense. SPOONS is the board's tail."
+      },
+      {
+        "title": "Temperature sharpens or flattens the odds.",
+        "text": "Temperature reshapes the probabilities before the draw. Holtzman and colleagues write it on the model's raw scores, called logits: divide them by the temperature, then turn them into probabilities. On the probabilities themselves that is the same as raising each one to the power 1 / temperature and rescaling so they add up to 1 again. At temperature 1 nothing changes. Below 1 the favourite gains: at 0.5 the board's first word, AFTER, goes from 0.52 to 0.57, and FIRE goes from 0.65 to 0.78. Above 1 the long shots gain: at 1.5, SPOONS goes from 0.03 to 0.07. At 0 only the top token is left, which is greedy decoding. So turning the temperature down makes the board more predictable, and here more predictable means more fire: the chance that an answer ends in the fire rises from 28.73 percent at temperature 1 to 42.91 percent at 0.5, and to 100 percent at 0. Temperature changes how the model chooses among its guesses, never what it knows."
+      },
+      {
+        "title": "Top-p keeps the nucleus and cuts the tail.",
+        "text": "Top-p, or nucleus sampling, cuts the tail away instead of reshaping everything. Sort the tokens from most to least likely, keep the smallest set from the top whose probabilities add up to at least p, the nucleus, rescale those to add up to 1, and draw only from them. At top-p 0.9 the board's first word keeps AFTER and SHE, 0.52 + 0.45 = 0.97, and SPOONS is never drawn. At 0.5, AFTER alone reaches 0.52, so the nucleus is one token and the board behaves like greedy: the fire, every time. The nucleus grows and shrinks with the model's confidence, one token where the model is sure and many where it isn't. Holtzman and colleagues proposed it in 2019 because the tail of a language model's distribution is unreliable. In this sim temperature is applied first, then top-p. Both reshape the same draw, which is why OpenAI's reference advises changing one or the other, not both."
+      },
+      {
+        "title": "Where the fire came from: hallucination.",
+        "text": "Nothing the board reads mentions Café Brume: only the question, and one line from a tutorial, The spirit of the house answers. So the model does what it always does and continues the text with what usually comes next. In Anouk's log a fire is the likeliest way to go on from after the, and in the table the fire is the likeliest whole answer, 28.73 percent, ahead of SHE RETIRED at 24.75 percent. The true answer and the false one come out of the same machinery, with the same fluency; nothing in the loop checks a fact. That is a hallucination: a fluent, confident statement that is false. Kalai and colleagues argue that it starts in pretraining, because some facts follow no pattern, like a birthday that appears only once in the training text, and that it survives because most tests of language models give no credit for I don't know, so a confident guess scores better. The board's changing answers are a clue in themselves: Anthropic's guide on reducing hallucinations suggests running the same prompt several times and comparing, because inconsistencies across outputs could indicate hallucinations. The fixes have their own season: grounding, giving the model the facts to read with the question, and retrieval, finding those facts automatically, are Season 3. Case 7 shows how a model that only continues text is raised into an assistant that answers questions."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 350,
+      "aria": "The loop that writes every answer, one token at a time. Top row: the text so far, the question plus the answer so far, here AFTER THE, is read by the language model, which gives a chance to every token: probabilities that add up to 1, here fire 0.65 and flood 0.35. Bottom row, right to left: decoding shapes the probabilities with temperature and top-p and draws one; the next token, here fire, is added to the text, and the loop goes back to the top. If the token is the stop token, GOODBYE, the answer ends. A note says greedy skips the draw and takes the top token.",
+      "nodes": [
+        { "id": "text", "label": "Text so far", "sub": "question + answer", "meta": "here: AFTER THE", "x": 110, "y": 80, "w": 180, "h": 72, "shape": "box", "tone": "" },
+        { "id": "lm", "label": "Language model", "sub": "reads it all", "meta": "a chance per token", "x": 370, "y": 80, "w": 180, "h": 72, "shape": "box", "tone": "" },
+        { "id": "probs", "label": "Probabilities", "sub": "add up to 1", "meta": "fire 0.65, flood 0.35", "x": 630, "y": 80, "w": 180, "h": 72, "shape": "box", "tone": "" },
+        { "id": "decode", "label": "Decoding", "sub": "temperature, top-p", "meta": "then draw one", "x": 630, "y": 250, "w": 180, "h": 72, "shape": "box", "tone": "accent" },
+        { "id": "next", "label": "Next token", "sub": "here: fire", "meta": "added to the text", "x": 370, "y": 250, "w": 180, "h": 72, "shape": "box", "tone": "" },
+        { "id": "stop", "label": "Stop token?", "sub": "GOODBYE", "meta": "the answer ends", "x": 110, "y": 250, "w": 180, "h": 72, "shape": "box", "tone": "" }
+      ],
+      "edges": [
+        { "from": "text", "to": "lm", "label": "read" },
+        { "from": "lm", "to": "probs", "label": "score" },
+        { "from": "probs", "to": "decode", "label": "shape" },
+        { "from": "decode", "to": "next", "label": "pick" },
+        { "from": "next", "to": "text", "label": "append" },
+        { "from": "next", "to": "stop", "label": "if stop" }
+      ],
+      "notes": [
+        { "x": 370, "y": 332, "text": "greedy skips the draw and takes the top token", "tone": "warn", "anchor": "middle" }
+      ]
+    },
+    "caption": "Read clockwise from the top left. The text so far goes in; the model gives every token a probability; decoding reshapes them with temperature and top-p and draws one, or takes the top one when greedy; the token is added to the text and the loop runs again, until the stop token. On the board at step 3: AFTER THE in, fire 0.65 and flood 0.35 out, fire drawn.",
+    "fix": {
+      "title": "The fix: give it the facts, let it say I don't know, and test the questions",
+      "text": "Treat the board's answers as guesses until they are checked. First, give the model the facts: put the café's real history in front of every question, so the likeliest continuation is the one the history supports. Second, make not knowing an allowed answer: tell it to answer I DON'T KNOW when the history is silent, the first technique in Anthropic's guide on reducing hallucinations. Third, test before anyone relies on it: write down the questions people will really ask, run each one many times at the settings you will use, and read every answer; an answer that changes between runs means the model is guessing. Then choose the settings for the job, where the provider still lets you: closer to 0 when there is one right answer, which Anthropic's API reference recommends for analytical and multiple-choice tasks, and higher when variety is the point, like a party trick. On models that no longer accept a custom temperature at all, the first three steps are the only levers you have."
+    },
+    "limits": [
+      "Giving a model the facts reduces hallucination; it doesn't end it. Anthropic's guide says its techniques significantly reduce hallucinations but don't eliminate them entirely, and a model can still misread the pages it is given or go beyond them.",
+      "Twenty runs is a small test. The board's 20 runs ended in the fire 30 percent of the time against an exact chance of 28.73 percent, and another 20 would give another count. A rare wrong answer can hide in a small test, so test more where a mistake costs more.",
+      "Temperature 0 is close to repeatable, not guaranteed. Anthropic says even with temperature of 0.0 the results will not be fully deterministic, and OpenAI says of its seed option that determinism is not guaranteed. The sim repeats exactly only because its dice are fixed."
+    ],
+    "tradeoff": {
+      "head": ["What matters", "Greedy, temperature 0", "Temperature 0.5", "Temperature 1, as the board ran", "Temperature 1.5"],
+      "rows": [
+        ["Chance an answer ends in the fire", "100 percent", "42.91 percent", "28.73 percent", "22.25 percent"],
+        ["Chance of SPOONS, the tail", "0 percent", "0.19 percent", "3.00 percent", "7.26 percent"],
+        ["Same question, same answer?", "Yes in the sim; providers say not fully guaranteed.", "Usually the favourite, sometimes not.", "All six answers turned up in 20 runs.", "Spread wider still."],
+        ["Often chosen for", "One right answer you can check, like a date pulled from a form.", "Steady output with a little variety.", "Anthropic's default; varied, natural text.", "Brainstorming, where surprise is the point, ideally with top-p to cut the tail."],
+        ["The catch", "Repeats its favourite, true or not; long text can loop.", "Pushes toward the favourite, true or not.", "Draws from the tail now and then.", "More nonsense; top-p 0.9 cuts SPOONS again."]
+      ]
+    },
+    "seniorTake": "Temperature and top-p decide how a model chooses among its guesses, not what it knows, so no setting turns a guess into a fact. Set them for the job where your provider still lets you: closer to 0 where there is one right answer, higher where variety matters. For anything factual, put the source in front of the model, make I don't know an acceptable answer, and test the real questions many times. When the answers disagree, the model is guessing.",
+    "realWorld": [
+      {
+        "title": "Nucleus sampling, 2019",
+        "text": "Ari Holtzman, Jan Buys, Li Du, Maxwell Forbes and Yejin Choi (ICLR 2020) set out to explain why text decoded from a good language model so often comes out strange. Decoding methods that go for the most probable text, such as beam search, lead to degeneration: output text that is bland, incoherent, or gets stuck in repetitive loops. Pure sampling has the opposite fault, sampling too many unlikely tokens until the text turns incoherent. They generated 5,000 passages with GPT-2 Large, 762 million parameters, each up to 200 tokens, and counted how many got stuck repeating a phrase at least three times at the end: 73.66 percent with greedy decoding and 28.94 percent with beam search of width 16, against 0.28 percent for human text, 0.22 percent for pure sampling and 0.36 percent for nucleus sampling at p = 0.95. Their method takes the top-p vocabulary as the smallest set of tokens whose probabilities add up to at least p, and avoids text degeneration by truncating the unreliable tail of the probability distribution. Most of the probability, they note, sits in a nucleus that tends to range between one and a thousand candidates.",
+        "source": 0
+      },
+      {
+        "title": "Anthropic: the sampling settings, and their limits",
+        "text": "Anthropic's API reference for sending messages describes temperature as the amount of randomness injected into the response. It defaults to 1.0 and ranges from 0.0 to 1.0, and the reference says to use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. It adds: Note that even with temperature of 0.0, the results will not be fully deterministic. For top_p it says: In nucleus sampling, we compute the cumulative distribution over all the options for each subsequent token in decreasing probability order and cut it off once it reaches a particular probability specified by top_p, and it calls top_p recommended for advanced use cases only. When this case was written, both settings were marked deprecated: models released after Claude Opus 4.6 do not support setting temperature, accepting 1.0 for backwards compatibility and rejecting all other values with a 400 error, and accept a top_p only of 0.99 or more.",
+        "source": 1
+      },
+      {
+        "title": "Anthropic's glossary: the next word, and no full determinism",
+        "text": "Anthropic's glossary calls pretraining the initial process of training language models on a large unlabeled corpus of text, in which models are pretrained to predict the next word, given the previous context of text in the document. It adds that these pretrained models are not inherently good at answering questions or following instructions, which is where fine-tuning and RLHF come in, the subject of case 7. Its entry on temperature says lower temperatures result in more conservative and deterministic outputs that stick to the most probable phrasing and answers, then warns: even with temperature set to 0, the results will not be fully deterministic and identical inputs may produce different outputs across API calls.",
+        "source": 2
+      },
+      {
+        "title": "OpenAI: change one, not both",
+        "text": "OpenAI's API reference for chat completions lets temperature run from 0 to 2: Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both. Its entry for top_p calls nucleus sampling an alternative to sampling with temperature, where the model considers the results of the tokens with top_p probability mass, so 0.1 means only the tokens comprising the top 10% probability mass are considered, and repeats the advice to alter one or the other. Its seed option, marked deprecated and in beta, promises only a best effort to sample deterministically: Determinism is not guaranteed.",
+        "source": 3
+      },
+      {
+        "title": "Why language models hallucinate, 2025",
+        "text": "Adam Tauman Kalai, Ofir Nachum and Edwin Zhang of OpenAI, with Santosh Vempala of Georgia Tech, open with a test: asked for Kalai's birthday and told to answer only if it knew, a state-of-the-art open-source language model gave three different wrong dates on three attempts, 03-07, 15-06 and 01-01. They compare models to students facing hard exam questions, who sometimes guess when uncertain, producing plausible yet incorrect statements instead of admitting uncertainty. They argue the errors begin in pretraining, where facts with no pattern behind them can't be learned from the rest of the text: if 20% of birthday facts appear exactly once in the pretraining data, then one expects base models to hallucinate on at least 20% of birthday facts. And the errors survive because most tests grade answers only right or wrong: under that grading, saying I don't know earns nothing, and an overconfident best guess is the winning strategy.",
+        "source": 4
+      },
+      {
+        "title": "Anthropic: let it say I don't know",
+        "text": "Anthropic's guide to reducing hallucinations starts by allowing the model to say I don't know: explicitly give it permission to admit uncertainty, a simple technique that it says can drastically reduce false information. Its other techniques include grounding answers in direct quotes from the documents provided, verifying claims with citations, and best-of-N verification: run the same prompt multiple times and compare the outputs, because inconsistencies across outputs could indicate hallucinations. It ends with a warning that these techniques significantly reduce hallucinations but don't eliminate them entirely, so critical information should always be validated.",
+        "source": 5
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What do temperature and top-p do?",
+        "Why does my model give different answers to the same prompt?",
+        "Why do LLMs hallucinate, and what do you do about it in a product?"
+      ],
+      "answer": "A language model outputs a probability for every possible next token, and decoding turns that into a choice, one token at a time. Temperature reshapes the probabilities before the draw: below 1 it sharpens them toward the likeliest tokens, above 1 it flattens them, and at 0 it becomes greedy, always the top token. Top-p, or nucleus sampling, keeps only the smallest set of top tokens whose probabilities add up to p and draws from those, which cuts the unreliable tail. OpenAI's reference advises changing one of them, not both, and Anthropic's models released after Claude Opus 4.6 no longer accept a custom temperature at all. Different answers to the same prompt come from sampling: every call draws again. A lower temperature makes answers more repeatable, but Anthropic says even temperature 0 is not fully deterministic, and OpenAI says the same of a fixed seed, so I design for some variation, with output validation and tests over several runs. Hallucination comes from the same mechanism: the model writes the likeliest-sounding continuation, not a checked fact, and Kalai and colleagues argue that training and grading reward a confident guess over I don't know. In a product I'd ground answers in retrieved sources, which is RAG, ask for citations, make I don't know an allowed and tested answer, build an eval set of real questions with known answers and run it on every change, and keep a person in the loop where a wrong answer is costly."
+    }
+  },
+  "terms": [
+    { "term": "Next-token prediction", "def": "A language model's one job: given the tokens so far, give every token in its vocabulary a probability of coming next. It is also how models are trained: guess the next token, compare, adjust." },
+    { "term": "Probability distribution", "def": "A list of possible outcomes with a probability for each, adding up to 1. The board's first word: after 0.52, she 0.45, spoons 0.03." },
+    { "term": "Decoding", "def": "Turning a model's probabilities into an actual choice of next token, one step at a time, by taking the top one or drawing one." },
+    { "term": "Greedy decoding", "def": "Always taking the single most likely next token. Temperature 0 means the same thing. The board would spell AFTER THE FIRE every time." },
+    { "term": "Sampling", "def": "Drawing the next token at random in proportion to its probability, like a weighted die. The same question can get a different answer each time." },
+    { "term": "Temperature", "def": "A setting that reshapes the probabilities before the draw: below 1 the favourite gains, above 1 the long shots gain, and at 0 only the top token is left." },
+    { "term": "Top-p", "def": "A setting that keeps only the smallest set of most likely tokens whose probabilities add up to at least p, rescales them, and draws from those. Also called nucleus sampling; written top_p in APIs." },
+    { "term": "Nucleus", "def": "The set of tokens top-p keeps: the most likely ones whose probabilities together reach p. It shrinks when the model is sure and grows when it isn't." },
+    { "term": "Nucleus sampling", "def": "Another name for top-p sampling, from Holtzman and colleagues' 2019 paper." },
+    { "term": "Tail", "def": "The many unlikely tokens at the bottom of a probability distribution. Drawn now and then, they can send text into nonsense, like SPOONS." },
+    { "term": "Stop token", "def": "A special token that means the text is finished. When the model picks it, the loop ends. On Anouk's board it sends the planchette to GOODBYE." },
+    { "term": "Logit", "def": "A model's raw score for a token, before the scores are turned into probabilities. Temperature is usually written as dividing the logits by it." },
+    { "term": "Beam search", "def": "A decoding method that keeps several of the likeliest partial answers at each step, instead of one, and returns the likeliest whole answer. Holtzman and colleagues found it makes long text repetitive." },
+    { "term": "Degeneration", "def": "Holtzman and colleagues' word for generated text that turns bland, incoherent or stuck in repeating loops." },
+    { "term": "Deterministic", "def": "Always giving the same output for the same input. Providers say even temperature 0 is not fully deterministic." },
+    { "term": "Seed", "def": "A starting number for a random number generator. The same seed gives the same draws, which is why the sim's reset replays the same answers." },
+    { "term": "Hallucination", "def": "A fluent, confident statement from a model that is false, like the board's fire. It comes from writing the likeliest text rather than checking facts." },
+    { "term": "Grounding", "def": "Giving a model the facts to answer from, such as documents placed with the question, and asking it to stay within them. Season 3 covers it." },
+    { "term": "Retrieval", "def": "Finding the documents a model should read for a question, automatically, usually by search. Season 3 builds it." },
+    { "term": "Pretraining", "def": "The first stage of training a language model: next-token prediction over a huge amount of text. Case 7 of this season covers it and what comes after." },
+    { "term": "Corpus", "def": "A large collection of text used for training, like millions of web pages or books." },
+    { "term": "Base model", "def": "A model after pretraining only. It continues text well but isn't trained to answer questions or follow instructions. Case 7 shows how it becomes an assistant." },
+    { "term": "RLHF", "def": "Reinforcement learning from human feedback: further training in which people rank a model's answers and the model learns to prefer the higher-ranked kind. Case 7 explains it." },
+    { "term": "Cumulative distribution", "def": "The running total of probabilities, adding tokens one at a time from the most likely down. Top-p stops adding once the total reaches p." },
+    { "term": "Probability mass", "def": "A share of the total probability. The top 10 percent of the probability mass means the most likely tokens whose probabilities add up to 0.1." },
+    { "term": "Deprecated", "def": "Still in the documentation, but marked as on its way out, with users told not to rely on it." },
+    { "term": "Backwards compatibility", "def": "Keeping old requests working after a change, so programs written earlier don't break." },
+    { "term": "400 error", "def": "The code a web API sends back when the request itself is invalid, for example a setting the model doesn't accept." },
+    { "term": "Best-of-N verification", "def": "Running the same prompt several times and comparing the answers. Anthropic's guide says inconsistencies across outputs could indicate hallucinations." },
+    { "term": "Citation", "def": "A pointer to the exact source a claim came from, so a reader can check it." },
+    { "term": "Validate", "def": "To check output against rules or known facts before using it, for example that a total matches the line items it is made of." },
+    { "term": "Open-source model", "def": "A model whose parameters are published, so anyone can download it and run it, even on a laptop like the one in Anouk's back room." },
+    { "term": "State-of-the-art", "def": "The best available at the time." },
+    { "term": "Chatbot", "def": "A program that chats with people in text. A support chatbot answers customers' questions." },
+    { "term": "Chat completions", "def": "OpenAI's API endpoint that takes a conversation and returns the model's next message. Its reference page lists the temperature and top_p settings." },
+    { "term": "Beta", "def": "An early release of a feature that may still change or stop working." },
+    { "term": "ICLR", "def": "The International Conference on Learning Representations, one of the main yearly research conferences in machine learning." },
+    { "term": "Spirit board", "def": "A wooden board printed with the alphabet, YES, NO and GOODBYE, used at séances. A pointer, the planchette, moves to spell answers. Also called a talking board." },
+    { "term": "Planchette", "def": "The small pointer on a spirit board. It slides from letter to letter to spell an answer." },
+    { "term": "Séance", "def": "A gathering where people try to contact the dead, often around a spirit board." }
+  ],
+  "atWork": "Pick one feature at work that calls a language model, or the one you'd most like to build. Find its temperature and top-p, or whether it runs on the provider's defaults, and ask what the task wants: one right answer, like a date pulled from an invoice, or variety, like a first draft of an email. Then take five real inputs and run each one ten times. Count how many different answers come back and how many are wrong. If a wrong answer is the most common one, turning the temperature down will make it more consistent, not right: that needs the facts in front of the model, a way to say it doesn't know, and a check on the output. If the feature is a support bot, ask it about a policy your company doesn't have, and read what it says.",
+  "board": {
+    "cards": [
+      { "id": "next-token-prediction", "title": "Next-token prediction" },
+      { "id": "sampling", "title": "Sampling" },
+      { "id": "why-answers-vary", "title": "Why answers vary" },
+      { "id": "where-hallucination-comes-from", "title": "Where hallucination comes from" }
+    ],
+    "strings": [
+      { "from": "attention", "to": "next-token-prediction", "label": "reads the context" },
+      { "from": "next-token-prediction", "to": "sampling", "label": "then pick one" },
+      { "from": "sampling", "to": "why-answers-vary", "label": "draws differ" },
+      { "from": "next-token-prediction", "to": "where-hallucination-comes-from", "label": "likely, not true" },
+      { "from": "where-hallucination-comes-from", "to": "grounding", "label": "give it sources" },
+      { "from": "next-token-prediction", "to": "pretraining", "label": "learned in" }
+    ]
+  },
+  "recall": [
+    {
+      "id": "a1e06-r1",
+      "kind": "free",
+      "prompt": "Your company's support chatbot answers questions about returns. This week it told two customers about a 90-day refund window you have never offered, in the same calm voice it uses for the real rules. A teammate wants to set its temperature to 0 and call it fixed. What do you tell them, and what do you do instead?",
+      "keyIdeas": [
+        { "idea": "Temperature 0 only makes it take its favourite answer every time, and a wrong answer can be the favourite", "match": ["favourite", "favorite", "likeliest", "most likely", "most probable", "top token", "consistently wrong", "same wrong", "repeat", "greedy"] },
+        { "idea": "It writes likely-sounding text, not checked facts, and nothing it reads contains the real policy", "match": ["plausible", "likely-sounding", "sounds right", "not checked", "doesn't know", "does not know", "no facts", "guess", "invent", "hallucinat", "made up"] },
+        { "idea": "Put the real policy in front of it with each question, and let it say it doesn't know or hand the customer to a person", "match": ["real policy", "policy document", "ground", "retriev", "paste", "source", "don't know", "hand off", "hand-off", "escalat", "human"] },
+        { "idea": "Test it on many real questions with known answers, several runs each, and keep checking after launch", "match": ["test", "eval", "several runs", "many times", "known answer", "sample", "measure", "monitor", "review", "check"] }
+      ],
+      "model": "Temperature 0 would only make it take its likeliest answer every time. If the 90-day window is its likeliest guess, it would tell every customer, every time. The bot writes likely-sounding text, not checked facts, and nothing it reads contains our real returns policy. I'd put the actual policy in front of it with every question, tell it to say it doesn't know, or hand the customer to a person, when the policy doesn't cover the question, and then test it: a set of real customer questions with known right answers, each run several times, checked before launch and again after every change. And I'd monitor live answers for refund terms that aren't in the policy."
+    },
+    {
+      "id": "a1e06-r2",
+      "kind": "mcq",
+      "prompt": "On the board's log, the step after AFTER THE gave fire 0.65 and flood 0.35. At temperature 0, what does the board spell next?",
+      "options": [
+        "FIRE about two times in three, and FLOOD the rest",
+        "FLOOD, because temperature 0 avoids the favourite",
+        "FIRE, every single time it is asked",
+        "Nothing at all, because temperature 0 stops the board"
+      ],
+      "answer": 2,
+      "why": "Temperature 0 is greedy decoding: the top token every time. FIRE is the favourite at 0.65, so the board spells it on every run. About two times in three is what sampling at temperature 1 gives."
+    },
+    {
+      "id": "a1e06-r3",
+      "kind": "free",
+      "prompt": "Explain to a new teammate what temperature and top-p each do, using the board's first word: AFTER 0.52, SHE 0.45, SPOONS 0.03.",
+      "keyIdeas": [
+        { "idea": "Temperature reshapes every chance: below 1 the favourite gains, above 1 the long shots gain, and at 0 only the top one is left", "match": ["sharpen", "flatten", "favourite", "favorite", "peak", "spread", "long shot", "more random", "less random", "power", "divide"] },
+        { "idea": "Top-p keeps the smallest set of likeliest tokens whose chances add up to p, and draws only from those", "match": ["smallest set", "add up to", "adds up to", "cumulative", "keeps the top", "nucleus", "sum to", "until"] },
+        { "idea": "At top-p 0.9, AFTER and SHE make 0.97, so SPOONS is cut; a temperature above 1 makes SPOONS more likely", "match": ["0.97", "cut", "drop", "remove", "never drawn", "never picked", "0.07", "tail", "1.5"] },
+        { "idea": "Both reshape the same draw, so change one at a time", "match": ["one at a time", "not both", "either", "one or the other", "only one", "same draw", "interact"] }
+      ],
+      "model": "Both act on the probabilities before the draw. Temperature reshapes all of them: below 1 the favourite gains, so at 0.5 AFTER goes from 0.52 to 0.57; above 1 the long shots gain, so at 1.5 SPOONS goes from 0.03 to 0.07; and at 0 only the top token is left, which is greedy. Top-p cuts instead of reshaping: it keeps the smallest set of top tokens whose chances add up to at least p and draws only from those. At 0.9, AFTER and SHE make 0.97, so SPOONS is cut and never drawn; at 0.5, AFTER alone is enough. Since both reshape the same draw, change one at a time, as OpenAI's reference advises."
+    },
+    {
+      "id": "a1e06-r4",
+      "kind": "mcq",
+      "prompt": "A teammate sets temperature to 0 and promises that identical requests will now always get identical answers. What do the provider docs in this case say?",
+      "options": [
+        "Not guaranteed: even at temperature 0, results are not fully deterministic",
+        "Guaranteed, as long as top-p is set to 0 as well",
+        "Guaranteed whenever the same seed is sent with the request",
+        "Guaranteed for short answers of only a few tokens"
+      ],
+      "answer": 0,
+      "why": "Anthropic's reference says that even with temperature of 0.0, the results will not be fully deterministic, and its glossary says identical inputs may produce different outputs across API calls. OpenAI calls its seed option a best effort: determinism is not guaranteed. Design for small variations, and check the output."
+    },
+    {
+      "id": "a1e06-r5",
+      "kind": "mcq",
+      "prompt": "Why did the board spell AFTER THE FIRE about a café that never had a fire?",
+      "options": [
+        "The temperature was too high, so it drew an unlikely word",
+        "It was the likeliest continuation, and nothing it read said otherwise",
+        "Top-p 1.0 forced it to include a word from the tail",
+        "A regular's question had been saved into the model by mistake"
+      ],
+      "answer": 1,
+      "why": "FIRE was the favourite at its step, 0.65, and the likeliest whole answer, 28.73 percent; greedy decoding would spell it every time. The model writes what usually comes next, and with no facts about Café Brume in front of it, likely and true came apart."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. I now work at a small company that reads scanned delivery notes for warehouses: a language model pulls the supplier, the date and the total from each note into a spreadsheet. Before I joined, someone set its temperature to 1.5 so it would be more creative with messy handwriting. About one note in thirty now gets two different totals if you run it twice. And last week it filled in a delivery date for a note whose date box was torn off: a real-looking date, in the right format, that nobody wrote.",
+    "prompt": "Reply to OP. Why do the totals change from run to run, where did the date come from, and what would you change?",
+    "keyIdeas": [
+      { "idea": "Temperature 1.5 flattens the probabilities, so each run draws less likely tokens more often: more random, not better at handwriting", "match": ["flatten", "random", "less likely", "unlikely", "sampl", "draw", "dice", "chance", "long shot"] },
+      { "idea": "A task with one right answer wants a temperature near 0, which makes runs far more repeatable, though providers don't promise identical", "match": ["near 0", "close to 0", "closer to 0", "zero", "lower", "0.0", "greedy", "analytical", "repeatable", "consistent"] },
+      { "idea": "The date is a hallucination: the model wrote the likeliest-looking date, because nothing told it a field could be missing", "match": ["hallucinat", "made up", "invent", "plausible", "likely-looking", "likeliest", "guess", "fabricat", "fill the gap"] },
+      { "idea": "Allow not found for missing fields and check every output: totals against line items, runs that disagree sent to a person, and a set of notes with known answers", "match": ["not found", "null", "blank", "empty", "unknown", "validat", "check", "line items", "add up", "known answers", "flag", "review", "eval"] }
+    ],
+    "model": "Temperature 1.5 doesn't make the model better at handwriting. It flattens the probabilities, so each run draws less likely tokens more often, and a total is a string of tokens where one different digit changes everything. Reading a delivery note has one right answer, so I'd set the temperature close to 0 where the provider allows it, which Anthropic's reference suggests for analytical tasks; that makes runs far more repeatable, though providers say even 0 isn't fully deterministic. The date is a hallucination: the model writes the likeliest-looking continuation, and nothing told it a field could be missing, so it produced a real-looking date. I'd let it return not found for any field it can't see, check every output, the total against the line items and dates against the order system, send notes where two runs disagree to a person, and keep a set of notes with known answers to run before any setting changes."
+  },
+  "next": "Next, How It Was Raised: a boarding school that teaches manners, where every pupil first learned to finish any sentence it was given, and only later learned to answer one politely.",
+  "sources": [
+    { "title": "Holtzman, Buys, Du, Forbes and Choi, The Curious Case of Neural Text Degeneration, ICLR 2020 (arXiv 1904.09751, first posted April 2019): maximization-based decoding such as beam search leads to degeneration, text that is bland, incoherent, or stuck in repetitive loops; pure sampling samples too many unlikely tokens; Nucleus Sampling takes the top-p vocabulary as the smallest set with probability at least p and truncates the unreliable tail; the nucleus tends to range between one and a thousand candidates; GPT-2 Large (762M parameters), 5,000 passages up to 200 tokens; Table 1 repetition: human 0.28%, greedy 73.66%, beam b=16 28.94%, pure sampling 0.22%, nucleus p=0.95 0.36%; a repetition is a phrase of at least 2 tokens repeating at least three times at the end", "url": "https://arxiv.org/abs/1904.09751" },
+    { "title": "Anthropic, Create a Message (Claude API reference): temperature, the amount of randomness injected into the response, defaults to 1.0 and ranges from 0.0 to 1.0, closer to 0.0 for analytical / multiple choice and closer to 1.0 for creative and generative tasks; even with temperature of 0.0 the results will not be fully deterministic; top_p uses nucleus sampling, cutting off the cumulative distribution once it reaches top_p, recommended for advanced use cases only; both deprecated for models released after Claude Opus 4.6 (temperature only 1.0 accepted, top_p only 0.99 or more, other values rejected with a 400 error), as checked in October 2026", "url": "https://platform.claude.com/docs/en/api/messages/create" },
+    { "title": "Anthropic, Glossary (Claude Platform docs): pretraining on a large unlabeled corpus of text, models pretrained to predict the next word given the previous context of text in the document; pretrained models are not inherently good at answering questions or following instructions, and fine-tuning and RLHF refine them; temperature: lower temperatures give more conservative and deterministic outputs; even with temperature set to 0 the results will not be fully deterministic and identical inputs may produce different outputs across API calls", "url": "https://platform.claude.com/docs/en/about-claude/glossary" },
+    { "title": "OpenAI, Create chat completion (API reference): temperature between 0 and 2, higher values like 0.8 more random, lower values like 0.2 more focused and deterministic, we generally recommend altering this or top_p but not both; top_p, nucleus sampling, 0.1 means only the tokens comprising the top 10% probability mass are considered, alter this or temperature but not both; seed, deprecated and in beta, a best effort to sample deterministically, determinism is not guaranteed", "url": "https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create" },
+    { "title": "Kalai, Nachum, Vempala and Zhang (OpenAI and Georgia Tech), Why Language Models Hallucinate, arXiv 2509.04664, September 2025: models guess when uncertain, producing plausible yet incorrect statements instead of admitting uncertainty; asked for Adam Tauman Kalai's birthday, if known, a state-of-the-art open-source model gave three incorrect dates, 03-07, 15-06 and 01-01; if 20% of birthday facts appear exactly once in the pretraining data, base models are expected to hallucinate on at least 20% of them; under binary grading abstaining is strictly sub-optimal and an overconfident best guess is optimal", "url": "https://arxiv.org/abs/2509.04664" },
+    { "title": "Anthropic, Reduce hallucinations (Claude Platform docs): allow Claude to say I don't know, which can drastically reduce false information; use direct quotes for factual grounding; verify with citations; best-of-N verification, where inconsistencies across outputs could indicate hallucinations; the techniques significantly reduce hallucinations but don't eliminate them entirely", "url": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations" }
+  ]
+}
