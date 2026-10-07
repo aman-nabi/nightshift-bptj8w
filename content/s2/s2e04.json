@@ -1,0 +1,1202 @@
+{
+  "_changelog": [
+    "v1.0.1 (2026-10-07) QA: the senior option shortened to the length of the others; recall and cold-case match fragments that repeated their own prompt replaced with paraphrases; 8 terms the case never uses removed",
+    "v1.0.0 (2026-10-07) first version"
+  ],
+  "id": "s2e04",
+  "season": 2,
+  "n": 4,
+  "title": "The Jar on the Counter",
+  "setting": "an all-night bakery",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "caching",
+    "cache-aside",
+    "hit-ratio",
+    "ttl"
+  ],
+  "prerequisites": [
+    "s2e03",
+    "s2e02",
+    "s2e01",
+    "s1e01",
+    "s1e02",
+    "s1e03",
+    "s1e04",
+    "s1e05",
+    "s1e06",
+    "s1e07",
+    "s1e08",
+    "s1e09",
+    "s1e10",
+    "s1e11",
+    "s1e13"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/night_till_noor",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 3642,
+    "title": "I work the night till at a bakery that never closes. At 4 AM our order screen started selling bread that sold out yesterday.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I work the night till at Varga's on Tallow Street, a bakery that hasn't closed since 1931. Agnes Varga bakes. Her grandson Mikko does the computers. Our website lists every loaf the bakery has ever made, 480 of them. We bake 80 now. The other 400 are the archive: loaves nobody has baked in decades, with photos of the people who did."
+      },
+      {
+        "t": "p",
+        "text": "Customers order on their phones or the screen by the door, and every loaf they open is a lookup: its price and whether any are left. At night that's 20 lookups a second. They all went to the stock database under the stairs, 60 ms each. Mikko says it manages about 25 a second. A month ago, after the bars closed on a Friday, it got 30, and the door screen hung for twenty minutes."
+      },
+      {
+        "t": "p",
+        "text": "Agnes keeps a jar by the till with cards for the twelve loaves people ask for most, so she never walks to the back for those. Mikko copied her. His jar is a cache: copies kept in memory, about 1 ms away. The website looks in the jar first. If the loaf's card isn't there, it asks the database and puts a copy in. He calls that cache-aside. A miss costs three trips, jar, database, jar: 62 ms. His jar holds 12 cards, each card lasts 24 hours, \"because we bake once a day\", and when the jar is full, the card nobody has asked for longest goes."
+      },
+      {
+        "t": "p",
+        "text": "It worked. Eight loaves, our regulars, get four lookups in five, so the jar answered 80% of them, and the database dropped to 4 a second. Then this, every night since:"
+      },
+      {
+        "t": "log",
+        "text": "03:57:50  jar 80%   database  4/s   wait 13 ms\n03:58:00  archive reader: 400 old loaves, A to Z, 10/s\n03:58:20  jar  0%   database 30/s   OVER LIMIT (25/s)\n03:58:40  archive reader: done\n03:58:51  jar 80%   database  4/s   wait 13 ms\n04:00:00  new list from Agnes: today's loaves, prices\n04:10:00  jar 80%   9,600 lookups shown the old list"
+      },
+      {
+        "t": "p",
+        "text": "Nobody knows what the archive reader is. It reads the dead loaves in alphabetical order, and while it reads, the door screen hangs. Two minutes later Agnes puts in the day's list, and the jar keeps showing yesterday's. On Friday a taxi driver paid for a black rye. We bake it on Thursdays."
+      },
+      {
+        "t": "beat",
+        "text": "The jar only gets wrong the loaves people love."
+      },
+      {
+        "t": "p",
+        "text": "Mikko says the regulars' cards went in at 3:58:40, right after the reader pushed the old ones out, and last until 3:58:40 tomorrow. Unless the reader pushes them out first. The only thing that makes the jar forget is the thing that reads the dead. What should he change?"
+      },
+      {
+        "t": "evidence",
+        "label": "mikko_dashboard_0410.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 440,
+          "aria": "Mikko's dashboard at 4:10 AM on Friday. Customers' screens send 20 lookups a second to the shop website, which looks in the jar first. The jar, 12 cards, LRU, 24-hour cards, answers 16 lookups a second, but all 8 regulars' cards are from yesterday's list. The other 4 lookups a second miss and go to the stock database, which has today's list since 4:00 and gets 4 of the 25 lookups a second it manages. The archive reader last read at 3:58. 9,600 lookups have been shown the old list since 4:00.",
+          "nodes": [
+            {
+              "id": "customers",
+              "label": "Customers' screens",
+              "sub": "20 lookups/s",
+              "x": 190,
+              "y": 40,
+              "w": 250,
+              "h": 52,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "crawler",
+              "label": "Archive reader",
+              "sub": "last read: 3:58",
+              "x": 560,
+              "y": 40,
+              "w": 240,
+              "h": 52,
+              "shape": "box",
+              "tone": "muted"
+            },
+            {
+              "id": "web",
+              "label": "Shop website",
+              "sub": "cache-aside",
+              "meta": "jar first, then database",
+              "x": 370,
+              "y": 145,
+              "w": 300,
+              "h": 62,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "jar",
+              "label": "The jar",
+              "sub": "12 cards, LRU, 24 h",
+              "meta": "8 cards from yesterday",
+              "x": 170,
+              "y": 285,
+              "w": 260,
+              "h": 72,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "db",
+              "label": "Stock database",
+              "sub": "today's list since 4:00",
+              "meta": "4/s of its 25/s",
+              "x": 570,
+              "y": 285,
+              "w": 260,
+              "h": 72,
+              "shape": "db",
+              "tone": "ok"
+            },
+            {
+              "id": "list",
+              "label": "Agnes's list",
+              "sub": "put in at 4:00",
+              "x": 570,
+              "y": 405,
+              "w": 240,
+              "h": 52,
+              "shape": "box",
+              "tone": ""
+            }
+          ],
+          "edges": [
+            {
+              "from": "customers",
+              "to": "web",
+              "label": "20/s"
+            },
+            {
+              "from": "crawler",
+              "to": "web",
+              "dash": true,
+              "tone": "muted"
+            },
+            {
+              "from": "web",
+              "to": "jar",
+              "label": "16/s",
+              "tone": "warn"
+            },
+            {
+              "from": "web",
+              "to": "db",
+              "label": "4/s"
+            },
+            {
+              "from": "list",
+              "to": "db",
+              "label": "new list"
+            }
+          ],
+          "notes": [
+            {
+              "x": 170,
+              "y": 345,
+              "text": "9,600 old answers since 4:00",
+              "tone": "bad",
+              "anchor": "middle"
+            },
+            {
+              "x": 20,
+              "y": 425,
+              "text": "Friday, 04:10",
+              "tone": "muted",
+              "anchor": "start"
+            }
+          ]
+        },
+        "caption": "Mikko redrew his dashboard from 4:10 AM on Friday. 20 lookups a second reach the website, which looks in the jar first. The jar answers 16 a second, the regulars, but all eight of their cards went in at 3:58:40, before Agnes put in the new list at 4:00, so every one of those answers is yesterday's. The other 4 lookups a second miss, go to the database and get today's list."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 94,
+      "age": "5h",
+      "text": "Your jar has three dials, and Mikko set two of them by feel. How many cards it holds. How long a card may stay before it has to be fetched again: its TTL, the same timer a DNS answer carries. And which card goes when the jar is full: his rule, the one asked for longest ago, is called LRU, least recently used. Then there's the number that pays for the jar, the hit ratio: lookups the jar answers, divided by all lookups. At 80%, the average wait is 0.8 times 1 ms plus 0.2 times 62 ms, about 13 ms, and only 4 lookups in 20 reach the database. Now read the log again. Which cards never miss, so never get fetched again until their 24 hours are up? And which loaves did the jar get wrong?",
+      "replies": [
+        {
+          "author": "u/night_till_noor",
+          "op": true,
+          "points": 30,
+          "age": "4h",
+          "text": "Mikko says the regulars never miss. Then he went very quiet."
+        }
+      ]
+    },
+    {
+      "author": "u/crawl_budget_kiri",
+      "points": 61,
+      "age": "4h",
+      "text": "Your archive reader sounds like a web crawler: a program a search engine runs to read every page of a website, so people can find them later. Crawlers love old pages nobody else reads. A one-off read of many things nobody else wants is called a scan. To an LRU jar, each of those 400 old loaves is the newest card in the room, so within seconds they push out every regular, and every customer lookup misses until the crawler leaves. The other common rule is LFU, least frequently used: push out the card that's been used the fewest times. The crawler's cards are used once and go first, and the regulars, used thousands of times, stay. LFU has its own catch. A loaf that was popular last month hangs on long after people stop asking, unless the counts fade over time.",
+      "replies": [
+        {
+          "author": "u/night_till_noor",
+          "op": true,
+          "points": 22,
+          "age": "3h",
+          "text": "Mikko checked the website's logs. It's a search engine. It has read our archive at 3:58 every night since 2015, and the first page it asks for is Ilona's rye, the first loaf Agnes's mother ever sold."
+        }
+      ]
+    },
+    {
+      "author": "u/oven_spring_zofia",
+      "points": 47,
+      "age": "3h",
+      "text": "A TTL is how long you're willing to be wrong. Mikko picked 24 hours because you bake once a day, but your list changes at 4:00 and loaves sell out all night. A card never hears that the database changed. It's only fetched again when it expires or gets pushed out, so the busiest cards are the oldest. Shorter TTLs cost misses, but fewer than you'd think: on our shop, going from an hour to five minutes cost each busy loaf one extra trip to the database every five minutes. Going to one second nearly emptied the jar. The proper fix is for the new list to throw out the cards it changes, but that's a bigger job than turning a dial."
+    },
+    {
+      "author": "u/receipt_roll_imre",
+      "points": 33,
+      "age": "2h",
+      "text": "Whatever Mikko does with the jar, never take money on its word. Let the screens read the jar, but have the till ask the database, the source of truth, before it charges anyone. It's one 60 ms lookup per sale, and it's the one lookup where being wrong costs you a refund and a regular."
+    }
+  ],
+  "reply": {
+    "prompt": "Agnes bakes black rye again on Thursday. What should Mikko change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Give every card a 5-minute TTL, switch LRU to LFU so a one-off read can't push the regulars out, and let the till check the database before it takes money.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Mikko changed the settings on Wednesday. At 3:58 on Friday the archive reader came as usual and read all 400 old loaves. Each one went into the jar with a count of one and was the first card out again, and the eight regulars never left. The database got 14 lookups a second, 4 from customers and 10 from the reader, under its 25, and the door screen never hung. At 4:00 Agnes put in the new list. The regulars' cards ran out at 4:02 and came back with today's prices. In those two minutes 1,920 lookups saw yesterday's list, but the till checked every sale: when a man tried to buy the last black rye, it told him we'd sold out at 3:40 and charged him nothing. The jar still answered 80% of lookups. At 3:58 on Saturday Mikko watched the reader again. It asked for Ilona's rye, then asked for it again, and again, forty times in a minute. For five minutes, until its TTL ran out, it was the one archive card LFU wouldn't push out.",
+        "senior": "Each setting now answers a question. The TTL says how long a price may be wrong: five minutes, for about one extra database trip per regular every five minutes. LFU keeps the cards that earn their place, so a scan of one-off reads can't empty the jar. The till reads the source of truth where a wrong answer costs money. Five minutes is still five minutes of yesterday's bread: to be wrong for less, the new list has to throw out the cards it changes, which is the next case."
+      },
+      {
+        "text": "Buy a jar big enough for every loaf on the website, all 480 cards. Nothing ever gets pushed out, the archive reader can't hurt it, and the database barely works.",
+        "tone": "bad",
+        "verdict": "More jar, more of yesterday",
+        "part2": "Mikko bought a jar 40 times the size. Within twenty seconds every loaf we bake had a card, the jar answered every lookup, and the database got none. At 3:58 on Friday the reader's 400 old loaves went in too, 10 lookups a second at the database for 40 seconds, and nothing was pushed out. At 4:00 Agnes put in the new list. Now every lookup showed yesterday's list, 20 a second, not just the regulars: by 4:10, 12,000 of them. A woman paid yesterday's price for a poppy plait, and a man ordered a black rye we'd sold out of hours before. The cards will keep yesterday until their 24 hours are up.",
+        "senior": "A bigger cache raises the hit ratio and survives scans, but every card is another copy that can be out of date, and memory isn't free. Twelve cards already caught 80% of lookups: the last 20% cost 40 times the memory and made every loaf go stale at once instead of eight. Size a cache for what people actually ask for, and bound staleness with the TTL, not the size."
+      },
+      {
+        "text": "Turn the jar off. The database is always right, and 20 lookups a second is under its limit of 25.",
+        "tone": "warn",
+        "verdict": "Trade-off: always right, always slow",
+        "part2": "Mikko turned the jar off on Wednesday. Every lookup went back to the database, 60 ms each, and nobody saw yesterday's bread. At 3:58 on Friday the archive reader came: 20 lookups a second from customers and 10 from the reader, 30 a second, past the 25 the database manages. The door screen hung for 40 seconds, as it had before the jar. At 2 AM on Saturday, after the bars closed, lookups reached 30 a second again, and the screen hung until 2:20. A man in a wet coat stood at it the whole time, pressing black rye.",
+        "senior": "Turning the cache off fixes staleness by giving up everything the cache was for. On an ordinary night the database is back at 80% of its limit, so any spike, a crawler or a Friday crowd, pushes it over. Keep the cache, and decide how long it may be wrong instead."
+      },
+      {
+        "text": "Keep LRU and 12 cards, but give every card a 1-second TTL. Nothing in the jar can ever be more than a second out of date.",
+        "tone": "warn",
+        "verdict": "Trade-off: fresh, and barely a jar",
+        "part2": "Mikko set the TTL to one second on Wednesday. At 3:58 on Friday the archive reader still pushed the regulars out, LRU being LRU: 30 lookups a second for 40 seconds, and the door screen hung. At 4:00 Agnes put in the new list, and within a second every screen showed it. But each regular's card now lasted one second, and each regular comes up every half second, so every other lookup missed. The jar answered 40% instead of 80%, the database went from 4 lookups a second to 12, and the average wait from 13 ms to 38.",
+        "senior": "A TTL trades freshness for hit ratio, and for busy cards the trade is cheap until it isn't: 10 seconds would still have answered 76% here, and one second answered 40%. Pick the TTL from how long a price may be wrong, then measure the hit ratio. And a TTL doesn't touch the other problem: under LRU, a scan still empties a small jar."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e04",
+    "title": "Run the jar at Varga's",
+    "lede": "You're Mikko, replaying Friday night at Varga's from 3:57. Customers send 20 lookups a second in a steady mix: every second, each of the 8 regulars comes up twice and 4 lookups go to the other 72 loaves, one after another. The jar answers in 1 ms. A miss takes 62 ms, three trips: 1 ms to look in the jar, 60 ms for the database and 1 ms to put the card in. The database manages 25 lookups a second; past that, lookups queue, and the sim says over limit instead of guessing the wait. The archive reader reads the 400 old loaves at 10 a second. The new list changes every loaf we bake, so any card fetched before it is stale. LFU here counts how often each card has been used since it went into the jar. The numbers cover the last 10 seconds, except stale reads, which count all night. The dots are a sample of lookups. Changing the jar's size, rule or TTL replays the night from 3:57 with an empty jar. The clock runs 10 times faster than real life. Click any box to see what it does.",
+    "tryThis": "Try this: watch the jar fill in its first second and settle at 80% and 13 ms, with the database at 4 a second. Turn the jar off: 60 ms and 20 a second. Turn it back on and, at 3:58, run the archive reader: under LRU with 12 cards the regulars are pushed out, the hit ratio falls to 0% and the database goes over its limit for 40 seconds. Switch to LFU and run it again, then try LRU with 24 cards. At 4:00 put in the new list with the 24-hour TTL and watch stale reads climb by 16 a second, then run the archive reader under LRU and watch it clear them. Set the TTL to 5 minutes and put in a new list: the stale reads stop within 5 minutes, when the regulars' cards run out. Try 10 seconds and 1 second, and a jar of 480 cards, before and after a new list."
+  },
+  "explain": {
+    "oneLine": "Nothing in the jar was haunted. It's a cache: copies of the busiest loaves kept in memory. A copy never hears that the database changed, so at 4:00 the regulars' 24-hour cards kept yesterday's list, and at 3:58 a web crawler reading 400 dead loaves made every regular the oldest card in an LRU jar.",
+    "steps": [
+      {
+        "title": "A cache is a jar by the till.",
+        "text": "A cache keeps copies of answers somewhere faster than the place they come from. You met caches in Season 1: DNS answers kept by resolvers, and the warehouse's old back-room server that kept answering Ray's scanner with Monday's bins. Mikko's jar is the kind you'll build most often: a separate in-memory store, such as Redis, between the website and the database. It's fast for two reasons. Memory is quick: in Jeff Dean's list, reading main memory takes about 100 nanoseconds, a round trip inside a data center about 500 microseconds, and one seek on a spinning disk about 10 ms. And a cached answer is ready-made: the jar hands back a stored card, while the stock database runs a query, reads from disk and adds up the night's sales before it can answer. So the jar takes about 1 ms, most of it the trip across the network, and the database 60 ms. The database stays the source of truth. The jar only holds copies, so anything in it can be thrown away and fetched again."
+      },
+      {
+        "title": "Cache-aside: look in the jar first.",
+        "text": "Cache-aside, also called lazy loading, is the commonest way to use a cache, and Facebook's memcache paper calls the same thing a demand-filled look-aside cache. To read, look in the cache. A hit returns the card. A miss goes to the database, puts a copy in the cache, and then returns it. AWS counts a miss as three trips, cache, database, cache: at Varga's, 1 + 60 + 1 = 62 ms. Two good things follow. Only what someone asks for gets cached, so a small cache fills with what's popular by itself. And an empty cache is slow, not broken: after a restart it refills one miss at a time. Two costs follow too. Every miss is slower than having no cache at all, 62 ms against 60. And nothing updates a card when the database changes, which is the 4 AM problem."
+      },
+      {
+        "title": "Hit ratio: the number that pays for the jar.",
+        "text": "The hit ratio is hits divided by all lookups, and it sets both things you bought the cache for. The average wait: 0.8 times 1 ms plus 0.2 times 62 ms is 13.2 ms, against 60 ms with no jar. The database's load: only misses reach it, 20% of 20 a second, 4 instead of 20. A small cache gets a high hit ratio when traffic is skewed, when a few items get most of the requests. Eight loaves get 80% of Varga's lookups, so 12 cards out of 480, two and a half percent, answer 80%. The last 20% is spread thinly over the 72 other loaves we bake. Catching it takes a card for every one of them, about 100 cards, eight times the jar, to take the database from 4 lookups a second to almost none. Near the top, small gains matter: going from 80% to 90% halves the database's load. So measure it. Redis counts hits and misses, and ElastiCache reports the ratio as CacheHitRate."
+      },
+      {
+        "title": "TTL: how long the jar may be wrong.",
+        "text": "Cache-aside never changes a card when the database changes. A card is fetched again only when it expires or is pushed out. That makes the busiest cards the stalest: a regular never misses, so its card gets as old as its TTL allows, while the rare loaves, which miss every time, are always fresh. So when Agnes put in the new list at 4:00, the eight regulars kept yesterday's prices, 16 lookups a second, until their cards ran out. The TTL is the most a card can be out of date. Shorter is fresher and costs misses, because each card is fetched again once per TTL: at Varga's, 5 minutes still answers about 80%, 10 seconds 76% and 1 second 40%. Choose it from how long a price may be wrong, not from how often you bake. Where being wrong costs money, read the source of truth. And to be wrong for less than the TTL, the change itself has to throw out the cards it makes stale, which is the next case."
+      },
+      {
+        "title": "Eviction: which card leaves when the jar is full.",
+        "text": "Eviction is what a full cache does to make room. LRU, least recently used, evicts the card used longest ago. It's cheap, it follows changes in what's popular at once, and it's Redis's suggested default when a few keys get most of the traffic. Its weakness is a scan: a one-off read of many items nobody else wants. Each scanned item becomes the most recently used card, so at 10 old loaves a second a 12-card jar pushes out every regular before it's asked for again. Customers' hit ratio falls to 0% and the database gets 30 a second, past its limit. LFU, least frequently used, evicts the card used the fewest times, so the crawler's cards, used once, go first and the regulars stay. Its weakness is the past: a loaf popular last month keeps its high count while a new favourite starts at 1, so LFU needs counts that fade, which Redis does once a minute by default. Size matters too: a 24-card jar keeps the regulars through the same scan, even under LRU. Eviction Night, later this season, goes deeper."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 450,
+      "aria": "The fix, drawn at 3:58:20 the next Friday while the archive reader is reading. Customers' screens send 20 lookups a second and the archive reader 10 to the shop website, which looks in the jar first. The jar, 12 cards, LFU, 5-minute TTL, keeps all 8 regulars and answers 16 lookups a second. The stock database gets 14 lookups a second, under the 25 it manages. The till asks the database for the price at payment, and Agnes's list writes today's prices to the database.",
+      "nodes": [
+        {
+          "id": "customers",
+          "label": "Customers' screens",
+          "sub": "20 lookups/s",
+          "x": 190,
+          "y": 40,
+          "w": 250,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "crawler",
+          "label": "Archive reader",
+          "sub": "3:58, 10 old loaves/s",
+          "x": 560,
+          "y": 40,
+          "w": 240,
+          "h": 52,
+          "shape": "box",
+          "tone": "muted"
+        },
+        {
+          "id": "web",
+          "label": "Shop website",
+          "sub": "cache-aside",
+          "meta": "jar first, then database",
+          "x": 370,
+          "y": 145,
+          "w": 300,
+          "h": 62,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "jar",
+          "label": "The jar",
+          "sub": "12 cards, LFU, 5 min TTL",
+          "meta": "8 of 8 regulars in",
+          "x": 170,
+          "y": 285,
+          "w": 260,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "db",
+          "label": "Stock database",
+          "sub": "source of truth",
+          "meta": "14/s of its 25/s",
+          "x": 570,
+          "y": 285,
+          "w": 260,
+          "h": 72,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "till",
+          "label": "The till",
+          "sub": "asks the database first",
+          "x": 170,
+          "y": 405,
+          "w": 240,
+          "h": 52,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "list",
+          "label": "Agnes's list",
+          "sub": "today's prices",
+          "x": 570,
+          "y": 405,
+          "w": 240,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        }
+      ],
+      "edges": [
+        {
+          "from": "customers",
+          "to": "web",
+          "label": "20/s"
+        },
+        {
+          "from": "crawler",
+          "to": "web",
+          "label": "10/s",
+          "dash": true,
+          "tone": "muted"
+        },
+        {
+          "from": "web",
+          "to": "jar",
+          "label": "16/s",
+          "tone": "ok"
+        },
+        {
+          "from": "web",
+          "to": "db",
+          "label": "14/s"
+        },
+        {
+          "from": "till",
+          "to": "db",
+          "label": "price at payment",
+          "tone": "accent"
+        },
+        {
+          "from": "list",
+          "to": "db",
+          "label": "new list"
+        }
+      ]
+    },
+    "caption": "The fix, drawn at 3:58:20 the next Friday, while the archive reader is reading. Customers send 20 lookups a second, and the jar, now LFU with a 5-minute TTL, still answers 16 of them, because the reader's cards, each used once, are the first to go. The database gets the customers' 4 misses and the reader's 10, 14 a second, under its 25. Agnes's list still goes only to the database, so after 4:00 a card can be up to 5 minutes behind, which is why the till asks the database before it takes money.",
+    "fix": {
+      "title": "The fix: a TTL chosen on purpose, LFU, and the till asks the source of truth",
+      "text": "Keep cache-aside and keep the jar small: 12 cards hold the eight regulars with room to spare. Give every card a TTL set by how long a price may be wrong, 5 minutes here, and know its cost, about one extra database trip per regular every 5 minutes. Use LFU, or a scan-resistant LRU such as memcached's segmented one, so a crawler reading the archive can't empty the jar. Let the screens read the jar, but have the till read the database before it takes money. Then watch the numbers: the hit ratio, the database's load, evictions, and now and then a few cards checked against the database to see how stale the jar really is. When five minutes of yesterday is still too long, make the new list throw out the cards it changes: that's invalidation, the next case."
+    },
+    "limits": [
+      "A TTL bounds staleness, it doesn't remove it. For up to five minutes after the list changes, the screens can still show yesterday's price, and a loaf can sell out while its card says there are some left. Anything that must be exactly right, a payment or the last loaf, has to read the source of truth, and making the jar right sooner needs invalidation, the next case.",
+      "LFU protects against scans but remembers too well. Without counts that fade, last month's favourite keeps its place while a new one keeps getting pushed out, and a card that expires or is evicted comes back with a count of 1, as easy to push out as a crawler's card. Real caches often mix the two ideas: memcached's segmented LRU and InnoDB's midpoint insertion both make an item be used twice before it's protected.",
+      "A cache moves load, it doesn't remove it. At 80% the database sees 4 lookups a second, but an empty jar, after a restart or a flush, sends all 20 back at once, and when many screens miss the same card at the same moment they all ask the database together. That's a cache stampede, two cases from now."
+    ],
+    "tradeoff": {
+      "head": [
+        "Rule",
+        "What leaves the jar",
+        "Wins when",
+        "Loses when"
+      ],
+      "rows": [
+        [
+          "LRU",
+          "The card used longest ago.",
+          "What's popular changes often and recent use predicts the next use. Cheap to run, and Redis's suggested default.",
+          "A scan: one-off reads push the regulars out. At Varga's, 0% hits and 30 lookups a second at the database for 40 seconds."
+        ],
+        [
+          "LFU",
+          "The card used the fewest times.",
+          "Popularity is steady and scans are common: the crawler's cards go first and the regulars stay. At Varga's, 80% hits and 14 a second through the scan.",
+          "Popularity shifts: old favourites hang on unless counts fade, and a new or just-expired card starts at 1."
+        ],
+        [
+          "TTL only, no size limit",
+          "Nothing, until its TTL runs out.",
+          "Memory is plentiful and the data is small, like the 80 loaves we bake: every loaf gets a card, and the TTL alone bounds staleness.",
+          "Memory fills with cards nobody reads twice, like the 400 archive loaves, and after a change every card is stale at once: 20 stale reads a second at Varga's instead of 16."
+        ]
+      ]
+    },
+    "seniorTake": "Before adding a cache, say what it's for and what it may get wrong. Measure the skew first: if a few keys get most of the reads, a small cache-aside layer takes most of the load off the database, and the hit ratio tells you how much. Then make three choices out loud, with numbers. The size, from the hot set, not the whole catalog. The TTL, from how long the data may be wrong, knowing the hottest keys will be the stalest. The eviction policy, from your traffic: LRU by default, something scan-resistant when batch jobs or crawlers read cold data. Never let a cached copy decide something you can't take back, and watch the hit ratio, evictions and the database's load after every change.",
+    "realWorld": [
+      {
+        "title": "Facebook's look-aside cache",
+        "text": "Rajesh Nishtala and colleagues described Facebook's memcache at NSDI 2013, a system that handles billions of requests per second and holds trillions of items. Its users consume an order of magnitude more content than they create, so the workload is dominated by fetching data, which is what makes caching pay. Facebook uses memcache as a demand-filled look-aside cache: a web server asks memcache for a key, and on a miss reads the database or another backend service and puts the value in the cache. Loading one of its popular pages fetched an average of 521 distinct items from memcache. Memcache is not the authoritative source of the data, so it is allowed to evict it. On a write, the web server updates the database and then deletes the cached key instead of updating it, because deletes are idempotent. That write path is the next case.",
+        "source": 0
+      },
+      {
+        "title": "Pools, expiry and warming up at Facebook",
+        "text": "The same paper says workloads sharing one cache can interfere and lower each other's hit rates, so Facebook splits a cluster's memcached servers into pools: a default pool called wildcard, a small pool for keys that are accessed frequently but cheap to miss, and a large pool for rarely accessed keys whose misses are prohibitively expensive. When a memcached server runs out of memory, it evicts the least recently used item in that item's size class. Expired items linger until someone asks for them or they reach the end of the LRU, so Facebook began removing short-lived keys as soon as they expire: for one heavily used family of keys, its share of the pool fell from 6% to 0.3% without affecting the hit rate. And a memcached server can reach 90% of its peak hit rate within a few hours, so upgrading a set of them can take over 12 hours while the extra database load is managed carefully.",
+        "source": 0
+      },
+      {
+        "title": "AWS on lazy loading and TTLs",
+        "text": "Amazon ElastiCache's guide to caching strategies describes lazy loading as loading data into the cache only when necessary. Its advantages: only requested data is cached, and a failed node replaced by an empty one isn't fatal, only slower while misses refill it. Its disadvantages: a cache miss penalty of three trips, the request to the cache, the query to the database and writing the data to the cache, and stale data, because nothing updates the cache when the data changes in the database. Adding a TTL keeps data from getting too stale: an expired key is treated as though it's not found, so the database is queried and the cache updated. The guide's examples use a TTL of 300 seconds, 5 minutes.",
+        "source": 1
+      },
+      {
+        "title": "Redis's eviction policies",
+        "text": "When Redis reaches its maxmemory limit, it evicts keys by the policy you choose: noeviction, which refuses new data, allkeys-lru, allkeys-lfu, allkeys-random, volatile versions of LRU, LFU and random that only consider keys with an expiry, volatile-ttl, and, from Redis 8.6, least recently modified policies. Its rule of thumb: use allkeys-lru when you expect a subset of keys to be accessed far more often than the rest, which it calls a very common case, citing the Pareto principle, and allkeys-random when keys are accessed about equally, as when an app reads items in a repeating cycle. The volatile policies behave like noeviction when no keys have an expiry. Redis's LRU is approximate: it samples a few keys, as many as maxmemory-samples says, and evicts the one unused for longest, and in Redis's simulations with a power-law access pattern the difference from true LRU was minimal or non-existent.",
+        "source": 2
+      },
+      {
+        "title": "Redis's LFU, with counts that fade",
+        "text": "Redis added LFU in version 4.0, saying it may give a better hit ratio in certain cases. It estimates how often each key is used with a probabilistic counter of a few bits, a Morris counter, that saturates at around a million requests. It also decays the counter, once a minute by default, because at some point keys that were used often in the past shouldn't count as frequently accessed any more, so that the algorithm can adapt to a shift in the access pattern.",
+        "source": 2
+      },
+      {
+        "title": "Measuring the hit ratio in Redis",
+        "text": "Redis's INFO command reports keyspace_hits and keyspace_misses, and its documentation gives the hit percentage as hits divided by hits plus misses, times 100. Its example: if a small hot subset of data should account for about 75% of accesses, expect about 75% hits. If the number is lower, check evicted_keys, where a high count suggests the wrong keys are being evicted, and expired_keys, where a high count suggests the TTL is too low.",
+        "source": 2
+      },
+      {
+        "title": "The hit ratio on ElastiCache",
+        "text": "ElastiCache publishes the same numbers to CloudWatch: CacheHits, CacheMisses, Evictions, Reclaimed for keys that expired, CurrItems, and CacheHitRate, calculated as hits divided by hits plus misses. AWS's description of CacheHitRate says that if it's lower than about 0.8, a significant amount of keys are evicted, expired or don't exist.",
+        "source": 3
+      },
+      {
+        "title": "ElastiCache's default eviction policy",
+        "text": "In ElastiCache's default parameter groups for Redis, maxmemory-policy is volatile-lru and maxmemory-samples is 3. volatile-lru only considers keys that have an expiry, so by Redis's rules above, a cache on these defaults whose code never sets a TTL behaves like noeviction: once its memory is full, it stops taking new keys.",
+        "source": 4
+      },
+      {
+        "title": "Redis's own defaults",
+        "text": "The redis.conf file that ships with Redis 7.4.0 sets maxmemory-policy to noeviction by default, so a plain Redis refuses new writes when it's full unless you choose a policy. It sets maxmemory-samples to 5, with the comment that the default of 5 produces good enough results, and that 10 approximates true LRU very closely but costs more CPU.",
+        "source": 9
+      },
+      {
+        "title": "memcached's answer to crawlers",
+        "text": "In 2018 memcached's maintainer described replacing its single LRU with a segmented one, HOT, WARM and COLD queues, which became the default in version 1.5.0. Items which never get hit twice cannot enter WARM, and, in the post's words, WARM acts as a buffer for scanning workloads, like web crawlers reading old posts. It's Varga's archive reader, planned for in advance.",
+        "source": 5
+      },
+      {
+        "title": "InnoDB's scan-resistant buffer pool",
+        "text": "MySQL's InnoDB keeps table and index pages in memory in its buffer pool and deliberately doesn't use strict LRU. A newly read page goes in 3/8 of the way from the old end of the list, set by innodb_old_blocks_pct, 37 by default, and moves to the front only when it's accessed again, so pages that full table scans and read-ahead bring in and never use again age out sooner. innodb_old_blocks_time, 1000 ms by default, sets how long after its first access a page can be read again without moving forward.",
+        "source": 6
+      },
+      {
+        "title": "How much faster memory is",
+        "text": "Jeff Dean's 2009 slide of numbers everyone should know gives a main memory reference as 100 ns, a round trip within the same data center as 500,000 ns, half a millisecond, and a disk seek as 10,000,000 ns, 10 ms. A cache on another machine pays the round trip, which is why the jar takes about a millisecond rather than nanoseconds. A database that has to seek, or do real work for each answer, as Varga's does when it adds up the night's sales, pays far more.",
+        "source": 7
+      },
+      {
+        "title": "AWS on in-memory speed",
+        "text": "AWS's caching overview says reading data from an in-memory cache is extremely fast, sub-millisecond, because memory is orders of magnitude faster than disk, and that a single cache instance can provide hundreds of thousands of IOPS, potentially replacing a number of database instances. It also says storing common keys in an in-memory cache mitigates the need to overprovision for hotspots while giving fast, predictable performance for the most commonly accessed data.",
+        "source": 8
+      }
+    ],
+    "interview": {
+      "asked": [
+        "Where would you add a cache in this design, and what can go wrong?",
+        "How do you pick a TTL and an eviction policy? What happens to your cache when a batch job reads every key once?"
+      ],
+      "answer": "Start from the read path and the numbers: which reads repeat, how skewed they are, and what a miss costs. Put a cache-aside layer, say Redis on ElastiCache, in front of the slow, read-heavy part: product pages, prices, profiles. Estimate the win out loud: with 80% hits, a 1 ms cache and a 60 ms database, the average read drops from 60 ms to about 13, and the database sees a fifth of the reads. Then say what can go wrong. Stale reads: the cache never hears about writes, so set a TTL from how long the data may be wrong, and read the source of truth for anything you can't take back, like a payment. Eviction: size the cache for the hot set, use LRU by default and something scan-resistant if batch jobs or crawlers read cold data. An empty or failed cache sends everything to the database at once, and many misses on one key can stampede it. Finish with what you'd watch: the hit ratio, evictions and the database's load. You'll build caches with hit ratios, TTLs and eviction into your own simulator in Loadout's Build Night L2."
+    }
+  },
+  "terms": [
+    {
+      "term": "Till",
+      "def": "The counter where a shop takes payment. At Varga's, Agnes keeps her jar of cards beside it."
+    },
+    {
+      "term": "Lookup (at Varga's)",
+      "def": "One request for a loaf's card: its price and whether any are left. Varga's gets 20 a second at night."
+    },
+    {
+      "term": "Regulars",
+      "def": "The eight loaves that get four of every five lookups at Varga's. They are the hot set."
+    },
+    {
+      "term": "The jar",
+      "def": "Mikko's cache, named after Agnes's jar of cards by the till. It holds 12 cards, one per loaf."
+    },
+    {
+      "term": "Card (in the jar)",
+      "def": "One cached copy of a loaf's price and stock, saved under the loaf's name. In cache terms, a key and its value."
+    },
+    {
+      "term": "Archive",
+      "def": "The part of Varga's website with a page for every loaf the bakery no longer bakes: 400 of them."
+    },
+    {
+      "term": "Archive reader",
+      "def": "OP's name for the program that read all 400 archive pages every night at 3:58. It turned out to be a search engine's web crawler."
+    },
+    {
+      "term": "Stock database",
+      "def": "Varga's database of every loaf, its price and how many are left. It answers a lookup in 60 ms and manages about 25 a second."
+    },
+    {
+      "term": "New list",
+      "def": "The day's loaves and prices that Agnes puts into the stock database at 4:00 every morning. The jar isn't told."
+    },
+    {
+      "term": "Over limit",
+      "def": "The sim's words for a database getting more lookups a second than it can answer, so they queue and waits grow."
+    },
+    {
+      "term": "Database load",
+      "def": "How many lookups a second reach the database. With a cache, only the misses do."
+    },
+    {
+      "term": "Cache-aside",
+      "def": "The commonest way to use a cache: the application looks in the cache first, and on a miss reads the database and puts a copy in the cache."
+    },
+    {
+      "term": "Lazy loading",
+      "def": "AWS's name for cache-aside: data goes into the cache only when someone asks for it and misses."
+    },
+    {
+      "term": "Look-aside cache",
+      "def": "A cache that sits beside the database rather than in front of it: the application checks it, and fills it on a miss. Facebook's name for cache-aside."
+    },
+    {
+      "term": "Demand-filled",
+      "def": "Filled only with what someone asked for and missed, as a cache-aside cache is."
+    },
+    {
+      "term": "Cache miss penalty",
+      "def": "What a miss costs over a hit. In cache-aside it's three trips: the cache, the database, then writing the copy back. 62 ms at Varga's."
+    },
+    {
+      "term": "Hit ratio",
+      "def": "Hits divided by all lookups. 80% means the cache answered four lookups in five. It sets the average wait and how much load reaches the database."
+    },
+    {
+      "term": "Hit rate",
+      "def": "Another name for the hit ratio, often given as a percentage."
+    },
+    {
+      "term": "Skew",
+      "def": "When a few items get most of the requests, like eight loaves getting 80% of lookups. Skewed traffic is what lets a small cache do a lot."
+    },
+    {
+      "term": "Hot set",
+      "def": "The items that get most of the requests. A cache that holds the hot set answers most lookups."
+    },
+    {
+      "term": "Hotspot",
+      "def": "A key or piece of data that gets far more requests than the rest, such as a popular product page."
+    },
+    {
+      "term": "Pareto principle",
+      "def": "The rule of thumb that roughly 80% of effects come from 20% of causes. Redis cites it to explain why a few keys usually get most of the traffic."
+    },
+    {
+      "term": "TTL (cache)",
+      "def": "How long a cached item may be used before it expires and must be fetched again. It is set on each item when it's stored, and it caps how stale the item can be."
+    },
+    {
+      "term": "Stale read",
+      "def": "An answer served from an out-of-date copy, like a card from yesterday's list. The sim counts them as stale reads served."
+    },
+    {
+      "term": "Eviction",
+      "def": "Removing an item from a full cache to make room for a new one. The item isn't lost: it can be fetched from the database again."
+    },
+    {
+      "term": "Eviction policy",
+      "def": "The rule a cache uses to choose which item to evict, such as LRU or LFU. In Redis it's set with maxmemory-policy."
+    },
+    {
+      "term": "LRU",
+      "def": "Least recently used: evict the item used longest ago. Simple and quick to follow changes in taste, but a one-off scan can push out everything popular."
+    },
+    {
+      "term": "LFU",
+      "def": "Least frequently used: evict the item used the fewest times. Keeps steady favourites through a scan, but needs counts that fade to notice when tastes change."
+    },
+    {
+      "term": "Scan",
+      "def": "A one-off read of many items, most of which nobody else wants, such as a crawler reading old pages or a job reading every row once."
+    },
+    {
+      "term": "Scan-resistant",
+      "def": "Said of an eviction policy that keeps popular items through a scan, usually by making an item be used twice before it's protected."
+    },
+    {
+      "term": "Web crawler",
+      "def": "A program that reads a website's pages one after another, usually for a search engine. Crawlers often read old pages nobody else visits."
+    },
+    {
+      "term": "Search engine",
+      "def": "A service that reads the web with crawlers so people can search it, such as Google or Bing."
+    },
+    {
+      "term": "Use count",
+      "def": "The number LFU keeps for each item: how often it has been used. In the sim a card starts at 1 and gains 1 per hit."
+    },
+    {
+      "term": "Decay",
+      "def": "Lowering LFU's counts over time, so items that were popular in the past can be evicted. Redis does it once a minute by default."
+    },
+    {
+      "term": "Morris counter",
+      "def": "A counter that estimates large counts in a few bits by counting up less and less often, at random, as it grows. Redis uses one for LFU."
+    },
+    {
+      "term": "Saturate",
+      "def": "For a counter, to reach its highest value and stop growing. Redis's LFU counter saturates at around a million requests."
+    },
+    {
+      "term": "maxmemory",
+      "def": "The Redis setting for the most memory its data may use. Past it, Redis evicts keys by its maxmemory-policy."
+    },
+    {
+      "term": "maxmemory-policy",
+      "def": "The Redis setting that picks the eviction policy, such as allkeys-lru. Redis's own default is noeviction; ElastiCache's default parameter groups use volatile-lru."
+    },
+    {
+      "term": "maxmemory-samples",
+      "def": "How many keys Redis samples before each eviction. 5 by default in Redis, 3 in ElastiCache's parameter groups. More samples get closer to true LRU."
+    },
+    {
+      "term": "redis.conf",
+      "def": "The configuration file that ships with Redis, where settings such as maxmemory-policy and maxmemory-samples and their defaults are written down."
+    },
+    {
+      "term": "noeviction",
+      "def": "A Redis policy that never evicts: once memory is full, commands that add data return an error, while reads still work."
+    },
+    {
+      "term": "allkeys-lru",
+      "def": "A Redis policy that evicts the least recently used key out of all keys. Redis's suggested default when a few keys get most of the traffic."
+    },
+    {
+      "term": "allkeys-lfu",
+      "def": "A Redis policy that evicts the least frequently used key out of all keys, using its fading LFU counts."
+    },
+    {
+      "term": "allkeys-random",
+      "def": "A Redis policy that evicts keys at random. Redis suggests it when every key is accessed about equally, as in a repeating cycle."
+    },
+    {
+      "term": "volatile-lru",
+      "def": "A Redis policy that evicts the least recently used key among keys with an expiry. With no expiring keys it behaves like noeviction."
+    },
+    {
+      "term": "volatile-ttl",
+      "def": "A Redis policy that evicts, among keys with an expiry, the ones with the shortest time left."
+    },
+    {
+      "term": "Least recently modified (LRM)",
+      "def": "Eviction policies added in Redis 8.6 that evict the key written longest ago, ignoring reads."
+    },
+    {
+      "term": "INFO",
+      "def": "A Redis command that reports the server's statistics, including hits, misses, evicted keys and expired keys."
+    },
+    {
+      "term": "keyspace_hits and keyspace_misses",
+      "def": "Redis INFO counts of lookups that found their key and lookups that didn't. Hits divided by hits plus misses is the hit ratio."
+    },
+    {
+      "term": "CacheHitRate",
+      "def": "An ElastiCache CloudWatch metric: hits divided by hits plus misses. AWS says below about 0.8 means many keys are evicted, expired or missing."
+    },
+    {
+      "term": "Evictions",
+      "def": "An ElastiCache CloudWatch metric: how many keys were pushed out by the memory limit."
+    },
+    {
+      "term": "Reclaimed",
+      "def": "An ElastiCache CloudWatch metric: how many keys were removed because they expired."
+    },
+    {
+      "term": "CurrItems",
+      "def": "An ElastiCache CloudWatch metric: how many items are in the cache right now."
+    },
+    {
+      "term": "Parameter group",
+      "def": "On ElastiCache, a named set of engine settings, such as maxmemory-policy, applied to a cache. You can't change the default ones, only copies."
+    },
+    {
+      "term": "memcached",
+      "def": "A widely used open-source cache: a big table of keys and values held in memory, with LRU eviction."
+    },
+    {
+      "term": "memcache",
+      "def": "Facebook's name for its whole caching system, built from many memcached servers."
+    },
+    {
+      "term": "Size class",
+      "def": "memcached's grouping of items by size, called a slab class. Each class has its own memory and its own LRU."
+    },
+    {
+      "term": "Segmented LRU",
+      "def": "An LRU split into parts, such as memcached's HOT, WARM and COLD queues, where an item has to be used twice to reach the protected part."
+    },
+    {
+      "term": "NSDI",
+      "def": "The USENIX Symposium on Networked Systems Design and Implementation, a research conference. The memcache paper appeared there in 2013."
+    },
+    {
+      "term": "USENIX",
+      "def": "An association for computing systems that runs research conferences and publishes their papers free online."
+    },
+    {
+      "term": "Backend service",
+      "def": "A service behind a website that its web servers call for data or work, such as a database or a search service."
+    },
+    {
+      "term": "Authoritative source",
+      "def": "The place whose data counts as correct. Facebook's paper says memcache isn't one, which is why it may evict data. Same idea as a source of truth."
+    },
+    {
+      "term": "Read path",
+      "def": "The steps a read goes through, such as cache first, then database."
+    },
+    {
+      "term": "Write path",
+      "def": "The steps a write goes through, such as updating the database and then deleting the cached copy."
+    },
+    {
+      "term": "Invalidation",
+      "def": "Removing or updating cached copies when the source data changes, so the cache stops serving old answers. The next case."
+    },
+    {
+      "term": "Cache stampede",
+      "def": "Many requests missing the same key at once and all asking the database together, often right after a cache empties. Two cases from now."
+    },
+    {
+      "term": "MySQL",
+      "def": "A widely used open-source relational database."
+    },
+    {
+      "term": "InnoDB",
+      "def": "MySQL's main storage engine: the part that stores tables on disk and keeps the busy parts in memory."
+    },
+    {
+      "term": "Buffer pool",
+      "def": "InnoDB's cache of table and index pages in memory."
+    },
+    {
+      "term": "Page (database)",
+      "def": "A fixed-size block of a table or index that a database reads, caches and writes as one unit."
+    },
+    {
+      "term": "Midpoint insertion",
+      "def": "InnoDB's way of resisting scans: a newly read page goes in partway down the LRU list and moves to the front only if it's used again."
+    },
+    {
+      "term": "Full table scan",
+      "def": "Reading every row of a table, as a report or a backup might. Most of the pages it reads are never needed again."
+    },
+    {
+      "term": "Read-ahead",
+      "def": "A database reading pages it expects to need soon, before anyone asks for them."
+    },
+    {
+      "term": "innodb_old_blocks_pct",
+      "def": "The InnoDB setting for how much of the buffer pool's LRU list is the old part where new pages go in. 37% by default, about 3/8."
+    },
+    {
+      "term": "innodb_old_blocks_time",
+      "def": "The InnoDB setting for how long after its first access a page can be read again without moving to the front. 1000 ms by default."
+    },
+    {
+      "term": "IOPS",
+      "def": "Input/output operations per second: how many reads and writes a storage system or cache can handle each second."
+    },
+    {
+      "term": "Overprovision",
+      "def": "To buy more capacity than you normally need, so you survive peaks and hotspots. A cache can make that unnecessary."
+    },
+    {
+      "term": "Batch job",
+      "def": "A program that runs on a schedule and works through a lot of data at once, such as a nightly report."
+    },
+    {
+      "term": "Loadout",
+      "def": "The system design simulator you build yourself in this course's Build Nights. Its L2 milestone adds load balancers and caches."
+    }
+  ],
+  "atWork": "Find a cache your team runs. In the ElastiCache console (read-only access is enough), open the cluster and note its engine, node type and parameter group, then look up maxmemory-policy in that group: the default is volatile-lru, which can only evict keys that have a TTL. In CloudWatch, chart CacheHitRate, Evictions, Reclaimed and CurrItems for the last two weeks. Is the hit ratio steady, and does it dip at the same time every night, when a batch job or a crawler might be reading cold keys? Then find where the code reads the cache: is it cache-aside, what TTL does it set, and is that TTL written down anywhere with a reason? Last, look for a decision taken on a cached value that can't be taken back, such as a price at checkout or stock at the moment of sale.",
+  "board": {
+    "cards": [
+      {
+        "id": "caching",
+        "title": "Caching"
+      },
+      {
+        "id": "cache-aside",
+        "title": "Cache-aside"
+      },
+      {
+        "id": "hit-ratio",
+        "title": "Hit ratio"
+      }
+    ],
+    "strings": [
+      {
+        "from": "caching",
+        "to": "memory",
+        "label": "copies in RAM"
+      },
+      {
+        "from": "caching",
+        "to": "dns-cache",
+        "label": "same idea, DNS"
+      },
+      {
+        "from": "caching",
+        "to": "databases-101",
+        "label": "takes reads off"
+      },
+      {
+        "from": "caching",
+        "to": "cache-stampede",
+        "label": "empty cache risk"
+      },
+      {
+        "from": "cache-aside",
+        "to": "stale-reads",
+        "label": "never hears writes"
+      },
+      {
+        "from": "cache-aside",
+        "to": "cache-invalidation",
+        "label": "next case"
+      },
+      {
+        "from": "hit-ratio",
+        "to": "ttl",
+        "label": "short TTL costs it"
+      },
+      {
+        "from": "hit-ratio",
+        "to": "eviction-policies-in-depth",
+        "label": "what stays in"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e04-r1",
+      "kind": "free",
+      "prompt": "Your shop's product API reads prices and stock from a PostgreSQL database that sits at 85% CPU at peak, 2,000 reads a second. The logs show 5% of products get 70% of the reads. Where would you add a cache, how would you set it up, and what would you watch for?",
+      "keyIdeas": [
+        {
+          "idea": "A cache-aside layer such as Redis in front of the product reads",
+          "match": [
+            "cache-aside",
+            "cache aside",
+            "lazy",
+            "redis",
+            "elasticache",
+            "memcached",
+            "check the cache",
+            "look in the cache"
+          ]
+        },
+        {
+          "idea": "The skew means a small cache answers at least 70% of reads, taking most of the load off the database",
+          "match": [
+            "hit ratio",
+            "hit rate",
+            "skew",
+            "hot",
+            "popular",
+            "small cache",
+            "600",
+            "few products",
+            "most of the reads",
+            "takes load off",
+            "fewer reads"
+          ]
+        },
+        {
+          "idea": "Set a TTL from how long a price may be wrong, and read the database at checkout",
+          "match": [
+            "ttl",
+            "expire",
+            "expiry",
+            "stale",
+            "checkout",
+            "payment",
+            "source of truth",
+            "before charging"
+          ]
+        },
+        {
+          "idea": "Size it for the hot set, pick an eviction policy, and watch the hit ratio, evictions and database load",
+          "match": [
+            "evict",
+            "lru",
+            "lfu",
+            "size",
+            "monitor",
+            "cloudwatch",
+            "cachehitrate",
+            "metric",
+            "alarm",
+            "dashboard",
+            "track",
+            "graph"
+          ]
+        }
+      ],
+      "model": "Put a cache-aside layer, for example Redis on ElastiCache, in front of the product reads: look in the cache first, and on a miss read PostgreSQL and store the result with a TTL. The skew is why it works: if 5% of products get 70% of the reads, a cache that holds that 5% answers at least 70% of reads, so the database drops from 2,000 reads a second to about 600 or fewer, and most reads take about a millisecond. Pick the TTL from how long a price may be wrong, a minute or five, and make checkout read the database, because a stale price there costs money. Size the cache for the hot set with room to spare, start with allkeys-lru, and switch to LFU or a bigger cache if batch jobs scan cold products. After it goes live, watch the hit ratio, evictions and the database's CPU, and test what happens when the cache restarts empty."
+    },
+    {
+      "id": "s2e04-r2",
+      "kind": "mcq",
+      "prompt": "A cache answers 80% of lookups in 1 ms, and a miss takes 62 ms. With 20 lookups a second, what's the average wait, and how many lookups a second reach the database?",
+      "options": [
+        "About 13 ms, and 4 a second",
+        "About 50 ms, and 16 a second",
+        "1 ms, and none",
+        "About 31 ms, and 10 a second"
+      ],
+      "answer": 0,
+      "why": "0.8 times 1 ms plus 0.2 times 62 ms is 13.2 ms. Only misses reach the database: 20% of 20 a second is 4."
+    },
+    {
+      "id": "s2e04-r3",
+      "kind": "mcq",
+      "prompt": "Every night a search engine's crawler reads 2 million old product pages, once each. Afterwards your cache's hit ratio collapses for a while and the database spikes. Which change protects the popular pages best?",
+      "options": [
+        "A shorter TTL on every key",
+        "Switching the cache from LRU to LFU, or to a scan-resistant LRU",
+        "More memory for the database server",
+        "Turning off the cache's TTLs entirely"
+      ],
+      "answer": 1,
+      "why": "Under LRU each page the crawler reads becomes the most recently used, so it pushes the popular ones out. LFU evicts what was used the fewest times, so one-off reads go first; memcached's segmented LRU and InnoDB's midpoint insertion make an item be used twice before it's protected. A shorter TTL makes the hit ratio worse, not better."
+    },
+    {
+      "id": "s2e04-r4",
+      "kind": "free",
+      "prompt": "A teammate caches product prices with a 24-hour TTL, \"because prices change once a day\". Product managers actually change some prices several times a day, and support keeps hearing about wrong prices on the most popular products. What's going on, and what do you tell them?",
+      "keyIdeas": [
+        {
+          "idea": "Cache-aside never updates a cached copy when the database changes; it's fetched again only when it expires or is evicted",
+          "match": [
+            "never update",
+            "not updated",
+            "doesn't hear",
+            "does not hear",
+            "until it expires",
+            "only when",
+            "evicted",
+            "old copy",
+            "stale"
+          ]
+        },
+        {
+          "idea": "Popular items never miss, so their copies are the stalest, up to the full TTL",
+          "match": [
+            "hot",
+            "never miss",
+            "busiest",
+            "most requested",
+            "full ttl",
+            "24 hours",
+            "longest",
+            "frequently read",
+            "read the most",
+            "always in the cache",
+            "always hit"
+          ]
+        },
+        {
+          "idea": "Set the TTL from how long a price may be wrong; for hot keys it costs only a few extra misses",
+          "match": [
+            "shorter",
+            "lower",
+            "minutes",
+            "5 min",
+            "1 min",
+            "how long",
+            "may be wrong",
+            "tolerate",
+            "extra misses"
+          ]
+        },
+        {
+          "idea": "Read the database at checkout, and delete the cached price when it changes",
+          "match": [
+            "checkout",
+            "payment",
+            "source of truth",
+            "delete",
+            "invalidat",
+            "clear the key",
+            "remove the key"
+          ]
+        }
+      ],
+      "model": "The cache only learns about a price change when its copy expires or is pushed out. The popular products never miss, so their copies sit there for the whole 24 hours: they're exactly the ones showing wrong prices. Set the TTL from how long a price may be wrong, a few minutes, which for hot keys costs very few extra misses, one per key per TTL. Make checkout read the database, the source of truth, so a stale price can never be charged. And the real fix is for the price change itself to delete the cached key, so the next read fetches the new price."
+    },
+    {
+      "id": "s2e04-r5",
+      "kind": "mcq",
+      "prompt": "Your ElastiCache Redis cluster uses the default parameter group, so maxmemory-policy is volatile-lru, and your code stores every key without a TTL. Memory fills up. What happens?",
+      "options": [
+        "Redis evicts the least recently used keys",
+        "The oldest keys expire on their own",
+        "New writes start failing, because no key has an expiry, so nothing can be evicted",
+        "ElastiCache doubles the cache's memory"
+      ],
+      "answer": 2,
+      "why": "volatile-lru only evicts keys that have an expiry. Redis's documentation says the volatile policies behave like noeviction when no keys have one, so commands that add data return errors while reads keep working. Set TTLs, or switch to allkeys-lru."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. December. Agnes added 30 Christmas loaves, and people want all of them. The jar still holds 12 cards, with LFU and a 5-minute TTL. On Saturday evening the screens sent 60 lookups a second, the dashboard said the jar answered 40% of them, and from 7 PM to midnight the database got 36 a second against the 25 it manages. The door screen hung on and off all evening. Mikko says the jar is full of the old regulars and the stollen can't get in. Agnes wants to switch the jar off until January.",
+    "prompt": "Reply to OP. What's happening, and what should Mikko change?",
+    "keyIdeas": [
+      {
+        "idea": "The hot set grew from 8 loaves to nearly 40, so 12 cards can't hold it",
+        "match": [
+          "hot set",
+          "too small",
+          "doesn't fit",
+          "don't fit",
+          "not enough cards",
+          "more cards",
+          "38",
+          "40 loaves",
+          "size",
+          "too few",
+          "cannot hold",
+          "can't hold",
+          "only holds",
+          "room for"
+        ]
+      },
+      {
+        "idea": "Under LFU the old regulars keep their high counts, and each new loaf comes in at a count of 1 and is pushed out first",
+        "match": [
+          "count",
+          "start at 1",
+          "comes in at",
+          "pushed out first",
+          "frequency",
+          "decay",
+          "fade",
+          "high counts",
+          "old favourites",
+          "old favorites",
+          "least frequently",
+          "new loaves",
+          "new items"
+        ]
+      },
+      {
+        "idea": "Make the jar bigger and watch the hit ratio and evictions; switching it off would send all 60 a second to the database",
+        "match": [
+          "bigger",
+          "more memory",
+          "resize",
+          "64",
+          "evictions",
+          "cachehitrate",
+          "hit ratio",
+          "don't switch",
+          "not switch",
+          "keep the jar",
+          "60 a second"
+        ]
+      }
+    ],
+    "model": "The hot set changed. In October eight loaves got 80% of the lookups; now nearly 40 loaves are popular, and a 12-card jar can't hold them. LFU makes it worse: the old regulars have huge counts and stay, while every Christmas loaf comes in with a count of 1 and is the first card pushed out, so they miss again and again. Don't switch the jar off: that sends all 60 lookups a second to a database that manages 25. Make the jar bigger, enough for the regulars, the 30 Christmas loaves and room to spare, say 64 cards: memory is cheap next to a hung door screen. Make sure the counts fade, as Redis's LFU does by default, so January's favourites can replace December's. Then watch the hit ratio, evictions and the database's load, and keep the TTL and the till's check."
+  },
+  "next": "Next, Stale Milk: a dairy delivery route where the depot cancelled a house's order in March, the driver's sheet never heard, and every morning the milk still arrives on a doorstep nobody has opened since.",
+  "sources": [
+    {
+      "title": "Rajesh Nishtala et al., Scaling Memcache at Facebook, 10th USENIX Symposium on Networked Systems Design and Implementation (NSDI '13), 2013 (billions of requests per second and trillions of items; users consume an order of magnitude more content than they create; a demand-filled look-aside cache, with deletes on write because deletes are idempotent; memcache is not the authoritative source; 521 distinct items per popular page; memcache pools; LRU eviction within a slab class; lazy expiry and the transient item cache, 6% to 0.3%; 90% of peak hit rate within a few hours)",
+      "url": "https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf"
+    },
+    {
+      "title": "Amazon ElastiCache User Guide: Caching strategies for Memcached (lazy loading; cache miss penalty of three trips; stale data; adding TTL, an expired key treated as not found; 300-second TTL examples)",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/Strategies.html"
+    },
+    {
+      "title": "Redis documentation: Key eviction (maxmemory; noeviction, allkeys-lru, allkeys-lrm, allkeys-lfu, allkeys-random and the volatile policies; allkeys-lru as the default for a Pareto-like workload; volatile policies behave like noeviction with no expiring keys; INFO keyspace_hits and keyspace_misses; approximated LRU with maxmemory-samples 5; LFU since Redis 4.0 with a Morris counter, saturating at about a million requests and decaying every minute by default; LRM from Redis 8.6)",
+      "url": "https://redis.io/docs/latest/develop/reference/eviction/"
+    },
+    {
+      "title": "Amazon ElastiCache User Guide: Metrics for Valkey and Redis OSS (CacheHits, CacheMisses, CacheHitRate and its 0.8 guidance, Evictions, Reclaimed, CurrItems)",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"
+    },
+    {
+      "title": "Amazon ElastiCache User Guide: Engine specific parameters (maxmemory-policy default volatile-lru; maxmemory-samples default 3)",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/ParameterGroups.Engine.html"
+    },
+    {
+      "title": "memcached blog: Replacing the cache replacement algorithm in memcached (dormando, October 2018): segmented LRU with HOT, WARM and COLD, default since 1.5.0; items which never get hit twice cannot enter WARM; WARM as a buffer for scanning workloads like web crawlers reading old posts",
+      "url": "https://memcached.org/blog/modern-lru/"
+    },
+    {
+      "title": "MySQL 8.4 Reference Manual: Making the Buffer Pool Scan Resistant (midpoint insertion 3/8 from the tail; innodb_old_blocks_pct 37; innodb_old_blocks_time 1000 ms)",
+      "url": "https://dev.mysql.com/doc/refman/8.4/en/innodb-performance-midpoint_insertion.html"
+    },
+    {
+      "title": "Designs, Lessons and Advice from Building Large Distributed Systems (Jeff Dean, LADIS 2009 keynote), slide \"Numbers Everyone Should Know\" (main memory reference 100 ns; round trip within the same datacenter 500,000 ns; disk seek 10,000,000 ns)",
+      "url": "https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf"
+    },
+    {
+      "title": "AWS: What is Caching and How it Works (in-memory reads are sub-millisecond; memory is orders of magnitude faster than disk; a single cache instance can provide hundreds of thousands of IOPS; common keys in a cache mitigate the need to overprovision)",
+      "url": "https://aws.amazon.com/caching/"
+    },
+    {
+      "title": "Redis 7.4.0 source: redis.conf (maxmemory-policy default noeviction; maxmemory-samples default 5, \"The default of 5 produces good enough results. 10 Approximates very closely true LRU but costs more CPU.\")",
+      "url": "https://github.com/redis/redis/blob/7.4.0/redis.conf"
+    }
+  ]
+}
