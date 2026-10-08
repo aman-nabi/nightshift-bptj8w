@@ -1,0 +1,1053 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-09) first version"
+  ],
+  "id": "s2e07",
+  "season": 2,
+  "n": 7,
+  "title": "Mirrors Everywhere",
+  "setting": "a touring band's fan site",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "cdns",
+    "edge-caching",
+    "cache-control-headers"
+  ],
+  "prerequisites": [
+    "s2e06",
+    "s2e05",
+    "s2e04",
+    "s2e01",
+    "s1e01",
+    "s1e03",
+    "s1e04",
+    "s1e05",
+    "s1e07",
+    "s1e10",
+    "s1e11",
+    "s1e12",
+    "s1e13"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/merch_trunk_ferelith",
+    "flair": "Part 1",
+    "age": "8h",
+    "votes": 3891,
+    "title": "I sell the shirts on a band's world tour. Our site loads in a blink in every city, and in Perth it still lists the show we cancelled a week ago. Forty-one fans went.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I sell the shirts for The Gloaming, four friends from Montreal on a world tour this autumn: Montreal, Lisbon, Seoul, Perth. Thaddeus, our bass player, built the fan site. Last tour it ran on one small server in Montreal that manages about 15 requests a second. On show nights it got 28, and fans in Perth waited most of a second for every page."
+      },
+      {
+        "t": "p",
+        "text": "This tour he put a CDN in front of it: an edge server in each of our four cities, which keeps copies of the site and answers that city's fans from them in about 20 ms. The Montreal server is now the origin, and an edge only asks it for something it has no fresh copy of. Each city sends about 7 requests a second: the tour page, /tour; the site's script, app.3f9c.js; 4 of the tour's 400 photos; and /my-ticket, which shows a signed-in fan their own ticket. The edges answer 6 in 7, and the origin hears 4 a second, all of them /my-ticket, which goes out as private, no-store. Thaddeus sends /tour with Cache-Control: public, max-age=604800, a week."
+      },
+      {
+        "t": "p",
+        "text": "On Thursday 1 October the owner of the Leocadia, the old ballroom in Fremantle where we were to play Perth on Saturday, rang to say it was closing that night, for good. He wouldn't say why. At 18:00 UTC Thaddeus took the show off /tour and deployed. He checked the page on the origin, and it was gone."
+      },
+      {
+        "t": "p",
+        "text": "On Saturday at 7:30 PM, forty-one fans were outside the Leocadia. On their phones the site still listed the show, and its countdown said thirty minutes to doors. The doors were chained. Inside, the lights were on."
+      },
+      {
+        "t": "beat",
+        "text": "Somebody was tuning a guitar. We were in Seoul."
+      },
+      {
+        "t": "p",
+        "text": "This morning Thaddeus asked each edge for /tour and read what came back:"
+      },
+      {
+        "t": "log",
+        "text": "08 Oct 10:00 UTC  GET /tour, once through each edge\nMontreal  HIT  Age: 348360  Perth: cancelled\nLisbon    HIT  Age: 130800  Perth: cancelled\nSeoul     HIT  Age: 75300   Perth: cancelled\nPerth     HIT  Age: 576480  Perth: SAT 3 OCT, DOORS OPEN"
+      },
+      {
+        "t": "p",
+        "text": "Every page that dropped Perth came with the new script, app.7b1e.js, and not one fan got the new list with the old script. Only Perth's page is stuck. The band has rebooked Perth for the 17th, and Thaddeus puts it on the site at 10:00 tomorrow. What should he change first?"
+      },
+      {
+        "t": "evidence",
+        "label": "thaddeus_edges_0810_1000.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 340,
+          "aria": "Thaddeus's check at 10:00 UTC on Thursday 8 October. Four edge servers, in Montreal, Lisbon, Seoul and Perth, each hold their own copy of /tour. Montreal's was fetched on 4 October at 09:14, Lisbon's on 6 October at 21:40 and Seoul's on 7 October at 13:05, and all three show the Perth show as cancelled. Perth's was fetched on 1 October at 17:52 and still shows the show with its doors open, with 7 hours 52 minutes left. The origin in Montreal has served the page without Perth since 18:00 on 1 October, with max-age=604800, a week.",
+          "nodes": [
+            {
+              "id": "edge_mtl",
+              "label": "Montreal edge",
+              "sub": "fetched 4 Oct 09:14",
+              "meta": "Perth: cancelled",
+              "x": 100,
+              "y": 70,
+              "w": 164,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "edge_lis",
+              "label": "Lisbon edge",
+              "sub": "fetched 6 Oct 21:40",
+              "meta": "Perth: cancelled",
+              "x": 280,
+              "y": 70,
+              "w": 164,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "edge_sel",
+              "label": "Seoul edge",
+              "sub": "fetched 7 Oct 13:05",
+              "meta": "Perth: cancelled",
+              "x": 460,
+              "y": 70,
+              "w": 164,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "edge_per",
+              "label": "Perth edge",
+              "sub": "fetched 1 Oct 17:52",
+              "meta": "Perth: DOORS OPEN",
+              "x": 640,
+              "y": 70,
+              "w": 164,
+              "h": 72,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "origin",
+              "label": "Origin, Montreal",
+              "sub": "/tour v2 since 1 Oct 18:00",
+              "meta": "max-age=604800: a week",
+              "x": 370,
+              "y": 250,
+              "w": 300,
+              "h": 72,
+              "shape": "box",
+              "tone": ""
+            }
+          ],
+          "edges": [
+            {
+              "from": "edge_mtl",
+              "to": "origin",
+              "dash": true,
+              "tone": "muted"
+            },
+            {
+              "from": "edge_lis",
+              "to": "origin",
+              "dash": true,
+              "tone": "muted"
+            },
+            {
+              "from": "edge_sel",
+              "to": "origin",
+              "dash": true,
+              "tone": "muted"
+            },
+            {
+              "from": "edge_per",
+              "to": "origin",
+              "dash": true,
+              "tone": "muted"
+            }
+          ],
+          "notes": [
+            {
+              "x": 640,
+              "y": 128,
+              "text": "7h 52m left",
+              "tone": "bad",
+              "anchor": "middle"
+            },
+            {
+              "x": 20,
+              "y": 328,
+              "text": "Thursday 8 October, 10:00 UTC",
+              "tone": "muted",
+              "anchor": "start"
+            }
+          ]
+        },
+        "caption": "Thaddeus's check at 10:00 UTC on Thursday 8 October, redrawn. Each edge keeps its own copy of /tour for the week its header allows. Montreal, Lisbon and Seoul fetched theirs when their older copies ran out on 4, 6 and 7 October, and show the cancellation. Perth's edge fetched its copy at 17:52 on 1 October, eight minutes before the deploy, so it still shows the show at the Leocadia, with 7 hours 52 minutes to go."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 108,
+      "age": "7h",
+      "text": "Some words first. Your edges are a shared cache: they keep one copy of a response and hand it to every fan who asks. A fan's browser is a private cache, kept for one person. Every copy an edge hands out carries an Age header: the seconds since it came from the origin. And Cache-Control can carry s-maxage as well as max-age: s-maxage is how long a shared cache may keep a copy, and edges use it instead of max-age when it's there. Now Thaddeus's log. Take each Age away from 10:00 this morning. When did each edge fetch its copy? Add a week. When does each one run out? Montreal has shown the cancellation since Sunday: what happened there on Sunday that the deploy didn't do? Why did app.7b1e.js never need anything doing to it? And if Thaddeus changes the header on /tour today, which of the four copies will ever hear about it?",
+      "replies": [
+        {
+          "author": "u/merch_trunk_ferelith",
+          "op": true,
+          "points": 34,
+          "age": "6h",
+          "text": "Thaddeus worked it out. Perth's edge fetched /tour at 17:52 on the 1st, eight minutes before he deployed, and the other three fetched theirs days before. I asked the Leocadia's caretaker about the guitar. He says the building has been locked since the 1st and the only key is his. He also says somebody swept the stage on Sunday, and it wasn't him."
+        }
+      ]
+    },
+    {
+      "author": "u/hashed_asset_baptiste",
+      "points": 77,
+      "age": "6h",
+      "text": "app.7b1e.js never went stale because its name is a fingerprint. 7b1e is a short hash of the file's contents, so a build that changes the file changes its name. A new name is a new URL, and no edge has a copy of a URL it has never seen, so the first fan in each city fetches it once and everyone after gets it from the edge. The old app.3f9c.js can sit in every cache for its year, harmless, asked for only by pages that still name it. That's cache busting, and it's why fingerprinted files can go out with max-age=31536000, a year, and immutable, which tells caches the file will never change, so they needn't check it even on a reload. It does nothing for the page that names the file, though. Perth's old /tour still asks for app.3f9c.js, and gets it. And you can't fingerprint /tour: people type it, share it and print it on posters."
+    },
+    {
+      "author": "u/purge_queue_ondine",
+      "points": 62,
+      "age": "5h",
+      "text": "Your CDN can purge: you tell it to drop a copy at every edge before it runs out, and the next request in each city fetches a new one. Purge one URL and each edge asks the origin for it once. Purge everything and every edge drops every copy it holds, every photo included, and fetches the lot from the origin at once. We did that at 8 PM on a launch night and gave our origin a stampede of its own. Fastly has a gentler soft purge that marks a copy stale instead of deleting it, so the edge can keep handing it out while it fetches the new one. And while you're reading headers: no-cache doesn't mean don't cache. It lets a cache keep the page but makes it check with the origin before every use."
+    },
+    {
+      "author": "u/wrong_ticket_jessamy",
+      "points": 49,
+      "age": "4h",
+      "text": "While Thaddeus is in the settings, check /my-ticket. An edge finds a copy by its cache key, which is usually the URL and little else. The cookie that says which fan is asking isn't part of it. So if /my-ticket is ever sent as public, which tells every cache it may keep the response, the first fan's ticket page becomes the copy everyone in that city gets. private means only the fan's own browser may keep it; no-store means nothing may. We cached an account page by accident once, for twenty minutes. Customers saw each other's addresses, and we spent the next month writing to them.",
+      "replies": [
+        {
+          "author": "u/merch_trunk_ferelith",
+          "op": true,
+          "points": 23,
+          "age": "3h",
+          "text": "Thaddeus checked: /my-ticket is private, no-store. He went quiet, then said that in August he nearly put one rule on the whole site to save the origin some work."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "The band has rebooked Perth for Saturday 17 October at the Corvid Room, and Thaddeus puts it on the site at 10:00 UTC tomorrow. What should he change today? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Press purge everything now, and add purge everything to every deploy, so that no edge in any city can ever hold an old copy of the site.",
+        "tone": "bad",
+        "verdict": "A stampede on every deploy",
+        "part2": "Thaddeus pressed purge everything at 10:00 on Thursday. All four edges dropped every copy they held, and in that second the origin got 28 requests: the page, the script, 4 photos and a ticket from every city. For the next 99 seconds it got 20 a second while each edge fetched its 400 photos again, 4 at a time, and it manages 15. For a minute and forty seconds every request that needed it queued, in every city, and Perth showed the cancellation as soon as its pages got through. He put the same purge in the deploy script. On Friday at 10:00 the rebooked show went up, every edge threw away the photos it had fetched the day before, and the origin was over its limit for another 100 seconds. Thaddeus says the site now has a stampede every time he fixes a typo. On Friday evening the Leocadia's caretaker emailed to ask whether we knew why the ballroom lights had flickered at six, for a minute and forty seconds.",
+        "senior": "Purge everything does fix the page, by making every edge forget every file and fetch them all from the origin at once: a stampede you start yourself, which Cloudflare's docs warn can overload an origin on a busy site with many files. It also throws away the fingerprinted files, which never needed it. Purge only the URLs a deploy changed, and let the hashed files keep their year."
+      },
+      {
+        "text": "Change /tour to public, max-age=60, so any change reaches every city within a minute. Perth's old copy runs out at 17:52 today anyway.",
+        "tone": "warn",
+        "verdict": "Trade-off: right, eventually",
+        "part2": "Thaddeus changed /tour's header at 10:00 on Thursday and purged nothing. Perth's edge kept showing the Leocadia until its copy ran out at 17:52, and from then on it asked the origin for /tour every minute. On Friday at 10:00 he put the rebooked show on the site, and Perth had it within a minute. Montreal didn't until Sunday at 09:14, Lisbon until Tuesday at 21:40 and Seoul until Wednesday at 13:05: their copies had been fetched under the week-long header, and a copy keeps the header it came with. For five days fans in Seoul asked on the band's forum why Perth had no date. After Wednesday every city got every change within a minute, for one origin request a minute per edge. On Sunday the Leocadia's caretaker sent a photo of its marquee. It said THE GLOAMING, SAT 17 OCT. Nobody had told him.",
+        "senior": "A short max-age is right for the page, but a header travels with each copy, so it reaches only copies fetched after you set it. The copies already at the edges keep the week they were given, and no header can recall them: only a purge can. Change the header and purge the page together. And remember the browsers: fans who loaded /tour under the week-long header may keep their own copy for a week too."
+      },
+      {
+        "text": "Purge /tour now and in every deploy, send /tour as max-age=60, s-maxage=300, and leave the fingerprinted script and photos as they are.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Thaddeus purged /tour at 10:00 on Thursday. Each edge fetched the page once, and Perth's fetched app.7b1e.js too, a name it had never needed: 9 requests to the origin in that second, then back to 4. From 10:00:00 Perth showed the show as cancelled. He set /tour to max-age=60, s-maxage=300, so each edge asks for it every 5 minutes, 48 requests an hour for all four, and browsers keep it a minute, and he made a purge of /tour the last step of the deploy script. On Friday at 10:00 the rebooked show went up and the script purged /tour. Every city had it in the same second, with the new script, app.c41d.js, fetched once by each edge: 12 origin requests, under its 15. The photos never left the edges. That night the Leocadia's caretaker emailed a photo from the 3rd, taken through the window: the stage swept, one stool, and a set list taped to the floor in Thaddeus's handwriting. Thaddeus has never been inside.",
+        "senior": "Treat files and pages differently. Fingerprinted files change their URL when their contents change, so they keep a year, immutable, and are never purged. A page whose URL can't change gets a short life: a purge on every deploy that changes it makes the change instant, s-maxage caps an edge copy at five minutes when a purge fails or is forgotten, and a short max-age covers the browsers, which no purge reaches. Some teams keep edge copies far longer and trust the purge; that works for as long as the purge never fails."
+      },
+      {
+        "text": "Put one rule on the whole site, /my-ticket too: public, max-age=60. Nothing can be over a minute stale, and the origin gets even less.",
+        "tone": "bad",
+        "verdict": "Fresh pages, someone else's ticket",
+        "part2": "Thaddeus set the rule at 10:00 on Thursday and purged nothing. At 10:00:00 the first fan in each city to open /my-ticket had their page kept at that city's edge, and for the next minute every fan there who opened /my-ticket got it: that fan's name, email and seat. Then the next fan's, for the minute after. 236 ticket pages a minute went to the wrong fan, and the origin went from 4 requests a second to almost none. At 11:41 a fan in Lisbon posted a screenshot of a stranger's ticket, and Thaddeus switched the rule off. In 101 minutes, 23,836 tickets had been shown to the wrong fan. Perth kept showing the Leocadia until 17:52, as it would have anyway. The band reported the breach to the data protection regulator within 72 hours and wrote to every fan whose page had been seen. Every Perth fan who opened /my-ticket between 10:07 and 10:08 had been shown the same ticket: the Leocadia, 3 October, row A, seat 1. The Leocadia has no seats.",
+        "senior": "A short TTL fixes staleness, and it's the wrong rule for a personal page. A shared cache keys copies by URL, and the cookie that says who is asking isn't in the key, so once /my-ticket is public the first fan's page is everyone's. Showing one person's data to another is a personal data breach, with reporting duties where GDPR applies. Personal pages stay private, no-store whatever the site-wide rule says, and a test should fail the build if they ever don't."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e07",
+    "title": "Run the edges for The Gloaming",
+    "lede": "You're Thaddeus, from 18:00:00 UTC on Thursday 1 October, with the CDN warm. Each city's fans send 7 requests a second to their own edge: /tour, the script that page names, 4 of the 400 tour photos in turn, and /my-ticket, each from a different fan. An edge finds a copy by its URL alone. A copy from the edge takes 20 ms. A request the edge passes to the origin adds the round trip to Montreal, 10 ms from Montreal, 90 from Lisbon, 190 from Seoul and 260 from Perth, plus 40 ms at the origin. The origin manages about 15 requests a second; past that, the sim says over limit instead of guessing the wait. A city's typical wait is the middle one of its 7 requests in the last second. A copy keeps the Cache-Control it was fetched with: a new header reaches only copies fetched after it, and a purge drops copies at once. Where a header has s-maxage, the edges use it; browsers aren't in the sim. The script and photos have fingerprinted names and are kept a year. Deploy puts the cancellation live, and a second press adds the rebooked show. Skips run through every second in between. The clock runs 4 times faster than real life. Click any box to see what it does.",
+    "tryThis": "Try this: watch the warm site, with 85.7% of requests answered at the edges, 4 a second at the origin and 20 ms in every city. Press Deploy, then skip to the post: 1,749,540 old pages served, and only Perth's edge still shows the show, with 7h 52m left. Purge /tour: 9 origin requests in one second, Perth shows the cancellation, and the log shows Perth fetching app.7b1e.js once. Now purge everything and watch the origin take 28 requests, then 20 a second for 100 seconds. Reset, deploy, skip to the post, set /tour to public, max-age=60 and purge nothing: skip a day and deploy again, and only Perth gets the rebooked show. Try it again with max-age=60, s-maxage=300 and a purge after each deploy. Last, reset, mark /my-ticket public for a minute and count the tickets shown to the wrong fan, then try private, max-age=300."
+  },
+  "explain": {
+    "oneLine": "Nothing came back from the dead at the Leocadia except a copy. Each edge kept its own copy of /tour for the week its header allowed, Perth's was fetched eight minutes before the deploy, and nothing ever told the edges the page had changed.",
+    "steps": [
+      {
+        "title": "A CDN is a mirror in every city.",
+        "text": "A CDN puts edge servers near your users, each with its own cache, in front of your origin, the one server that holds the real site. A fan in Perth talks to Perth's edge: about 20 ms for a copy, where last tour every page cost three round trips to Montreal, for the TCP handshake, the TLS handshake and the request, at 260 ms each, plus 40 ms at the origin: 820 ms. The origin hears only what the edges can't answer. The Gloaming's edges answer 24 of every 28 requests, 85.7%, so the origin gets 4 a second instead of 28, and a crowd that all wants the same photo costs it one request per edge. CDNs also coalesce misses: Cloudflare sends only the first of many requests for the same missing file to the origin and hands its answer to the rest. The catch is in the word each. Four edges are four separate caches. Each fetched /tour at its own moment and kept it for the week its header allowed, so after the deploy Montreal showed the old page until Sunday, and Perth, whose copy was fetched eight minutes before the deploy, until Thursday evening."
+      },
+      {
+        "title": "What goes on the edge, and under what name.",
+        "text": "Three kinds of response pass through a CDN. Static files, such as scripts, images and fonts, are the same for everyone and change only with a new build: the easy win. Pages built for everyone, like /tour, are dynamic but shared: worth caching once you decide how stale they may be. Personal pages, built for one signed-in user, like /my-ticket, an account page or a basket, must never sit in a shared cache. Many CDNs start cautious: Cloudflare caches by file extension and leaves HTML alone unless a cache rule says otherwise, so caching a page like /tour, as Thaddeus does, usually takes a rule of its own. An edge finds a copy by its cache key. RFC 9111, HTTP's caching standard, says the key is at least the request method and the URL, and that many caches store only GET responses, so in practice it's the URL. Cloudflare's default key is the full URL with its query string, so /tour?from=poster is a separate copy from /tour, plus a few request headers. A response can add request headers to the match with Vary, such as Vary: Accept-Language. Cookies stay out of the key unless you put them in, and that is the hole /my-ticket could fall through."
+      },
+      {
+        "title": "Cache-Control tells every cache what it may do.",
+        "text": "The origin decides, response by response, with Cache-Control. max-age is how long a copy stays fresh in any cache. s-maxage overrides it for shared caches, so max-age=60, s-maxage=300 means a browser keeps the page a minute and an edge five. public says any cache may store the response; private says it's meant for one user, so a shared cache must not store it, though the user's browser may; no-store says no cache may. no-cache lets a cache keep the page but makes it check with the origin before every use. stale-while-revalidate, from the last case, lets a copy just past its time be handed out while a new one is fetched. Two things trip people up. A header travels with each copy, so changing it at the origin reaches only copies fetched afterwards: if Thaddeus fixes /tour's header today, Montreal's copy still lasts until Sunday. And no directive can recall a copy already stored, as MDN's page points out. To take a copy back early, you purge it."
+      },
+      {
+        "title": "Rename the files, purge the pages.",
+        "text": "Fingerprinted names fix staleness for files. app.3f9c.js carries a short hash of its contents. Change the contents and the build changes the name, so the new page asks for a URL no edge has seen, each edge fetches it once, and nothing old can be handed out under the new name. MDN calls this the cache-busting pattern and pairs it with max-age=31536000, immutable, and AWS recommends versioned names over invalidations for files you update often. Fingerprints don't help the page that names them: Perth's stale /tour still asked for app.3f9c.js, and got it. /tour is the URL people type, so the page needs a short life and a purge on every deploy that changes it. Purge the URLs you changed: Cloudflare strongly recommends purging single files over purging everything. Purge everything drops every copy at every edge, and each must come from the origin again: for The Gloaming, 28 requests in the first second and 20 a second for 100 seconds, against an origin that manages 15. Cloudflare warns that on busy sites with many files this can overload the origin. It's the last case's stampede, started by hand. Fastly's soft purge is gentler: it marks copies stale, so edges can keep serving them while they fetch new ones."
+      },
+      {
+        "title": "Never put one fan's page in a shared cache.",
+        "text": "A shared cache gives the same copy to everyone whose request has the same key. If a personal page gets in, the first person's page is everyone's: with /my-ticket marked public for a minute, each edge shows one fan's ticket to the next 59 fans in its city, 236 a minute across the four. The cookie that says who is asking isn't in the key. RFC 9111 adds that a Set-Cookie header doesn't stop a response being cached either, though Cloudflare, for one, won't cache a response that sets a cookie. The standard warns that misunderstanding how caches work can expose information thought to be private, and MDN says to mark personalised responses private, especially after a login. So send personal pages as private, no-store, have the CDN bypass its cache for signed-in paths, keep site-wide caching rules away from them, and add a test to the build that requests each personal page through the CDN and fails if its header is wrong or the answer came from the cache. And no-store binds only caches that obey it: RFC 9111 says it isn't a reliable or sufficient way to ensure privacy."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 410,
+      "aria": "The fix, drawn at 10:00:01 UTC on Friday 9 October. Fans in four cities send 28 requests a second to the CDN's four edges and wait about 20 ms. The edges keep /tour for 5 minutes and the fingerprinted files for a year, and never store /my-ticket. The deploy script builds the new site on the origin, then purges /tour. The origin in Montreal sends /tour as max-age=60, s-maxage=300 and /my-ticket as private, no-store, and hears about 4 requests a second.",
+      "nodes": [
+        {
+          "id": "fans",
+          "label": "Fans, 4 cities",
+          "sub": "28 requests/s",
+          "meta": "page in 20 ms",
+          "x": 370,
+          "y": 50,
+          "w": 260,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "cdn",
+          "label": "CDN: 4 edges",
+          "sub": "/tour 5 min, files 1 year",
+          "meta": "never stores /my-ticket",
+          "x": 370,
+          "y": 185,
+          "w": 340,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "deploy",
+          "label": "Deploy script",
+          "sub": "build, then purge /tour",
+          "x": 150,
+          "y": 335,
+          "w": 240,
+          "h": 52,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "origin",
+          "label": "Origin, Montreal",
+          "sub": "/tour: max-age=60, s-maxage=300",
+          "meta": "/my-ticket: private, no-store",
+          "x": 560,
+          "y": 335,
+          "w": 300,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        }
+      ],
+      "edges": [
+        {
+          "from": "fans",
+          "to": "cdn",
+          "label": "28/s"
+        },
+        {
+          "from": "cdn",
+          "to": "origin",
+          "label": "4 req/s"
+        },
+        {
+          "from": "deploy",
+          "to": "origin",
+          "label": "1. build"
+        },
+        {
+          "from": "deploy",
+          "to": "cdn",
+          "label": "2. purge /tour",
+          "tone": "accent"
+        }
+      ],
+      "notes": [
+        {
+          "x": 20,
+          "y": 398,
+          "text": "Friday 9 October, 10:00:01 UTC",
+          "tone": "muted",
+          "anchor": "start"
+        }
+      ]
+    },
+    "caption": "The fix, drawn at 10:00:01 UTC on Friday 9 October, one second after the deploy. The deploy script built the new site on the origin, then purged /tour, so every edge fetched the rebooked show in the same second, and the new script, app.c41d.js, once each: 12 origin requests in that second, then 4 a second again. /tour now goes out as max-age=60, s-maxage=300, so edges keep it 5 minutes and browsers 1. The fingerprinted files keep their year and are never purged. /my-ticket stays private, no-store, so no edge ever stores it. Fans in every city still wait about 20 ms.",
+    "fix": {
+      "title": "The fix: purge the page, rename the files, keep personal pages private",
+      "text": "Purge /tour now, so Perth's edge drops the copy from before the deploy. Make purging every page a deploy changed, by URL, the deploy script's last step. Send /tour as max-age=60, s-maxage=300: the purge makes a change instant at the edges, s-maxage caps an edge copy at 5 minutes when a purge fails or is forgotten, and max-age keeps browsers, which no purge reaches, to a minute. Some teams keep edge copies far longer and rely on the purge, as Fastly's guide describes; the 5 minutes is a safety net, at 48 origin requests an hour. Keep the fingerprinted script and photos at max-age=31536000, immutable, and never purge them: a new build is a new URL. Keep purge everything for emergencies. Keep /my-ticket private, no-store whatever any site-wide rule says, and add a build check that fetches each personal page through the CDN and fails if the header is wrong or the edge served it from its cache. Then watch the hit ratio, the origin's requests a second after every deploy, and the Age of /tour at each edge."
+    },
+    "limits": [
+      "A purge reaches the CDN's copies, not the browsers'. A fan who loaded /tour under max-age=604800 can keep that copy for up to a week whatever the edges do, so a page's own max-age has to be short from the start. AWS gives the same warning about CloudFront invalidations: a user might keep seeing the old version until it expires from their browser or a corporate proxy cache.",
+      "A CDN sits in front of every request, so when it fails, every city fails at once, however healthy the origin. Fastly's summary of 8 June 2021 describes 85% of its network returning errors. Know what you would do if your CDN went dark, and treat changes to its configuration with the same care as a deploy.",
+      "Showing one fan's ticket to another is more than a bug. Where the EU's GDPR applies, it is a personal data breach: Art. 4(12) covers the unauthorised disclosure of, or access to, personal data. Art. 33 then has the controller notify the supervisory authority without undue delay and, where feasible, within 72 hours of becoming aware of it, unless the breach is unlikely to put people's rights and freedoms at risk, and document every breach either way. Other laws, such as Singapore's PDPA from Season 1, set their own duties. Decide the cache rules for personal pages before launch, not after the screenshot."
+    ],
+    "tradeoff": {
+      "head": [
+        "Setting",
+        "Good for",
+        "Costs",
+        "Breaks when"
+      ],
+      "rows": [
+        [
+          "public, max-age=604800 on a page",
+          "Almost no origin traffic: the edges answer 24 of every 28 requests.",
+          "Nothing, until the page changes.",
+          "Any change: each edge keeps its old copy for up to a week. Perth kept the cancelled show for a week less 8 minutes."
+        ],
+        [
+          "public, max-age=60 on a page",
+          "Every change reaches every edge and browser within a minute, for one origin request a minute per edge.",
+          "A little more origin traffic, and a change can still take a minute.",
+          "Copies fetched under an older, longer header: they keep it. Montreal kept its week-long copy until Sunday."
+        ],
+        [
+          "max-age=60, s-maxage=300 and a purge on every deploy",
+          "Changes are instant at the edges; a forgotten purge costs at most 5 minutes, and browsers at most 1.",
+          "A purge step in every deploy, and 48 origin requests an hour for /tour.",
+          "A deploy changes a page and doesn't purge it: up to 5 minutes stale."
+        ],
+        [
+          "no-cache on a page",
+          "Always current: the edge checks with the origin before every use.",
+          "An origin request for every view: 8 a second here instead of 4, and each /tour waits for the trip, 320 ms in Perth.",
+          "The origin is slow or down: every view of the page waits on it."
+        ],
+        [
+          "Fingerprinted names, max-age=31536000, immutable",
+          "Files: a new build is a new URL, fetched once per edge, never stale and never purged.",
+          "A build step that renames files and rewrites the links to them.",
+          "Anything people type or link to directly, like /tour: its name can't change."
+        ],
+        [
+          "Purge everything",
+          "Emergencies: something is wrong and you can't tell which files.",
+          "Every edge refetches every file: 28 origin requests, then 20 a second for 100 seconds, against 15.",
+          "The origin can't take a full refill at peak: a stampede you started."
+        ],
+        [
+          "private, no-store on a personal page",
+          "Pages for one person: no shared cache keeps them.",
+          "Every view goes to the origin: 4 a second here.",
+          "A site-wide caching rule overrides it. Test the headers in the build."
+        ]
+      ]
+    },
+    "seniorTake": "Decide what each URL is before deciding how long to cache it. Files that something else links to get fingerprinted names, a year and immutable, and are never purged. Pages people type get a short life at the edge, a shorter one in browsers, and a purge by URL on every deploy that changes them: the purge makes the change instant, and the TTLs cap the damage when a purge is missed. Personal pages get private, no-store and a test that fails the build if they ever don't. Remember that every edge is a separate cache, that a header only governs copies fetched after it, and that purge everything is a stampede you start yourself. Then measure: the hit ratio, the origin's requests a second after each deploy, and the Age of your key pages at every edge.",
+    "realWorld": [
+      {
+        "title": "Fastly, 8 June 2021",
+        "text": "Fastly's summary of the outage, by Nick Rockwell, says that on May 12 it began a software deployment that introduced a bug that could be triggered by a specific customer configuration under specific circumstances. Early on June 8 a customer pushed a valid configuration change that included those circumstances, which caused 85% of Fastly's network to return errors. Its timeline, in UTC: 09:47 initial onset of global disruption; 09:48 disruption identified by Fastly's monitoring; 09:58 status post published; 10:27 Fastly engineering identified the customer configuration; 10:36 impacted services began to recover; 11:00 majority of services recovered; 12:35 incident mitigated; 12:44 status post resolved; 17:25 bug fix deployment began. Fastly says it detected the disruption within one minute, identified and isolated the cause and disabled the configuration, and that within 49 minutes 95% of its network was operating as normal. It promised to deploy the fix, run a complete post mortem, find out why its quality assurance and testing hadn't caught the bug, and look for ways to recover faster. The lesson this course draws, in its own words, not Fastly's: a CDN is in the path of every request, so its failure is every city's failure at once.",
+        "source": 0
+      },
+      {
+        "title": "HTTP's rules for caches",
+        "text": "RFC 9111, HTTP Caching (Standards Track, June 2022, STD 98, which obsoletes RFC 7234), defines a shared cache as one that stores responses for reuse by more than one user, and a private cache as one dedicated to a single user, often part of a browser. It says the cache key is composed, at a minimum, of the request method and the target URI, the address the request is for, and that many caches in common use only cache GET responses and so use only the URI. Vary names request header fields that must match before a stored response is reused. For a shared cache, s-maxage overrides max-age and Expires. private means a shared cache must not store the response, which is intended for a single user; no-store means a cache must not store any part of the request or the response; and no-cache means a stored response must not be reused without checking with the origin first.",
+        "source": 1
+      },
+      {
+        "title": "What RFC 9111 says about private things",
+        "text": "The standard's security section warns that implementation and deployment flaws, often led to by misunderstanding how caches work, can cause sensitive information thought to be private to be cached and exposed to unauthorised parties. It notes that a Set-Cookie header does not stop a response being cached, and that a cacheable response with one can be, and often is, reused for later requests. And it says no-store is not a reliable or sufficient mechanism for ensuring privacy, because a malicious or compromised cache might not recognise or obey it.",
+        "source": 1
+      },
+      {
+        "title": "MDN on Cache-Control",
+        "text": "MDN's Cache-Control page, as it read when this case was written (last modified 17 September 2026), describes a shared cache as one between the origin and its clients, such as a proxy or a CDN, that stores a single response and reuses it for many users, which is why personalised content shouldn't be stored there. It says to add private to personalised responses, especially those received after a login and for sessions managed with cookies, and that forgetting it can let a response be reused for many users and leak personal information. For static files it describes the cache-busting pattern, a version or hash in each URL with max-age=31536000 and immutable, and no-cache for the HTML that links to them. It also notes that there are no cache directives for clearing responses already stored in caches between the origin and the user.",
+        "source": 2
+      },
+      {
+        "title": "Cloudflare on purge everything",
+        "text": "Cloudflare's page on purging everything, as it read on 9 October 2026, says Cloudflare strongly recommends purging single files by URL instead of a complete purge. Purge everything clears every resource from the cache in all of Cloudflare's data centers at once, and every following request must then be served from the origin until the cache is repopulated, which on high-traffic sites with many assets can cause a large spike in origin requests and may significantly slow the site or overload the origin. Instead of purging, Cloudflare can also invalidate content, which makes it check with the origin and reuse a copy that hasn't changed.",
+        "source": 3
+      },
+      {
+        "title": "Cloudflare: one file at a time",
+        "text": "Cloudflare's single-file purge removes a cached resource from every data center at once, and each new request for it then gets the latest version from the origin and puts it back in the cache of the particular data center that served that request. Each edge refills on its own, one request at a time.",
+        "source": 4
+      },
+      {
+        "title": "Cloudflare's cache key",
+        "text": "Cloudflare's default cache key is the full URL, including the query string, so /logo.jpg?utm_source=newsletter is its own copy, plus the request's Origin header and a handful of headers that can rewrite the method, the host or the URL. Cookies, and request headers of your choosing, can be added to the key only through a custom cache key, which on Cloudflare's plans is an Enterprise feature, and Cloudflare warns that custom keys can lower the hit rate and shard the cache.",
+        "source": 5
+      },
+      {
+        "title": "Cloudflare's defaults",
+        "text": "By default Cloudflare caches by file extension, from a list of static types such as JS, CSS, JPG and PNG, and does not cache HTML or JSON unless a cache rule says so. It doesn't cache a response whose Cache-Control says private, no-store, no-cache or max-age=0, or one that carries a Set-Cookie header. When several requests for the same uncached file reach one data center at once, a cache lock forwards only the first to the origin and streams its response to the others: request coalescing, built into the edge.",
+        "source": 6
+      },
+      {
+        "title": "Fastly on purging",
+        "text": "Fastly's guide to purging defines it as explicitly removing content from a cache rather than letting it expire or be evicted. Among its uses it lists purging on deploy, so a new version of a site purges the cache automatically, and purging on content update, which it says suits a very long TTL in Cache-Control: traffic to the origin stays low and users still get up-to-date content. A soft purge marks an object stale instead: the next user gets the stale object while the updated one is fetched from the origin. A hard purge makes objects unusable at once and forces Fastly to fetch them from the origin before caching them again, and purge all is always a hard purge.",
+        "source": 7
+      },
+      {
+        "title": "AWS: invalidate, or rename",
+        "text": "Amazon CloudFront calls a purge an invalidation. Its guide recommends versioned file names over invalidation for files you update often: a new name controls which file a request returns even when a user has the old version cached in their browser or behind a corporate caching proxy, whereas after an invalidation a user might keep seeing the old version until it expires from those caches. It adds that versioning is less expensive, because you don't pay for invalidating files, and that it makes rolling forward and back between versions simpler.",
+        "source": 8
+      },
+      {
+        "title": "Steam, Christmas Day 2015",
+        "text": "Valve's update of 30 December 2015 says that on 25 December a configuration error resulted in some users seeing Steam Store pages generated for other users. Between 11:50 and 13:20 PST, store page requests for about 34,000 users, which contained sensitive personal information, may have been returned and seen by other users. Some pages included a billing address, the last four digits of a Steam Guard phone number, purchase history, the last two digits of a credit card number or an email address, but not full card numbers, passwords or enough to sign in as someone else. The store was under a DoS attack, and a web caching partner deployed caching rules in response; during the second wave a second caching configuration was deployed that incorrectly cached web traffic for authenticated users. Valve shut the store down and kept it down until all caching configurations had been reviewed, the latest had reached all partner servers, and all cached data on edge servers had been purged.",
+        "source": 9
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How does a CDN work, and what do you put on it?",
+        "How do you deploy new static assets without users seeing old ones?",
+        "What must never be cached at the edge?"
+      ],
+      "answer": "A CDN puts edge servers close to users. Each keeps its own cache, answers from it when it has a fresh copy, and goes to your origin only on a miss, so users get short round trips, the origin sees a fraction of the traffic, and a spike lands mostly on the edges, which also coalesce misses for the same file. Put on it whatever many users share: static files, the easy win, and shared pages such as a home page or a schedule, with a deliberate TTL. The cache key is the URL plus whatever you add, so think about query strings and Vary. For new static assets, fingerprint the file names with a content hash and serve them with max-age=31536000, immutable. The HTML that links them gets a short max-age or no-cache, a slightly longer s-maxage for the edges, and a purge by URL on every deploy. A new build means new URLs, so nobody can get a new page with an old script, and you never purge the assets. Keep purge everything for emergencies, because every edge then refills from the origin at once. Never cache personal responses in a shared cache: account pages, tickets, baskets, anything after sign-in. Send them as private, no-store, make the CDN bypass them, and test the headers in the build, because the cookie that identifies the user usually isn't in the cache key, and one mistake shows one user's data to the next, which is a personal data breach. Finish with what you'd watch: hit ratio, origin requests a second, and the Age of key pages at the edges after a deploy."
+    }
+  },
+  "terms": [
+    {
+      "term": "Doors (at a show)",
+      "def": "The time a venue opens to the audience, usually an hour or so before the band plays."
+    },
+    {
+      "term": "Marquee",
+      "def": "The lit sign above a venue's entrance that shows who is playing and when."
+    },
+    {
+      "term": "Set list",
+      "def": "The list of songs a band plans to play at a show, often taped to the stage floor."
+    },
+    {
+      "term": "Edge server",
+      "def": "A CDN server in one city, with its own cache, that answers nearby users from its copies and asks the origin only for what it lacks. Often just called an edge."
+    },
+    {
+      "term": "Origin",
+      "def": "The server that holds the real site behind a CDN. For The Gloaming, one small server in Montreal that manages about 15 requests a second."
+    },
+    {
+      "term": "Fresh",
+      "def": "Still within its allowed lifetime, so a cache may hand it out without asking the origin. Past that, a copy is stale."
+    },
+    {
+      "term": "Shared cache",
+      "def": "A cache that keeps one copy of a response and hands it to many users, such as a CDN edge or a company's proxy."
+    },
+    {
+      "term": "Private cache",
+      "def": "A cache kept for one user only, usually their own browser."
+    },
+    {
+      "term": "Age (header)",
+      "def": "A response header saying how many seconds have passed since the copy came from the origin. A copy stays fresh while its Age is under its max-age."
+    },
+    {
+      "term": "s-maxage",
+      "def": "A Cache-Control setting for shared caches only: how many seconds a copy stays fresh at an edge. Where it's present, shared caches use it instead of max-age."
+    },
+    {
+      "term": "public",
+      "def": "A Cache-Control setting saying any cache, shared or private, may store the response, even one it would otherwise refuse."
+    },
+    {
+      "term": "private",
+      "def": "A Cache-Control setting saying the response is meant for one user: a shared cache such as an edge must not store it, though the user's browser may."
+    },
+    {
+      "term": "no-store",
+      "def": "A Cache-Control setting saying no cache, shared or private, may store the response at all."
+    },
+    {
+      "term": "no-cache",
+      "def": "A Cache-Control setting that, despite its name, lets a cache store the response but makes it check with the origin before every use."
+    },
+    {
+      "term": "immutable",
+      "def": "A Cache-Control setting saying the file will never change while it's fresh, so caches needn't check it again, even on a reload."
+    },
+    {
+      "term": "Directive (Cache-Control)",
+      "def": "One setting inside a Cache-Control header, such as max-age=60 or private."
+    },
+    {
+      "term": "Expires",
+      "def": "An older response header giving the date after which a copy is stale. max-age, and for shared caches s-maxage, take priority over it."
+    },
+    {
+      "term": "Script (on a web page)",
+      "def": "A file of code a page loads to make it do things, like the fan site's countdown. Here, app.3f9c.js."
+    },
+    {
+      "term": "HTML",
+      "def": "The text format web pages are written in. A browser loads the HTML first, then the scripts, styles and images it names."
+    },
+    {
+      "term": "Build",
+      "def": "The step that turns a site's source into the files that get deployed. Thaddeus's build fingerprints the script's and photos' names."
+    },
+    {
+      "term": "Deploy script",
+      "def": "The program that runs a deploy step by step. The fix makes purging the pages it changed its last step."
+    },
+    {
+      "term": "Hash",
+      "def": "A short code worked out from a file's contents. Any change to the contents gives a different code."
+    },
+    {
+      "term": "Fingerprint (file name)",
+      "def": "A short hash of a file's contents written into its name, like the 3f9c in app.3f9c.js. Change the contents and the build changes the name."
+    },
+    {
+      "term": "Cache busting",
+      "def": "Giving a changed file a new URL, usually by fingerprinting its name, so no cache can hand out the old version under it."
+    },
+    {
+      "term": "Static file",
+      "def": "A file that is the same for every user and changes only with a new build, such as a script, an image or a font. Also called a static asset."
+    },
+    {
+      "term": "Dynamic (page)",
+      "def": "Built by the origin when asked, from current data. Some are the same for everyone, like /tour; some are personal, like /my-ticket."
+    },
+    {
+      "term": "Personal page",
+      "def": "A page built for one signed-in user, such as an account page, a basket or /my-ticket. It must never be stored in a shared cache."
+    },
+    {
+      "term": "Cache key",
+      "def": "What a cache uses to find a stored copy: at least the request method and the URL, often just the URL. Two requests with the same key get the same copy."
+    },
+    {
+      "term": "URI",
+      "def": "Uniform Resource Identifier: the standards' general word for an address such as a URL. RFC 9111 calls the address a request is for its target URI."
+    },
+    {
+      "term": "Custom cache key",
+      "def": "A cache key a CDN customer sets up to hold more than the default, such as a header, a cookie or the user's country, or less, such as no query string."
+    },
+    {
+      "term": "Query string",
+      "def": "The part of a URL after a question mark, like ?from=poster. Many CDNs include it in the cache key, so each different query string is a separate copy."
+    },
+    {
+      "term": "Vary",
+      "def": "A response header naming request headers that must match before a cache reuses a copy, such as Vary: Accept-Language. In effect it adds them to the cache key."
+    },
+    {
+      "term": "Accept-Language",
+      "def": "A request header in which the browser lists the languages its user prefers."
+    },
+    {
+      "term": "Purge",
+      "def": "Telling a CDN to drop a copy at every edge before it runs out, so the next request fetches a new one from the origin."
+    },
+    {
+      "term": "Purge everything",
+      "def": "A purge of every copy of every file at every edge. Every request then goes to the origin until the edges have refilled. Fastly calls it purge all."
+    },
+    {
+      "term": "Single-file purge",
+      "def": "A purge of one URL, also called purge by URL. Each edge fetches that one file again on its next request for it."
+    },
+    {
+      "term": "Soft purge",
+      "def": "Fastly's purge that marks a copy stale instead of making it unusable, so the next request gets the old copy while the new one is fetched."
+    },
+    {
+      "term": "Hard purge",
+      "def": "A purge that makes copies unusable at once, so they must come from the origin before anyone gets them again. Fastly's purge all is always hard."
+    },
+    {
+      "term": "Invalidation (CloudFront)",
+      "def": "Amazon CloudFront's name for a purge: removing files from its edge caches before they expire."
+    },
+    {
+      "term": "Corporate proxy cache",
+      "def": "A shared cache a company runs for its staff's web traffic. A CDN's purge doesn't reach it."
+    },
+    {
+      "term": "Cache lock",
+      "def": "Cloudflare's way of coalescing misses at an edge: when many requests for the same uncached file arrive at once, only the first goes to the origin."
+    },
+    {
+      "term": "Cache rule",
+      "def": "A CDN setting that decides what it caches and how, such as a Cloudflare rule to cache HTML, which it doesn't cache by default."
+    },
+    {
+      "term": "Shard (a cache)",
+      "def": "To split one file's cached copies into many by adding more to its key, which lowers the hit ratio because each copy is asked for less often."
+    },
+    {
+      "term": "Enterprise plan",
+      "def": "A CDN's top plan for large customers. On Cloudflare, custom cache keys with headers or cookies need it."
+    },
+    {
+      "term": "Bypass (the cache)",
+      "def": "Sending requests for a path straight to the origin, without looking in the cache or storing anything there."
+    },
+    {
+      "term": "Typical wait",
+      "def": "The sim's number for each city: the middle of the 7 waits in its last second. 20 ms when the edge answers most of them."
+    },
+    {
+      "term": "Fastly",
+      "def": "A CDN company. Its outage of 8 June 2021 is this case's real-world anchor."
+    },
+    {
+      "term": "Cloudflare",
+      "def": "A large CDN and network security company."
+    },
+    {
+      "term": "MDN",
+      "def": "MDN Web Docs, Mozilla's reference site for web technologies such as HTTP headers."
+    },
+    {
+      "term": "Standards Track (RFC)",
+      "def": "An RFC meant to be an Internet standard, as opposed to an Informational one. RFC 9111 is one, numbered STD 98."
+    },
+    {
+      "term": "Customer configuration (Fastly)",
+      "def": "The settings a Fastly customer writes for their own service, such as its caching rules. In 2021 one valid change triggered a bug."
+    },
+    {
+      "term": "Quality assurance",
+      "def": "The checks and tests a team runs to catch bugs before a release."
+    },
+    {
+      "term": "Steam",
+      "def": "Valve's online store and platform for PC games."
+    },
+    {
+      "term": "Valve",
+      "def": "The company that runs Steam."
+    },
+    {
+      "term": "Steam Guard",
+      "def": "Steam's sign-in protection, which can send codes to a user's phone."
+    },
+    {
+      "term": "DoS attack",
+      "def": "Denial of service: flooding a service with requests so that real users can't get through."
+    },
+    {
+      "term": "Authenticated",
+      "def": "Signed in: sent with proof of who the user is, such as a session cookie."
+    },
+    {
+      "term": "GDPR",
+      "def": "The European Union's General Data Protection Regulation (2016/679), its law on personal data. Whether it applies depends on where an organisation is and whose data it handles."
+    },
+    {
+      "term": "Controller (GDPR)",
+      "def": "The organisation that decides why and how personal data is processed, and answers for it under GDPR. Here, the band behind the fan site."
+    },
+    {
+      "term": "Supervisory authority",
+      "def": "GDPR's name for a national data protection regulator, the body a breach is reported to."
+    },
+    {
+      "term": "Incident response",
+      "def": "What a team does once something has gone wrong: stop the harm, find out what happened and who was affected, tell those who must know, then fix the cause."
+    },
+    {
+      "term": "Cache behavior (CloudFront)",
+      "def": "A CloudFront rule for a set of paths, such as /account/*, saying which origin and which cache policy they use."
+    },
+    {
+      "term": "Cache policy (CloudFront)",
+      "def": "A CloudFront setting attached to a cache behavior that sets TTLs and what goes into the cache key."
+    },
+    {
+      "term": "CachingDisabled",
+      "def": "A CloudFront managed cache policy with every TTL at 0 and nothing in the cache key, meant for content that must not be cached."
+    },
+    {
+      "term": "Standard logs (CloudFront)",
+      "def": "CloudFront's access logs: one line per request, with fields such as x-edge-result-type."
+    },
+    {
+      "term": "x-edge-result-type",
+      "def": "A CloudFront log field saying how an edge handled a request, such as Hit (served from its cache), RefreshHit or Miss (fetched from the origin)."
+    }
+  ],
+  "atWork": "Pick a CDN your team runs, such as CloudFront; read-only access is enough. List its cache behaviors: which paths are cached, under which cache policy, and what goes into each cache key. Check that every path that shows one person's data, account pages, orders, tickets, anything after sign-in, uses a policy that doesn't cache, such as the managed CachingDisabled policy, and that the origin sends those responses as private, no-store too. Then rehearse the bad day: an account page has been cached by accident. The incident response: switch that path to bypass the cache and invalidate it at every edge; work out who saw what from the CDN's standard logs, where x-edge-result-type says Hit for responses served from an edge's cache; and bring in whoever owns privacy, because where GDPR applies, showing one user's personal data to another is a personal data breach (Art. 4(12)) that the controller must report to the supervisory authority without undue delay and, where feasible, within 72 hours of becoming aware of it, unless it's unlikely to put people at risk, and must document either way (Art. 33). Then the fix: private, no-store on every personal response; a safe cache key, where anything cached is keyed on everything it varies by and nothing that varies by user is cached at all; and a test in the build that requests each personal path through the CDN and fails if the header is missing or the response came from the cache.",
+  "board": {
+    "cards": [
+      {
+        "id": "cdns",
+        "title": "CDNs"
+      },
+      {
+        "id": "edge-caching",
+        "title": "Edge caching"
+      },
+      {
+        "id": "cache-control-headers",
+        "title": "Cache-Control headers"
+      }
+    ],
+    "strings": [
+      {
+        "from": "cdns",
+        "to": "latency-vs-bandwidth-vs-throughput",
+        "label": "a shorter trip"
+      },
+      {
+        "from": "cdns",
+        "to": "single-points-of-failure",
+        "label": "Fastly, June 2021"
+      },
+      {
+        "from": "edge-caching",
+        "to": "ttl",
+        "label": "max-age is a TTL"
+      },
+      {
+        "from": "edge-caching",
+        "to": "cache-invalidation",
+        "label": "purge, by URL"
+      },
+      {
+        "from": "edge-caching",
+        "to": "cache-stampede",
+        "label": "purge all: spike"
+      },
+      {
+        "from": "cache-control-headers",
+        "to": "cookies",
+        "label": "cookie not in key"
+      },
+      {
+        "from": "cache-control-headers",
+        "to": "privacy",
+        "label": "personal: no-store"
+      },
+      {
+        "from": "cdns",
+        "to": "back-of-envelope-estimation",
+        "label": "next case"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e07-r1",
+      "kind": "free",
+      "prompt": "Your team's web app is served through CloudFront. index.html and main.js both go out with Cache-Control: max-age=86400. After every release, some users get a blank page for up to a day, and support's only advice is to clear the browser's history. What's going on, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "The page and the script are cached separately, each until its own copy runs out, so users get a new page with an old script or the other way round",
+          "match": [
+            "mismatch",
+            "out of sync",
+            "separately",
+            "different times",
+            "old script",
+            "new page with",
+            "old version of",
+            "stale",
+            "two copies"
+          ]
+        },
+        {
+          "idea": "Put a content hash in the script's file name and serve it for a year, immutable, so a new build is a new URL",
+          "match": [
+            "fingerprint",
+            "hash",
+            "versioned",
+            "version in the",
+            "cache bust",
+            "cache-bust",
+            "immutable",
+            "31536000",
+            "new url",
+            "new name"
+          ]
+        },
+        {
+          "idea": "Give index.html a short max-age or no-cache, an s-maxage for the edges, and invalidate it on each release",
+          "match": [
+            "no-cache",
+            "short max-age",
+            "max-age=60",
+            "max-age=0",
+            "s-maxage",
+            "invalidat",
+            "purge",
+            "each deploy",
+            "every deploy",
+            "each release"
+          ]
+        }
+      ],
+      "model": "index.html and main.js are cached separately, in CloudFront and in browsers, each until its own day runs out. After a release some users get the new page with yesterday's script, or yesterday's page asking for a script that has changed under the same name, and the app breaks. Fingerprint the script: put a hash of its contents in its name, like main.3f9c.js, and serve it with max-age=31536000, immutable, so every build is a new URL and an old copy can never answer for a new one. Send index.html with a short max-age or no-cache, give CloudFront a slightly longer s-maxage if you want it cached at the edges, and invalidate index.html as the last step of every release. A browser keeps its copy until its own max-age, which no invalidation reaches, so the page's max-age must be short from the start."
+    },
+    {
+      "id": "s2e07-r2",
+      "kind": "mcq",
+      "prompt": "/tour went out as public, max-age=604800, and an edge fetched it 2 days ago. You change the origin's header to public, max-age=60 and purge nothing. When does that edge next ask the origin for /tour?",
+      "options": [
+        "Within a minute, once the new header takes effect",
+        "In about 5 days, when its own copy runs out",
+        "Never, until someone purges the path",
+        "At once, because the origin's header has changed"
+      ],
+      "answer": 1,
+      "why": "A header travels with each copy and governs that copy only. The edge's copy came with a week, so it stays fresh for 5 more days; only copies fetched after the change get 60 seconds. To replace it now, purge it."
+    },
+    {
+      "id": "s2e07-r3",
+      "kind": "mcq",
+      "prompt": "A response carries Cache-Control: max-age=60, s-maxage=300. How long may a CDN edge and a browser each treat it as fresh?",
+      "options": [
+        "Edge 60 seconds, browser 300 seconds",
+        "Edge 300 seconds, browser 60 seconds",
+        "Both 300 seconds, the longer of the two",
+        "Both 60 seconds, the shorter of the two"
+      ],
+      "answer": 1,
+      "why": "s-maxage applies only to shared caches such as CDN edges, and overrides max-age there. A browser is a private cache, ignores s-maxage and uses max-age."
+    },
+    {
+      "id": "s2e07-r4",
+      "kind": "mcq",
+      "prompt": "Which Cache-Control should a signed-in fan's own ticket page carry?",
+      "options": [
+        "public, max-age=60",
+        "max-age=60, s-maxage=300",
+        "private, no-store",
+        "no-cache"
+      ],
+      "answer": 2,
+      "why": "private forbids shared caches such as CDN edges from storing it, and no-store keeps every cache from storing it. The others all let an edge keep a copy, and the edge finds copies by URL, not by the cookie that says which fan is asking, so one fan's page could reach another."
+    },
+    {
+      "id": "s2e07-r5",
+      "kind": "mcq",
+      "prompt": "According to Fastly's own summary, what caused 85% of its network to return errors on 8 June 2021?",
+      "options": [
+        "A purge of every customer's cached files at once",
+        "A valid customer configuration change triggering a bug deployed on 12 May",
+        "An expired TLS certificate on its edge servers",
+        "A denial-of-service attack aimed at one large customer"
+      ],
+      "answer": 1,
+      "why": "Fastly says a software deployment that began on 12 May introduced a bug that a specific customer configuration could trigger, and on 8 June a customer pushed a valid configuration change that did. It detected the disruption within a minute, and within 49 minutes 95% of its network was operating as normal."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. Spring tour of Europe, and the Lisbon edge now answers fans in Madrid and London too. Thaddeus made /merch show prices in each fan's own currency, using a country header the CDN adds to every request, and sent /merch as public, max-age=600 so the origin wouldn't feel the launch. At 18:00 on launch night fans in London saw hoodies at 60 euros. At 18:07 Thaddeus pressed purge everything. The site was over limit in every city for two minutes, and at 18:09 fans in Lisbon were seeing the hoodies at 52 pounds.",
+    "prompt": "Reply to OP. What's going on, and what should Thaddeus change?",
+    "keyIdeas": [
+      {
+        "idea": "The edge keys /merch on the URL alone, so whichever country's page it fetched first is shown to everyone it serves",
+        "match": [
+          "cache key",
+          "the key",
+          "keyed",
+          "same url",
+          "url alone",
+          "url only",
+          "first fan",
+          "whoever asked first",
+          "one copy"
+        ]
+      },
+      {
+        "idea": "Add the country to the cache key or send Vary on it, or keep /merch off the edge and work out the currency elsewhere",
+        "match": [
+          "vary",
+          "add the country",
+          "include the country",
+          "key on",
+          "per country",
+          "by country",
+          "don't cache",
+          "do not cache",
+          "bypass",
+          "in the browser",
+          "client side",
+          "client-side"
+        ]
+      },
+      {
+        "idea": "Purge everything only emptied the cache: the same flaw refilled it, and the purge itself caused a spike at the origin",
+        "match": [
+          "refill",
+          "filled again",
+          "same flaw",
+          "same problem",
+          "spike",
+          "stampede",
+          "purge /merch",
+          "purge the page",
+          "didn't fix",
+          "doesn't fix",
+          "won't fix",
+          "emptied"
+        ]
+      }
+    ],
+    "model": "The page varies by country, but the edge finds copies by URL alone. Each time /merch's copy runs out, the next fan's request decides which currency every fan at that edge sees for the next 10 minutes: a Portuguese fan's euros for London, then a British fan's pounds for Lisbon. Purge everything only emptied the caches. The first request after it filled them the same way, so the prices were wrong again two minutes later, and the purge made the origin refetch every file at every edge, which is why the site was over limit. Either put the country into the cache key, with a custom key or Vary on that header, so each country gets its own copy, or keep /merch off the edge and work out the currency elsewhere, such as in the browser. Check the result by asking each edge for /merch from two countries. And next time, purge /merch, not everything."
+  },
+  "next": "Next, Napkin Math: a late-night taxi dispatcher, and back-of-envelope estimation: working out requests a second, storage and bandwidth before you build anything.",
+  "sources": [
+    {
+      "title": "Nick Rockwell, Summary of June 8 outage, Fastly blog, 8 June 2021 (a bug introduced by a software deployment begun on May 12; a valid customer configuration change triggered it; 85% of the network returned errors; detected within one minute; 95% of the network operating as normal within 49 minutes; UTC timeline from 09:47 to 17:25)",
+      "url": "https://www.fastly.com/blog/summary-of-june-8-outage"
+    },
+    {
+      "title": "RFC 9111, HTTP Caching (R. Fielding, M. Nottingham, J. Reschke, Eds., Standards Track, STD 98, June 2022, obsoletes RFC 7234): shared and private caches; the cache key; Vary (section 4.1); freshness lifetime, s-maxage before max-age before Expires (section 4.2.1); max-age, no-cache, no-store, private, public and s-maxage (section 5.2.2); caching of sensitive information and Set-Cookie (section 7.3)",
+      "url": "https://www.rfc-editor.org/rfc/rfc9111"
+    },
+    {
+      "title": "MDN Web Docs: Cache-Control, page last modified 17 September 2026 (shared and private caches; private for personalised responses; immutable and the cache-busting pattern with max-age=31536000; no-cache for HTML; no directives for clearing responses already stored in intermediate caches)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control"
+    },
+    {
+      "title": "Cloudflare Cache (CDN) docs: Purge everything, page last updated 29 September 2026 (single-file purging strongly recommended over a complete purge; every request served from the origin until the cache is repopulated; a large spike in origin requests that may overload the origin on high-traffic sites)",
+      "url": "https://developers.cloudflare.com/cache/how-to/purge-cache/purge-everything/"
+    },
+    {
+      "title": "Cloudflare Cache (CDN) docs: Purge by single-file, page last updated 29 September 2026 (removed from all data centers; the next request refills the cache of the data center that served it)",
+      "url": "https://developers.cloudflare.com/cache/how-to/purge-cache/purge-by-single-file/"
+    },
+    {
+      "title": "Cloudflare Cache (CDN) docs: Cache keys, page last updated 29 September 2026 (the default cache key includes the full URL with its query string and the Origin header; custom keys with headers, cookies and other fields on the Enterprise plan; custom keys may reduce the hit rate and shard the cache)",
+      "url": "https://developers.cloudflare.com/cache/how-to/cache-keys/"
+    },
+    {
+      "title": "Cloudflare Cache (CDN) docs: Default cache behavior, page last updated 14 September 2026 (not cached when Cache-Control is private, no-store, no-cache or max-age=0, or when Set-Cookie is present; request collapsing with a cache lock; HTML and JSON not cached by default)",
+      "url": "https://developers.cloudflare.com/cache/concepts/default-cache-behavior/"
+    },
+    {
+      "title": "Fastly Documentation: Getting started with purging (purging defined; purging on deploy and on content update with a very long TTL; soft and hard purges; purge all is a hard purge)",
+      "url": "https://www.fastly.com/documentation/guides/full-site-delivery/purging/getting-started-with-purging/"
+    },
+    {
+      "title": "Amazon CloudFront Developer Guide: Invalidate files to remove content, and choosing between invalidating files and using versioned file names (versioning recommended for files updated often; after an invalidation users may keep an old version cached locally or behind a corporate caching proxy; versioning is less expensive)",
+      "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html"
+    },
+    {
+      "title": "Valve, Update on Christmas Issues, Steam news, 30 December 2015 (a caching configuration that incorrectly cached web traffic for authenticated users; store pages for about 34k users between 11:50 and 13:20 PST may have been seen by other users; the store kept down until cached data on edge servers had been purged)",
+      "url": "https://store.steampowered.com/oldnews/19852"
+    },
+    {
+      "title": "Regulation (EU) 2016/679, the General Data Protection Regulation: Art. 4(12), the definition of a personal data breach; Art. 33, notification to the supervisory authority without undue delay and, where feasible, not later than 72 hours, and documentation of breaches",
+      "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    },
+    {
+      "title": "Amazon CloudFront Developer Guide: Use managed cache policies (CachingDisabled: minimum, maximum and default TTL of 0 seconds, no headers, cookies or query strings in the cache key)",
+      "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html"
+    },
+    {
+      "title": "Amazon CloudFront Developer Guide: Standard log file fields (x-edge-result-type: Hit, RefreshHit, Miss and other values)",
+      "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/standard-logs-reference.html"
+    }
+  ]
+}
