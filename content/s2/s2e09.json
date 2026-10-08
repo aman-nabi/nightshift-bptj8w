@@ -1,0 +1,1315 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-09) first version"
+  ],
+  "id": "s2e09",
+  "season": 2,
+  "n": 9,
+  "title": "The Front Desk",
+  "setting": "a night porter",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "reverse-proxies",
+    "api-gateways",
+    "tls-termination",
+    "service-discovery"
+  ],
+  "prerequisites": [
+    "s2e06",
+    "s2e03",
+    "s2e02",
+    "s2e01",
+    "s1e01",
+    "s1e02",
+    "s1e03",
+    "s1e04",
+    "s1e05",
+    "s1e06",
+    "s1e07",
+    "s1e10",
+    "s1e11",
+    "s1e12"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/luggage_lift_lorcan",
+    "flair": "Part 1",
+    "age": "8h",
+    "votes": 3864,
+    "title": "I'm the night porter at a seaside hotel. On Saturday our app sent every third guest at a door to the Seaward Wing, which has been closed since September.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm the night porter at the Kittiwake in Wrackmouth. I meet every guest at the front door and walk them up by the service stairs, so they never see the back corridors. Our app does the same for their phones. Every request goes to one machine in the basement that Sigrun, who runs our IT, calls the Porter, and guests only ever see its address. It holds our certificate, so the padlock stops there. It checks the guest pass the app gets at check-in, stamps every request with a number for its log, and lets no phone through more than 10 times a second. That came in January, after a stuck tablet asked for its booking 300 times a second and /bookings fell over for everyone: each server answers about 20 a second. Then it reads the path and walks each request to /doors, /bookings or /dining. Which servers those are, it reads from a file Sigrun wrote in April."
+      },
+      {
+        "t": "p",
+        "text": "At night about 24 requests a second come in: 12 for doors, and 6 each for bookings and dining, which have three servers each. The doors had door-1 and door-2 in the basement and door-3 in the Seaward Wing's old linen room. The wing closed for rewiring in September, so on the 14th Sigrun set up door-4 in the basement to replace door-3, and meant to swap them in the file one quiet night."
+      },
+      {
+        "t": "p",
+        "text": "At 01:12 on Saturday the electricians tested the new circuits and cut the Seaward Wing's power until 02:40. Nobody had told them about the linen room. From then on every third tap on a door went to door-3. The phone spun for ten seconds, then said Try again. Most guests got in the second time. Eleven came down to me, and I walked each one up with the master key. Every time I passed the second floor, the fire door to the Seaward Wing was propped open. I closed it four times. Sigrun read the Porter's log in the morning:"
+      },
+      {
+        "t": "log",
+        "text": "01:12:00  porter  /doors 12/s   door-1 4/s   door-2 4/s   door-3 4/s\n01:12:10  porter  door-3: no answer in 10 s, 504 to phone\n02:40:00  porter  door-3: 21,120 sent since 01:12, 0 answered\n02:40:00  door-4  up since 14 Sep, healthy, requests received: 0"
+      },
+      {
+        "t": "beat",
+        "text": "21,120 requests went into the Seaward Wing. Not one came back."
+      },
+      {
+        "t": "p",
+        "text": "The electricians have two more night tests booked, from 01:12 to 02:40 on Tuesday and Thursday. Sigrun says our sister hotel, the Lodge at Tarnside, 300 miles inland, went wrong another way in August, and that the Porter is only one machine. What should she change before Tuesday?"
+      },
+      {
+        "t": "evidence",
+        "label": "porter_dashboard_0240.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 390,
+          "aria": "The Porter's view at 02:40:00 on Saturday. Guests' phones send 24 requests a second to the Porter, which ends TLS, checks the guest pass, limits each phone to 10 a second and reads the path. From Sigrun's file it sends /doors to door-1, door-2 and door-3, 4 a second each. door-3, in the Seaward Wing, dark from 01:12 to 02:40, was sent 21,120 requests and answered none. door-4 is not in the file and has received 0. /bookings and /dining run on three servers each, 2 a second per server.",
+          "nodes": [
+            {
+              "id": "phones",
+              "label": "Guests' phones",
+              "sub": "24 requests/s",
+              "x": 370,
+              "y": 45,
+              "w": 240,
+              "h": 52,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "porter",
+              "label": "The Porter",
+              "sub": "TLS ends, pass, 10/s cap, path",
+              "meta": "list: Sigrun's file, April",
+              "x": 370,
+              "y": 165,
+              "w": 320,
+              "h": 72,
+              "shape": "box",
+              "tone": "accent"
+            },
+            {
+              "id": "door1",
+              "label": "door-1",
+              "sub": "4/s",
+              "meta": "basement",
+              "x": 70,
+              "y": 300,
+              "w": 108,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "door2",
+              "label": "door-2",
+              "sub": "4/s",
+              "meta": "basement",
+              "x": 190,
+              "y": 300,
+              "w": 108,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "door3",
+              "label": "door-3",
+              "sub": "0 answered",
+              "meta": "lost 21,120",
+              "x": 310,
+              "y": 300,
+              "w": 108,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "door4",
+              "label": "door-4",
+              "sub": "not listed",
+              "meta": "received 0",
+              "x": 430,
+              "y": 300,
+              "w": 108,
+              "h": 62,
+              "shape": "box",
+              "tone": "muted"
+            },
+            {
+              "id": "book",
+              "label": "/bookings",
+              "sub": "2/s each",
+              "meta": "3 servers",
+              "x": 550,
+              "y": 300,
+              "w": 108,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "dine",
+              "label": "/dining",
+              "sub": "2/s each",
+              "meta": "3 servers",
+              "x": 670,
+              "y": 300,
+              "w": 108,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            }
+          ],
+          "edges": [
+            {
+              "from": "phones",
+              "to": "porter",
+              "label": "24/s"
+            },
+            {
+              "from": "porter",
+              "to": "door1",
+              "via": [[70, 235]]
+            },
+            {
+              "from": "porter",
+              "to": "door2",
+              "via": [[190, 235]]
+            },
+            {
+              "from": "porter",
+              "to": "door3",
+              "via": [[310, 235]],
+              "tone": "bad"
+            },
+            {
+              "from": "porter",
+              "to": "book",
+              "via": [[550, 235]]
+            },
+            {
+              "from": "porter",
+              "to": "dine",
+              "via": [[670, 235]]
+            }
+          ],
+          "notes": [
+            {
+              "x": 310,
+              "y": 352,
+              "text": "Seaward Wing, dark 01:12 to 02:40",
+              "tone": "bad",
+              "anchor": "middle"
+            },
+            {
+              "x": 720,
+              "y": 378,
+              "text": "Saturday, 02:40:00",
+              "tone": "muted",
+              "anchor": "end"
+            }
+          ]
+        },
+        "caption": "The Porter's view at 02:40:00 on Saturday, redrawn. Phones send 24 requests a second to one address. The Porter ends TLS, checks the guest pass, limits each phone to 10 a second and reads the path. It hands /doors to the three servers in Sigrun's file in turn, 4 a second each. door-3, in the dark Seaward Wing, was sent 21,120 since 01:12 and answered none. door-4 has been up in the basement since 14 September and has never been sent anything, because it isn't in the file."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 112,
+      "age": "7h",
+      "text": "Five words for what you have, then some questions. Your Porter is a reverse proxy: one front door that takes every request and forwards it to a server behind it, so the phones only ever see the door. It's also an API gateway, a reverse proxy that does an API's chores on the way through: checking who's calling, limiting each caller, routing by path, numbering and logging requests. Ending TLS at the door is called TLS termination. And the way a front door learns which servers exist, and which of them are alive, is service discovery. Sigrun's file is the simplest kind: a static list, true on the day it's written. Now look at the log. The basement changed on 14 September. When did the file? At 01:12, who could have told the Porter that door-3 had gone dark? Who would ever have told it about door-4? And what happened at the Lodge in August, and for how long?",
+      "replies": [
+        {
+          "author": "u/luggage_lift_lorcan",
+          "op": true,
+          "points": 34,
+          "age": "6h",
+          "text": "The Lodge has its own Porter and servers, and DNS sends each phone to whichever Porter it reaches faster: phones up there reach the Lodge in about 20 ms and us in about 30. About 12 requests a second come from up there at night. In August the Lodge's power failed at 23:10. Sigrun's DNS service checks each Porter every 30 seconds and stops handing out an address after three misses in a row, so from 23:11 it answered with ours. Phones up there kept going to the dark Lodge until 00:11. Sigrun says the Lodge's address has a TTL of an hour. She went quiet after she said it."
+        }
+      ]
+    },
+    {
+      "author": "u/pulse_check_ulrike",
+      "points": 66,
+      "age": "6h",
+      "text": "Your Porter never knocks. Give it health checks: every 5 seconds it asks each server on its list for GET /health, takes a server out of rotation after 2 misses in a row, so it gets no requests, and puts it back after 2 answers. door-3 would have been out within 10 seconds of 01:12, after a few dozen taps at most, not 21,120. One catch, and it's yours: a health check only judges the servers already on the list. Your Porter would have knocked on door-3 all night and never heard of door-4."
+    },
+    {
+      "author": "u/sign_in_book_nkechi",
+      "points": 52,
+      "age": "5h",
+      "text": "Turn the file round, the way a hotel register works. In a service registry, each server signs itself in when it starts, with its address, its port and the service it runs, and signs out when it shuts down. The Porter reads the registry instead of a file. door-4 would have had its share from 14 September, and nobody would have had to edit anything. The catch: a registry is only as good as its sign-outs. A server that shuts down cleanly signs out. One that loses its power can't, so a registry that only hears hellos and goodbyes keeps a dead server on the list."
+    },
+    {
+      "author": "u/zone_file_wystan",
+      "points": 47,
+      "age": "4h",
+      "text": "August was DNS doing what it was told. Sending each phone to the nearer hotel is DNS-based load balancing. Yours is latency-based routing, which answers with the site that has the lowest round-trip time; GeoDNS, or geolocation routing, answers by where the user seems to be. Either can be health-checked, so a failover record stops being handed out when its site fails, as yours did at 23:11. But every resolver that had asked since 22:11 had been told the Lodge, and a TTL of an hour let it keep that answer for up to an hour. A minute to decide, an hour to happen. For records that must fail over, Route 53's own guidance calls a TTL of 60 or 120 seconds a common choice; the cost is more DNS queries. Big networks also use anycast: one address announced from many places at once, so the network's routing, not a DNS answer, picks the nearest, and a site that fails simply stops announcing it."
+    },
+    {
+      "author": "u/spare_key_evander",
+      "points": 39,
+      "age": "3h",
+      "text": "Sigrun's right about the Porter. Every request from every phone goes through that one machine, so if it stops, every server behind it is fine and nobody gets in, pass or no pass. Run a second Porter beside it. The two can share one address, the way a load balancer pair shares a virtual IP address, or each have its own address in DNS. Either way they must read the same list, or each will be wrong in its own way."
+    }
+  ],
+  "reply": {
+    "prompt": "The next night test is Tuesday, 01:12 to 02:40. What should Sigrun change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Cut the DNS TTL on both hotels' addresses from an hour to 60 seconds, so phones hear about any change to the servers within a minute.",
+        "tone": "bad",
+        "verdict": "Fixes August, not Saturday",
+        "part2": "Sigrun cut both TTLs to 60 seconds on Monday. On Tuesday at 01:12:00 the electricians cut the Seaward Wing's power again, and the Porter, still reading the file, sent every third tap to door-3, 4 a second, until 02:40. 21,120 requests went into the Seaward Wing for the second time, and door-4 received none. Twelve guests came down to me this time. In November the Lodge's power failed at 23:40:00. DNS stopped handing out its address at 23:41:00, and by 23:42:00 the last phone up there had moved to us. Sigrun was pleased about that. I didn't tell her that on Tuesday the fire door on the second floor had been propped open with a folded towel. The Seaward Wing's linen room is the only place we keep towels like that.",
+        "senior": "A DNS TTL decides how long resolvers may keep an answer about which hotel to use. It has nothing to do with which servers the Porter sends requests to: that's the Porter's own list, and only Sigrun's hand changes the file. The short TTL was the right fix for August, at the cost of more DNS queries. Saturday's problem was the list: it needs servers that add themselves, and health checks that take out the ones that stop answering."
+      },
+      {
+        "text": "Give the Porter health checks on the servers in Sigrun's file: every 5 seconds, out after 2 misses. Keep the file and the 1-hour TTL.",
+        "tone": "warn",
+        "verdict": "Trade-off: the dead go, the new never come",
+        "part2": "Sigrun turned on health checks for the three servers in the file. On Tuesday at 01:12:00 the power went again. door-3 missed the checks at 01:12:00 and 01:12:05 and was out of rotation from 01:12:05, after 20 requests. door-1 and door-2 took 6 a second each, and nobody came down to the desk. At 02:40:00 the power came back, door-3 answered two checks, and it was back by 02:40:05. door-4, the server that was meant to replace it, received nothing all night: it isn't in the file, so nothing checks it or sends it anything. In November the Lodge went dark at 23:40:00 and DNS dropped its address at 23:41:00, but phones up there kept trying it until 00:41:00. door-4's log still says requests received: 0. Sigrun has started saying goodnight to it.",
+        "senior": "Health checks take a dead server out within one interval times the threshold, 10 seconds at most here, and bring it back when it answers. That fixed Saturday's failures. But checks only judge the servers on the list, so the file still goes stale whenever a server is added or replaced: door-4 never got a request, and the two left carried door-3's share. Add discovery so new servers join on their own, and shorten the TTL for August."
+      },
+      {
+        "text": "Replace the file with a registry: servers sign in when they start and sign out when they stop, and the Porter reads it. Keep the TTL.",
+        "tone": "warn",
+        "verdict": "Trade-off: the new come, the dead stay",
+        "part2": "Sigrun set up a registry on Monday and pointed the Porter at it. door-4 signed itself in at once, and from then on each door server took 3 a second. On Tuesday at 01:12:00 the power went again. door-3 lost its power, so it never signed out, and the registry listed it all night: one tap in four went to the Seaward Wing, 3 a second, 15,840 requests by 02:40, none answered. Nine guests came down to me. On Thursday a guest's tablet got stuck and sent 300 requests a second to /bookings; the Porter turned 290 a second away, and nobody noticed. In November the Lodge went dark at 23:40:00, and phones up there kept trying it until 00:41:00.",
+        "senior": "A registry fixes half of the problem: servers that start are found without anyone editing a file, so door-4 took its share at once. But a registry only knows what servers tell it, and a server that loses its power can't say goodbye. Feed the registry health checks so it removes servers that stop answering, or have servers check in on a timer so silence takes them off. And the 1-hour TTL still stretched the Lodge's outage to an hour."
+      },
+      {
+        "text": "A registry the Porters read, fed by health checks (every 5 s, out after 2 misses), a second Porter, and 60-second TTLs on both hotels.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Sigrun moved the list into a registry and set up a second Porter that reads it too. The registry checks every server every 5 seconds, and she cut both hotels' TTLs to 60 seconds. door-4 signed itself in at once, 3 a second each. On Tuesday at 01:12:00 the power went again. door-3 missed the checks at 01:12:00 and 01:12:05 and was out from 01:12:05, after 15 requests. door-1, door-2 and door-4 took 4 a second each, and at 02:40:05 door-3 was back. Nobody came down to the desk. In November the Lodge's power failed at 23:40:00. DNS dropped its address at 23:41:00, and by 23:42:00 the last phone up there was talking to us, 30 ms away instead of 20. On Tuesday I checked the fire door on the second floor every hour. It stayed shut. In the morning there was a folded towel from the linen room on the front desk, where I sit.",
+        "senior": "Each part answers a different question. The registry answers which servers exist, so door-4 joined without anyone touching a file. Health checks answer which of them are alive, so door-3 was out in 5 seconds and back when it answered. The 60-second TTL limits how long a phone keeps going to a hotel DNS has given up on: the Lodge's failover took 2 minutes instead of 61. The second Porter removes the last single machine every request passes through. The registry is now critical too: run it on more than one machine, and have the Porters keep their last good list if it stops answering."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e09",
+    "title": "Run the front desk at the Kittiwake",
+    "lede": "You're Sigrun, replaying Saturday night at the Kittiwake from 01:11:50. Phones on the coast send the Porter 24 requests a second: 12 for /doors, handed to the door servers on its list in turn, and 6 each for /bookings and /dining, three servers each. Each server answers up to 20 a second; past that it falls behind, and every request to it fails. At 01:12:00 the electricians cut the Seaward Wing's power until 02:40:00, and door-3 goes dark: a request sent to it waits 10 seconds and gets a 504. door-4 has been up in the basement since 14 September. With discovery on, the Porter reads a registry that every server signed itself into, door-4 included; door-3 loses its power, so it never signs out. With health checks on, every server on the list is asked every 5 seconds, on the clock's :00, :05 and so on, and is out after 2 misses in a row and back after 2 answers. The checks only ask whether a server answers, so a busy one still passes. Phones in the hills send the Lodge 12 a second with the same mix, about 20 ms away; the Porter here is about 30 ms from them. DNS checks each Porter every 30 seconds, on the minute and the half-minute, and stops handing out the Lodge's address after three misses in a row. Phones that asked before that keep it for up to the TTL, and the sim moves them over at an even pace across the TTL. The stuck tablet is one phone on the coast, sending 300 a second to /bookings. Errors and latency count guests' requests, and latency only the answered ones. Changing a setting replays the night; the Lodge, the tablet and the clock speed don't. Click any box to see what it does.",
+    "tryThis": "Try this: press nothing and watch 01:12:00: door-3 goes dark and still gets 4 requests a second, while door-4 isn't listed. Skip to 02:39:50 and watch the count reach 21,120 at 02:40:00. Turn on health checks: door-3 is out at 01:12:05 after 20, and door-4 still gets nothing. Turn them off and turn on discovery: door-4 takes its share, and door-3 keeps getting 3 a second, 15,840 by 02:40. Turn both on: 15, then three servers at 4 a second. Now skip to 02:39:50, wait for 02:40:00, press The Lodge goes dark and set the clock to 10 minutes a second: with the 1-hour TTL the failover takes about 61 minutes. Replay with a 60-second TTL and do the same: about 2. Last, switch on the stuck tablet, with the rate limit on and then off."
+  },
+  "explain": {
+    "oneLine": "Nothing walked guests into the Seaward Wing. The Porter, a reverse proxy, read its servers from a file written in April. The file still trusted door-3 when its power went, never knew door-4 existed, and nothing asked either server whether it was there.",
+    "steps": [
+      {
+        "title": "One front door: the reverse proxy.",
+        "text": "A reverse proxy stands in front of a set of servers and receives every request for them. It forwards each request to a server behind it, called a backend, and carries the answer back, so clients only ever see one address and never learn how many servers there are, where they are, or when they change. Sigrun's Porter is one, and so is nginx with proxy_pass. Because every request passes through it, the front door is the natural place for jobs nobody wants to repeat on every server. TLS termination: the door holds the certificate and private key, decrypts each request and passes it on inside the building, as plain HTTP or encrypted again. Header rewriting: setting the Host header for the backend, and adding X-Forwarded-For so the backend still knows the client's address. Compression, such as gzip, to make answers smaller on the way out. A proxy in front of servers is a reverse proxy; one in front of clients, like an office's web filter, is a forward proxy."
+      },
+      {
+        "title": "A load balancer, a reverse proxy and an API gateway.",
+        "text": "The three overlap, and one machine is often all three. A load balancer, like the Vesper Hotel's Doorman in this season's second case, spreads requests over copies of the same server and stops sending to copies that fail. A reverse proxy is any front door that forwards requests to servers it hides. It may balance load, but it can also send different paths to different services, as the Porter sends /doors, /bookings and /dining to three different sets of servers. An API gateway is a reverse proxy that does an API's chores on the way through. It authenticates the caller: the Porter checks the guest pass. It limits each caller: 10 requests a second per phone, and a 429 for the rest. It routes by path or by version, /v1 to the old servers and /v2 to the new. And it gives every request an ID and a log line, so one request can be followed through every service. In January the limit was the difference between one stuck tablet and /bookings falling over for every guest: 300 a second, against three servers that answer 20 each. The cost of a gateway is one more hop, and one more place where every request can fail."
+      },
+      {
+        "title": "Service discovery: who tells the front door?",
+        "text": "A front door is only as good as its list of backends. Sigrun's was a static list: a file, correct on the day it was written and never again unless someone edits it. On 14 September the basement changed and the file didn't, so door-4 sat healthy and idle, and when door-3 lost its power at 01:12 the Porter kept handing it 4 requests a second, 21,120 by 02:40. Service discovery replaces the file with a registry. Each server registers itself when it starts and deregisters when it stops, and the front door reads the registry, so new servers join with nobody editing anything. But a server that loses its power can't deregister, so the registry is fed by health checks, the same kind a load balancer runs: ask every server every 5 seconds, take it out after 2 misses, put it back after 2 answers. Either alone falls short. Health checks on a static list took door-3 out after 20 requests but never found door-4. A registry without checks found door-4 but kept door-3: 15,840 requests. Together: 15 requests, then three servers at 4 a second. When the front door reads the registry, that's server-side discovery; when each client reads it and picks a server itself, it's client-side discovery. Netflix built its own registry, Eureka, for a cloud where servers come and go, and it's a Field Report later this season."
+      },
+      {
+        "title": "DNS sends each phone to the nearest hotel, and is slow to change its mind.",
+        "text": "One step further out, DNS can balance load between whole sites. GeoDNS, or geolocation routing, answers by where the user seems to be. Latency-based routing answers with the site that has the lowest round-trip time from the user's network. A failover record is handed out only while its site passes health checks. The Kittiwake's DNS did its part in August: the Lodge went dark at 23:10:00, missed the checks at 23:10:00, 23:10:30 and 23:11:00, and from 23:11:00 every new question got Wrackmouth. But resolvers that had asked in the hour before kept the Lodge's address for up to its TTL of an hour, so the last phones moved at 00:11:00. Failover through DNS takes the time to detect plus the TTL: 61 minutes with an hour, 2 with 60 seconds. Shorter TTLs cost more queries, and some resolvers and apps keep answers longer than they're told. Anycast avoids the wait: every site announces the same address, BGP carries each user to the nearest site announcing it, and a site that fails stops announcing, so traffic flows to the next one with no cached answer to expire."
+      },
+      {
+        "title": "The front door is a single point of failure.",
+        "text": "Everything now passes through the Porter. If it stops, every server behind it is healthy and no guest gets in: the front door has become the single point of failure, as the lone server was in this season's first case and the Doorman in the second. Run more than one. Two Porters can share one address, the way a load balancer pair shares a virtual IP address, or each have an address of its own in DNS, and managed gateways and load balancers run several machines for you. The copies must read the same registry and the same rules, and the registry is now critical too: run it on more than one machine, and have every front door keep its last good list if the registry stops answering, instead of dropping to an empty one. You'll build a front door yourself in Gatekeeper's Build Night G1: a reverse proxy in Go that forwards to one backend, adds X-Forwarded-For and logs every request."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 400,
+      "aria": "The fix, drawn for Tuesday at 01:12:10. DNS answers each phone with the nearer hotel's Porters, with a 60-second TTL on each record. Coast phones send 24 requests a second to the Porters at Wrackmouth, 20 ms away; hills phones send 12 a second to the Lodge, and would reach Wrackmouth in 30 ms if the Lodge failed. Porters A and B share one address and read one registry, which checks every door server every 5 seconds. door-3 missed two checks and is out; door-1, door-2 and door-4 take 4 a second each. /bookings and /dining run on three servers each.",
+      "nodes": [
+        {
+          "id": "dns",
+          "label": "DNS",
+          "sub": "nearest Porter",
+          "meta": "TTL 60 s, checked",
+          "x": 110,
+          "y": 45,
+          "w": 170,
+          "h": 62,
+          "shape": "cloud",
+          "tone": "ok"
+        },
+        {
+          "id": "coast",
+          "label": "Coast phones",
+          "sub": "24 requests/s",
+          "x": 370,
+          "y": 45,
+          "w": 220,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "hills",
+          "label": "Hills phones",
+          "sub": "12 requests/s",
+          "x": 635,
+          "y": 45,
+          "w": 180,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "registry",
+          "label": "Registry",
+          "sub": "3 of 4 doors in",
+          "meta": "checks every 5 s",
+          "x": 110,
+          "y": 175,
+          "w": 160,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "porter",
+          "label": "Porters A and B",
+          "sub": "one address, one list",
+          "meta": "TLS ends, pass, 10/s cap",
+          "x": 370,
+          "y": 175,
+          "w": 300,
+          "h": 72,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "lodge",
+          "label": "The Lodge, Tarnside",
+          "sub": "own Porters, registry",
+          "meta": "failover: about 2 min",
+          "x": 635,
+          "y": 175,
+          "w": 180,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "door1",
+          "label": "door-1",
+          "sub": "4/s",
+          "meta": "basement",
+          "x": 70,
+          "y": 315,
+          "w": 108,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "door2",
+          "label": "door-2",
+          "sub": "4/s",
+          "meta": "basement",
+          "x": 190,
+          "y": 315,
+          "w": 108,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "door3",
+          "label": "door-3",
+          "sub": "dark, out",
+          "meta": "out at 01:12:05",
+          "x": 310,
+          "y": 315,
+          "w": 108,
+          "h": 62,
+          "shape": "box",
+          "tone": "warn"
+        },
+        {
+          "id": "door4",
+          "label": "door-4",
+          "sub": "4/s",
+          "meta": "since 14 Sep",
+          "x": 430,
+          "y": 315,
+          "w": 108,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "book",
+          "label": "/bookings",
+          "sub": "2/s each",
+          "meta": "3 servers",
+          "x": 550,
+          "y": 315,
+          "w": 108,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "dine",
+          "label": "/dining",
+          "sub": "2/s each",
+          "meta": "3 servers",
+          "x": 670,
+          "y": 315,
+          "w": 108,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        }
+      ],
+      "edges": [
+        {
+          "from": "dns",
+          "to": "coast",
+          "label": "answer",
+          "dash": true,
+          "tone": "muted"
+        },
+        {
+          "from": "coast",
+          "to": "porter",
+          "label": "20 ms"
+        },
+        {
+          "from": "hills",
+          "to": "lodge",
+          "label": "20 ms"
+        },
+        {
+          "from": "hills",
+          "to": "porter",
+          "label": "30 ms",
+          "dash": true,
+          "tone": "muted"
+        },
+        {
+          "from": "registry",
+          "to": "porter",
+          "dash": true,
+          "tone": "ok"
+        },
+        {
+          "from": "porter",
+          "to": "door1",
+          "via": [[70, 250]]
+        },
+        {
+          "from": "porter",
+          "to": "door2",
+          "via": [[190, 250]]
+        },
+        {
+          "from": "porter",
+          "to": "door4",
+          "via": [[430, 250]]
+        },
+        {
+          "from": "porter",
+          "to": "book",
+          "via": [[550, 250]]
+        },
+        {
+          "from": "porter",
+          "to": "dine",
+          "via": [[670, 250]]
+        }
+      ],
+      "notes": [
+        {
+          "x": 20,
+          "y": 390,
+          "text": "Tuesday, 01:12:10",
+          "tone": "muted",
+          "anchor": "start"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for Tuesday at 01:12:10. Both Porters read one registry, which checks every door server every 5 seconds. door-3 missed the checks at 01:12:00 and 01:12:05 and is out, after 15 requests; door-1, door-2 and door-4, which signed itself in, take 4 a second each. Both hotels' DNS records have a 60-second TTL, so if the Lodge goes dark, its phones are at Wrackmouth, 30 ms away, about 2 minutes later.",
+    "fix": {
+      "title": "The fix: a registry fed by health checks, two front doors, and short TTLs on failover records",
+      "text": "Replace Sigrun's file with a registry: every server registers itself when it starts and deregisters when it stops, and the Porter reads the registry instead of a file. Feed it health checks, every 5 seconds, out after 2 misses and back after 2 answers, so a server that loses its power leaves the list within 10 seconds. Run a second Porter that reads the same registry, so the front door isn't one machine, and run the registry on more than one machine too. Give each hotel's DNS record a TTL of 60 seconds, so a failover reaches every phone about a minute after DNS notices. Keep the rate limit. Then watch the numbers that tell you it's working: requests sent to servers that don't answer, servers in the registry that have received nothing, and how long the last failover took."
+    },
+    "limits": [
+      "Health checks only see what they ask. A /health that answers while the server can't reach its database passes every check, and detection still takes up to the interval times the threshold, 10 seconds here, while requests fail. Deep checks catch more, and can take a whole fleet out when something they all share has a bad minute.",
+      "The registry and the second Porter are new things that can fail. If every front door reads one registry and that registry restarts, all of them can lose their list at once, so it needs more than one machine, and front doors that keep their last good list.",
+      "A short TTL only limits caches that obey it: some resolvers and apps keep answers longer, and every lookup costs a query. And sending phones to the other hotel only helps if that hotel has the data and the room for them: the Lodge's bookings must already be at Wrackmouth, which later seasons cover."
+    ],
+    "tradeoff": {
+      "head": [
+        "Choice",
+        "What it gets right",
+        "What it costs",
+        "What it misses"
+      ],
+      "rows": [
+        [
+          "Static list (Sigrun's file)",
+          "Simple, with nothing extra to run or to fail.",
+          "A person must edit it for every change, and remember to.",
+          "Servers that die (21,120 requests to door-3) and servers that start (door-4, idle since September)."
+        ],
+        [
+          "Static list plus health checks",
+          "A dead server is out within 10 seconds: 20 requests instead of 21,120.",
+          "A check every 5 seconds per server, and thresholds to tune.",
+          "New servers: door-4 is never checked or sent anything."
+        ],
+        [
+          "Registry, no health checks",
+          "New servers join by themselves: door-4 took its share at once.",
+          "A registry to run and keep available.",
+          "Servers that stop without signing out: 15,840 requests to door-3."
+        ],
+        [
+          "Registry fed by health checks",
+          "Both: 15 requests to door-3, then three servers at 4 a second.",
+          "The registry becomes critical, and needs more than one machine.",
+          "A server that answers its checks but fails real requests."
+        ],
+        [
+          "DNS TTL of an hour",
+          "Fewer DNS queries, and answers cached close to users.",
+          "Failover waits for the caches: 61 minutes for the Lodge.",
+          "Nothing, for records that rarely change. For failover records, the hour."
+        ],
+        [
+          "DNS TTL of 60 seconds",
+          "Failover reaches the last phone about a minute after DNS notices: 2 minutes in all.",
+          "More queries, so more cost and more load on DNS.",
+          "Resolvers and apps that keep answers longer than the TTL."
+        ],
+        [
+          "Anycast",
+          "One address from every site; the network picks the nearest, and a failed site stops announcing it.",
+          "Your own block of addresses and routing, or a provider that has them.",
+          "Which site a user reaches is up to the internet's routing, not you."
+        ],
+        [
+          "Two front doors instead of one",
+          "The Porter stops being the single point of failure.",
+          "A second machine, and keeping the two lists and rules the same.",
+          "Failures they share, such as one registry or one bad configuration change."
+        ]
+      ]
+    },
+    "seniorTake": "Put one front door in front of your services and give it the jobs every service would otherwise repeat: TLS, checking the caller, per-client limits, routing by path, request IDs and logs. Then make sure it always knows the truth about what's behind it. A list someone edits by hand is wrong from the first change nobody wrote down, so servers should register themselves and health checks should remove the ones that stop answering: discovery tells you what exists, health checks tell you what's alive, and you need both. Between sites, DNS can send users to the nearest one, but every answer is cached for its TTL, so failover takes the time to detect plus the TTL; keep TTLs short on records that must fail over, or use anycast. And run every front door, and the registry it reads, on more than one machine, because everything passes through them.",
+    "realWorld": [
+      {
+        "title": "nginx's proxy_pass",
+        "text": "nginx's proxy module, which its documentation says allows passing requests to another server, forwards a location's requests with proxy_pass, to one address or to a server group defined in an upstream block. If a domain name resolves to several addresses, nginx uses them all in a round-robin fashion. On the way through it redefines two headers by default, setting Host to the proxied server's name and Connection to close. When a server fails, proxy_next_upstream, set by default to error and timeout, passes the request to the next server in the group, but since version 1.9.13 not a request with a non-idempotent method such as POST once it has been sent to a server.",
+        "source": 0
+      },
+      {
+        "title": "nginx's list of servers",
+        "text": "An nginx upstream block lists its servers in the configuration. A server written as a domain name can carry the resolve parameter, which the documentation says monitors changes of the IP addresses behind the name and modifies the upstream configuration without restarting nginx; before version 1.27.3 it was only in the commercial subscription. Without active checks, nginx counts failed attempts: by default one failure marks a server unavailable for 10 seconds (max_fails=1, fail_timeout=10s). The same page says a dynamically configurable group with periodic health checks is available as part of the commercial subscription.",
+        "source": 1
+      },
+      {
+        "title": "Ending TLS at nginx",
+        "text": "NGINX's SSL termination guide sets up an HTTPS server with the ssl parameter on the listen directive and the locations of the server certificate and private key files. It warns that the private key is a secure entity that should be stored in a file with restricted access, and notes that SSL operations consume extra CPU resources, one reason to do them once at the front door rather than on every server.",
+        "source": 2
+      },
+      {
+        "title": "A number for every request",
+        "text": "nginx's $request_id variable, added in version 1.11.0, is a unique request identifier generated from 16 random bytes, in hexadecimal. A gateway can pass it to the backend in a header and write it in its access log, so one request can be followed through every service. The same module's resolver, the DNS servers nginx asks itself, caches answers using the TTL of each response by default.",
+        "source": 3
+      },
+      {
+        "title": "Amazon API Gateway, the managed front door",
+        "text": "AWS describes Amazon API Gateway as acting as a front door for applications to reach data, business logic or functionality from backend services, and lists the tasks it handles in accepting and processing up to hundreds of thousands of concurrent API calls: traffic management, authorization and access control, monitoring, and API version management.",
+        "source": 4
+      },
+      {
+        "title": "API Gateway's throttling",
+        "text": "API Gateway throttles requests with the token bucket algorithm, where a token counts for a request: tokens are added at the throttling rate, and the bucket's size, the burst, allows a short overrun. Past the limits, clients may receive 429 Too Many Requests. Limits apply per account and Region, per API stage or method, and per client, identified by the API keys in a usage plan. AWS says throttles and quotas are applied on a best-effort basis and should be thought of as targets rather than guaranteed request ceilings.",
+        "source": 5
+      },
+      {
+        "title": "An API key is not a pass",
+        "text": "API Gateway's best practices for usage plans tell developers not to use API keys for authentication or authorization to control access to their APIs, because a user with a valid key for one API in a usage plan can access all the APIs in that plan. They also warn that clients can sometimes exceed the quotas, and that usage plan throttling and quotas shouldn't be relied on to control costs or block access. A per-client limit protects the backends; checking who the caller is needs its own lock.",
+        "source": 6
+      },
+      {
+        "title": "Route 53's routing policies",
+        "text": "Amazon Route 53, AWS's DNS service, lets each record choose how it answers. Its guide describes the failover routing policy as for when you want to configure active-passive failover, the geolocation routing policy as for when you want to route traffic based on the location of your users, and the latency routing policy as for when you have resources in multiple AWS Regions and you want to route traffic to the Region that provides the best latency. Weighted routing splits traffic in proportions you set, and multivalue answer routing answers with up to eight healthy records selected at random.",
+        "source": 7
+      },
+      {
+        "title": "Route 53's health checks",
+        "text": "Route 53 has health checkers in locations around the world, and they check an endpoint every 10 or every 30 seconds. For an HTTP or HTTPS check, a checker must open a TCP connection within four seconds, and the endpoint must answer with a 2xx or 3xx status code within two seconds after that. Each checker also counts consecutive results against a failure threshold you choose. Route 53 considers the endpoint healthy while more than 18% of its health checkers report it healthy, a value chosen so that one isolated checking location can't declare it down.",
+        "source": 8
+      },
+      {
+        "title": "Choosing a TTL",
+        "text": "Route 53's best-practices page calls the choice of TTL a trade-off between latency and reliability, and responsiveness to change: shorter TTLs mean resolvers notice updates sooner but query more often, which costs more. For records that rarely change it calls a value between an hour (3,600 seconds) and a day (86,400 seconds) a common choice. For records that need to be altered as part of a rapid failover mechanism, especially records that are health checked, it says lower TTLs are appropriate, and that 60 or 120 seconds is a common choice. It also advises always setting a default record with geolocation or latency routing, unless you want some clients to receive no answer.",
+        "source": 9
+      },
+      {
+        "title": "Anycast at Cloudflare",
+        "text": "Cloudflare's documentation describes its anycast network as a routing method where the same IP address is announced from data centers worldwide, so each visitor's request is routed to a nearby data center. Which data center is nearby is decided by the internet's routing, not by a DNS answer.",
+        "source": 10
+      },
+      {
+        "title": "Anycast, explained in 2011",
+        "text": "In a 2011 primer on Cloudflare's blog, Matthew Prince contrasts unicast, where every node on the network gets an IP address unique to it, with anycast, where multiple machines can share the same IP address and routers send each request to the closest one. Because traffic finds the best path, he writes, an entire data center can be taken offline and traffic will automatically flow to the next closest one. He adds that anycast helps against attacks: each data center absorbs a portion of a distributed botnet's traffic.",
+        "source": 11
+      },
+      {
+        "title": "Anycast in front of regions",
+        "text": "AWS Global Accelerator gives an application static IP addresses that are anycast from the AWS edge network, and routes traffic to the optimal regional endpoint based on health, client location and policies you set. AWS says the service reacts instantly to changes in health or configuration, so clients keep the same addresses while the endpoints behind them change, with no DNS answer to wait out.",
+        "source": 12
+      },
+      {
+        "title": "A registry that serves only the healthy",
+        "text": "AWS Cloud Map maps names to the backend resources an application depends on. When an application adds a resource, it can call RegisterInstance to put it in the registry, and other applications find it through API calls or DNS queries. If health checking was turned on when the service was created, Cloud Map returns only healthy instances.",
+        "source": 13
+      },
+      {
+        "title": "Kubernetes' readiness probes",
+        "text": "In Kubernetes, a readiness probe decides when a container is ready to accept traffic. If it fails, the EndpointSlice controller removes the pod's IP address from the EndpointSlices of every Service that matches the pod, so traffic sent through those Services stops reaching it. Readiness probes run for the container's whole life, and the documentation says they also help when a container is recovering from temporary faults or overloads: discovery fed by health checks, built in.",
+        "source": 14
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What's the difference between a load balancer, a reverse proxy and an API gateway?",
+        "How does service discovery work?",
+        "How would you route users to the nearest region, and fail over when one goes down?"
+      ],
+      "answer": "Start with what each one is for. A load balancer spreads requests over copies of the same service and stops using copies that fail its health checks. A reverse proxy is a front door that forwards requests to servers it hides: it can balance load, but it also ends TLS, rewrites headers, compresses answers and can send different paths to different services. An API gateway is a reverse proxy that does an API's chores: authenticating callers, per-client rate limits that answer 429, routing by path or version, request IDs and logs. In practice one product often plays all three, so say which jobs you need. Service discovery is how the front door, or each client, learns which instances exist and which are healthy. Instances register in a registry when they start and deregister when they stop, and health checks remove the ones that die without saying so. The proxy reads the registry (server-side discovery), or each client reads it and picks an instance itself (client-side discovery). A static list of addresses breaks on the first replacement. For regions, run a full stack in each and route users with DNS: latency-based or geolocation routing, with health-checked records so a failed region's answer is withdrawn. Failover then takes the time to detect plus the TTL, so keep failover TTLs short, 60 seconds rather than an hour, or use anycast addresses that every region announces, so routing moves users with no cached answer to expire. Finish with what fails next: the front door and the registry must run on more than one machine, and the other region needs the data and the capacity to take the load."
+    }
+  },
+  "terms": [
+    {
+      "term": "Night porter",
+      "def": "A hotel worker on duty overnight who meets late guests, carries their bags and shows them to their rooms."
+    },
+    {
+      "term": "The Porter (at the Kittiwake)",
+      "def": "Sigrun's name for the machine in the hotel's basement that every request from the app goes through: a reverse proxy and API gateway."
+    },
+    {
+      "term": "Guest pass",
+      "def": "The signed token the Kittiwake's app gets at check-in. The Porter checks it on every request before passing the request on."
+    },
+    {
+      "term": "Sigrun's file",
+      "def": "The text file, written in April, that tells the Porter which servers handle /doors, /bookings and /dining. A static list."
+    },
+    {
+      "term": "Door server",
+      "def": "One of the Kittiwake's servers that answer the phones' requests to open doors: door-1 to door-4, each answering up to 20 requests a second."
+    },
+    {
+      "term": "Seaward Wing",
+      "def": "The Kittiwake's wing that closed for rewiring in September. door-3 sat in its old linen room."
+    },
+    {
+      "term": "Linen room",
+      "def": "A room where a hotel keeps its sheets and towels."
+    },
+    {
+      "term": "Rewiring",
+      "def": "Replacing a building's electrical wiring. At the Kittiwake the electricians test the new circuits at night, with the wing's power off."
+    },
+    {
+      "term": "Master key",
+      "def": "A key that opens every room in a hotel."
+    },
+    {
+      "term": "The Lodge",
+      "def": "The Kittiwake's sister hotel at Tarnside, 300 miles inland, with its own Porter and servers."
+    },
+    {
+      "term": "Reverse proxy",
+      "def": "A server in front of other servers that receives every request for them, forwards each to one of them and passes the answer back, so clients only see its address."
+    },
+    {
+      "term": "Forward proxy",
+      "def": "A proxy in front of clients, such as an office's web filter, that sends their requests out to the internet for them."
+    },
+    {
+      "term": "Backend",
+      "def": "A server behind a proxy or gateway, which clients never talk to directly."
+    },
+    {
+      "term": "API gateway",
+      "def": "A reverse proxy that does an API's chores on the way through: authenticating callers, limiting each one, routing by path or version, and numbering and logging requests."
+    },
+    {
+      "term": "TLS termination",
+      "def": "Ending TLS at the front door: it holds the certificate and private key, decrypts each request and passes it on, as plain HTTP or encrypted again."
+    },
+    {
+      "term": "Header rewriting",
+      "def": "A proxy changing headers on the way through, such as setting Host for the backend or adding X-Forwarded-For."
+    },
+    {
+      "term": "Host header",
+      "def": "The HTTP header that names the site a request is for, so one server can serve several sites."
+    },
+    {
+      "term": "X-Forwarded-For",
+      "def": "A header a proxy adds with the client's IP address, so the server behind it still knows who asked."
+    },
+    {
+      "term": "Compression",
+      "def": "Making a response smaller before sending it, so it travels faster."
+    },
+    {
+      "term": "gzip",
+      "def": "A common compression format for web responses."
+    },
+    {
+      "term": "Service discovery",
+      "def": "How a front door or a client learns which servers exist for a service, and which are alive: from a static list, or from a registry kept up to date."
+    },
+    {
+      "term": "Static list",
+      "def": "A list of servers written by hand into a configuration file. It stays the same until someone edits it."
+    },
+    {
+      "term": "Service registry",
+      "def": "A list of servers that the servers keep themselves: each registers (signs in) when it starts and deregisters (signs out) when it stops. Front doors or clients read it."
+    },
+    {
+      "term": "Server-side discovery",
+      "def": "Discovery where the front door reads the registry and picks a server for each request; clients only know the front door."
+    },
+    {
+      "term": "Client-side discovery",
+      "def": "Discovery where each client reads the registry and picks a server itself, with no front door in between."
+    },
+    {
+      "term": "Last good list",
+      "def": "The list a front door keeps using when its registry stops answering, instead of dropping to an empty one."
+    },
+    {
+      "term": "Netflix",
+      "def": "The video streaming company, which runs its services in the cloud and publishes how on its TechBlog."
+    },
+    {
+      "term": "Eureka",
+      "def": "Netflix's service registry for its cloud, the subject of a Field Report later this season."
+    },
+    {
+      "term": "Field Report",
+      "def": "A case built on a real Netflix TechBlog post, read as evidence. They come at the end of a season."
+    },
+    {
+      "term": "DNS-based load balancing",
+      "def": "Using DNS answers to spread users across sites, by giving different users different addresses."
+    },
+    {
+      "term": "GeoDNS",
+      "def": "DNS that answers by where the user seems to be, judged from the IP address of the user or their resolver. Route 53 calls it geolocation routing."
+    },
+    {
+      "term": "Geolocation routing",
+      "def": "Route 53's routing policy that answers by the location of the user. Another name for GeoDNS."
+    },
+    {
+      "term": "Latency-based routing",
+      "def": "DNS that answers with the site that has the lowest round-trip time from the user's network, measured over time."
+    },
+    {
+      "term": "Failover record",
+      "def": "A DNS record handed out only while its site passes health checks. When the site fails, DNS answers with another record instead."
+    },
+    {
+      "term": "Active-passive failover",
+      "def": "One site serves everyone and another waits. Traffic moves to the waiting site only when the first one fails."
+    },
+    {
+      "term": "Weighted routing",
+      "def": "Route 53's routing policy that splits traffic between records in proportions you set."
+    },
+    {
+      "term": "Multivalue answer routing",
+      "def": "Route 53's routing policy that answers with up to eight healthy records chosen at random."
+    },
+    {
+      "term": "Routing policy",
+      "def": "In Route 53, the rule a record follows to decide what to answer, such as failover, geolocation, latency or weighted."
+    },
+    {
+      "term": "Health checker",
+      "def": "One of Route 53's machines, in locations around the world, that sends health checks to an endpoint."
+    },
+    {
+      "term": "Failure threshold",
+      "def": "In Route 53, how many health checks in a row an endpoint must fail, or pass, before a checker changes its status."
+    },
+    {
+      "term": "Anycast",
+      "def": "Announcing the same IP address from many places at once, so the internet's routing carries each user to the nearest place announcing it."
+    },
+    {
+      "term": "Unicast",
+      "def": "The usual way addresses work: one address belongs to one machine or one place."
+    },
+    {
+      "term": "Announce (an address)",
+      "def": "To tell other networks, through BGP, that an address can be reached here. A site that stops announcing stops getting its traffic."
+    },
+    {
+      "term": "Botnet",
+      "def": "Many machines taken over by an attacker and used together, for example to flood a site with traffic."
+    },
+    {
+      "term": "Token bucket",
+      "def": "A rate-limiting method: tokens drip into a bucket at a steady rate, each request takes one, and the bucket's size sets how big a burst can pass."
+    },
+    {
+      "term": "Burst",
+      "def": "A short run of requests above the steady rate. In a token bucket, the size of the bucket."
+    },
+    {
+      "term": "Usage plan",
+      "def": "In Amazon API Gateway, a setting that says which API keys may call which APIs, and at what rate and quota."
+    },
+    {
+      "term": "API key (API Gateway)",
+      "def": "A string API Gateway uses to identify a client for usage plans. AWS says not to use it to control access."
+    },
+    {
+      "term": "Quota",
+      "def": "A cap on how many requests a client may make in a period, such as a day."
+    },
+    {
+      "term": "Best-effort",
+      "def": "Done when possible, without a guarantee. API Gateway's throttles are targets, not exact ceilings."
+    },
+    {
+      "term": "Authorization",
+      "def": "Deciding what a caller who has proved who they are is allowed to do."
+    },
+    {
+      "term": "Stage (API Gateway)",
+      "def": "A named deployment of an API in API Gateway, such as test or prod, with its own settings."
+    },
+    {
+      "term": "Per-client rate limit",
+      "def": "A limit on each caller separately, so one noisy caller can't use up everyone's share. The Porter's is 10 requests a second per phone."
+    },
+    {
+      "term": "Directive (nginx)",
+      "def": "One setting in nginx's configuration file, such as listen or proxy_pass."
+    },
+    {
+      "term": "Server group (nginx)",
+      "def": "The set of servers listed in an nginx upstream block, which proxy_pass can send requests to."
+    },
+    {
+      "term": "proxy_pass",
+      "def": "The nginx directive that says where a location's requests are forwarded: one address, or a server group in an upstream block."
+    },
+    {
+      "term": "proxy_next_upstream",
+      "def": "The nginx setting for when a failed request is tried on the next server in the group. By default, after an error or a timeout."
+    },
+    {
+      "term": "resolve (nginx)",
+      "def": "An nginx upstream server parameter that watches the addresses behind a server's domain name and updates the group without a restart."
+    },
+    {
+      "term": "$request_id",
+      "def": "An nginx variable holding a unique ID for each request: 16 random bytes, written in hexadecimal."
+    },
+    {
+      "term": "Hexadecimal",
+      "def": "Writing numbers in base 16, with the digits 0 to 9 and the letters a to f."
+    },
+    {
+      "term": "Resolver (nginx)",
+      "def": "The nginx directive naming the DNS servers nginx itself asks when it needs an address."
+    },
+    {
+      "term": "Edge network (AWS)",
+      "def": "AWS's sites around the world, closer to users than its Regions, where traffic enters AWS's own network."
+    },
+    {
+      "term": "AWS Global Accelerator",
+      "def": "An AWS service that gives an application static IP addresses, anycast from AWS's edge network, and sends traffic to healthy endpoints in one or more Regions."
+    },
+    {
+      "term": "Static IP address",
+      "def": "An IP address that stays the same for as long as you keep it."
+    },
+    {
+      "term": "AWS Cloud Map",
+      "def": "An AWS service registry: applications register resources by name and find them through API calls or DNS, only healthy ones if health checking is on."
+    },
+    {
+      "term": "RegisterInstance",
+      "def": "The AWS Cloud Map API call that adds an instance to a service in the registry."
+    },
+    {
+      "term": "Kubernetes",
+      "def": "Open-source software that runs containers across many machines, and starts, stops and connects them."
+    },
+    {
+      "term": "Container",
+      "def": "A packaged program with everything it needs to run, kept apart from other programs on the same machine."
+    },
+    {
+      "term": "Pod",
+      "def": "Kubernetes' smallest unit: one or more containers that run together and share an IP address."
+    },
+    {
+      "term": "Service (Kubernetes)",
+      "def": "A stable name and address in Kubernetes that sends traffic to whichever pods match it."
+    },
+    {
+      "term": "EndpointSlice",
+      "def": "A Kubernetes list of the IP addresses of the pods behind a Service, kept up to date by the EndpointSlice controller as pods come and go."
+    },
+    {
+      "term": "Readiness probe",
+      "def": "A check Kubernetes runs on a container for its whole life. While it fails, the pod gets no traffic through Services."
+    },
+    {
+      "term": "HAProxy",
+      "def": "A widely used open-source load balancer and reverse proxy."
+    }
+  ],
+  "atWork": "Find the front door of a service your team runs: an nginx or HAProxy configuration, an Application Load Balancer, or an API gateway. Read-only access is enough. How does it learn its backends? Search the configuration for IP addresses written into upstream blocks or proxy_pass lines, and on AWS check whether instances join their target group through their Auto Scaling group or by hand. A common outage looks like Saturday at the Kittiwake: a team writes backend IP addresses into the proxy's configuration, the Auto Scaling group replaces an instance, and the proxy keeps sending a share of traffic to an address with nothing behind it while the new instance sits idle. If you find one, sketch the fix: instances that register themselves (a target group fed by the Auto Scaling group, AWS Cloud Map, or nginx's resolve on a DNS name), and health checks that take out whatever stops answering. Then open Route 53, or your DNS provider, and find the records that exist to fail over between sites. What's their TTL? If it's an hour, that's how long your next failover waits. Last, check that the front door itself runs on more than one machine.",
+  "board": {
+    "cards": [
+      {
+        "id": "reverse-proxies",
+        "title": "Reverse proxy"
+      },
+      {
+        "id": "api-gateways",
+        "title": "API gateway"
+      },
+      {
+        "id": "tls-termination",
+        "title": "TLS termination"
+      },
+      {
+        "id": "service-discovery",
+        "title": "Service discovery"
+      }
+    ],
+    "strings": [
+      {
+        "from": "reverse-proxies",
+        "to": "load-balancers",
+        "label": "may balance load"
+      },
+      {
+        "from": "reverse-proxies",
+        "to": "single-point-of-failure",
+        "label": "run two"
+      },
+      {
+        "from": "tls-termination",
+        "to": "tls",
+        "label": "padlock ends here"
+      },
+      {
+        "from": "api-gateways",
+        "to": "rate-limiting",
+        "label": "per-client limits"
+      },
+      {
+        "from": "api-gateways",
+        "to": "http",
+        "label": "routes by path"
+      },
+      {
+        "from": "service-discovery",
+        "to": "health-check",
+        "label": "who is alive"
+      },
+      {
+        "from": "service-discovery",
+        "to": "dns",
+        "label": "TTL slows failover"
+      },
+      {
+        "from": "service-discovery",
+        "to": "eureka",
+        "label": "Field Report"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e09-r1",
+      "kind": "free",
+      "prompt": "Your team runs nginx in front of three API servers, written into its config file by IP address. At 3 AM the Auto Scaling group replaces one that crashed with a new instance at a new IP. Until someone edits the file at 9 AM, about a third of requests hang for a minute or fail, and the new instance gets no traffic at all. What went wrong, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "The list in the config is fixed: nothing tells nginx the old server is gone or that the new one exists",
+          "match": [
+            "static",
+            "stale",
+            "out of date",
+            "never updated",
+            "hard-coded",
+            "hardcoded",
+            "by hand",
+            "manual",
+            "doesn't know",
+            "didn't know",
+            "does not know"
+          ]
+        },
+        {
+          "idea": "Health checks would take the dead server out within seconds",
+          "match": [
+            "health check",
+            "health-check",
+            "/health",
+            "max_fails",
+            "passive check",
+            "active check",
+            "take it out",
+            "out of rotation",
+            "mark it down",
+            "eject"
+          ]
+        },
+        {
+          "idea": "Discovery: instances register themselves, in a target group, a registry or a DNS name nginx re-resolves, so the new one joins by itself",
+          "match": [
+            "registry",
+            "register",
+            "discovery",
+            "target group",
+            "cloud map",
+            "consul",
+            "resolve",
+            "dns name",
+            "load balancer"
+          ]
+        }
+      ],
+      "model": "The servers are a static list in nginx's config, so nginx never learned that the crashed server was gone or that its replacement existed. A third of the requests still went to an address with nothing behind it and waited out the timeout, while the new instance sat idle. Turn on health checks so a dead server is out within seconds: nginx's passive checks (max_fails and fail_timeout) at least, active checks where you have them. Then stop writing addresses by hand: put the instances in a target group behind a load balancer that the Auto Scaling group registers them in, or in a registry such as AWS Cloud Map, or give nginx a DNS name it re-resolves. New instances then join by themselves and dead ones leave. And alert when a backend fails or stays idle."
+    },
+    {
+      "id": "s2e09-r2",
+      "kind": "mcq",
+      "prompt": "A failover record has a TTL of 3,600 seconds. Its site goes dark at 23:10:00, and health checks mark it down at 23:11:00. Roughly when has the last client stopped using the dark site's address?",
+      "options": [
+        "23:11:00, when DNS changes its answer",
+        "23:12:00, a minute after DNS changes its answer",
+        "About 00:11:00, a TTL after DNS changes its answer",
+        "Never, until each phone is restarted"
+      ],
+      "answer": 2,
+      "why": "Resolvers that asked before 23:11:00 were told the dark site and may keep that answer for the whole TTL, so the last of them lets go about an hour after DNS changed its answer: the time to detect plus the TTL. With a 60-second TTL it would have been about 23:12:00. Some resolvers and apps keep answers longer than the TTL, so for a few clients it takes longer still."
+    },
+    {
+      "id": "s2e09-r3",
+      "kind": "free",
+      "prompt": "In an interview you're asked: what's the difference between a load balancer, a reverse proxy and an API gateway? Give the answer you'd give, with one job that usually only the gateway does.",
+      "keyIdeas": [
+        {
+          "idea": "A load balancer spreads requests over copies of the same service",
+          "match": [
+            "copies",
+            "identical",
+            "same service",
+            "same server",
+            "spread",
+            "round robin",
+            "least connections",
+            "distribut"
+          ]
+        },
+        {
+          "idea": "A reverse proxy is a front door that forwards requests to servers it hides, and can end TLS, rewrite headers or route paths",
+          "match": [
+            "front door",
+            "hides",
+            "hide",
+            "one address",
+            "forward",
+            "terminat",
+            "ends tls",
+            "header",
+            "by path"
+          ]
+        },
+        {
+          "idea": "An API gateway adds API jobs: authentication, per-client rate limits, routing by path or version, request IDs and logs",
+          "match": [
+            "authenticat",
+            "api key",
+            "rate limit",
+            "per client",
+            "per-client",
+            "throttl",
+            "quota",
+            "request id",
+            "version"
+          ]
+        }
+      ],
+      "model": "A load balancer spreads requests over copies of the same service and stops using copies that fail health checks. A reverse proxy is any front door that forwards requests to servers it hides: it can balance load, but it also ends TLS, rewrites headers like X-Forwarded-For, compresses answers and can send different paths to different services. An API gateway is a reverse proxy that does an API's chores: authenticating each caller, per-client rate limits that answer 429, routing by path or version, and request IDs and logs. The job usually only the gateway does is per-caller work, such as checking an API caller's identity and limiting each one separately. One product, such as nginx or a cloud's API gateway, often does all three, so say which jobs you need."
+    },
+    {
+      "id": "s2e09-r4",
+      "kind": "mcq",
+      "prompt": "A service registry adds servers when they start and removes them when they shut down cleanly. It runs no health checks. One server loses its power. What happens?",
+      "options": [
+        "The registry removes it at once, because the server stops sending",
+        "It stays listed and keeps getting its share until something removes it",
+        "Clients notice the failed requests, and the registry deletes it",
+        "The front door's TLS termination catches it and stops forwarding"
+      ],
+      "answer": 1,
+      "why": "A server that loses its power can't deregister, and a registry that only hears hellos and goodbyes has no way to notice the silence. The Kittiwake's would have sent door-3 3 requests a second until its power came back. Feed the registry health checks, or make servers check in on a timer, so silence takes them off the list."
+    },
+    {
+      "id": "s2e09-r5",
+      "kind": "mcq",
+      "prompt": "What does anycast change, compared with failing over by DNS?",
+      "options": [
+        "Each site gets its own address, and DNS answers with the nearest one",
+        "Every site announces one shared address, and routing picks the nearest",
+        "Clients try each site's address in turn until one of them answers",
+        "The front door copies each request to every site and keeps the first"
+      ],
+      "answer": 1,
+      "why": "With anycast, the same address is announced from every site, and the internet's routing carries each user to the nearest one announcing it. When a site fails it stops announcing, and traffic flows to the next closest without waiting for a cached DNS answer to expire. Cloudflare's network and AWS Global Accelerator both work this way. The trade-off: routing, not you, decides which site a user reaches."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. Two Porters now read the registry, which checks every server every 5 seconds, and both hotels' DNS records have a 60-second TTL. Nothing has been sent to the Seaward Wing since. Last Wednesday at 02:00 Sigrun restarted the registry for an update. It was back in 40 seconds, but for those 40 seconds both Porters asked it for the list of servers, got no answer, and treated that as a list with nothing on it. Every request from every phone got a 503. Eleven guests came down to the desk. The Lodge was fine: it has its own registry.",
+    "prompt": "Reply to OP. What went wrong, and what should Sigrun change?",
+    "keyIdeas": [
+      {
+        "idea": "The registry became a part everything depends on: both Porters failed with it, so two Porters didn't remove the single point of failure",
+        "match": [
+          "single point",
+          "spof",
+          "depend",
+          "shared",
+          "same registry",
+          "one registry",
+          "critical"
+        ]
+      },
+      {
+        "idea": "A Porter that can't reach the registry should keep its last good list, not empty it",
+        "match": [
+          "last good",
+          "last known",
+          "keep the old",
+          "keep the last",
+          "keep its list",
+          "keep their list",
+          "cache the list",
+          "cached list",
+          "previous list",
+          "fail static",
+          "don't empty",
+          "do not empty",
+          "never empty"
+        ]
+      },
+      {
+        "idea": "Run the registry on more than one machine and restart them one at a time",
+        "match": [
+          "cluster",
+          "replica",
+          "several",
+          "more than one",
+          "three",
+          "one at a time",
+          "rolling",
+          "redundan",
+          "quorum",
+          "copies"
+        ]
+      }
+    ],
+    "model": "The registry had become a part every request depended on. Both Porters read the same one, so while it restarted both lost their lists at once, and two front doors were really one. Make the Porters keep their last good list when the registry doesn't answer, and only drop a server when the registry says so or their own health checks fail: no answer must never be read as no servers. And run the registry on more than one machine, restarted one at a time, so an update never takes it away. Then test it at a quiet hour: restart one registry machine and check that nothing changes for the phones."
+  },
+  "next": "Next, Eviction Night: a crowded boarding house, and how a cache decides what to throw out when its memory is full.",
+  "sources": [
+    {
+      "title": "nginx documentation: Module ngx_http_proxy_module (allows passing requests to another server; proxy_pass to an address or a server group, several addresses used round-robin; proxy_set_header defaults Host $proxy_host and Connection close; proxy_next_upstream default error timeout, non-idempotent requests not passed to the next server since 1.9.13)",
+      "url": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html"
+    },
+    {
+      "title": "nginx documentation: Module ngx_http_upstream_module (server groups; the resolve parameter, commercial before 1.27.3; max_fails default 1 and fail_timeout default 10 seconds; periodic health checks in the commercial subscription)",
+      "url": "https://nginx.org/en/docs/http/ngx_http_upstream_module.html"
+    },
+    {
+      "title": "NGINX documentation: NGINX SSL Termination (listen ... ssl, ssl_certificate and ssl_certificate_key; the private key is a secure entity stored with restricted access; SSL operations consume extra CPU resources)",
+      "url": "https://docs.nginx.com/nginx/admin-guide/security-controls/terminating-ssl-http/"
+    },
+    {
+      "title": "nginx documentation: Module ngx_http_core_module ($request_id, 16 random bytes in hexadecimal, since 1.11.0; the resolver caches answers using the TTL of a response by default)",
+      "url": "https://nginx.org/en/docs/http/ngx_http_core_module.html"
+    },
+    {
+      "title": "Amazon API Gateway Developer Guide: What is Amazon API Gateway? (a front door for applications to access backend services; traffic management, authorization and access control, monitoring, API version management; up to hundreds of thousands of concurrent API calls)",
+      "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html"
+    },
+    {
+      "title": "Amazon API Gateway Developer Guide: Throttle requests to your REST APIs for better throughput (token bucket algorithm; 429 Too Many Requests; account, stage, method and per-client limits; best-effort targets rather than guaranteed request ceilings)",
+      "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html"
+    },
+    {
+      "title": "Amazon API Gateway Developer Guide: Usage plans and API keys for REST APIs (don't use API keys for authentication or authorization; don't rely on usage plan quotas or throttling to control costs or block access)",
+      "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html"
+    },
+    {
+      "title": "Amazon Route 53 Developer Guide: Choosing a routing policy (failover, geolocation, latency, weighted and multivalue answer routing)",
+      "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html"
+    },
+    {
+      "title": "Amazon Route 53 Developer Guide: How Amazon Route 53 determines whether a health check is healthy (health checkers around the world; every 10 or 30 seconds; TCP connection within four seconds, 2xx or 3xx within two seconds; healthy while more than 18% of checkers say so)",
+      "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-determining-health-of-endpoints.html"
+    },
+    {
+      "title": "Amazon Route 53 Developer Guide: Best practices for Amazon Route 53 DNS (choosing TTL values: an hour to a day for records that rarely change, 60 or 120 seconds for records in a rapid failover mechanism; always set a default with geolocation or latency routing)",
+      "url": "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/best-practices-dns.html"
+    },
+    {
+      "title": "Cloudflare Fundamentals docs: Cloudflare IP addresses (the anycast network: the same IP address announced from data centers worldwide, each visitor routed to a nearby data center)",
+      "url": "https://developers.cloudflare.com/fundamentals/concepts/cloudflare-ip-addresses/"
+    },
+    {
+      "title": "Matthew Prince, A Brief Primer on Anycast, Cloudflare blog, 21 October 2011 (unicast vs anycast; routers direct a request to the closest machine; a data center taken offline and traffic flowing to the next closest; attack traffic absorbed by each data center)",
+      "url": "https://blog.cloudflare.com/a-brief-anycast-primer/"
+    },
+    {
+      "title": "AWS Global Accelerator Developer Guide: What is AWS Global Accelerator? (static IP addresses anycast from the AWS edge network; routing to the optimal regional endpoint by health, client location and policies; reacts instantly to changes in health or configuration)",
+      "url": "https://docs.aws.amazon.com/global-accelerator/latest/dg/what-is-global-accelerator.html"
+    },
+    {
+      "title": "AWS Cloud Map Developer Guide: What is AWS Cloud Map? (RegisterInstance; discovery through API calls or DNS queries; only healthy instances when health checking is specified)",
+      "url": "https://docs.aws.amazon.com/cloud-map/latest/dg/what-is-cloud-map.html"
+    },
+    {
+      "title": "Kubernetes documentation: Liveness, Readiness, and Startup Probes (readiness probes decide when a container is ready to accept traffic; on failure the EndpointSlice controller removes the pod's IP address from matching Services' EndpointSlices; probes run for the container's whole lifecycle)",
+      "url": "https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/"
+    }
+  ]
+}
