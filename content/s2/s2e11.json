@@ -1,0 +1,1149 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-09) first version"
+  ],
+  "id": "s2e11",
+  "season": 2,
+  "n": 11,
+  "title": "Hot Key",
+  "setting": "a celebrity's restaurant reservation",
+  "core": false,
+  "minutes": 12,
+  "concepts": [
+    "hot-keys",
+    "hot-partitions",
+    "replicating-hot-items"
+  ],
+  "prerequisites": [
+    "s2e06",
+    "s2e05",
+    "s2e04",
+    "s2e03",
+    "s2e02",
+    "s2e01",
+    "s1e01",
+    "s1e02",
+    "s1e03",
+    "s1e04",
+    "s1e05",
+    "s1e06",
+    "s1e07",
+    "s1e08",
+    "s1e09",
+    "s1e10",
+    "s1e11",
+    "s1e12",
+    "s1e13"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/host_stand_lettice",
+    "flair": "Part 1",
+    "age": "7h",
+    "votes": 3896,
+    "title": "I run the front of house at a small restaurant. Every night at 9:00, thousands of strangers ask for one corner table, and one of our four cache nodes falls over while the other three sit idle.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I run the front of house at Ostler's on Cinder Lane: fourteen tables, open since 1958. Table 9 is the corner one, under the clock. On 3 June 1964 the film star Ruben Marchbank booked it for nine o'clock, a party of one. He never arrived, and nobody has seen him since. In September a documentary about him ended on a shot of that table and four words: Table 9 is waiting. Our site opens bookings 28 days ahead at 9 PM, and since then, at 9:00 every night, about 6,000 fans open Table 9's page and refresh it once a second."
+      },
+      {
+        "t": "p",
+        "text": "Cosmin, the owner's grandson, built the site: six web servers and a shared cache of four nodes, A to D, in front of the bookings database. Each page is cached under one key, and a hash of the key's name, a number worked out from its letters, picks the node that keeps it. Pages last 5 minutes, and a booking deletes its table's key so the next read fetches the new state. Each node answers 3,000 lookups a second, and the database 500 reads. On a normal evening the site makes 1,200 lookups a second, 300 on each node. Monday's log:"
+      },
+      {
+        "t": "log",
+        "text": "20:59:59    cache A 300/s   B 300/s   C 300/s   D 300/s\n21:00:00.0  bookings open, 28 days ahead. table:9 lives on D\n21:00:00.4  Table 9 booked: party of one, R. Marchbank\n21:00:00.4  database: 270 reads in 0.1 s (handles 50), 220 refused\n21:00:02    cache D 6,300/s of 3,000   timed out 3,300/s\n21:00:02    cache A 300/s   B 300/s   C 300/s"
+      },
+      {
+        "t": "p",
+        "text": "It's booked at 9:00:00.4 every night, under his name, and every night nobody comes. On Tuesday Cosmin added four nodes, E to H. Table 9 stayed on D, and at 9:00 D got 6,150 lookups a second while the other seven idled at 150."
+      },
+      {
+        "t": "beat",
+        "text": "Of all our pages, only his won't load."
+      },
+      {
+        "t": "p",
+        "text": "On Wednesday Cosmin took E to H out again and stored Table 9 under four keys, table:9#1 to #4, one on each node, with each read sent to one of them. Nothing timed out: every node got 1,800 a second. But the booking at 9:00:00.4 deleted only copy #1. Until 9:05, one answer in four said Table 9 was booked and three said free, and each refresh could change it. A woman sent us her screenshots, one a second: free, booked, free, free. \"He hasn't decided,\" she wrote."
+      },
+      {
+        "t": "p",
+        "text": "Cosmin says the copies were a hack and the nodes are just maths. What should he change before Friday?"
+      },
+      {
+        "t": "evidence",
+        "label": "cosmin_dashboard_monday_210002.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 420,
+          "aria": "Cosmin's dashboard at 21:00:02 on Monday. Fans' phones send 6,000 lookups a second for Table 9 and other pages 1,200 a second to six web servers, which use cache-aside and pick each key's node from a hash of its name, mod 4. Cache A, B and C each get 300 lookups a second of the 3,000 they answer. Cache D holds table:9 and gets 6,300 a second, and 3,300 a second time out. On a miss the web servers read the bookings database, which handles 500 reads a second; at 21:00:00.4 it got 270 reads in a tenth of a second.",
+          "nodes": [
+            {
+              "id": "fans",
+              "label": "Fans' phones",
+              "sub": "Table 9: 6,000/s",
+              "meta": "from 21:00:00",
+              "x": 200,
+              "y": 45,
+              "w": 270,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "others",
+              "label": "Other pages",
+              "sub": "1,200 lookups/s",
+              "x": 560,
+              "y": 45,
+              "w": 230,
+              "h": 52,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "web",
+              "label": "Web servers (6)",
+              "sub": "cache-aside",
+              "meta": "node = hash(key) mod 4",
+              "x": 290,
+              "y": 170,
+              "w": 300,
+              "h": 62,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "db",
+              "label": "Bookings database",
+              "sub": "handles 500 reads/s",
+              "meta": "21:00:00.4: 270 in 0.1 s",
+              "x": 620,
+              "y": 170,
+              "w": 210,
+              "h": 72,
+              "shape": "db",
+              "tone": "warn"
+            },
+            {
+              "id": "nA",
+              "label": "Cache A",
+              "sub": "300/s of 3,000",
+              "meta": "10% busy",
+              "x": 95,
+              "y": 320,
+              "w": 150,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "nB",
+              "label": "Cache B",
+              "sub": "300/s of 3,000",
+              "meta": "10% busy",
+              "x": 275,
+              "y": 320,
+              "w": 150,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "nC",
+              "label": "Cache C",
+              "sub": "300/s of 3,000",
+              "meta": "10% busy",
+              "x": 455,
+              "y": 320,
+              "w": 150,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "nD",
+              "label": "Cache D",
+              "sub": "6,300/s of 3,000",
+              "meta": "holds table:9",
+              "x": 635,
+              "y": 320,
+              "w": 150,
+              "h": 72,
+              "shape": "box",
+              "tone": "bad"
+            }
+          ],
+          "edges": [
+            {
+              "from": "fans",
+              "to": "web"
+            },
+            {
+              "from": "others",
+              "to": "web"
+            },
+            {
+              "from": "web",
+              "to": "db",
+              "label": "on a miss"
+            },
+            {
+              "from": "web",
+              "to": "nA",
+              "label": "300/s"
+            },
+            {
+              "from": "web",
+              "to": "nB",
+              "label": "300/s"
+            },
+            {
+              "from": "web",
+              "to": "nC",
+              "label": "300/s"
+            },
+            {
+              "from": "web",
+              "to": "nD",
+              "label": "6,300/s",
+              "tone": "bad"
+            }
+          ],
+          "notes": [
+            {
+              "x": 635,
+              "y": 378,
+              "text": "3,300/s timed out",
+              "tone": "bad",
+              "anchor": "middle"
+            },
+            {
+              "x": 20,
+              "y": 410,
+              "text": "Monday, 21:00:02",
+              "tone": "muted",
+              "anchor": "start"
+            }
+          ]
+        },
+        "caption": "Cosmin's dashboard at 21:00:02 on Monday, redrawn. 6,000 fans' lookups a second for Table 9 and 1,200 for other pages reach the six web servers. A hash of each key's name picks its node, and table:9 lives on D, so D gets 6,300 lookups a second against the 3,000 it answers, and 3,300 time out, while A, B and C get 300 each. At 21:00:00.4 the booking deleted table:9, and the misses sent 270 reads to the database in a tenth of a second, more than five times what it handles."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 97,
+      "age": "6h",
+      "text": "Some words first, then questions. Cosmin's cluster splits its keys between nodes: that's partitioning, also called sharding, and each node's share of the keys is a partition, or shard. A hash is a function that turns a key's name into a number, the same number every time; here, the remainder after dividing it by the number of nodes, written mod, picks the node. You already have a word for Table 9: a hot key. The shard that holds a hot key becomes a hot partition, busy while its neighbours idle. Now look at Monday's log. Of D's 6,300 lookups a second, how many were for Table 9? When Cosmin went from four nodes to eight, how many nodes could Table 9 land on? And on Wednesday the copies spread the reads. Which part of a booking didn't spread with them?",
+      "replies": [
+        {
+          "author": "u/host_stand_lettice",
+          "op": true,
+          "points": 31,
+          "age": "5h",
+          "text": "Cosmin counted: 6,000 of D's 6,300 were Table 9. Then he asked who keeps booking it at 9:00:00.4. The confirmation goes to a phone number with five digits. Nobody here has had a five-digit number since the sixties."
+        }
+      ]
+    },
+    {
+      "author": "u/near_cache_oksana",
+      "points": 64,
+      "age": "5h",
+      "text": "We sell trainers online, and the morning a limited pair went on sale, one product page melted its cache node the way your D did. What fixed it was a local cache, also called an in-process cache: the few hottest keys kept in each web server's own memory, in front of the shared cache, with a very short TTL. Each server then asks the shared cache for that page about once a second, however many people are looking. The price is staleness. A local copy never hears about a delete, so for up to its TTL it can show a pair as in stock after it sold out, which is why our checkout always asks the database. And keep only the hottest few keys there: every server holds its own copy, so you pay for the memory once per server."
+    },
+    {
+      "author": "u/top_keys_tobiah",
+      "points": 52,
+      "age": "4h",
+      "text": "Find hot keys with numbers before a node finds them for you. Count lookups per key, or sample one lookup in a hundred and count those, and keep a short list of the busiest: a top-k list, where k is how many you keep. Chart each node's load beside the others too, because one node far above the rest is skew you can alert on. Copies like Cosmin's are a real fix, but they cost you on every write: each copy is another place a change has to reach, so four copies means four deletes per booking. That multiplying of writes is called write amplification. Miss one copy and you get Wednesday."
+    },
+    {
+      "author": "u/velvet_rope_ignatius",
+      "points": 41,
+      "age": "3h",
+      "text": "Different angle. Six thousand phones refreshing once a second for a table that can only be booked once is a queue, not a cache problem. Put a limit at the edge, the first part of your site a request reaches, such as the load balancer or a CDN: each phone may load Table 9's page once every few seconds, and anything quicker gets a page saying wait. Your nodes never see the flood. The catch: your fans see the table a few seconds late, and the limit is per phone, so the next documentary brings more phones.",
+      "replies": [
+        {
+          "author": "u/host_stand_lettice",
+          "op": true,
+          "points": 26,
+          "age": "2h",
+          "text": "Isidore, who has waited tables here since 1971, says the old paper book had Table 9 held for nine o'clock every night, in pencil, long before we had a website. He never asked who held it. He says you don't."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "Friday is the next 9:00. What should Cosmin change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Go back to one key on four nodes and turn on coalescing, so the 6,000 fans asking for Table 9 at once share one lookup instead of making their own.",
+        "tone": "bad",
+        "verdict": "Merges misses, not hits",
+        "part2": "Cosmin took the copies out and turned coalescing on. On Friday at 21:00:00.0, and again when the booking deleted table:9 at 21:00:00.4, the misses reached the database as 6 reads, one per web server, instead of 270, and the database refused none. Then cache D fell over exactly as on Monday: 6,300 lookups a second against its 3,000, and 3,300 a second timing out, while A, B and C sat at 300. Table 9 wasn't missing. It was sitting in the cache, asked for 6,000 times a second. On the floor, Isidore lit the candle on Table 9 at nine, as he does every night, and nobody came to sit at it.",
+        "senior": "Coalescing merges lookups that are waiting on the same slow answer, which is what a hot key's misses are when a write deletes it, and that part worked: 6 reads instead of 270. It does nothing for hits. A cache answers in about a millisecond, so each web server rarely has two Table 9 lookups in flight to merge. To merge more you'd have to keep the answer for a while, and that's a local cache with a TTL."
+      },
+      {
+        "text": "Keep the four copies, one on each node, and change the booking so it deletes all four of them, so no copy can still say free once the table is taken.",
+        "tone": "warn",
+        "verdict": "Trade-off: honest copies, shared misses",
+        "part2": "On Thursday Cosmin changed the booking to delete all four copies. On Friday each node got 1,800 lookups a second, nothing timed out, and from 21:00:00.4 every answer said booked: four cache writes per booking instead of one. But copies emptied together miss together. At 21:00:00.0, when the four copies were first filled, at 21:00:00.4, when the booking deleted them, and at 21:05:00.4, when their 5-minute TTLs ran out in the same tenth of a second, 600 reads hit the database, which handles 50 in a tenth of a second, and 550 fans got an error page each time. Then Cosmin did the sums: four copies hold at most 10,800 lookups a second, and a second documentary is due in March.",
+        "senior": "Copies spread a hot key's reads over several nodes, and deleting every copy keeps them honest. The price is one write per copy on every change and one copy's worth of memory per copy, and the copies share their weak moments: deleted together or filled together, they miss together and stampede the database. Add coalescing so each emptied copy costs one read per web server, 24 here, and choose the number of copies from measured load with room to spare."
+      },
+      {
+        "text": "Go back to one key. Give each web server a local cache for the hottest keys with a 1-second TTL, and count each node's top keys so the next one is seen early.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "On Thursday Cosmin went back to one key and gave every web server a local cache for its hottest keys, with a 1-second TTL. On Friday at 21:00:00.0 each server fetched Table 9 from cache D once and answered its own fans from memory for a second. D got 306 lookups a second, A, B and C 300, and nothing timed out. The database got 6 reads at 21:00:00.0 and 6 at 21:00:01.0, one per server. The booking at 21:00:00.4 deleted table:9, one write, but the local copies didn't hear it: for 0.6 seconds they still said free, and the fans who pressed Book in that time were told it was taken, because a booking always checks the database. D's new top-key counter showed table:9 at only 6 lookups a second, so Cosmin added the same counter on the web servers, where it showed 6,000. At 9:01 the candle on Table 9 went out by itself, the way Isidore says it always has.",
+        "senior": "A local cache takes a hot key off the shared cache: each web server asks D once per TTL, so D's load depends on the number of servers, not the size of the crowd. It costs staleness up to the TTL, harmless here because the booking itself reads the database, and a little memory on every server. Counting top keys turns the next hot key into a line on a dashboard. Count at the web servers too: a local cache hides the hot key from its node."
+      },
+      {
+        "text": "Go back to one key, and put a limit at the edge: each phone may load Table 9's page once every 5 seconds, and quicker refreshes get a page saying wait.",
+        "tone": "warn",
+        "verdict": "Trade-off: a rationed crowd",
+        "part2": "Cosmin went back to one key and put a limit at the edge: each phone could load Table 9's page once every 5 seconds, and quicker refreshes got a page saying wait. On Friday at 21:00, 1,200 lookups a second got through and 4,800 a second were told to wait. Cache D got 1,500 a second, and nothing timed out. At 21:00:00.0 and again at 21:00:00.4 the misses sent 120 reads to the database in a tenth of a second, and it refused 70 each time. A fan whose phone loaded the page just before the booking was shown it free for up to 5 seconds more, and someone on the fan forum started calling the wait page the queue for his table. Then Cosmin asked what happens when 30,000 fans come: one load each every 5 seconds is 6,000 a second again.",
+        "senior": "A limit at the edge caps how hard any one phone can push, which protects every node behind it and is worth having anyway. But it rations demand instead of making the hot key cheap: the cap is per phone, so more fans means more load, and every fan sees the table up to 5 seconds late. Pair it with a fix that makes the key cheap to serve, such as a local cache."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e11",
+    "title": "Run the cache at Ostler's",
+    "lede": "You're Cosmin, replaying a night at Ostler's from 20:59:55. Six web servers share a cache of four nodes, A to D, or eight, A to H. Each node answers 3,000 lookups a second; past that, the rest time out, and the sim lets the other pages' 1,200 lookups a second, spread evenly over the nodes and always hits, through first. The sim's hash is a toy: it adds up the character codes of the key's name, the numbers a computer stores for its letters (116 for t, 57 for 9), and the remainder after dividing by the number of nodes picks the node. table:9 adds up to 635, so it lives on D with four nodes or eight. At 21:00:00 bookings open and 6,000 fans each load Table 9's page once a second, 1,000 lookups a second per web server. The page isn't cached yet, so the first lookups miss. A miss reads the bookings database, which answers 50 reads a tenth of a second, 500 a second, and refuses the rest; a page it answers stays cached for 5 minutes. At 21:00:00.4 Table 9 is booked, and the booking deletes its key. With copies, each web server sends its lookups to the copies in turn; real clients usually pick one at random, which comes out about even. With a local cache, each web server fetches Table 9 once, its other lookups wait for that answer, and it answers from its own copy until the TTL runs out. Coalescing works on misses: one database read per missing key per web server, and the other misses wait for it. Hits aren't coalesced: a cache answers in about a millisecond, and each web server sees about one Table 9 lookup a millisecond, so there's rarely a second one to merge with. The edge limit lets each phone load the page once every 5 seconds. Changing a setting replays the night. The clock runs twice as fast as real life. Click any box to see what it does.",
+    "tryThis": "Try this: press nothing and watch Monday: at 21:00 cache D jumps to 6,300 lookups a second and 3,300 time out, while A, B and C sit at 300, and the booking at 21:00:00.4 sends 270 reads to the database. Switch to eight nodes: table:9 stays on D. Pick Cosmin's quick fix: every node at 1,800 and nothing timed out, but watch how long the site says free after the booking, then skip to 21:04:55 and see it stop at 299.6 seconds. Now let the booking delete every copy: 4 writes and nothing free after the booking, but 600 reads at the database at 21:00:00.4; add coalescing and it's 24. Try 2 copies, then 8 copies on eight nodes. Back to one key, turn on coalescing alone and compare the database with cache D. Then try the local cache at 1 second and at 10 seconds, and last the edge limit."
+  },
+  "explain": {
+    "oneLine": "Nothing at Ostler's was haunted. Every key lives on one cache node, so 6,000 fans asking for one key a second all landed on cache D, 6,300 lookups a second against its 3,000, while A, B and C idled at 300. Adding nodes couldn't help, because the key still lived on one of them, and copying it spread the reads but not the booking's delete.",
+    "steps": [
+      {
+        "title": "Every key lives on one node.",
+        "text": "Cosmin's shared cache is partitioned: each key lives on exactly one node, picked by a hash of its name. That spreads the load evenly only while the load is spread over many keys. On Monday it wasn't. 6,000 of D's 6,300 lookups a second were for table:9, one key, so D got more than twice what it answers while A, B and C used a tenth of theirs. The cluster as a whole had room to spare, 12,000 lookups a second for 7,200, but capacity doesn't add up across nodes for a single key: a key's limit is its node's limit. That's why adding nodes didn't help. With eight nodes the other pages spread thinner, but table:9 still had to land on one node, and 635 mod 8 is 3, cache D again. Hashing by remainder also moves keys whenever the node count changes: going from four to eight moved about half of them, and going from four to five would have moved most. Consistent hashing, in Season 3's The Ring, moves only the keys a new node takes over, but it still puts each key on one node."
+      },
+      {
+        "title": "Find hot keys with numbers, not with a fallen node.",
+        "text": "A hot key shows up first as skew: one node far busier than its neighbours, like D at 6,300 a second beside three at 300. Chart every node's load side by side and alert when one pulls away from the rest. Then name the key. Count lookups per key on each node, or count a sample, say one lookup in a hundred, which costs less and still shows the biggest keys, and keep a top-k list of the busiest few. Redis's command-line tool can sample keys looking for hot ones, and DynamoDB can report a table's most accessed items. Exact counts for millions of keys take memory; Season 3's count-min sketch keeps approximate ones in a small, fixed space. One catch: once a local cache is in front, the node sees only six lookups a second for table:9, so count at the web servers too."
+      },
+      {
+        "title": "A local cache: one fetch per server, however big the crowd.",
+        "text": "A local cache keeps the hottest few keys in each web server's own memory, in front of the shared cache. With a 1-second TTL, each of Ostler's six web servers asks cache D for table:9 once a second instead of 1,000 times, so D gets 306 lookups a second whether 6,000 fans come or 60,000: its load now depends on the number of web servers and the TTL, not on the crowd. The cost is staleness. Nothing tells a local copy about a delete, so it can be wrong for up to its TTL: the booking deleted table:9 at 21:00:00.4, and the local copies said free for 0.6 seconds more, or 9.6 with a 10-second TTL. That's harmless here, because the booking itself reads the database, the source of truth. Keep only the hottest few keys there: every server pays for its own copy."
+      },
+      {
+        "title": "Copies spread the reads; every write pays for them.",
+        "text": "Replicating a hot key means storing it under several keys, table:9#1 to table:9#4, that hash to different nodes, and sending each read to one copy, usually chosen at random. Four copies cut each node's share of Table 9 from 6,000 lookups a second to 1,500, and every node got 1,800. Reads get cheaper and writes get dearer: every change has to reach every copy, four deletes per booking instead of one, which is write amplification, and every copy takes memory. Wednesday shows what happens when a write path misses copies: the booking deleted only #1, so #2 to #4 said free until their 5-minute TTL ran out, 299.6 seconds after the booking. Copies also share their weak moments: deleted or filled together, they miss together, 600 reads at a database that handles 50 in a tenth of a second, so pair them with coalescing. And choose the count from measured load with room to spare. Two copies left D and A at 3,300 a second each, and four hold at most 10,800 a second."
+      },
+      {
+        "title": "Coalesce the misses, cap the crowd, split what's really many things.",
+        "text": "Coalescing, from the stampede case, merges lookups that are waiting on the same slow answer. A hot key that changes makes exactly that: Facebook's memcache paper describes a key under heavy read and write activity, where each write sends many reads down the costly path. At Ostler's the booking's delete sent 270 reads to the database in a tenth of a second; with coalescing it sent 6, one per web server. Coalescing does nothing for hits. A cache answers in about a millisecond, so a web server rarely has two Table 9 lookups in flight to merge. A limit at the edge, such as one load per phone every 5 seconds, caps what the crowd can send, 1,200 lookups a second instead of 6,000, but fans see changes up to 5 seconds late and the load grows with the number of phones. And if a hot key is really many things under one name, such as a page holding all 28 nights, or a post with its like count and its comments, split it into keys that land on different nodes. Splitting can't help when everyone wants the very same value, like the one new night at 9:00."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 420,
+      "aria": "The fix, drawn at 21:00:02 on Friday. Fans' phones send 6,000 lookups a second for Table 9 and other pages 1,200 a second to six web servers, each with a local cache that keeps Table 9 for 1 second and fetches it once a second. Cache D holds table:9 and gets 306 lookups a second of the 3,000 it answers; A, B and C get 300 each. The bookings database got 6 reads at 21:00:01.0. For 0.6 seconds after the booking, the local copies still said free.",
+      "nodes": [
+        {
+          "id": "fans",
+          "label": "Fans' phones",
+          "sub": "Table 9: 6,000/s",
+          "meta": "one refresh a second each",
+          "x": 200,
+          "y": 45,
+          "w": 270,
+          "h": 62,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "others",
+          "label": "Other pages",
+          "sub": "1,200 lookups/s",
+          "x": 560,
+          "y": 45,
+          "w": 230,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "web",
+          "label": "Web servers (6)",
+          "sub": "local cache: 1 s",
+          "meta": "1 fetch per server a second",
+          "x": 290,
+          "y": 170,
+          "w": 300,
+          "h": 62,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "db",
+          "label": "Bookings database",
+          "sub": "handles 500 reads/s",
+          "meta": "6 reads at 21:00:01.0",
+          "x": 620,
+          "y": 170,
+          "w": 210,
+          "h": 72,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "nA",
+          "label": "Cache A",
+          "sub": "300/s of 3,000",
+          "meta": "10% busy",
+          "x": 95,
+          "y": 320,
+          "w": 150,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "nB",
+          "label": "Cache B",
+          "sub": "300/s of 3,000",
+          "meta": "10% busy",
+          "x": 275,
+          "y": 320,
+          "w": 150,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "nC",
+          "label": "Cache C",
+          "sub": "300/s of 3,000",
+          "meta": "10% busy",
+          "x": 455,
+          "y": 320,
+          "w": 150,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "nD",
+          "label": "Cache D",
+          "sub": "306/s of 3,000",
+          "meta": "holds table:9",
+          "x": 635,
+          "y": 320,
+          "w": 150,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        }
+      ],
+      "edges": [
+        {
+          "from": "fans",
+          "to": "web"
+        },
+        {
+          "from": "others",
+          "to": "web"
+        },
+        {
+          "from": "web",
+          "to": "db",
+          "label": "on a miss"
+        },
+        {
+          "from": "web",
+          "to": "nA",
+          "label": "300/s"
+        },
+        {
+          "from": "web",
+          "to": "nB",
+          "label": "300/s"
+        },
+        {
+          "from": "web",
+          "to": "nC",
+          "label": "300/s"
+        },
+        {
+          "from": "web",
+          "to": "nD",
+          "label": "306/s",
+          "tone": "ok"
+        }
+      ],
+      "notes": [
+        {
+          "x": 370,
+          "y": 380,
+          "text": "for 0.6 s after the booking, local copies still said free",
+          "tone": "warn",
+          "anchor": "middle"
+        },
+        {
+          "x": 20,
+          "y": 410,
+          "text": "Friday, 21:00:02",
+          "tone": "muted",
+          "anchor": "start"
+        }
+      ]
+    },
+    "caption": "The fix, drawn at 21:00:02 on Friday. 6,000 fans' lookups a second still reach the six web servers, but each server keeps table:9 in its own memory for 1 second and asks cache D for it once a second, so D gets 306 lookups a second instead of 6,300, and nothing times out. The database got 6 reads at 21:00:00.0 and 6 at 21:00:01.0, one per server. The cost: for 0.6 seconds after the 21:00:00.4 booking, the local copies still said free.",
+    "fix": {
+      "title": "The fix: a short local cache for the hottest keys, counters that find them, and copies only when every write reaches them",
+      "text": "Go back to one key per page. Give every web server a local cache for the hottest few keys with a 1-second TTL, fetched once per server, so cache D sees six lookups a second for Table 9 however many fans come. Keep the booking itself on the database, so a page that's up to a second out of date can never sell a taken table. Count lookups per key on every node and every web server, keep a top-k list, and alert when one node pulls away from the rest, so the next hot key is a line on a dashboard, not a fallen node. Turn on coalescing for misses, so each change to a hot key costs the database one read per server. If one node ever can't take even the local caches' fetches, copy the key to several nodes and make every write reach every copy. A limit at the edge is worth having as well, for the crowd nobody predicted."
+    },
+    "limits": [
+      "A local cache trades load for staleness and memory. Every server's copy can be up to the TTL out of date, and no delete reaches it unless you build a way to send one to every server, so use it for keys where a second or so of staleness is fine, and let decisions that can't be undone read the source of truth. Its load on the shared cache grows with the number of servers: 600 web servers with a 1-second TTL still send 600 lookups a second.",
+      "Copies multiply every write and every byte of memory, and the number of copies is a guess made in advance. With a real hash, two copies can land on the same node by chance, so check where they land. And any write path that forgets a copy, a script or an old admin screen, brings back Wednesday.",
+      "Counters find a hot key once it's hot. For hot keys you can see coming, like a 9:00 opening, a launch or a sale, set up the local cache or the copies before the day, and keep the edge limit for the crowd nobody predicted."
+    ],
+    "tradeoff": {
+      "head": [
+        "Fix",
+        "What it does to the hot key",
+        "What it costs",
+        "At Ostler's"
+      ],
+      "rows": [
+        [
+          "Add nodes",
+          "Nothing: the key still lives on one node. The other keys spread thinner.",
+          "More machines, and with remainder hashing about half the keys move when four nodes become eight.",
+          "D still at 6,150 a second, 3,150 timing out."
+        ],
+        [
+          "Local cache, short TTL",
+          "Each web server asks for it once per TTL, however big the crowd.",
+          "Staleness up to the TTL, memory on every server, and no delete reaches it.",
+          "D at 306 a second; free for 0.6 s after the booking, or 9.6 s with a 10 s TTL."
+        ],
+        [
+          "Copies, every copy deleted",
+          "Spreads its reads over the copies' nodes.",
+          "One write per copy on every change, memory per copy, and copies emptied together miss together.",
+          "1,800 a second per node, 4 writes per booking, 550 reads refused at each emptying without coalescing."
+        ],
+        [
+          "Copies, one deleted",
+          "Spreads its reads.",
+          "The copies nobody deleted keep the old value until their TTL.",
+          "Free for 299.6 s after the booking."
+        ],
+        [
+          "Coalescing",
+          "Nothing for hits. When the key changes, its misses cost one database read per server.",
+          "Everyone waiting shares one read's fate, so it needs a timeout.",
+          "6 database reads instead of 270; D still at 6,300 a second."
+        ],
+        [
+          "Edge limit",
+          "Caps what each phone can send.",
+          "Fans see changes late, and more phones bring more load.",
+          "1,200 a second get through; D at 1,500."
+        ],
+        [
+          "Split the item",
+          "Spreads the parts of a key that is really many things.",
+          "More keys, and more lookups per page.",
+          "No help: everyone wants the same night."
+        ]
+      ]
+    },
+    "seniorTake": "When one key takes most of the traffic, the cluster's total capacity stops mattering: a key lives on one node, so that node's limit is the key's limit, and adding nodes only moves the key. Find hot keys before they hurt: chart every node's load side by side, count lookups per key or a sample of them, and keep a top-k list at the cache and at the app servers. Then make the hot key cheap to serve: a short local cache on each server for the hottest few keys, with a TTL chosen from how stale they may be; copies on several nodes when even that is too much, with every write reaching every copy; coalescing for the misses when the key changes; and a limit at the edge for crowds nobody predicted. Keep every decision that can't be undone, like a booking, on the source of truth.",
+    "realWorld": [
+      {
+        "title": "Facebook: one key can swamp one server",
+        "text": "In Scaling Memcache at Facebook (NSDI 2013), Rajesh Nishtala and colleagues write that items are distributed across the memcached servers through consistent hashing, so each key has one home. Section 3.3 explains why Facebook doesn't simply rehash a failed server's keys onto the others: such an approach risks cascading failures due to non-uniform key access frequency. For example, the paper says, a single key can account for 20% of a server's requests, and the server that becomes responsible for this hot key might also become overloaded. Section 4 adds that it is tempting to buy more web and memcached servers as demand increases, but naïvely scaling the system does not eliminate all problems: highly requested items will only become more popular as more web servers are added to cope with increased user traffic.",
+        "source": 0
+      },
+      {
+        "title": "Facebook: replicate instead of splitting",
+        "text": "Section 3.2.3 of the same paper replicates a category of keys within a pool when the application routinely fetches many keys simultaneously, the entire data set fits in one or two memcached servers, and the request rate is much higher than what a single server can manage. Its example is a server holding 100 items that can answer 500k requests a second, where each request asks for 100 keys. To reach 1M requests a second, adding a second server and splitting the key space equally between the two doesn't help: each request becomes two parallel requests for about 50 keys, and both servers still have to process 1M requests a second. Replicating all 100 keys to multiple servers lets a request go to any replica, which cuts each server's load to 500k. Each client chooses replicas based on its own IP address, and the approach requires delivering invalidations to all replicas to maintain consistency. Section 3.1 states the trade-off: data replication often alleviates the single-server bottleneck but leads to significant memory inefficiencies in the common case.",
+        "source": 0
+      },
+      {
+        "title": "Facebook's replicated pool",
+        "text": "Facebook splits a cluster's memcached servers into pools, so that workloads with different access patterns don't lower each other's hit rates. Section 7.2 describes four of them, including a replicated pool for frequently accessed data. That pool has the highest get rate, about 2.7 times that of the next highest one, and in the paper's Table 2 each of its servers handles 710k gets a second with a miss rate of 0.053%. The paper puts that performance down to its design, which leverages replication and batching.",
+        "source": 0
+      },
+      {
+        "title": "Facebook: a hot key that keeps changing",
+        "text": "Section 3.2.1 names what happened at Ostler's at 21:00:00.4. A thundering herd, the paper says, happens when a specific key undergoes heavy read and write activity: as the write activity repeatedly invalidates the recently set values, many reads default to the more costly path. Facebook's answer is leases, which let one client refill a missing key while the others wait, the form of coalescing that works across many web servers.",
+        "source": 0
+      },
+      {
+        "title": "DynamoDB: every partition has a ceiling",
+        "text": "Amazon DynamoDB spreads a table's items over partitions by their partition key. AWS's best-practices page says every partition in a DynamoDB table is designed to deliver a maximum capacity of 3,000 read units per second and 1,000 write units per second, and that item size counts: with 20 KB items, each consistent read uses 5 read units, so a single item can take 600 consistent reads a second before reaching the partition limits.",
+        "source": 2
+      },
+      {
+        "title": "DynamoDB: hot partitions and adaptive capacity",
+        "text": "AWS's page on burst and adaptive capacity says it's not always possible to evenly distribute read and write activity, and when data access is imbalanced, a hot partition can receive a higher volume of read and write traffic than the others. Adaptive capacity, enabled automatically for every table at no additional cost, gives a busy partition more: in the page's example, a table provisioned with 400 write units shared across four partitions allows each up to 100 a second, and when partition 4 receives 150 while the others receive 50, adaptive capacity lets it sustain 150. It can also isolate frequently accessed items on their own partitions. But if an application drives consistently high traffic to a single item, DynamoDB can deliver throughput up to the partition maximum of 3,000 RCUs and 1,000 WCUs to that single item's primary key. A single hot key keeps one partition's ceiling.",
+        "source": 1
+      },
+      {
+        "title": "DynamoDB: choose keys that spread",
+        "text": "AWS's page on designing partition keys says a design that doesn't distribute requests effectively can create hot partitions that result in throttling. Its table of example keys rates a user ID, where the application has many users, as good, and rates as bad a device ID where, even if there are many devices being tracked, one is by far more popular than all the others. Table 9 is that device.",
+        "source": 3
+      },
+      {
+        "title": "DynamoDB's write sharding: the mirror image",
+        "text": "For a partition key that takes too many writes, such as today's date, AWS suggests adding a random number to the end of the partition key values, for example 2014-07-09.1, 2014-07-09.2 and so on through 2014-07-09.200, so the day's writes are spread evenly across multiple partitions. The cost moves to the reads: to read all the items for a given day, you would have to query the items for all the suffixes and then merge the results. It's Cosmin's copies turned around. Copies of a hot read make every write pay once per copy; suffixes on a hot write make every full read pay once per suffix.",
+        "source": 4
+      },
+      {
+        "title": "DynamoDB keeps a top-k list for you",
+        "text": "CloudWatch Contributor Insights for DynamoDB provides information about the most accessed and throttled items in a table. It has two modes: throttled keys mode, which only processes events when throttling occurs, and accessed and throttled keys mode, which also tracks the items that consume the most read and write capacity.",
+        "source": 5
+      },
+      {
+        "title": "Sampling for hot keys in Redis",
+        "text": "redis-cli, Redis's command-line tool, has a --hotkeys option that samples Redis keys looking for hot keys. Its documentation notes that the option only works when maxmemory-policy is one of the LFU policies.",
+        "source": 6
+      },
+      {
+        "title": "Discord: hot partitions and coalescing",
+        "text": "In How Discord Stores Trillions of Messages (March 2023), Bo Ingram describes Discord's Cassandra cluster, 177 nodes holding trillions of messages at the beginning of 2022, with messages partitioned by channel and a fixed time window. Lots of concurrent reads could make a hot partition: one channel's partition received a large amount of traffic, latency in the node would increase as the node tried harder and harder to serve traffic and fell further and further behind, and other queries to that node suffered too. Discord's answer was data services in front of the database whose big feature is request coalescing: if multiple users are requesting the same row at the same time, they query the database once. Requests are routed by consistent hashing on the channel ID, so all requests for the same channel go to the same instance of the service, which makes the coalescing more effective. The post says these improvements helped a lot but didn't solve all of Discord's problems: hot partitions still happened, just not quite as frequently.",
+        "source": 7
+      }
+    ],
+    "interview": {
+      "asked": [
+        "A celebrity posts, and one cache node falls over while the rest are fine. What happened, and what do you do?",
+        "How would you detect hot keys?",
+        "What are the trade-offs of replicating a hot key?"
+      ],
+      "answer": "A cache cluster partitions its keys by a hash, so every key lives on exactly one node. A celebrity post makes one key hot, and all of its traffic lands on the node that owns it: that node melts while the rest idle, a hot partition. The cluster's total capacity doesn't help a single key, so adding nodes only moves it. To detect it, chart per-node load side by side and alert when one node pulls away; count lookups per key, or a sample of them, and keep a top-k list, at the cache and at the app servers, because a local cache hides the key from its node. To fix it, put a local cache with a TTL of a second or two on each app server for the hottest keys, so the node sees one fetch per server per TTL; if that's still too much, copy the key to several nodes and spread reads between the copies; coalesce misses so a change to the key costs the database one read per server; limit what each client can send at the edge; and split keys that are really many things. The trade-offs of replicating: reads get cheaper but every change costs one write per copy, memory grows with the copies, a write path that misses a copy leaves readers disagreeing until the TTL, copies emptied or expiring together stampede the database, and you choose the number of copies before you know the load. For a celebrity post I'd start with a short local cache plus coalescing, since a post can be a second out of date, and keep anything that can't be undone on the source of truth. You'll build hot partitions into your own simulator in Loadout's Build Night L4, alongside sharding and consistent hashing."
+    }
+  },
+  "terms": [
+    {
+      "term": "Front of house",
+      "def": "The part of a restaurant guests see: the door, the bookings and the dining room, as opposed to the kitchen."
+    },
+    {
+      "term": "Party (booking)",
+      "def": "The group a table is booked for. A party of one is a single guest."
+    },
+    {
+      "term": "Bookings database",
+      "def": "Ostler's database of tables and bookings, the source of truth. It answers 500 reads a second; past that, it refuses the rest."
+    },
+    {
+      "term": "Shared cache",
+      "def": "A cache that runs on its own nodes and that every web server uses, so a value cached by one server is there for all of them."
+    },
+    {
+      "term": "Key (in a cache)",
+      "def": "The name a cached value is stored under, such as table:9 for Table 9's page. A cache finds a value by its key."
+    },
+    {
+      "term": "table:9 and table:9#1",
+      "def": "The key for Table 9's page, and the names of its copies in Cosmin's quick fix: table:9#1 to table:9#4."
+    },
+    {
+      "term": "Lookup (at Ostler's)",
+      "def": "One request for one page's cached copy, from a web server to the cache node that holds its key."
+    },
+    {
+      "term": "Refused (by the database)",
+      "def": "Turned away because the database already has as many reads as it can answer. The fan whose read was refused gets an error page."
+    },
+    {
+      "term": "Partitioning",
+      "def": "Splitting data between machines so each holds part of it. In a cache cluster, each node holds some of the keys. Also called sharding."
+    },
+    {
+      "term": "Sharding",
+      "def": "Another name for partitioning."
+    },
+    {
+      "term": "Partition (shard)",
+      "def": "One machine's share of partitioned data. In Cosmin's cache, the set of keys one node holds."
+    },
+    {
+      "term": "Hash",
+      "def": "A function that turns a key's name into a number, the same number every time. The remainder after dividing it by the number of nodes picks the key's node."
+    },
+    {
+      "term": "Character code",
+      "def": "The number a computer stores for a character, such as 116 for t and 57 for 9. The sim's toy hash adds them up."
+    },
+    {
+      "term": "Mod",
+      "def": "Short for modulo: the remainder after dividing. 635 mod 4 is 3, because 635 is 158 fours with 3 left over."
+    },
+    {
+      "term": "Hot partition",
+      "def": "A partition, or the node holding it, that gets far more traffic than the others, usually because it holds a hot key. It overloads while its neighbours idle."
+    },
+    {
+      "term": "Copy (of a hot key)",
+      "def": "The same value stored under several keys that hash to different nodes, such as table:9#1 to #4, so reads can be spread between them."
+    },
+    {
+      "term": "Replicating a hot key",
+      "def": "Storing a hot key as several copies on different nodes and sending each read to one of them. Reads spread out; every write has to reach every copy."
+    },
+    {
+      "term": "Write amplification",
+      "def": "One change turning into several writes, such as one booking needing four deletes because the key has four copies."
+    },
+    {
+      "term": "Local cache",
+      "def": "A small cache inside each web server's own memory, in front of the shared cache, for a few of the hottest keys. Fast, but nothing tells it about a change."
+    },
+    {
+      "term": "In-process cache",
+      "def": "Another name for a local cache: it lives inside the web server's own process."
+    },
+    {
+      "term": "Staleness",
+      "def": "How out of date a cached copy is. A local cache's copies can be up to its TTL out of date."
+    },
+    {
+      "term": "Sampling",
+      "def": "Counting only some events, such as one lookup in a hundred. It costs less than counting all of them and still shows the biggest keys."
+    },
+    {
+      "term": "Top-k list",
+      "def": "A list of the k busiest items, such as the 10 keys with the most lookups in the last minute."
+    },
+    {
+      "term": "Edge",
+      "def": "The first part of a site that a request reaches, such as the load balancer or a CDN, before any web server sees it."
+    },
+    {
+      "term": "Edge limit",
+      "def": "A rule at the edge that caps how often each client may ask for something, such as one load of Table 9's page per phone every 5 seconds. A kind of rate limiting."
+    },
+    {
+      "term": "Splitting a hot item",
+      "def": "Breaking a key that holds many things, such as a menu with every dish, into several keys that land on different nodes. It can't help when everyone wants the same one thing."
+    },
+    {
+      "term": "Pre-split",
+      "def": "To copy or split a key you already know will be hot before the traffic arrives, instead of after it melts a node."
+    },
+    {
+      "term": "Consistent hashing",
+      "def": "A way to place keys on nodes so that adding or removing a node moves only the keys it takes over or gives up. Each key still lives on one node. Season 3's The Ring covers it."
+    },
+    {
+      "term": "Count-min sketch",
+      "def": "A small, fixed-size table that keeps approximate counts for huge numbers of items, useful for finding the top keys. Season 3 covers it."
+    },
+    {
+      "term": "Pool (memcache)",
+      "def": "At Facebook, a group of memcached servers set aside for one kind of workload, such as a replicated pool for frequently accessed data."
+    },
+    {
+      "term": "Get (memcached)",
+      "def": "memcached's read command: fetch the value for a key. A get rate is how many a server answers a second."
+    },
+    {
+      "term": "Miss rate",
+      "def": "Misses divided by all lookups: one minus the hit rate."
+    },
+    {
+      "term": "Partition (DynamoDB)",
+      "def": "A slice of a DynamoDB table's storage and throughput on AWS's servers. Items go to partitions by their partition key."
+    },
+    {
+      "term": "Partition key",
+      "def": "The part of a DynamoDB item's primary key that decides which partition it is stored in."
+    },
+    {
+      "term": "Item (DynamoDB)",
+      "def": "One record in a DynamoDB table, like a row in a database table."
+    },
+    {
+      "term": "Read unit and write unit",
+      "def": "DynamoDB's measures of throughput. Roughly, a read unit is a read a second of an item up to 4 KB, and a write unit a write a second of an item up to 1 KB."
+    },
+    {
+      "term": "RCU and WCU",
+      "def": "Read capacity units and write capacity units: DynamoDB's names for read units and write units."
+    },
+    {
+      "term": "Adaptive capacity",
+      "def": "A DynamoDB feature, always on, that gives a busy partition more of a table's throughput and can move frequently accessed items onto partitions of their own."
+    },
+    {
+      "term": "Write sharding",
+      "def": "Spreading the writes for one busy partition key over many keys by adding a suffix, such as .1 to .200, so they land on different partitions."
+    },
+    {
+      "term": "Suffix",
+      "def": "Characters added to the end of a name, such as .17 at the end of 2014-07-09.17."
+    },
+    {
+      "term": "CloudWatch Contributor Insights",
+      "def": "A CloudWatch feature that reports the top contributors to a metric. For DynamoDB it lists the most accessed and most throttled items."
+    },
+    {
+      "term": "redis-cli",
+      "def": "Redis's command-line tool, for sending commands to a Redis server from a terminal."
+    },
+    {
+      "term": "--hotkeys",
+      "def": "A redis-cli option that samples keys looking for hot ones. It only works when maxmemory-policy is an LFU policy."
+    },
+    {
+      "term": "Discord",
+      "def": "A chat app where people talk in communities, each split into channels."
+    },
+    {
+      "term": "Cassandra",
+      "def": "An open-source database that spreads data, and copies of it, over many nodes. Discord stored its messages in it."
+    },
+    {
+      "term": "Channel (Discord)",
+      "def": "One conversation space inside a Discord community. Discord partitions its messages by channel."
+    },
+    {
+      "term": "Data service (Discord)",
+      "def": "Discord's service between its application and its databases. Its main feature is request coalescing: one database query for many users asking for the same row."
+    },
+    {
+      "term": "Flash sale",
+      "def": "A short sale, often starting at a set time, that brings a crowd at once, usually to a few products."
+    },
+    {
+      "term": "GetTypeCmds",
+      "def": "An ElastiCache CloudWatch metric: how many read-only commands, such as get, a cache node ran."
+    },
+    {
+      "term": "EngineCPUUtilization",
+      "def": "An ElastiCache CloudWatch metric: how busy the cache engine's thread is on a node, as a percentage."
+    }
+  ],
+  "atWork": "Picture your team's next flash sale: one product ID gets most of the traffic, and the cache shard that owns its key melts while the others idle. Find out now whether you'd see it coming. If your cache is ElastiCache with several nodes (read-only access is enough), open CloudWatch and chart GetTypeCmds and EngineCPUUtilization for every node side by side over your busiest day; ElastiCache calculates each metric per cache node. Does one node pull away from the rest at the same moments? That's a hot partition. Then find its keys: on a Redis node whose maxmemory-policy is an LFU one, redis-cli --hotkeys samples keys looking for hot ones; otherwise count keys in the app's own logs. Write the playbook before the sale: detect the top keys, put a local cache with a short TTL in front of them, write down how stale each may be, and pre-split anything you already know will be hot, such as the sale's own product IDs.",
+  "board": {
+    "cards": [
+      {
+        "id": "hot-keys",
+        "title": "Hot keys"
+      },
+      {
+        "id": "hot-partitions",
+        "title": "Hot partitions"
+      },
+      {
+        "id": "replicating-hot-items",
+        "title": "Replicating hot items"
+      }
+    ],
+    "strings": [
+      {
+        "from": "hot-partitions",
+        "to": "sharding",
+        "label": "one key, one shard"
+      },
+      {
+        "from": "hot-partitions",
+        "to": "consistent-hashing",
+        "label": "still one node"
+      },
+      {
+        "from": "hot-keys",
+        "to": "count-min-sketch",
+        "label": "find the top keys"
+      },
+      {
+        "from": "hot-keys",
+        "to": "request-coalescing",
+        "label": "merges misses only"
+      },
+      {
+        "from": "hot-keys",
+        "to": "cache-stampede",
+        "label": "a hot key changes"
+      },
+      {
+        "from": "hot-keys",
+        "to": "rate-limiting",
+        "label": "cap it at the edge"
+      },
+      {
+        "from": "replicating-hot-items",
+        "to": "cache-invalidation",
+        "label": "N copies, N writes"
+      },
+      {
+        "from": "replicating-hot-items",
+        "to": "stale-reads",
+        "label": "a missed copy"
+      },
+      {
+        "from": "hot-keys",
+        "to": "read-replicas-for-read-heavy-traffic",
+        "label": "next case"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e11-r1",
+      "kind": "free",
+      "prompt": "A celebrity shares a link to one product, and within a minute one of your eight Redis nodes is at 100% CPU and timing out while the other seven sit near 10%. A teammate wants to double the cluster to sixteen nodes. What happened, and what do you do?",
+      "keyIdeas": [
+        {
+          "idea": "Every key lives on one node, so the product's key took all its traffic to the node that owns it: a hot key making a hot partition",
+          "match": [
+            "hot key",
+            "hot partition",
+            "one key",
+            "single key",
+            "same key",
+            "owns",
+            "lives on",
+            "one shard",
+            "hash"
+          ]
+        },
+        {
+          "idea": "More nodes don't help: the key still maps to exactly one node",
+          "match": [
+            "still one",
+            "still on one",
+            "still maps",
+            "doesn't help",
+            "won't help",
+            "wouldn't help",
+            "will not help",
+            "does not help",
+            "only moves",
+            "same node"
+          ]
+        },
+        {
+          "idea": "Make the key cheap: a short-TTL local cache for the hottest keys on each app server, or copies of the key on several nodes with every write reaching each copy",
+          "match": [
+            "local cache",
+            "in-process",
+            "in process",
+            "near cache",
+            "replicat",
+            "copies",
+            "copy the key",
+            "short ttl",
+            "second or two"
+          ]
+        },
+        {
+          "idea": "Detect hot keys with per-key counts or sampling, and alert when one node pulls away from the rest",
+          "match": [
+            "top-k",
+            "top k",
+            "top keys",
+            "sampl",
+            "count lookups",
+            "counts",
+            "counter",
+            "skew",
+            "hotkeys",
+            "contributor insights",
+            "per key",
+            "alert"
+          ]
+        }
+      ],
+      "model": "The product's key lives on one node, chosen by a hash of its name, so every request for it lands on that node: a hot key makes a hot partition, at 100% while its neighbours idle. Doubling the cluster won't help. The key still maps to exactly one node, and it may not even move. Make the key cheap instead: a local cache for the hottest few keys in each app server's memory with a TTL of a second or so, so the node sees one fetch per server per TTL; if that's still too much, copy the key to several nodes and make every write reach every copy. Turn on coalescing so a change to the key costs the database one read per server, and keep anything you charge for on the database. Then detect the next one early: count lookups per key, or a sample of them, keep a top-k list, and alert when one node pulls away from the rest."
+    },
+    {
+      "id": "s2e11-r2",
+      "kind": "mcq",
+      "prompt": "A hot key gets 6,000 lookups a second. You copy it to 4 cache nodes, each read goes to one copy, and every change must reach every copy. How many cache writes does each change cost, and about how many lookups does each copy get?",
+      "options": [
+        "1 write, and 6,000 a second each",
+        "4 writes, and about 1,500 a second each",
+        "4 writes, and 6,000 a second each",
+        "1 write, and about 1,500 a second each"
+      ],
+      "answer": 1,
+      "why": "Spreading the reads over 4 copies gives each about a quarter, 1,500 a second. Every change has to reach all 4, so it costs 4 writes, which is write amplification, and every copy takes memory. Delete only one and the others keep the old value until their TTL, as on Wednesday at Ostler's."
+    },
+    {
+      "id": "s2e11-r3",
+      "kind": "mcq",
+      "prompt": "Cache node D is overloaded by one key that is in the cache and being read 6,000 times a second. Which change, on its own, does nothing for D?",
+      "options": [
+        "A 1-second local cache on each web server",
+        "Request coalescing on cache misses",
+        "Copying the key to four nodes",
+        "A limit at the edge of one load per phone every 5 seconds"
+      ],
+      "answer": 1,
+      "why": "Coalescing merges lookups waiting on the same slow answer, like misses waiting on the database. The key is in the cache and answers in about a millisecond, so there's rarely a second lookup in flight to merge with, and D still gets every one. The local cache, the copies and the edge limit each cut what D gets: to 306, 1,800 and 1,500 a second at Ostler's."
+    },
+    {
+      "id": "s2e11-r4",
+      "kind": "free",
+      "prompt": "Your team copied a hot product's key to 8 cache nodes. A week later support reports that some customers see the product in stock and others see it sold out, for minutes at a time, and their screens flip between the two on refresh. What went wrong, and what do you change?",
+      "keyIdeas": [
+        {
+          "idea": "The write path updates or deletes only some copies, so the rest keep the old value until their TTL runs out",
+          "match": [
+            "not every copy",
+            "only one copy",
+            "only the first",
+            "only some",
+            "missed",
+            "forgot",
+            "didn't update",
+            "did not update",
+            "didn't delete",
+            "not all copies",
+            "until the ttl",
+            "until they expire",
+            "old value"
+          ]
+        },
+        {
+          "idea": "Every write must reach every copy: 8 copies, 8 writes per change",
+          "match": [
+            "every copy",
+            "all copies",
+            "each copy",
+            "all 8",
+            "all eight",
+            "8 writes",
+            "eight writes",
+            "write amplification",
+            "8 deletes",
+            "eight deletes"
+          ]
+        },
+        {
+          "idea": "Bound the damage with a short TTL on the copies, and make the purchase check the database",
+          "match": [
+            "ttl",
+            "expire",
+            "source of truth",
+            "check the database",
+            "checks the database",
+            "checkout",
+            "at purchase",
+            "when buying"
+          ]
+        }
+      ],
+      "model": "Some write path, a stock update, a script or an admin screen, changes or deletes only some of the 8 copies, so the others keep the old stock level until their TTL runs out, and each refresh can land on a different copy. Make every write reach every copy: one change, 8 writes, from one place every write path goes through. Keep the copies' TTL short enough that a missed one can't last long, and have checkout read the database, the source of truth, so a customer can never buy what's sold out. If the copies exist only to take the read load, a short local cache on each app server may do the same job with no extra writes."
+    },
+    {
+      "id": "s2e11-r5",
+      "kind": "mcq",
+      "prompt": "In DynamoDB, adaptive capacity can move one very busy item onto a partition of its own. According to AWS, what's the most that item can then get?",
+      "options": [
+        "As much as the table's provisioned capacity, whatever that is",
+        "The partition maximum: 3,000 read units and 1,000 write units a second",
+        "Unlimited, because adaptive capacity keeps adding partitions for it",
+        "Nothing extra, because adaptive capacity only works for new tables"
+      ],
+      "answer": 1,
+      "why": "AWS's page on burst and adaptive capacity says that if an application drives consistently high traffic to a single item, DynamoDB can deliver throughput up to the partition maximum of 3,000 RCUs and 1,000 WCUs to that item's primary key. Isolating a hot item helps up to one partition's ceiling, the same lesson as a hot key on one cache node."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. February. Ostler's runs a local cache for its hottest keys now, and 9:00 hasn't hurt us since. On Saturday a food critic posted our winter menu page, every dish and whether it's available tonight, all under one key, menu:winter. 40,000 people opened it in the first hour. Cosmin's counter caught it at once and the local caches took the load, but Cosmin had given menu keys a local TTL of an hour, \"because menus don't change\". The kitchen ran out of oxtail at 20:15, and until 21:00 the page still offered it. Isidore says the candle on Table 9 went out at 20:15.",
+    "prompt": "Reply to OP. What's going on, and what should Cosmin change?",
+    "keyIdeas": [
+      {
+        "idea": "A local copy never hears about a change, so it can be wrong for its whole TTL: up to an hour",
+        "match": [
+          "whole ttl",
+          "up to an hour",
+          "an hour old",
+          "never hears",
+          "doesn't hear",
+          "does not hear",
+          "can't be deleted",
+          "cannot be deleted",
+          "not invalidated",
+          "no invalidation",
+          "stale",
+          "out of date"
+        ]
+      },
+      {
+        "idea": "Split the page: each dish's availability under its own small key with a short TTL, the menu text under a long one",
+        "match": [
+          "split",
+          "separate key",
+          "own key",
+          "per dish",
+          "each dish",
+          "per-dish",
+          "break up",
+          "two keys",
+          "different ttl",
+          "separate ttl"
+        ]
+      },
+      {
+        "idea": "Set each TTL from how stale that part may be, and make orders check the database",
+        "match": [
+          "how stale",
+          "short ttl",
+          "shorter ttl",
+          "seconds",
+          "1 second",
+          "source of truth",
+          "check the database",
+          "checks the database",
+          "when ordering",
+          "at order"
+        ]
+      }
+    ],
+    "model": "The local cache did its job on load and failed on freshness. A local copy never hears about a change, so it can be wrong for its whole TTL, and Cosmin gave the menu an hour: the oxtail ran out at 20:15 and the page offered it until its copies ran out at 21:00. The deeper problem is that menu:winter is many things under one key: dish descriptions that change once a season and availability that changes during an evening. Split it: the menu text under one key with a long TTL, and each dish's availability under its own small key with a TTL of a few seconds, which with six web servers still costs the shared cache very little. Set each TTL from how stale that part may be, and have every order check the database before it reaches the kitchen."
+  },
+  "next": "Next, The Copy in the Back Room: a library reading room, and read replicas for read-heavy traffic.",
+  "sources": [
+    {
+      "title": "Rajesh Nishtala et al., Scaling Memcache at Facebook, 10th USENIX Symposium on Networked Systems Design and Implementation (NSDI '13), 2013 (section 3.1: items distributed through consistent hashing; data replication alleviates the single-server bottleneck at a memory cost. 3.2.1: a thundering herd on a key with heavy read and write activity; leases. 3.2.2: memcache pools. 3.2.3: replication within pools, the 100-item, 500k and 1M requests example, invalidations delivered to all replicas, replicas chosen by client IP address. 3.3: a single key can account for 20% of a server's requests. 4: highly requested items only become more popular as web servers are added. 7.2 and Table 2: the replicated pool's get rate about 2.7 times the next highest, 710k gets a second per server, 0.053% miss rate)",
+      "url": "https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf"
+    },
+    {
+      "title": "Amazon DynamoDB Developer Guide: DynamoDB burst and adaptive capacity (hot partitions; the 400 WCU, four-partition example; adaptive capacity on for every table at no additional cost; isolating frequently accessed items; a single item up to the partition maximum of 3,000 RCUs and 1,000 WCUs)",
+      "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/burst-adaptive-capacity.html"
+    },
+    {
+      "title": "Amazon DynamoDB Developer Guide: Best practices for designing and using partition keys effectively in DynamoDB (each partition designed for a maximum of 3,000 read units and 1,000 write units per second; 20 KB items, 5 read units per consistent read, 600 consistent reads a second on one item)",
+      "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html"
+    },
+    {
+      "title": "Amazon DynamoDB Developer Guide: Designing partition keys to distribute your workload in DynamoDB (hot partitions that result in throttling; user ID rated good; a device ID where one device is far more popular rated bad)",
+      "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-uniform-load.html"
+    },
+    {
+      "title": "Amazon DynamoDB Developer Guide: Using write sharding to distribute workloads evenly in your DynamoDB table (random suffixes 2014-07-09.1 to 2014-07-09.200; reads query every suffix and merge the results)",
+      "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-sharding.html"
+    },
+    {
+      "title": "Amazon DynamoDB Developer Guide: CloudWatch contributor insights for DynamoDB: How it works (the most accessed and throttled items; throttled keys mode; accessed and throttled keys mode)",
+      "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/contributorinsights_HowItWorks.html"
+    },
+    {
+      "title": "Redis documentation: Redis CLI (--hotkeys: sample Redis keys looking for hot keys; only works when maxmemory-policy is an LFU policy)",
+      "url": "https://redis.io/docs/latest/develop/tools/cli/"
+    },
+    {
+      "title": "Bo Ingram, How Discord Stores Trillions of Messages, Discord blog, 6 March 2023 (177 Cassandra nodes and trillions of messages at the beginning of 2022; messages partitioned by channel and a static time window; hot partitions; data services whose big feature is request coalescing; consistent hash-based routing by channel ID; hot partitions still seen, less frequently)",
+      "url": "https://discord.com/blog/how-discord-stores-trillions-of-messages"
+    },
+    {
+      "title": "Amazon ElastiCache User Guide: Metrics for Valkey and Redis OSS (each metric calculated at the cache node level; GetTypeCmds, the total number of read-only type commands; EngineCPUUtilization)",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"
+    }
+  ]
+}

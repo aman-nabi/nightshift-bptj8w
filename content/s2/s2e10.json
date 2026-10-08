@@ -1,0 +1,521 @@
+{
+  "_changelog": ["v1.0.0 (2026-10-09) first version"],
+  "id": "s2e10",
+  "season": 2,
+  "n": 10,
+  "title": "Eviction Night",
+  "setting": "a crowded boarding house",
+  "core": false,
+  "minutes": 12,
+  "concepts": ["cache-memory-limits", "eviction-policies-in-depth"],
+  "prerequisites": ["s2e06", "s2e05", "s2e04", "s2e03", "s2e01", "s1e01", "s1e02", "s1e03", "s1e04", "s1e07", "s1e10", "s1e11", "s1e13"],
+  "rule": null,
+  "post": {
+    "author": "u/back_stairs_leontyne",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 3871,
+    "title": "I keep the night desk at a boarding house with forty beds. On festival nights someone has to go, and on Saturday it was the man who pays by the year.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I keep the night desk at Corbie House on Thistlewood Lane: forty beds, and four year lodgers who pay by the year, Mr Pask in room 1 since 1979. Aurek, who lodges in room 12, runs our booking site and the Redis cache behind it. Our keys are all about the same size, so he counts Redis's memory in beds, and maxmemory holds forty. Before the festival bus, thirty are taken: the 16 pages everyone reads, each once a second, 10 old history pages, each once a minute, and the year book."
+      },
+      {
+        "t": "p",
+        "text": "The year book is the year lodgers' records: room, door code, paid until. In spring Aurek moved it off paper into the same Redis, with no TTL, because Redis is quick and saves itself to disk. It's the only copy."
+      },
+      {
+        "t": "p",
+        "text": "The bus comes at 21:00 with six hundred people: two new searches a second for five minutes, each a new key, and every phone looks again three seconds later. Our managed Redis came set to volatile-lru, and Aurek's code sets no TTLs. Friday's log:"
+      },
+      {
+        "t": "log",
+        "text": "21:00:04  used_memory 40 of 40 beds   maxmemory-policy volatile-lru\n21:00:05  SET search:11   (error) OOM command not allowed when used memory > 'maxmemory'.\n21:00:05  booking page: Sorry, we couldn't find you a bed.\n21:03:00  hit ratio, last 60 s: 80%   evicted_keys 0\n21:05:02  writes refused since 21:00:05: 1,180"
+      },
+      {
+        "t": "p",
+        "text": "Every page loaded. From 21:00:05 every search failed. The house filled that minute too, and Mrs Threlkeld, whose name has been over the door since 1931, stood in the doorway and sent the rest back into the rain. Nobody here has a leaving date, she told them. Her rules are on the wall by the stairs:"
+      },
+      {
+        "t": "note",
+        "title": "ON THE WALL BY THE STAIRS",
+        "items": [
+          "WHEN THE HOUSE IS FULL AND ONE MORE KNOCKS, SOMEONE MUST GO.",
+          "ONLY A LODGER WITH A LEAVING DATE MAY BE ASKED TO GO. (painted over on Saturday)",
+          "WAKE THE ONE WHO HAS SLEPT LONGEST WITHOUT WAKING, AND SEE HIM TO THE DOOR. (new on Saturday)"
+        ],
+        "sig": "- M. Threlkeld"
+      },
+      {
+        "t": "p",
+        "text": "On Saturday Aurek read that allkeys-lru is a good default and switched to it. That evening the second rule had been painted over, and the third was under it, in the same hand. Every search worked: evicted_keys was 2 at 21:00:05 and climbed by two or three a second. At 07:00 on Sunday I found Mr Pask on the front step in his coat, with his case, and the other three year lodgers beside him. Their codes didn't open the door. Their beds were stripped and made. The year book was empty: 0 of 4."
+      },
+      {
+        "t": "beat",
+        "text": "He says she opened three doors, and his was the one she chose."
+      },
+      {
+        "t": "p",
+        "text": "Aurek has typed the records back in from the rent receipts. What should he change before next Friday's bus?"
+      },
+      {
+        "t": "evidence",
+        "label": "aurek_house_sunday_0700.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 420,
+          "aria": "Aurek's drawing of Corbie House's systems at 07:00 on Sunday. The booking app reads Redis first and fetches pages from the house database on a miss; it has had no write refused. Redis, on allkeys-lru with 3 samples, has 40 of 40 beds used. The year book, 4 keys in the same Redis with no TTL, has 0 of 4 records left, and the house database has no copy of it. The front door asked Redis for room 1's code and got nil.",
+          "nodes": [
+            { "id": "door", "label": "Front door", "sub": "reads codes from Redis", "meta": "room 1: (nil) at 07:00", "x": 150, "y": 50, "w": 240, "h": 62, "shape": "box", "tone": "bad" },
+            { "id": "app", "label": "Booking app", "sub": "cache-aside", "meta": "0 writes refused", "x": 590, "y": 50, "w": 240, "h": 62, "shape": "box", "tone": "" },
+            { "id": "redis", "label": "Redis: the house", "sub": "allkeys-lru, 3 samples", "meta": "40 of 40 beds used", "x": 370, "y": 185, "w": 300, "h": 62, "shape": "box", "tone": "warn" },
+            { "id": "yb", "label": "Year book", "sub": "4 keys in Redis, no TTL", "meta": "0 of 4 records left", "x": 170, "y": 320, "w": 260, "h": 72, "shape": "box", "tone": "bad" },
+            { "id": "db", "label": "House database", "sub": "pages: source of truth", "meta": "no copy of the year book", "x": 570, "y": 320, "w": 260, "h": 72, "shape": "db", "tone": "" }
+          ],
+          "edges": [
+            { "from": "door", "to": "redis", "label": "GET year:room1", "tone": "bad" },
+            { "from": "app", "to": "redis", "label": "GET, SET" },
+            { "from": "app", "to": "db", "label": "on a miss" },
+            { "from": "redis", "to": "yb", "label": "same memory", "dash": true, "tone": "muted" }
+          ],
+          "notes": [
+            { "x": 170, "y": 380, "text": "the only copies, turned out", "tone": "bad", "anchor": "middle" },
+            { "x": 720, "y": 408, "text": "Sunday, 07:00", "tone": "muted", "anchor": "end" }
+          ]
+        },
+        "caption": "Aurek's drawing of the house's systems at 07:00 on Sunday. The booking app reads Redis first and fetches pages from the house database on a miss. Not one write was refused all night, because allkeys-lru, with 3 samples, turned a key out for every new one: 2 at 21:00:05, then two or three a second. The year book's four records shared the same 40 beds, had no TTL and were read only when their lodgers came and went, so they were the keys idle longest. They were turned out, and the house database has no copy. At 07:00 the front door asked Redis for room 1's code and got (nil)."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 112,
+      "age": "6h",
+      "text": "A few words for your log, then some questions. maxmemory is the most memory Redis may use for its data, and used_memory is how much it's using now. When a write needs more, the maxmemory-policy decides what happens, and the policies come in families: the allkeys ones may turn out any key, the volatile ones only keys that carry a TTL. evicted_keys counts the keys turned out so far. And an OOM error, short for out of memory, is Redis refusing a write because it's full and its policy found nobody it was allowed to turn out. Now: on Friday, how many of your keys carried a TTL? On Saturday, when was Mr Pask's record last read, and when were the 16 pages? When Redis turns out a page, Aurek's site fetches it again from the house database, the source of truth behind the cache. Where would it fetch the year book from?",
+      "replies": [
+        {
+          "author": "u/back_stairs_leontyne",
+          "op": true,
+          "points": 34,
+          "age": "5h",
+          "text": "None of them, on Friday. Mr Pask's record was read when he came in at half past eight. The pages, every second. Aurek says there's nowhere. He went up to room 12 and hasn't come down."
+        }
+      ]
+    },
+    {
+      "author": "u/three_doors_hollis",
+      "points": 66,
+      "age": "5h",
+      "text": "Your landlady doesn't check every room, and neither does Redis. An exact LRU, also called true LRU, would keep every key in order of last use, which costs memory, so Redis approximates it: before each eviction it picks maxmemory-samples keys at random and turns out the one idle longest of those. Since Redis 3.0 it also keeps a short list of good candidates from earlier samples. ElastiCache's parameter groups default to 3 samples, Redis itself to 5, and redis.conf says 10 approximates true LRU very closely but costs more CPU. LFU and volatile-ttl pick from samples the same way.",
+      "replies": [
+        {
+          "author": "u/back_stairs_leontyne",
+          "op": true,
+          "points": 21,
+          "age": "4h",
+          "text": "Room 1 is the first door on the landing. Aurek says that shouldn't matter."
+        }
+      ]
+    },
+    {
+      "author": "u/fifty_six_bytes_mabyn",
+      "points": 43,
+      "age": "4h",
+      "text": "Before anyone buys a bigger node, check what a bed really costs. A key costs more than its value: Redis keeps the key's name and its own bookkeeping too, and an expiry costs memory as well. MEMORY USAGE reports what a key really takes, and in Redis's own example a key named foo holding bar takes 56 bytes for 6 bytes of data. INFO memory splits used_memory into the dataset and the overhead. Add up your page sizes and you'll think the house is half empty."
+    },
+    {
+      "author": "u/fading_count_benedek",
+      "points": 37,
+      "age": "3h",
+      "text": "We moved our cache to allkeys-lfu after a crawler emptied it, and it's been better for us. Redis keeps a count of how often each key is used: a new key starts at 5, so it gets a chance, uses push the count up, more slowly the higher it gets, and by default a key loses one for every minute nobody uses it. The busy keys stay at the top, and one-off keys sink to the bottom."
+    }
+  ],
+  "reply": {
+    "prompt": "The festival bus comes again next Friday at 21:00. What should Aurek change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Switch the one Redis to allkeys-lfu: the pages everyone reads keep high counts, and one-off searches, used once, are the first to be turned out.",
+        "tone": "bad",
+        "verdict": "Counts fade, and Mr Pask sleeps",
+        "part2": "Aurek switched to allkeys-lfu on Thursday. On Friday the house was full at 21:00:04, and not one write was refused. The busy pages sat at the top of the count. A new search starts at 5, so one that had only just gone in was sometimes the lowest in the sample and was turned out before its phone looked again. And the year book is read only when a lodger comes or goes: Mr Pask's count had faded to 0 by nine, lower than anything else in the house. At 07:00 on Saturday the four of them were on the step again, in their coats, and the door didn't know them. Mr Pask said she had counted on her fingers before she woke him.",
+        "senior": "LFU keeps the keys used often, and that's the wrong question for the year book. A record read twice a day has the lowest count in any busy cache, and Redis's count fades a point a minute, so under allkeys-lfu it goes first, and a new key starting at 5 loses out to anything read twice. No eviction policy can tell a copy from the only copy. Data that must not be lost can't live where any key may be turned out."
+      },
+      {
+        "text": "Give the year book its own Redis set to noeviction, keep the cache on allkeys-lru with TTLs, and alert on evicted_keys and the year book's used_memory.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "On Thursday Aurek set up a second, small Redis for the year book, set to noeviction and saving to disk, typed the four records into it and took them out of the cache. He left the cache on allkeys-lru, gave every page and search a 1-hour TTL, and set two alerts: one for when evicted_keys climbs fast, one on the year-book Redis's used_memory. On Friday the bus came at 21:00, and with four more beds free the cache filled at 21:00:06. At 21:00:07 evicted_keys reached 2, and from there it climbed by two or three a second, under the alert's line, which is what a full cache doing its job looks like. Not one write was refused, and nearly every second look found its search. At 07:00 Mr Pask came down for his paper, and the door opened for him. That afternoon he moved his things across the yard to the annex, which has its own door and nothing written on the wall.",
+        "senior": "A cache may forget anything, because everything in it can be fetched again; a record that exists nowhere else can't live there. Split the two jobs: the year book in a Redis that never evicts and saves to disk, and the cache free to turn out whatever its policy picks. Size the cache from used_memory, not from the sum of the values, and watch evicted_keys and the hit ratio. Better still, give the year book a home in the house database, and let Redis keep only copies."
+      },
+      {
+        "text": "Keep one Redis on volatile-lru, but give every cache key a 1-hour TTL, so only pages and searches can be turned out and the year book never can.",
+        "tone": "warn",
+        "verdict": "Trade-off: safe while every key remembers its TTL",
+        "part2": "On Thursday Aurek gave every page and search a 1-hour TTL and left volatile-lru alone. On Friday the house was full at 21:00:04, and Redis turned out only keys with a TTL. Not one write was refused, and at 07:00 the door knew all four year lodgers. It worked all winter. In March Aurek rewrote the cache code for the spring festival, and the line that set the TTL didn't make it into the rewrite. Nothing noticed: until the house is full, a missing TTL changes nothing, and within an hour every page had been written again without one. At 21:00:05 on the first night of the spring festival every search was refused again, 1,180 by 21:05:02, and Mrs Threlkeld stood in the doorway in the rain.",
+        "senior": "volatile-lru lets one Redis hold both jobs, as long as every cache key carries a TTL and no year-book record ever gets one. That's a promise every line of code that writes has to keep, forever. Forget it on the cache side and the policy has nobody it may evict, so it refuses writes like noeviction; break it on the other side and a record can be turned out. Redis's own docs suggest two instances where you can. If you keep one, watch how many keys carry a TTL: if that falls to 0, you're running noeviction."
+      },
+      {
+        "text": "Set the one Redis to noeviction, so nobody is ever turned out, and make the booking page carry on when Redis refuses a cache write.",
+        "tone": "warn",
+        "verdict": "Trade-off: nobody turned out, nobody let in",
+        "part2": "On Thursday Aurek set noeviction and made the booking page carry on when Redis refuses a write: it shows the search it fetched from the house database and keeps no copy. On Friday the house was full at 21:00:04. From 21:00:05 Redis refused every new write, 1,180 by 21:05:02, and nobody saw an error page. The year book was safe. But the cache had stopped learning: the second looks went to the house database too, and the hit ratio fell from 100% to 80% while the bus unloaded. And with no TTLs, the house stayed full. On Sunday a new year lodger took room 5, and Aurek's SET for her record came back with the same OOM error. The searches from Friday night had her bed.",
+        "senior": "noeviction protects whatever is already in Redis by refusing everything new, and that's the trouble when one Redis does two jobs: a full cache now blocks the year book's writes, and the cache can't take in what's popular tonight. Carrying on after a refused cache write is right for any cache-aside app. But a cache should evict, and data that must not be lost needs memory the cache can't fill."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e10",
+    "title": "Run Redis at Corbie House",
+    "lede": "You're Aurek, replaying a festival night at Corbie House from 20:59:50. Redis's maxmemory holds 40 beds, one key each, because every key here is about the same size. 30 are taken: the 4 year-book records (Y: no TTL, the only copies, last read at 20:29:50), the 16 pages everyone reads (P: each once a second) and 10 old history pages (H: one read every 6 seconds, so each once a minute). From 21:00 the bus brings two new searches a second for five minutes (S): each is a miss that the booking app fetches from the house database and SETs as a new key, and each phone looks again 3 seconds later. A SET into a full house needs a key to turn out; if the maxmemory-policy allows none, Redis refuses it with an OOM error. The sampled policies take maxmemory-samples keys at random and turn out the best candidate among them: the one idle longest for LRU, the lowest count for LFU, the nearest expiry for volatile-ttl. The sim's LFU starts a new key at 5, adds 1 per use and takes 1 off per idle minute; real Redis adds more slowly as the count grows. The sim keeps no short list of candidates between evictions, which Redis has done since 3.0, so it lands a little further from exact LRU than Redis does. With 40 or more samples every key is in the sample, so it is exact LRU. Exact LRU's victim is worked out beside every LRU eviction, and at 21:06 the summary replays the same random draws for 1, 3, 5 and 10 samples. The hit ratio covers the last 60 seconds of reads. Changing a setting replays the night. The clock runs 10 times faster than real life. Click any box or bed to see what it does.",
+    "tryThis": "Try this: press nothing and watch Friday: the house is full at 21:00:04, and from 21:00:05 every new search is refused with an OOM error while every page still hits. Skip two minutes: 4 writes a second refused and the hit ratio at 80%. Skip to 21:06 for 1,180. Try noeviction and volatile-ttl: the same. Now pick allkeys-lru, Saturday's setting: nothing is refused, and the year book goes. Press 07:00. Set maxmemory-samples to 40 for exact LRU: the four year-book records are the first out, at 21:00:05 and 21:00:06, and while the bus unloads the hit ratio holds at 89%. Try 1, 3 and 10 samples and read the summary at 21:06. Try allkeys-lfu and allkeys-random. Then go back to volatile-lru and give the cache keys a 1-hour TTL, and last, move the year book into its own Redis."
+  },
+  "explain": {
+    "oneLine": "Nothing in the walls chose Mr Pask. Redis was full, and its maxmemory-policy decided what happened next. On Friday volatile-lru could only turn out keys with a TTL, and none had one, so every write was refused. On Saturday allkeys-lru turned out the keys idle longest, and the year book, read only when its lodgers came and went and kept nowhere else, was idle longest.",
+    "steps": [
+      {
+        "title": "maxmemory is the size of the house.",
+        "text": "maxmemory is the most memory Redis may use for its data, and used_memory is what it uses now. Redis checks whenever a command adds data: if used_memory is over the limit, it evicts keys by the maxmemory-policy until it's back under, or, if the policy finds no key it may evict, it refuses the command with the OOM error. Reads keep working either way. Three things make the house smaller than it looks. A key costs more than its value: Redis keeps the key's name and its own bookkeeping, so in its own example a key named foo holding bar takes 56 bytes for 6 bytes of data, and an expiry costs memory too. The buffers that hold changes on their way to replicas or the AOF aren't counted against maxmemory, so with replicas Redis advises leaving some RAM free for them. And on ElastiCache, maxmemory is set by the node type, and by default 25% of a node's memory is reserved for things other than data. Size the house from used_memory measured with real keys, never from the sum of the values."
+      },
+      {
+        "title": "Three families: refuse, anyone, or only those with a leaving date.",
+        "text": "noeviction never evicts: when the house is full, commands that add data get the OOM error and reads still work. It's the default in Redis's own redis.conf. The allkeys policies may evict any key: allkeys-lru the key idle longest, allkeys-lfu the one used least often, allkeys-random any key at all. The volatile policies may only evict keys with a TTL: volatile-lru, volatile-lfu, volatile-random, and volatile-ttl, which picks the key closest to expiring. While some keys have a TTL they choose among those, and never touch the rest; when none do, they behave like noeviction, which was Friday. ElastiCache's default is volatile-lru, so a team whose code never sets a TTL is running noeviction without knowing it. Saturday was the other family: allkeys-lru may evict anything, and the year book was idle longest. Each policy is a bet. LRU bets that what was used recently will be used again, LFU that what was used often will be, random bets on nothing, which suits keys read about equally, in a cycle, and volatile-ttl bets on the expiry the code chose, however often a key is read: in the sim it turns out the pages that went in earliest, though they're read every second."
+      },
+      {
+        "title": "The landlady opens three doors: sampling.",
+        "text": "Redis doesn't keep its keys in order of use, because an exact LRU costs memory. It approximates: before each eviction it picks maxmemory-samples keys at random and evicts the one idle longest among them, and since Redis 3.0 it also keeps an eviction pool of the best candidates from earlier samples, 16 in the source. LFU and volatile-ttl choose from samples the same way. That's the trade: it saves the memory a full ordering would need, and each extra sample costs a little CPU, against always finding the very key a full ordering would pick. In the sim, which has no pool, 3 samples pick exact LRU's own victim only about 3 times in 40, but a key from the older half of the house nearly 9 times in 10, and while the bus unloads the hit ratio stays close to exact LRU's 89%; 1 sample is random eviction, which turns out pages and loses far more. Redis's docs call the approximation virtually equivalent for an application, and say their simulations with a power law access pattern showed minimal or no difference from true LRU. The setting is cheap to change: 3 in ElastiCache's parameter groups, 5 in redis.conf, which calls 10 very close to true LRU but costlier in CPU, and 3 faster but not very accurate, up to 64. Sampling didn't decide Mr Pask's night. The key idle longest goes as soon as it's in a sample, and his record had been idle all evening."
+      },
+      {
+        "title": "A cache may forget. A record may not.",
+        "text": "Redis's docs explain why eviction is usually safe: cache entries are copies of data stored somewhere else, so they can be cached again. A page Redis turns out comes back on its next miss from the house database. The year book wasn't a copy, so its eviction was a deletion, and the snapshot that saved Redis to disk saved the deletion too. No policy can tell a copy from the only copy. For a pure cache, where everything can be fetched again, use an allkeys policy: allkeys-lru by default, allkeys-lfu when steady favourites matter and one-off reads are common. For data you can't lose, use a store that never evicts: its own Redis instance on noeviction, saved to disk, or the database it belongs in. If you must share one instance, volatile-lru with a TTL on every cache key and none on the records keeps the records out of reach, which is what Redis's docs say the volatile policies are mainly for, but the same docs suggest two separate instances where possible. And an allkeys policy needs no expiry on any key, which saves memory."
+      },
+      {
+        "title": "What to watch.",
+        "text": "evicted_keys in INFO counts keys evicted because of the maxmemory limit, and ElastiCache publishes it as Evictions. A full cache evicts steadily, so watch the rate and the hit ratio together: more evictions with a falling hit ratio means the hot set no longer fits. used_memory against maxmemory, which ElastiCache shows as DatabaseMemoryUsagePercentage, tells you how close a store that must not evict is to refusing writes. Refused writes show in INFO's commandstats as rejected calls, which Redis's docs suggest checking under noeviction and the volatile policies. And count your TTLs: ElastiCache's CurrVolatileItems is the number of keys with one, and under a volatile policy 0 means nothing can be evicted. Aurek's dashboards would have shown all of it: no keys with a TTL on Friday and writes refused from 21:00:05, then on Saturday evictions from 21:00:05 in a Redis that held the only copy of the year book."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 400,
+      "aria": "The fix, drawn at 21:00:07 the next Friday. The booking app keeps pages and searches in the cache Redis, on allkeys-lru with 1-hour TTLs, full since 21:00:06. The year book has its own Redis, on noeviction with snapshots, holding 4 of 4 records. On a miss the app fetches from the house database, the source of truth. Alerts watch the cache's eviction rate and hit ratio, and the year-book Redis's used_memory.",
+      "nodes": [
+        { "id": "app", "label": "Booking app", "sub": "cache-aside", "meta": "one Redis per job", "x": 370, "y": 50, "w": 260, "h": 62, "shape": "box", "tone": "accent" },
+        { "id": "cache", "label": "Cache Redis", "sub": "allkeys-lru, 1 h TTLs", "meta": "full since 21:00:06", "x": 130, "y": 200, "w": 220, "h": 72, "shape": "box", "tone": "ok" },
+        { "id": "db", "label": "House database", "sub": "source of truth", "x": 370, "y": 200, "w": 180, "h": 62, "shape": "db", "tone": "" },
+        { "id": "yb", "label": "Year-book Redis", "sub": "noeviction, snapshots", "meta": "4 of 4 records", "x": 610, "y": 200, "w": 220, "h": 72, "shape": "box", "tone": "accent" },
+        { "id": "alerts", "label": "Alerts", "sub": "eviction rate, hit ratio", "meta": "year book: used_memory", "x": 370, "y": 340, "w": 300, "h": 62, "shape": "box", "tone": "" }
+      ],
+      "edges": [
+        { "from": "app", "to": "cache", "label": "pages, searches" },
+        { "from": "app", "to": "db", "label": "on a miss" },
+        { "from": "app", "to": "yb", "label": "year book" },
+        { "from": "cache", "to": "alerts", "label": "evicted_keys", "dash": true, "tone": "muted" },
+        { "from": "yb", "to": "alerts", "label": "used_memory", "dash": true, "tone": "muted" }
+      ],
+      "notes": [
+        { "x": 20, "y": 392, "text": "Friday, 21:00:07", "tone": "muted", "anchor": "start" }
+      ]
+    },
+    "caption": "The fix, drawn at 21:00:07 the next Friday. The booking app keeps pages and searches in the cache Redis, on allkeys-lru with 1-hour TTLs: it filled at 21:00:06 and turns a key out for every new one, which is its job. The year book has its own Redis, on noeviction with snapshots, so nothing there can be turned out to make room for a search. On a miss the app fetches from the house database. Alerts watch the cache's eviction rate and hit ratio, and the year book's used_memory long before it reaches maxmemory.",
+    "fix": {
+      "title": "The fix: one Redis per job, a policy for each, and alerts on both",
+      "text": "Move the year book into its own Redis, set to noeviction and saving snapshots to disk, and take it out of the cache: nothing the festival does can turn it out now, and if that Redis ever fills, it refuses new records loudly instead of losing old ones. Keep the cache on allkeys-lru, since every page and search in it can be fetched again from the house database; give each key a TTL for freshness, and think about allkeys-lfu only if one-off reads start pushing out pages people use often. Leave maxmemory-samples at 3, or raise it toward 10 if the hit ratio says it matters. Alert when evicted_keys climbs fast or the hit ratio drops, and on the year-book Redis's used_memory well before it reaches maxmemory. Make the booking page carry on when a cache write is refused. Better still, give the year book its real home in the house database, and let Redis keep only copies."
+    },
+    "limits": [
+      "A Redis that never evicts can still fill. noeviction keeps the year book safe from the festival, but if something else is ever stored there without a TTL, or the year book grows, new records are refused. It needs headroom and its own alert on used_memory, and snapshots taken every few minutes can still lose the last few minutes if the node dies, so records you truly can't lose belong in a database.",
+      "Even exact LRU can't promise which key goes: that depends on traffic you don't control, and sampling adds chance on top. Treat every key in an evicting cache as something that may vanish at any moment, and make every reader handle the miss.",
+      "A second Redis is one more thing to pay for, update, watch and back up. For a small house, keeping the records in the database you already run, and caching copies of them, is often cheaper than a second Redis."
+    ],
+    "tradeoff": {
+      "head": ["Policy", "Who may be turned out", "Wins when", "Loses when"],
+      "rows": [
+        ["noeviction", "Nobody. Writes that need memory get the OOM error; reads work.", "The data must never be evicted, as in a store of records sized and watched so it never fills.", "It's used as a cache: Friday at Corbie House, 1,180 writes refused and the hit ratio at 80% while the bus unloaded."],
+        ["allkeys-lru", "Any key: the one idle longest among the samples.", "Everything is a copy and a few keys get most of the reads. Redis's suggested default. Exact LRU held 89% while the bus unloaded.", "Something in it isn't a copy: on Saturday the year book, idle longest, was turned out, 0 of 4."],
+        ["allkeys-lfu", "Any key: the one with the lowest count among the samples.", "Steady favourites and one-off scans, like the bakery's crawler in The Jar on the Counter.", "Records read rarely fade to 0 and go first; a new key starts at 5 and can go before its second read."],
+        ["allkeys-random", "Any key, at random.", "Every key is read about equally, such as reads in a repeating cycle.", "A few keys are hot: random turns them out as readily as cold ones, and the hit ratio falls."],
+        ["volatile-lru", "Only keys with a TTL: the one idle longest among the samples.", "One instance must hold both jobs: every cache key has a TTL and no record does. Nothing refused, nothing lost.", "Nothing has a TTL: it refuses writes like noeviction, as on Friday. One forgotten TTL in the code is enough."],
+        ["volatile-ttl", "Only keys with a TTL: the one closest to expiring.", "The code knows which keys matter least and gives them short TTLs.", "How often a key is read doesn't count: in the sim the pages that went in earliest go first, though they're read every second."]
+      ]
+    },
+    "seniorTake": "Before you set maxmemory-policy, ask what's in the cache. If everything in it is a copy you can fetch again, it's a pure cache: let it evict with an allkeys policy, allkeys-lru unless one-off reads keep pushing out steady favourites, size it from used_memory measured with real keys rather than the sum of the values, and watch evicted_keys and the hit ratio. If anything in it is the only copy, it isn't a cache, and no policy will save it: move it to a store that never evicts and is saved to disk, or to the database it belongs in. Check what your managed defaults are doing, because volatile-lru with no TTLs is noeviction in disguise. And make every cache-aside caller treat a refused write or a missing key as a miss, because in an evicting cache any key can go at any moment.",
+    "realWorld": [
+      {
+        "title": "Redis's eviction policies, as the docs list them today",
+        "text": "Redis's Key eviction page says that whenever a client runs a new command that adds more data, Redis checks the memory usage, and if it is greater than the limit, it evicts keys according to the chosen policy until the total memory used is back below the limit. Its list today: noeviction, where keys are not evicted but the server returns an error when you try to execute commands that cache new data, while commands that only read existing data still work; allkeys-lru, allkeys-lrm, allkeys-lfu and allkeys-random; and volatile-lru, volatile-lrm, volatile-lfu, volatile-random and volatile-ttl, which only consider keys that have an associated expiration, volatile-ttl evicting those with the shortest remaining TTL. The page adds that the volatile-xxx policies behave like noeviction if no keys have an associated expiration. Setting maxmemory to zero means no limit, the default on 64-bit systems.",
+        "source": 0
+      },
+      {
+        "title": "One instance or two",
+        "text": "The same page explains why eviction is usually safe: cache entries are copies of persistently-stored data, so they can be cached again in the future if necessary. It says the volatile-lru, volatile-lrm and volatile-random policies are mainly useful when you want to use a single Redis instance for both caching and for a set of persistent keys, but that you should consider running two separate Redis instances in a case like this, if possible. It also notes that setting an expire value for a key costs memory, so a policy like allkeys-lru is more memory efficient, since it doesn't need an expire value to operate. Its rule of thumb: allkeys-lru when a subset of keys is accessed far more often than the others, which it calls a good default if you have no reason to prefer any others, allkeys-random when keys are accessed with roughly equal frequency, and volatile-ttl if your code can estimate which keys are good candidates for eviction and give them short TTLs.",
+        "source": 0
+      },
+      {
+        "title": "Approximated LRU and LFU",
+        "text": "Redis's LRU samples a small number of keys at random and evicts the ones with the longest time since last access; from Redis 3.0 it also tracks a pool of good candidates, which the docs say makes it a close approximation to true LRU. The reason it doesn't use true LRU, the docs say, is that it costs more memory, and the approximation is virtually equivalent for an application. In simulations with a power law access pattern, the difference between true LRU and Redis's approximation was minimal or non-existent. You can raise maxmemory-samples to 10, at the cost of some additional CPU, to closely approximate true LRU and see whether your cache misses change, and the docs call experimenting with CONFIG SET maxmemory-samples on a live server very simple. LFU is approximated the same way: a Morris counter of a few bits per key with a decay period, sampled like LRU to pick a candidate.",
+        "source": 0
+      },
+      {
+        "title": "The eviction pool, in the source",
+        "text": "The comment above Redis 7.4.0's eviction code describes an approximation of LRU that runs in constant memory: every time a key must be evicted, it samples N keys, usually around 5, to populate a pool of the best keys to evict, adds a sampled key to the pool if it's better than one already there, and then evicts the best key in the pool. The pool's size is EVPOOL_SIZE, defined as 16.",
+        "source": 5
+      },
+      {
+        "title": "What redis.conf says",
+        "text": "The redis.conf that ships with Redis 7.4.0 says that when the memory limit is reached, Redis will try to remove keys according to the eviction policy, and if it can't, or the policy is noeviction, it will start to reply with errors to commands that would use more memory, like SET, and will continue to reply to read-only commands like GET. With any policy, it notes, Redis returns an error on write operations that need more memory when there are no suitable keys for eviction, and LRU, LFU and volatile-ttl are implemented as approximated randomized algorithms. The default is noeviction. On samples: 'The default of 5 produces good enough results. 10 Approximates very closely true LRU but costs more CPU. 3 is faster but not very accurate.' The maximum is 64. It also warns that with replicas attached, it's suggested to set a lower maxmemory so there's some free RAM for the replicas' output buffers.",
+        "source": 2
+      },
+      {
+        "title": "Why a new key starts at 5",
+        "text": "The LFU notes in the same redis.conf say the counter is just 8 bits per key, with a maximum of 255, and is incremented with a probability that falls as the counter grows. 'The counter initial value is 5 in order to give new objects a chance to accumulate hits.' The decay time, lfu-decay-time, is the number of minutes that must pass for a key's counter to be decremented, 1 by default, and 0 means never decay. So a record read twice a day can't build up a count: every idle minute takes a point back, and it spends most of the day at 0.",
+        "source": 2
+      },
+      {
+        "title": "What a key costs",
+        "text": "Redis's MEMORY USAGE command reports the number of bytes a key and its value require to be stored in RAM: the total of memory allocations for data and administrative overheads. The documentation's examples, on Redis 7.2.0, 64-bit: an empty key holding an empty value measures 56 bytes, which it calls pure overhead; foo holding bar also measures 56; foo2 holding mybar, 64; and a key holding a 100-character value, 160. Longer keys and values grow about in step with their length, so the overhead matters most when values are small.",
+        "source": 3
+      },
+      {
+        "title": "Reading INFO",
+        "text": "Redis's INFO documentation gives evicted_keys as the number of evicted keys due to the maxmemory limit, and expired_keys as the total number of key expiration events. In the memory section, used_memory is the total number of bytes allocated by Redis using its allocator; used_memory_overhead the bytes the server allocated for managing its internal data structures; used_memory_dataset the size of the dataset, used_memory_overhead subtracted from used_memory; and mem_not_counted_for_evict the used memory that's not counted for key eviction, basically transient replica and AOF buffers. The stats section also has total_eviction_exceeded_time, the total time used_memory was greater than maxmemory since the server started, in milliseconds.",
+        "source": 1
+      },
+      {
+        "title": "The refusal, word for word",
+        "text": "In Redis 7.4.0's source code, the server creates one shared reply for a command refused for lack of memory: -OOM command not allowed when used memory > 'maxmemory'. Every refused write at Corbie House on Friday got that reply.",
+        "source": 4
+      },
+      {
+        "title": "ElastiCache's defaults",
+        "text": "Amazon ElastiCache's engine parameters for Redis OSS list maxmemory-policy with a default of volatile-lru, and maxmemory-samples with a default of 3, permitted from 1 to 64: 'By default, Redis OSS chooses 3 keys and uses the one that was used least recently.' maxmemory itself is set by the node type and cannot be modified. reserved-memory-percent, 25 by default, is the percent of a node's memory reserved for nondata use, set aside to help reduce paging. So on the defaults, a cache whose code sets no TTL behaves like noeviction.",
+        "source": 6
+      },
+      {
+        "title": "ElastiCache's metrics for this",
+        "text": "ElastiCache's CloudWatch metrics include Evictions, the number of keys that have been evicted due to the maxmemory limit, derived from evicted_keys; DatabaseMemoryUsagePercentage, the percentage of the memory in use, calculated from used_memory/maxmemory; CacheHitRate, from hits and misses; and CurrVolatileItems, the total number of keys in all databases that have a ttl set. Under a volatile policy, a CurrVolatileItems of 0 means Redis has nothing it may evict.",
+        "source": 7
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What happens when your cache runs out of memory?",
+        "Which eviction policy would you choose, and why?",
+        "Why shouldn't a cache hold data you can't recreate?"
+      ],
+      "answer": "When Redis reaches maxmemory, every command that adds data makes it free memory first, by its maxmemory-policy. noeviction refuses the write with an OOM error and keeps serving reads. The allkeys policies evict any key: the least recently used, the least frequently used, or a random one. The volatile policies evict only keys with a TTL, and with none they act like noeviction, which catches teams on managed defaults such as ElastiCache's volatile-lru. Redis approximates LRU and LFU by sampling maxmemory-samples keys and evicting the best of them, which saves memory and, in Redis's own simulations with a power law access pattern, barely changes the result; raise it toward 10 if your hit ratio says it matters. For a pure cache I'd pick allkeys-lru, or allkeys-lfu if one-off scans keep pushing out steady favourites, and size it from used_memory with real keys, because a key costs more than its value. I'd never keep data I can't recreate in it, because eviction there is deletion and no policy can tell a copy from the only copy: sessions, counters and records go in a store that never evicts, a separate Redis on noeviction or a database. Then I'd watch evicted_keys, the hit ratio, used_memory against maxmemory, and refused writes."
+    }
+  },
+  "terms": [
+    { "term": "Boarding house", "def": "A house that rents beds by the night or the week. Corbie House has forty beds." },
+    { "term": "Lodger", "def": "Someone who rents a bed or a room in a boarding house." },
+    { "term": "Year lodger", "def": "A lodger who pays by the year. Corbie House has four, Mr Pask in room 1 since 1979." },
+    { "term": "Landlady", "def": "The woman who runs a boarding house. Mrs Threlkeld's name has been over Corbie House's door since 1931." },
+    { "term": "Night desk", "def": "The front desk of a house or hotel, kept by someone overnight." },
+    { "term": "Annex", "def": "A smaller building beside a main one. Corbie House's annex, across the yard, has its own door." },
+    { "term": "Year book", "def": "Corbie House's records of its year lodgers: room, door code and paid-until date. Aurek kept them in the cache's Redis with no TTL, as the only copy." },
+    { "term": "Bed (Aurek's unit)", "def": "Aurek's unit for Redis memory: one key's worth, since every key in his cache is about the same size. maxmemory holds forty." },
+    { "term": "Booking app", "def": "Aurek's booking site. It does cache-aside: Redis first, and on a miss the house database, then a SET of the copy into Redis." },
+    { "term": "House database", "def": "Corbie House's database of pages and searches: the source of truth behind the cache. It holds no copy of the year book." },
+    { "term": "Search (at Corbie House)", "def": "One search for a bed from a festival-goer's phone. Each is cached under its own new key; the sim labels them S." },
+    { "term": "Second look", "def": "A phone reading its search again 3 seconds after making it. A hit if the search's key is still in Redis." },
+    { "term": "used_memory", "def": "The memory Redis has allocated, in bytes, as INFO reports it. When a write would push it past maxmemory, the maxmemory-policy decides what happens." },
+    { "term": "evicted_keys", "def": "The INFO count of keys evicted because of the maxmemory limit. ElastiCache publishes it as Evictions." },
+    { "term": "expired_keys", "def": "The INFO count of keys removed because their TTL ran out." },
+    { "term": "OOM error", "def": "Out of memory: Redis refusing a command that needs memory when it's full and its policy may evict nothing. The reply reads: OOM command not allowed when used memory > 'maxmemory'." },
+    { "term": "allkeys policies", "def": "The eviction policies that may evict any key: allkeys-lru, allkeys-lfu, allkeys-random and allkeys-lrm." },
+    { "term": "volatile policies", "def": "The eviction policies that may only evict keys with a TTL: volatile-lru, volatile-lfu, volatile-random, volatile-ttl and volatile-lrm. With no TTL keys they act like noeviction." },
+    { "term": "volatile-lfu", "def": "A Redis policy that evicts the least frequently used key among keys with a TTL." },
+    { "term": "volatile-random", "def": "A Redis policy that evicts a random key among keys with a TTL." },
+    { "term": "Exact LRU", "def": "Evicting the key that, of all keys, was used longest ago. It needs every key kept in order of use, which costs memory. Also called true LRU." },
+    { "term": "Approximated LRU", "def": "Redis's LRU: before each eviction it samples maxmemory-samples keys at random and evicts the one idle longest among them." },
+    { "term": "Idle", "def": "Not read or written. A key's idle time is how long since it was last used; LRU evicts the key idle longest." },
+    { "term": "Eviction pool", "def": "The short list of good eviction candidates Redis keeps from earlier samples, since Redis 3.0. Its size in the source, EVPOOL_SIZE, is 16." },
+    { "term": "Power law", "def": "An access pattern where a few keys get most of the reads and the rest trail off fast. Redis's simulations of it found little or no gap between true and approximated LRU." },
+    { "term": "LFU count", "def": "Redis's estimate of how often a key is used: 8 bits, at most 255. New keys start at 5; uses push it up, more slowly as it grows; idle minutes pull it down." },
+    { "term": "lfu-decay-time", "def": "The Redis setting for how many minutes must pass before a key's LFU count drops by one. 1 by default; 0 means it never drops." },
+    { "term": "Overhead (memory)", "def": "What a key costs beyond its value: its name, Redis's own bookkeeping, and its expiry if it has one." },
+    { "term": "MEMORY USAGE", "def": "A Redis command that reports how many bytes a key and its value take in RAM, overhead included. In Redis's example, foo holding bar takes 56." },
+    { "term": "used_memory_dataset and used_memory_overhead", "def": "INFO's split of used_memory: the dataset is your keys and values, and the overhead is what Redis allocates for its own internal structures." },
+    { "term": "mem_not_counted_for_evict", "def": "INFO's figure for memory not counted toward maxmemory: mostly buffers for replicas and the AOF." },
+    { "term": "total_eviction_exceeded_time", "def": "INFO's total time, in milliseconds, that used_memory spent above maxmemory since Redis started." },
+    { "term": "Allocator", "def": "The part of a program that hands out memory and takes it back. Redis's used_memory counts what its allocator has handed out." },
+    { "term": "AOF", "def": "Append-only file: Redis's log of every write, kept on disk so the data can be rebuilt after a restart." },
+    { "term": "Output buffer (replica)", "def": "Memory where Redis holds changes waiting to be sent to a replica. It isn't counted against maxmemory." },
+    { "term": "commandstats", "def": "The INFO section with statistics for each command, including how many calls were rejected, such as writes refused by the memory limit." },
+    { "term": "CONFIG SET", "def": "The Redis command that changes a setting while Redis runs, such as maxmemory-samples." },
+    { "term": "GET (Redis)", "def": "The Redis command that reads a key. It answers (nil) when the key isn't there." },
+    { "term": "Redis instance", "def": "One running Redis server, with its own memory, maxmemory and policy." },
+    { "term": "Persistent key", "def": "In Redis's docs, a key that is meant to stay, with no expiry, as opposed to a cached copy." },
+    { "term": "Pure cache", "def": "A cache that holds only copies: everything in it can be fetched again from a source of truth, so any key may be evicted." },
+    { "term": "Redis OSS", "def": "Open-source Redis, as ElastiCache names one of its engines." },
+    { "term": "Node type", "def": "The size of machine an ElastiCache node runs on. It fixes the node's maxmemory." },
+    { "term": "reserved-memory-percent", "def": "An ElastiCache setting: the percent of a node's memory kept back for things other than data. 25 by default." },
+    { "term": "Paging", "def": "An operating system moving memory to disk because RAM is short, which makes a program like Redis much slower." },
+    { "term": "DatabaseMemoryUsagePercentage", "def": "An ElastiCache metric: used_memory divided by maxmemory, as a percentage." },
+    { "term": "CurrVolatileItems", "def": "An ElastiCache metric: how many keys have a TTL. Under a volatile policy, 0 means nothing can be evicted." },
+    { "term": "Rate-limit counter", "def": "A key that counts one client's recent requests so a rate limiter can refuse the extra ones. If it's evicted, the count starts again." },
+    { "term": "Flash sale", "def": "A short sale with deep discounts that brings a sudden rush of shoppers." }
+  ],
+  "atWork": "Find a Redis your team runs, on ElastiCache or anywhere else; read-only access is enough. List what's stored in it by key prefix: page caches, user sessions, rate-limit counters, job state, anything else, and for each one ask whether it can be fetched again from somewhere if it vanishes. Then look up maxmemory-policy in its parameter group. One team kept user sessions and a login rate-limit counter in the same Redis as its page caches, on allkeys-lru: under load the page keys filled the memory, idle sessions were evicted and users were logged out, and the counters started again from zero. If you find that mix, the fix is a Redis per purpose, with sessions and counters on noeviction and sized with headroom, or at least a policy that matches each purpose. In CloudWatch, chart Evictions, DatabaseMemoryUsagePercentage, CurrVolatileItems and CacheHitRate for the last two weeks, and check there's an alarm on Evictions and on memory. If the policy is volatile-lru and CurrVolatileItems is near 0, the cache will refuse writes when it fills.",
+  "board": {
+    "cards": [
+      { "id": "cache-memory-limits", "title": "Cache memory limits" },
+      { "id": "eviction-policies-in-depth", "title": "Eviction policies in depth" }
+    ],
+    "strings": [
+      { "from": "cache-memory-limits", "to": "memory", "label": "RAM has a limit" },
+      { "from": "cache-memory-limits", "to": "metrics", "label": "watch evicted_keys" },
+      { "from": "cache-memory-limits", "to": "sticky-sessions-vs-a-shared-session-store", "label": "keep sessions safe" },
+      { "from": "eviction-policies-in-depth", "to": "hit-ratio", "label": "what stays in" },
+      { "from": "eviction-policies-in-depth", "to": "ttl", "label": "volatile needs TTL" },
+      { "from": "eviction-policies-in-depth", "to": "cache-aside", "label": "evicted: refetch" },
+      { "from": "eviction-policies-in-depth", "to": "durability", "label": "evicted is gone" },
+      { "from": "eviction-policies-in-depth", "to": "hot-keys", "label": "next case" }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e10-r1",
+      "kind": "free",
+      "prompt": "Your team keeps user sessions, a rate-limit counter for the login page and cached product pages in one Redis on ElastiCache, on allkeys-lru. During a flash sale, product-page keys pour in. Support hears that people are being signed out mid-checkout, and that the login limit seems to have stopped working. What happened, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "At the memory limit, allkeys-lru may evict any key, so idle sessions and counters went along with the page caches",
+          "match": ["evict", "turned out", "any key", "memory limit", "full", "maxmemory", "idle", "least recently", "pushed out", "out of memory"]
+        },
+        {
+          "idea": "Sessions and counters aren't copies: evicting them deletes them, which signs people out and resets the limit",
+          "match": ["not a copy", "no copy", "only copy", "can't be rebuilt", "cannot be rebuilt", "can't be fetched", "deleted", "deletion", "reset", "starts again", "start again", "lost"]
+        },
+        {
+          "idea": "Give sessions and counters their own Redis on noeviction, sized with headroom, apart from the page cache",
+          "match": ["separate", "own redis", "second redis", "two redis", "another redis", "different instance", "own instance", "dedicated", "split"]
+        },
+        {
+          "idea": "Alert on evictions, memory use and the hit ratio",
+          "match": ["evicted_keys", "evictions", "alarm", "alert", "databasememoryusage", "used_memory", "hit ratio", "monitor", "cloudwatch", "dashboard"]
+        }
+      ],
+      "model": "The sale's page keys filled the memory, and allkeys-lru may evict any key: it turned out the keys idle longest, and a session nobody has used for a few minutes, or a counter for a login nobody has tried lately, is exactly that. Unlike the pages, they aren't copies, so evicting them deleted them: people lost their sessions and were signed out, and the counters started again from zero, so the login limit let more attempts through. Give sessions and counters their own Redis, on noeviction and sized with headroom, and keep the page cache on allkeys-lru. One Redis on volatile-lru wouldn't be enough here, because sessions and counters usually carry their own TTLs, so they'd still be evictable. Then alarm on Evictions, on the session store's DatabaseMemoryUsagePercentage, and on the cache's hit ratio."
+    },
+    {
+      "id": "s2e10-r2",
+      "kind": "mcq",
+      "prompt": "A Redis cache runs volatile-lru, and none of its keys has a TTL. Memory reaches maxmemory. What happens next?",
+      "options": [
+        "Redis evicts the least recently used keys, as LRU always does",
+        "Reads keep working, but commands that add data get an OOM error",
+        "Redis deletes keys at random until memory is back under the limit",
+        "Redis keeps growing past maxmemory until the machine runs out of RAM"
+      ],
+      "answer": 1,
+      "why": "volatile-lru may only evict keys that have a TTL. With none, it has nobody to evict, so it behaves like noeviction: Redis refuses commands that add data with the OOM error and keeps answering reads. ElastiCache's default policy is volatile-lru, so a cache whose code never sets a TTL runs into exactly this. Set TTLs on cache keys, or use allkeys-lru for a pure cache, and watch CurrVolatileItems."
+    },
+    {
+      "id": "s2e10-r3",
+      "kind": "mcq",
+      "prompt": "A pure cache on allkeys-lru has maxmemory-samples set to 3. What does raising it to 10 do?",
+      "options": [
+        "Evictions get closer to true LRU, for a little more CPU on each eviction",
+        "Redis can keep 10 times as many keys in the same memory",
+        "Redis evicts 10 keys at a time, so memory frees up faster",
+        "Redis switches to exact LRU and keeps every key in order of use"
+      ],
+      "answer": 0,
+      "why": "Redis approximates LRU: before each eviction it samples maxmemory-samples keys and evicts the one idle longest among them. More samples make that pick closer to the true least recently used key, and redis.conf says 10 approximates true LRU very closely but costs more CPU. In a cache with millions of keys it still isn't exact, and it changes neither how many keys fit nor how many go at once. Redis's docs suggest trying it and checking whether your misses change."
+    },
+    {
+      "id": "s2e10-r4",
+      "kind": "free",
+      "prompt": "Your team's Redis is a pure cache: every key in it can be rebuilt from PostgreSQL. It runs noeviction, \"so we never lose anything\". Every evening at peak, writes start failing with OOM errors and the app's logs fill with cache errors. Which maxmemory-policy would you pick instead, why, and what would you watch?",
+      "keyIdeas": [
+        {
+          "idea": "Everything in it is a copy, so evicting is safe; refusing writes only turns a full cache into errors",
+          "match": ["safe to evict", "can evict", "copies", "a copy", "fetch again", "fetched again", "refetch", "comes back", "next miss", "nothing is lost"]
+        },
+        {
+          "idea": "Use an allkeys policy: allkeys-lru by default, allkeys-lfu if one-off reads push out favourites",
+          "match": ["allkeys-lru", "allkeys-lfu", "allkeys", "lru", "lfu", "least recently", "least frequently"]
+        },
+        {
+          "idea": "Watch evicted_keys and the hit ratio, and size the memory from used_memory with real keys",
+          "match": ["evicted_keys", "evictions", "hit ratio", "hit rate", "used_memory", "memory usage", "bigger", "more memory", "alarm", "alert"]
+        }
+      ],
+      "model": "noeviction protects data you can't lose, but a pure cache has none: every key is a copy that comes back on its next miss from PostgreSQL, so refusing writes at peak just turns a full cache into errors. Switch to allkeys-lru, Redis's suggested default when a few keys get most of the reads, or allkeys-lfu if batch jobs or crawlers read many keys once and push out the steady favourites. Make the app treat a refused cache write as a miss, not an error. Then watch evicted_keys and the hit ratio: steady evictions with a high hit ratio mean the cache is doing its job, while more evictions and a falling hit ratio mean the hot set no longer fits, so size it up from used_memory measured with real keys."
+    },
+    {
+      "id": "s2e10-r5",
+      "kind": "mcq",
+      "prompt": "You expect a cache to hold 1 million keys, each with a 20-byte name and a 10-byte value, and you set maxmemory to 30 megabytes. Why will it fill well before 1 million keys?",
+      "options": [
+        "Each key also costs Redis's own bookkeeping, and an expiry costs more, so a key takes more than its name and value",
+        "Redis stores every value twice, once on disk and once in memory",
+        "Redis rounds every value up to 1 KB",
+        "maxmemory also counts the memory of every replica"
+      ],
+      "answer": 0,
+      "why": "MEMORY USAGE reports what a key really takes: its data plus Redis's administrative overhead. In Redis's own example, foo holding bar takes 56 bytes for 6 bytes of key and value. For small values the overhead can be bigger than the data, so size a cache from used_memory measured with a sample of real keys, not from the sum of names and values."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. The year book has had its own Redis since November, on noeviction, saving to disk, and the cache hasn't bothered anyone. In February Aurek started writing every door opening into the year-book Redis too, one key each, with no TTL, so we'd know who came in when. Last night at 02:14 Miss Larkin, our fifth year lodger, arrived for room 5. Aurek's SET for her record came back with an OOM error, the door wouldn't take her code, and she slept in the chair by my desk. The cache was fine all night. Aurek wants to switch the year-book Redis to allkeys-lru so it never refuses again.",
+    "prompt": "Reply to OP. What happened, and what should Aurek change?",
+    "keyIdeas": [
+      {
+        "idea": "The year-book Redis filled up: the door-opening keys have no TTL and keep growing, and noeviction refuses new writes when it's full",
+        "match": ["filled", "full", "ran out", "no room", "grew", "growing", "the log", "door log", "entries", "maxmemory", "out of space"]
+      },
+      {
+        "idea": "Don't switch it to allkeys-lru: it would turn out year-book records, the only copies",
+        "match": ["don't switch", "do not switch", "keep noeviction", "stay on noeviction", "never evict", "lose the records", "lose records", "only copies", "only copy", "not a cache"]
+      },
+      {
+        "idea": "Move the door log out, to the database or a log store, or give its keys a TTL, and keep only must-not-lose records there",
+        "match": ["move the", "move it", "elsewhere", "database", "another store", "separate", "ttl on", "give it a ttl", "expire", "trim", "delete old"]
+      },
+      {
+        "idea": "Alert on that Redis's used_memory well before maxmemory, and on refused writes",
+        "match": ["alert", "alarm", "used_memory", "databasememoryusage", "monitor", "watch", "headroom", "before it fills", "rejected"]
+      }
+    ],
+    "model": "The year-book Redis did exactly what noeviction promises: when it filled, it refused a new write instead of evicting an old one. What filled it was the door log: a key for every door opening, with no TTL, growing every day in memory meant for a handful of records. Don't switch it to allkeys-lru: then a busy night of door openings would turn out year-book records, the only copies, and we'd be back to Mr Pask on the step. Keep noeviction, and keep only must-not-lose records there. Move the door log somewhere built for logs, such as a table in the house database, or at least give its keys a TTL. And alert on that Redis's used_memory, or DatabaseMemoryUsagePercentage, well before it reaches maxmemory, and on refused writes, so the next one reaches Aurek before it reaches a lodger."
+  },
+  "next": "Next, Hot Key: a celebrity's restaurant reservation, and what happens when one key, or one partition, gets far more traffic than all the rest.",
+  "sources": [
+    {
+      "title": "Redis documentation: Key eviction (maxmemory, 0 for no limit on 64-bit systems; the policies noeviction, allkeys-lru, allkeys-lrm, allkeys-lfu, allkeys-random, volatile-lru, volatile-lrm, volatile-lfu, volatile-random, volatile-ttl; volatile policies behave like noeviction with no expiring keys; volatile policies mainly useful for one instance with caching and persistent keys, two separate instances suggested; an expire value costs memory; approximated LRU with maxmemory-samples, a pool of good candidates from Redis 3.0, virtually equivalent, minimal or non-existent difference with a power law pattern, 10 samples at some extra CPU; LFU with a Morris counter and decay; replication and AOF buffers not counted; commandstats rejected calls)",
+      "url": "https://redis.io/docs/latest/develop/reference/eviction/"
+    },
+    {
+      "title": "Redis documentation: INFO (evicted_keys, expired_keys, total_eviction_exceeded_time, used_memory, used_memory_overhead, used_memory_dataset, mem_not_counted_for_evict)",
+      "url": "https://redis.io/docs/latest/commands/info/"
+    },
+    {
+      "title": "Redis 7.4.0 source: redis.conf, MEMORY MANAGEMENT and LFU sections (errors on writes when no key can be removed or the policy is noeviction, reads still answered; LRU, LFU and volatile-ttl approximated; default policy noeviction; maxmemory-samples 5, \"10 Approximates very closely true LRU but costs more CPU. 3 is faster but not very accurate.\", maximum 64; lower maxmemory with replicas; LFU counter 8 bits, maximum 255, initial value 5; lfu-decay-time 1)",
+      "url": "https://github.com/redis/redis/blob/7.4.0/redis.conf"
+    },
+    {
+      "title": "Redis documentation: MEMORY USAGE (data and administrative overheads; Redis 7.2.0 64-bit examples: empty string 56 bytes, foo bar 56, foo2 mybar 64, a 100-character value 160)",
+      "url": "https://redis.io/docs/latest/commands/memory-usage/"
+    },
+    {
+      "title": "Redis 7.4.0 source: src/server.c (the shared reply -OOM command not allowed when used memory > 'maxmemory'.)",
+      "url": "https://github.com/redis/redis/blob/7.4.0/src/server.c"
+    },
+    {
+      "title": "Redis 7.4.0 source: src/evict.c (LRU approximation in constant memory: sample N keys, usually around 5, into a pool of the best keys to evict; EVPOOL_SIZE 16)",
+      "url": "https://github.com/redis/redis/blob/7.4.0/src/evict.c"
+    },
+    {
+      "title": "Amazon ElastiCache User Guide: Engine specific parameters (maxmemory-policy default volatile-lru; maxmemory-samples default 3, permitted 1 to 64; maxmemory set by node type and not modifiable; reserved-memory-percent default 25)",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/ParameterGroups.Engine.html"
+    },
+    {
+      "title": "Amazon ElastiCache User Guide: Metrics for Valkey and Redis OSS (Evictions from evicted_keys; DatabaseMemoryUsagePercentage from used_memory/maxmemory; CacheHitRate; CurrVolatileItems)",
+      "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/CacheMetrics.Redis.html"
+    }
+  ]
+}
