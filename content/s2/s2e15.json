@@ -1,0 +1,886 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-10) first version"
+  ],
+  "id": "s2e15",
+  "season": 2,
+  "n": 15,
+  "title": "Field Report: The Cache in Every Zone",
+  "setting": "the Netflix TechBlog archive",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "evcache",
+    "memcached-based-cache-tier-run-as-a-shared-service",
+    "every-write-copied-to-each-availability-zone",
+    "consistent-hashing-to-spread-keys-across-nodes"
+  ],
+  "prerequisites": [
+    "s2e11",
+    "s2e09",
+    "s2e08",
+    "s2e06",
+    "s2e05",
+    "s2e04",
+    "s2e03",
+    "s2e02",
+    "s2e01",
+    "s1e01",
+    "s1e02",
+    "s1e03",
+    "s1e04",
+    "s1e05",
+    "s1e06",
+    "s1e07",
+    "s1e08",
+    "s1e09",
+    "s1e10",
+    "s1e11",
+    "s1e12",
+    "s1e13"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/night_binder_hesper",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 2874,
+    "title": "I'm on nights at a sleep-stories app. At 03:12 last Tuesday one zone lost power, and the stories stopped in all three. The engineer who built our cache left a binder, and he'd marked the page.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm the night on-call at Hushwell, a sleep-stories app. Between two and four in the morning about 7,200 people are listening, and every listener's app checks in every 2 seconds for the next piece of its story: 3,600 check-ins a second, spread over app servers in three availability zones, 1,200 to each. A check-in reads the listener's session from our cache, one memcached cluster of nine nodes, all in zone A, so it never touches the listener database, which answers about 1,000 reads a second. Every app also saves its place every 30 seconds: 240 saves a second, to the database and the cache."
+      },
+      {
+        "t": "p",
+        "text": "At 03:12 last Tuesday zone A lost power. Zones B and C never blinked. Their servers passed every health check, and every story stopped anyway. The support inbox filled with the same two words, from everywhere: *it stopped*. Our dashboard, as it was that minute:"
+      },
+      {
+        "t": "log",
+        "text": "03:11:59  cache-a  hits 3,600/s, 2,400 of them from zones B and C\n03:12:00  zone-a   power lost: app servers, 9 cache nodes\n03:12:01  zone-b   check-ins 1,800/s   cache unreachable\n03:12:01  zone-c   check-ins 1,800/s   cache unreachable\n03:12:01  db       asked 3,600/s   answered 1,000   timed out 2,600\n04:31:00  zone-a   power back. cache-a up, 0 keys"
+      },
+      {
+        "t": "beat",
+        "text": "Two thirds of our servers were alive, and not one of them could remember a single listener."
+      },
+      {
+        "t": "p",
+        "text": "Teodor built that cluster. He left in April, and his binder is still on the shelf over the on-call desk: Netflix TechBlog posts, printed, with pencil in the margins. Since Tuesday I've read it on quiet nights. In Announcing EVCache, from 2013, Figure 1 is one cluster of three memcached nodes. Next to it he wrote *ours*. Figure 3 is a cluster in every zone. Next to that: *before winter*. It's the last thing he wrote."
+      },
+      {
+        "t": "p",
+        "text": "The post says a client's reads all go to its own zone, while its writes go to every zone, and that with zone fallback on, data lost in one zone can be fetched from another, which in most cases is much faster than getting it from the source. So in Figure 3 every write lands three times, on purpose. I've redrawn it below. What should we build before winter? And why did they build it that way?"
+      },
+      {
+        "t": "evidence",
+        "label": "evcache_figure3_redrawn.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 350,
+          "aria": "Figure 3 of Netflix's 2013 post Announcing EVCache, redrawn. An app in zone A uses the EVCache client, which gets the list of EVCache servers from Eureka. Three clusters, A, B and C, each of 3 EVCache servers running memcached and a sidecar, sit in three availability zones, one cluster per zone. The app reads and writes cluster A in its own zone and writes to clusters B and C. On a miss, zone fallback can fetch from B or C. Reads stay in the zone; writes go to every zone.",
+          "groups": [
+            {
+              "label": "ZONE A",
+              "x": 10,
+              "y": 150,
+              "w": 233,
+              "h": 150
+            },
+            {
+              "label": "ZONE B",
+              "x": 253,
+              "y": 150,
+              "w": 233,
+              "h": 150
+            },
+            {
+              "label": "ZONE C",
+              "x": 496,
+              "y": 150,
+              "w": 233,
+              "h": 150
+            }
+          ],
+          "nodes": [
+            {
+              "id": "app",
+              "label": "An app in zone A",
+              "sub": "with the EVCache client",
+              "x": 200,
+              "y": 52,
+              "w": 250,
+              "h": 52,
+              "shape": "box",
+              "tone": "accent"
+            },
+            {
+              "id": "eureka",
+              "label": "Eureka",
+              "sub": "the list of EVCache servers",
+              "x": 560,
+              "y": 52,
+              "w": 260,
+              "h": 52,
+              "shape": "box",
+              "tone": "muted"
+            },
+            {
+              "id": "cla",
+              "label": "Cluster A",
+              "sub": "3 EVCache servers",
+              "meta": "memcached + sidecar",
+              "x": 127,
+              "y": 240,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "clb",
+              "label": "Cluster B",
+              "sub": "3 EVCache servers",
+              "meta": "memcached + sidecar",
+              "x": 370,
+              "y": 240,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "clc",
+              "label": "Cluster C",
+              "sub": "3 EVCache servers",
+              "meta": "memcached + sidecar",
+              "x": 613,
+              "y": 240,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            }
+          ],
+          "edges": [
+            {
+              "from": "app",
+              "to": "cla",
+              "label": "reads and writes",
+              "tone": "ok"
+            },
+            {
+              "from": "app",
+              "to": "clb",
+              "label": "writes"
+            },
+            {
+              "from": "app",
+              "to": "clc",
+              "label": "writes"
+            },
+            {
+              "from": "eureka",
+              "to": "app",
+              "label": "server list",
+              "dash": true,
+              "tone": "muted"
+            }
+          ],
+          "notes": [
+            {
+              "x": 127,
+              "y": 292,
+              "text": "on a miss: B or C",
+              "tone": "accent",
+              "anchor": "middle"
+            },
+            {
+              "x": 370,
+              "y": 330,
+              "text": "reads stay in the zone; writes go to every zone",
+              "tone": "muted",
+              "anchor": "middle"
+            }
+          ]
+        },
+        "caption": "Figure 3 of Announcing EVCache (2013), as I redrew it from Teodor's printout. Three clusters, A, B and C, of 3 EVCache servers each, one cluster per availability zone. The client gets the list of servers from Eureka and groups them by zone. Its reads go to the cluster in its own zone, and its writes go to every zone. With zone fallback on, data lost in one zone can be fetched from another zone's cluster."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 88,
+      "age": "5h",
+      "text": "Teodor's figures have names. EVCache is Netflix's cache: memcached servers run as a shared service that many teams' apps use, each through a client library. A cache that keeps the same data in more than one place is a replicated cache, and the number of copies each write becomes is its write fan-out. Zone fallback is what the post describes: on a miss in your own zone, ask another zone's cluster before the source. Before you pick, count three things on your own dashboard. How many of your 3,600 check-ins a second leave their zone today? How many copies would each of your 240 saves become in Figure 3, and how many of those cross a zone? And at 04:31, when cache-a came back with 0 keys, where would its misses have gone?",
+      "replies": [
+        {
+          "author": "u/night_binder_hesper",
+          "op": true,
+          "points": 27,
+          "age": "4h",
+          "text": "2,400 of the 3,600 leave their zone already: every check-in from B and C crossed into zone A, every second, and nobody noticed because it worked. Amabel, our lead, says before winter means our busy season. Long nights, more listeners. Teodor used to say the cache was the only reason the database could sleep."
+        }
+      ]
+    },
+    {
+      "author": "u/ketama_ring_ingeborg",
+      "points": 61,
+      "age": "5h",
+      "text": "You don't need copies to survive a zone. Spread the nine nodes, three to a zone. Figure 1's text says the data is sharded across the nodes by Ketama consistent hashing, and that the nodes can be in one zone or spread over several. Consistent hashing puts every node at several points on a ring of numbers and every key at one point, and a key belongs to the next node clockwise. Lose a node and only its keys move, to the next node along; every other key stays where it was. Lose a zone of three nodes and you lose a third of the sessions, not all of them."
+    },
+    {
+      "author": "u/fan_out_valdis",
+      "points": 47,
+      "age": "4h",
+      "text": "Figure 3 isn't free. Three copies of every session is three times the memory. Every save becomes three writes, and two of them cross a zone, which is slower than staying inside one: the 2013 post keeps reads local because it improves the latency. The 2016 post says EVCache's redundancy inside a region comes from a simultaneous write to all server groups within the region. And size each zone for the night it carries more: with zone A dark, B and C take 1,800 check-ins a second each, not 1,200."
+    },
+    {
+      "author": "u/empty_rack_halloran",
+      "points": 39,
+      "age": "3h",
+      "text": "Losing a zone isn't the only way to get an empty cluster. We ran a copy in every zone. A deploy restarted one zone's nodes, they came back empty, and every request in that zone missed and went to the database at once, which answered what it could and let the rest fail. A cold copy is a stampede waiting for its zone's traffic. Ask where a miss goes before you need the answer.",
+      "replies": [
+        {
+          "author": "u/night_binder_hesper",
+          "op": true,
+          "points": 22,
+          "age": "2h",
+          "text": "One more thing. On Wednesday night the binder wasn't on the shelf. It was open on the desk at Figure 3, and someone had underlined zone fallback in pencil, twice. I'm the only one here between midnight and six, and Teodor's badge stopped working in April."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "Amabel wants a plan before the busy season, and Teodor's margin says before winter. What should Hushwell build? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Keep one cluster in zone A, which got new power after Tuesday, double it to 18 nodes, and alert the on-call the second it goes quiet. One big cluster is simpler to run than three.",
+        "tone": "bad",
+        "verdict": "One zone is still one zone",
+        "part2": "Amabel signed off on 18 nodes in zone A, on the new power feed, with an alert that pages me the second the cluster goes quiet. It took a week, and nothing on the dashboard changed: every save was one copy, and 2,400 of the 3,600 check-ins a second still crossed into zone A to be answered. On 18 November at 02:51 zone A dropped off the network for 26 minutes. The power was fine. The alert fired at 02:51, and then I watched what I'd watched in the log: zones B and C up and healthy, hit ratio 0%, the database asked 3,600 reads a second and answering 1,000, 2,600 check-ins failing every second. Twice the nodes, the same zone. The stories stopped for 26 minutes. In the morning Amabel put the binder on my desk, open at Figure 3.",
+        "senior": "More nodes and better power don't change what one zone takes with it. Every listener's session lived in one zone, so any fault there, power, network or a bad change, empties the cache for all three zones at once, and the database behind it was never sized for that. An alert only tells you sooner. Put a copy where the readers are, as Figure 3 does, so losing a zone loses one copy."
+      },
+      {
+        "text": "Spread the nine nodes over the three zones, three in each, as Figure 1 allows. Consistent hashing gives each zone a third of the keys, so losing a zone costs a third of the sessions, not all of them.",
+        "tone": "warn",
+        "verdict": "Trade-off: a third of a stampede",
+        "part2": "We spread the nine nodes three to a zone, keys placed by Ketama consistent hashing, as Figure 1 allows. Memory and saves stayed the same, one copy and one write per save, and two thirds of the check-ins still crossed a zone to find their key's node: 2,560 cache reads and copies a second, like before. On 18 November at 02:51 zone A dropped off the network. Zones B and C kept two thirds of their hits: 67% in the first second, the database asked 1,200 reads and answering 1,000, 200 check-ins failing. Then 800, then 600, and three seconds after the drop every one of zone A's sessions was cached again on B's and C's nodes. Nobody wrote in. At 03:17 zone A came back with its three nodes empty, and consistent hashing handed their third back to them: two seconds of 1,200 reads a second and 200 failures each, then two of 200. Amabel asked why we'd chosen to lose a third twice.",
+        "senior": "Spreading nodes over zones caps what one zone takes with it, a third instead of all, but it copies nothing. Those keys are gone, and their misses hit the database twice: when the zone goes, and when it comes back empty. Every night, two in three reads still cross a zone to reach their key's node. Consistent hashing is how EVCache places keys inside each cluster; Figure 3 still puts a whole cluster in every zone."
+      },
+      {
+        "text": "Put a full copy in every zone: write each save to all three, read from your own zone, and on a miss ask the next zone over before the database. Then switch a zone off on a quiet night to prove it.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "We built Figure 3: three nodes in each zone, each zone a full copy of all 7,200 sessions. Every save now writes three copies, 720 a second, 480 of them crossing a zone, but check-ins stopped crossing at all, so cross-zone traffic fell from 2,560 a second to 480. Memory tripled: 21,600 stored sessions instead of 7,200. Zone fallback asks the next zone, A to B, B to C, C to A, before the database. On a quiet Thursday at 03:00 we switched zone A off on purpose. Zones B and C held 100% hits and the database was asked nothing. When zone A came back empty, its misses went to zone B, 1,200 extra cross-zone reads a second, and six seconds later its copy was full, the database never asked. On 18 November at 02:51 zone A dropped off the network for 26 minutes, and nobody woke. Amabel wrote done next to before winter. She told me then that she'd come in at five that Wednesday to read the binder before our review, and underlined zone fallback herself. Teodor had given it to her in April.",
+        "senior": "A full copy per zone turns a lost zone into one lost copy: the other zones still hit, and the database sees nothing. Zone fallback covers the other half, an empty copy after a zone comes back or a deploy restarts its nodes: it fills from a warm neighbour instead of a database sized for a trickle of misses. The price is writes times zones, three times the memory, and a zone crossing for every remote copy. The drill proves it before a real zone does."
+      },
+      {
+        "text": "Put a full copy in every zone and write each save to all three, but keep reads at home: a miss in your own zone goes straight to the database, so no check-in ever has to leave its zone.",
+        "tone": "warn",
+        "verdict": "Trade-off: every restart is a stampede",
+        "part2": "We built a copy in every zone: three writes per save, reads at home, and every miss to the database. On a quiet Thursday we switched zone A off, and zones B and C held 100% hits with the database asked nothing. Then zone A came back with 0 of 7,200 sessions. Every check-in there missed: the database was asked 1,200 reads a second, answered 1,000, and 200 check-ins failed, every second for six seconds. For six more, zone A hit 83% while the misses that had failed went back to the database. Twelve seconds, 8,400 database reads, 1,200 failed check-ins, and 2,480 cache reads and copies a second crossing a zone at first, because every database answer was written to all three zones. On 2 December at 02:40 a deploy restarted zone B's nodes, and it happened again: twelve seconds. The full copy in zone C, one zone away, was never asked.",
+        "senior": "Reads at home and a copy per zone are right, and they make a dark zone cost nothing. But a copy can be empty while its zone is fine: after a restart, a deploy, or the zone coming back. With no fallback, that zone's misses all go to a database sized for a trickle, and every answer is copied to three zones on the way back. The 2013 post fetches lost data from another zone first, because in most cases that is much faster than getting it from the source."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e15",
+    "title": "Run the cache at Hushwell",
+    "lede": "You're Hesper, replaying a night at Hushwell from 03:11:50 with every cache warm. 7,200 listeners' apps check in every 2 seconds, 3,600 check-ins a second, spread evenly over the app servers in the zones that are up: 1,200 to each of three zones, or 1,800 to each of two. A check-in reads one listener's session from the cache. A miss asks the listener database, which answers the first 1,000 reads each second, zone A's first, then B's, then C's, and the rest of those check-ins fail. Apps also save their place, 240 saves a second, one write per copy. Pick the cache: one cluster of nine nodes in zone A (as now), the nine nodes spread three to a zone by consistent hashing, or a full copy in every zone. Then switch zone A's power off and on (its nodes come back empty), restart zone B's cache nodes empty, and turn zone fallback on or off. With fallback, a miss in a full copy asks the next zone, A to B, B to C, C to A, before the database, and copies what it finds home. Crossing a zone counts every cache read and copy that leaves its zone each second, not database reads. Each zone reads its own stretch of the sessions, so with three zones up a zone reads all 7,200 every 6 seconds. The numbers are teaching values. Changing the cache replays the night; fallback changes at once. Click any box to see what it does.",
+    "tryThis": "Try this: as things are, switch zone A off. Zones B and C stay up, and their hit ratio falls to 0: 3,600 reads a second at a database that answers 1,000, for as long as the zone is dark. Pick a copy in every zone and count the copies per save. Switch zone A off: nothing misses. Switch it back on with fallback off and watch the database for 12 seconds; then turn fallback on and restart zone B's nodes: 6 seconds, and the database is asked nothing. Last, pick the spread nodes, lose zone A and bring it back: a third of a stampede, twice."
+  },
+  "explain": {
+    "oneLine": "Nothing in zones B and C failed. They forgot. Every listener's session lived in one cluster in zone A, so losing the zone emptied the cache for all three. EVCache, in Netflix's 2013 post, writes a copy to every zone and reads the local one, so a lost zone costs one copy, and an empty copy fills from a neighbour instead of the database.",
+    "steps": [
+      {
+        "title": "Zones B and C didn't fail. They forgot.",
+        "text": "Hushwell spread its app servers over three availability zones so that losing one would cost a third of them, and it did: two thirds of the servers stayed up and passed every health check. But every check-in, from every zone, read its session from one cluster in zone A, so that cluster was a single point of failure for all three. Behind it, the listener database answers about 1,000 reads a second. That's enough only because the cache answers nearly everything: a cache with a high hit ratio becomes part of the capacity plan, and the database is only as small as it is because the cache is warm. Lose the cache and the database gets every read at once, 3,600 a second, a stampede like the one in The Stampede at 6 AM, with nothing in the database itself broken. Netflix's 2016 post names the same danger between regions: without global replication, member traffic shifting from one region to another would encounter cold caches, and processing the cache misses would lengthen response times and overwhelm the databases."
+      },
+      {
+        "title": "Spreading the nodes isn't copying them.",
+        "text": "Figure 1 of the 2013 post is one cluster of 3 memcached nodes, and the post says the data is sharded across the memcached nodes based on Ketama consistent hashing algorithm, with the nodes all in one availability zone or spread out across several. Here is consistent hashing in one paragraph. Picture a ring of numbers. Each node is hashed to several points on the ring, each key to one point, and a key belongs to the first node clockwise from it. When a node leaves, only its keys move, to the next node along, and every other key stays where it was; when a node joins, it takes over only the keys just before its points. Compare key mod number of nodes, where changing the count moves almost every key. Season 3 takes the ring apart in The Ring. But spreading nodes over zones spreads the loss without copying anything: a dark zone takes its third of the keys with it, those misses still land on the database, and when the zone returns empty, they land again. Surviving a zone takes a second copy."
+      },
+      {
+        "title": "Write to every zone, read from your own.",
+        "text": "Figure 2 has two clusters, A and B, each of 3 nodes in its own availability zone, so that if an availability zone is having any issues the performance of the other zone is not impacted. Figure 3 has three, A, B and C, each of 3 EVCache servers, with the keys inside each cluster still placed by Ketama. The post: all the reads by a client are performed on the same zone as the client whereas the writes are done across all the zones. This ensures that data is replicated across all the zones thus increasing its availability. Reads never leave the zone, which keeps them fast, and every zone holds every key, so a dark zone costs one copy. If a cluster loses instances, it can be set to write only while its zone's reads go to another zone. The price is paid on every write. At Hushwell, 240 saves a second become 720 copies, 480 of them crossing a zone, and the cache holds 21,600 stored sessions instead of 7,200: three times the memory. It pays because reads far outnumber writes: Hushwell's check-ins outnumber its saves 15 to 1. Cross-zone traffic even falls, from 2,560 cache reads and copies a second to 480, because check-ins stop crossing."
+      },
+      {
+        "title": "An empty copy borrows from its neighbour.",
+        "text": "A copy can be empty while its zone is fine: the zone comes back after a power cut, or a deploy restarts its nodes. Every check-in in that zone then misses. Sent straight to the database, those misses are a stampede of their own: in the sim, 1,200 reads a second at a database that answers 1,000, 200 check-ins failing every second for six seconds, and twelve seconds before the copy is full, with every database answer copied to all three zones on its way back. The 2013 post's answer is zone fallback: if zone fallback is enabled and some data is lost due to instance/zone failure or eviction, then the data can be fetched from the clusters in other zone. It costs some latency, and in the post's words, in most cases fetching data from other zone is much faster than getting the data from source. In the sim, the empty copy fills from its neighbour in six seconds and the database is asked nothing. It's the warm cluster from The Stampede at 6 AM again: a cold copy takes its first reads from a warm one, not from the source."
+      },
+      {
+        "title": "Then the same idea between regions.",
+        "text": "By 2016 Netflix ran in three AWS regions, Northern Virginia, Oregon and Ireland, and could serve any member request from any region. Inside a region, the 2016 post says, the redundancy comes from a simultaneous write to all server groups within the region: the zone design above. Between regions it adds asynchronous replication. The client writes its local copies and puts the key, not the data, on a Kafka queue. A replication relay reads the queue, fetches the data from the local cache, and sends it to a replication proxy in the other region, which writes it into that region's cache. Only that one hop crosses regions, and clients don't know other regions exist. Because all replication is asynchronous, a slow link never slows local reads and writes, and the regions are eventually consistent, which EVCache accepts because it typically operates in contexts where consistency is not a strong requirement. The post reports replication latency at p99 under one second for most caches."
+      }
+    ],
+    "diagram": {
+      "type": "sequence",
+      "aria": "The fix, as zone A comes back empty. Each save from an app server in zone A is written to all three zones' caches, two of the copies crossing a zone. Zone A's cache returns with 0 of 7,200 sessions. A check-in misses in cache A, asks cache B, finds the session and copies it home. The database is asked 0 reads, and cache A is full again in 6 seconds.",
+      "lanes": [
+        "App server A",
+        "Cache A",
+        "Cache B",
+        "Cache C",
+        "Database"
+      ],
+      "steps": [
+        {
+          "from": 0,
+          "to": 1,
+          "label": "save: copy 1 of 3"
+        },
+        {
+          "from": 0,
+          "to": 2,
+          "label": "copy 2 of 3, crosses a zone"
+        },
+        {
+          "from": 0,
+          "to": 3,
+          "label": "copy 3 of 3, crosses a zone"
+        },
+        {
+          "note": 1,
+          "text": "zone A comes back",
+          "sub": "cache A: 0 of 7,200 sessions",
+          "tone": "warn"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "check-in: miss",
+          "tone": "warn"
+        },
+        {
+          "from": 0,
+          "to": 2,
+          "label": "fallback: hit in zone B",
+          "tone": "ok"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "copy it home"
+        },
+        {
+          "outcome": 4,
+          "text": "database asked 0 reads",
+          "tone": "ok"
+        },
+        {
+          "outcome": 1,
+          "text": "cache A full again in 6 s",
+          "tone": "ok"
+        }
+      ]
+    },
+    "caption": "The fix, as zone A comes back empty. Every save is written to all three zones, two of the copies crossing a zone. When zone A's nodes return with 0 of 7,200 sessions, a check-in misses at home, asks zone B, finds the session and copies it home. The database is asked nothing, and zone A's copy is full again in 6 seconds.",
+    "fix": {
+      "title": "The fix: a full copy in every zone, zone fallback, and a drill",
+      "text": "Run three nodes in each zone, each zone a full copy of every session, and have the client write every save to all three and read from its own zone, as in Figure 3. Turn zone fallback on: a miss asks the next zone, A to B, B to C, C to A, before the database, and copies what it finds home. Size each zone's nodes and app servers for 1,800 check-ins a second, the load it carries when another zone is dark. Budget the cost: three times the memory, 21,600 stored sessions, and 720 copies a second for 240 saves, 480 of them crossing a zone. Then prove it with a game day on a quiet night: switch a zone off, watch the hit ratio stay at 100% and the database at 0, and bring it back to watch it fill from its neighbour. Add an alarm when the database is asked for more than 1,000 reads a second, because the first sign of a cold cache is the database's read rate."
+    },
+    "limits": [
+      "A copy per zone survives a zone, not a region. A region-wide failure needs copies in another region, and the 2016 design's replication between regions is asynchronous: the other region can be behind, and if a target region is down for long, Kafka drops older messages that are never sent.",
+      "The copies can disagree. A save that reaches two zones and times out on the third leaves one copy older than the others until the next write or a TTL replaces it. EVCache accepts that because it typically operates where consistency is not a strong requirement; anything that must be exact, like a payment, belongs in the database.",
+      "Fallback needs a warm neighbour. If two copies are empty at once, or a key was never cached, the miss still goes to the database. And every fallback read crosses a zone, which is slower than reading at home."
+    ],
+    "tradeoff": {
+      "head": [
+        "Setup",
+        "Every night",
+        "Zone A lost",
+        "An empty copy comes back"
+      ],
+      "rows": [
+        [
+          "One cluster in zone A (Hushwell now)",
+          "1 copy per save. 2,560 cache reads and copies a second cross a zone: two thirds of check-ins read in zone A.",
+          "Every zone hits 0%. The database is asked 3,600 reads a second and 2,600 check-ins fail, every second until the zone returns.",
+          "All three zones miss until it refills, at most 1,000 sessions a second, the database's limit: 2,600 check-ins fail in the first second."
+        ],
+        [
+          "Nine nodes spread over three zones",
+          "1 copy per save. Still 2,560 a second cross a zone, because a key's node is in another zone two times in three.",
+          "B and C hit 67% at first. 2,600 database reads, 200 failed, 3 seconds until every session is cached again.",
+          "Zone A's third comes back empty: 2,800 database reads, 400 failed, 4 seconds."
+        ],
+        [
+          "A copy in every zone, misses to the database",
+          "3 copies per save, 720 a second, 480 of them crossing a zone.",
+          "B and C hit 100%. The database is asked 0 reads.",
+          "12 seconds: 8,400 database reads, 1,200 failed, and 2,480 crossing a zone a second at first."
+        ],
+        [
+          "A copy in every zone with zone fallback",
+          "3 copies per save, 720 a second, 480 of them crossing a zone.",
+          "B and C hit 100%. The database is asked 0 reads.",
+          "6 seconds, filled from the next zone: 7,200 fallback reads and 0 database reads."
+        ]
+      ]
+    },
+    "seniorTake": "A cache in front of a database is part of that database's capacity, so it needs the same failure planning as the database: ask what every reader does when one zone's cache disappears, and again when it comes back empty. Put a copy where each reader lives, write to all of them, read the local one, and let an empty copy borrow from a neighbour before it touches the source. Then count the bill honestly: writes times zones, memory times zones, and a zone crossing for every remote copy. It pays when reads dwarf writes and the copies may be a little out of step. Test it by turning a zone off on purpose, because otherwise the first real test arrives at 3 AM.",
+    "realWorld": [
+      {
+        "title": "EVCache in 2013: a cache many services share",
+        "text": "Shashi Madappa's post of 25 February 2013 opens: EVCache is a distributed in-memory caching solution based on memcached & spymemcached that is well integrated with Netflix OSS and AWS EC2 infrastructure. The name is an abbreviation: Ephemeral, the data stored is for a short duration as specified by its TTL; Volatile, the data can disappear any time, evicted; and Cache, an in-memory key-value store. The advantages it lists for distributed caching are faster response time compared to data being fetched from source or database, less load and fewer servers needed to handle the requests as most of the requests are served by the cache, and more throughput for the services fronted by the cache. An EVCache app is a logical grouping of one or more memcached instances with a name, and the post adds that, though it is not recommended, a memcached instance can be shared across multiple EVCache apps. Each EVCache server is an EC2 instance running memcached beside a Java sidecar that interacts with Eureka and monitors the memcached process.",
+        "source": 0
+      },
+      {
+        "title": "Figures 1 to 3: from one cluster to one per zone",
+        "text": "Figure 1 is an EVCache app of 3 memcached nodes: the data is sharded across the memcached nodes based on Ketama consistent hashing algorithm, and the nodes can be in one availability zone or spread out across several. Figure 2 has two clusters, A and B, of 3 nodes each, and all the EC2 instances for a cluster should be in the same availability zone. Reads go to the client's own zone and writes to both, and if a cluster loses instances it can be set to write only, with all its read traffic sent to the other zone, so that latency and cache hit rate are not impacted. Figure 3 has three clusters, A, B and C, of 3 EVCache servers each, one per availability zone. The client gets the list of servers from Eureka, creates its clusters from each server's zone, and re-configures itself when servers are added or removed. All the reads by a client are performed on the same zone as the client whereas the writes are done across all the zones. With zone fallback enabled, data lost to an instance or zone failure or eviction can be fetched from the clusters in another zone, which, the post says, causes an increase in latency but higher reliability, and in most cases fetching data from other zone is much faster than getting the data from source.",
+        "source": 0
+      },
+      {
+        "title": "2016: 30 million requests a second, three regions",
+        "text": "Caching for a Global Netflix, by the EVCache team on 1 March 2016, opens with EVCache as an extensively used data-caching service that provides the low-latency, high-reliability caching solution that the Netflix microservice architecture demands: a RAM store based on memcached, optimized for cloud use, which typically operates in contexts where consistency is not a strong requirement. At peak, its production deployments routinely handled upwards of 30 million requests a second, storing hundreds of billions of objects across tens of thousands of memcached instances, just under 2 trillion requests per day, and it had been in production for more than 5 years. Netflix had just launched in 130 additional countries and ran in three AWS regions, Northern Virginia, Oregon and Ireland, able to serve any member request from any region; traffic shifts between them for reasons that include region failover exercises, which the post calls Chaos Kong. Its reason for replicating caches globally is the thundering herd: without global replication, member traffic shifting from one region to another would encounter cold caches, and processing the cache misses would lengthen response times and overwhelm the databases.",
+        "source": 1
+      },
+      {
+        "title": "How one write reaches another region",
+        "text": "EVCache replicates data both within a region and globally, the post says, and the intra-region redundancy comes from a simultaneous write to all server groups within the region. Between regions, a SET goes like this: the client library sends it to the local region's cache and writes metadata, including the key but not the data, to the replication message queue, Kafka; a Replication Relay in the local region reads the message, fetches the data for the key from the local cache and sends a SET to the remote region's Replication Proxy, which performs a SET to its local cache. The only part of the system that reaches across region boundaries is the message from the Relay to the Proxy, and clients of EVCache are not aware of other regions. All replication is asynchronous, so local cache operations don't wait for it, and strong global consistency is a non-requirement: for non-critical data the post relies on eventual consistency. For some caches a SET only sends a DELETE for the key to the other regions, so the next read there is a miss. The 99th percentile of end-to-end replication latency was under one second for most caches and about 400 ms for the highest-volume one, and the Kafka-based system replicated more than 1.5 million messages a second at peak.",
+        "source": 1
+      },
+      {
+        "title": "What the 2016 post had to watch",
+        "text": "If a target region goes wildly latent or is down for an extended period, the post says, the Kafka buffer eventually fills and Kafka starts dropping older messages, which are never sent; services that use replicated caches are designed to tolerate such occasional disruptions. The team watched for missing messages by comparing the number of messages Kafka received with the number the Relay cluster replicated, and it monitored maximum latencies, not the average, because one partition can be much slower than the rest while the average looks fine. Before moving into VPC, implicit packets-per-second limits on AWS instances caused TCP timeouts, dropped packets and failed replication requests, and the answer was to scale out.",
+        "source": 1
+      },
+      {
+        "title": "The README today",
+        "text": "The EVCache repository on GitHub still describes it as a memcached & spymemcached based caching solution that is mainly used for AWS EC2 infrastructure for caching frequently used data, repeats the Ephemeral, Volatile, Cache abbreviation, and lists Java 9+ as required.",
+        "source": 2
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How would you design a distributed cache that survives losing a data center zone?",
+        "What are the costs of replicating cache writes?",
+        "One zone's cache comes back empty after a restart. Where should its misses go?"
+      ],
+      "answer": "Start from the readers: what does every reader do when one zone's cache disappears, and when it comes back empty? Inside a cluster, place keys with consistent hashing, so adding or losing a node moves only that node's keys. Then put a full cluster in each zone, write every update to all of them and read from the local one, as Netflix's EVCache does, so a lost zone costs one copy and reads never leave the zone. Size each zone for the load it takes when another is down. On a local miss, fall back to another zone before the database and copy the value home, so a cold copy fills from a warm one instead of stampeding the source. Name the costs: writes and memory multiplied by the number of zones, cross-zone traffic for every remote copy, a client that has to handle a write that succeeds in some zones and fails in another, and copies that can briefly disagree, which suits data that tolerates eventual consistency. Between regions, replicate asynchronously, as EVCache's 2016 design does with Kafka, a relay and a proxy, and accept some lag. Finish with operations: alarm on the database's read rate, and prove it by turning a zone off on purpose. The 3 AM Interview at the end of this season asks for a whole distributed cache; this is its chapter on failure."
+    }
+  },
+  "terms": [
+    {
+      "term": "Sleep story",
+      "def": "A long, calm story read aloud to help someone fall asleep. Hushwell's app plays them through the night."
+    },
+    {
+      "term": "Night on-call",
+      "def": "The engineer who answers alerts overnight. At Hushwell, one person from midnight to six."
+    },
+    {
+      "term": "Story check-in",
+      "def": "A listener's app asking Hushwell for the next piece of its story, every 2 seconds: 3,600 a second. Each one reads that listener's session from the cache."
+    },
+    {
+      "term": "Listener session",
+      "def": "What Hushwell keeps about one listener: which story, and where they are in it. About 7,200 between two and four in the morning."
+    },
+    {
+      "term": "Place save",
+      "def": "A listener's app writing its place in the story every 30 seconds, to the database and the cache: 240 saves a second."
+    },
+    {
+      "term": "Listener database",
+      "def": "Hushwell's source of truth for listeners and their places. It answers about 1,000 reads a second, sized for the cache's misses, not for every check-in."
+    },
+    {
+      "term": "EVCache",
+      "def": "Netflix's caching service, based on memcached and run as a shared service. Its client writes every update to a cluster in each availability zone and reads from its own zone."
+    },
+    {
+      "term": "Cache tier",
+      "def": "A layer of cache servers in front of databases that many applications use, run by one team as a shared service."
+    },
+    {
+      "term": "spymemcached",
+      "def": "A Java client library for memcached. EVCache's client is based on it."
+    },
+    {
+      "term": "Client library",
+      "def": "Code an application includes to talk to a service. EVCache's client library decides which servers to read from and write to."
+    },
+    {
+      "term": "Netflix OSS",
+      "def": "Netflix's open-source software: tools it made for its own cloud and published, such as Eureka and EVCache."
+    },
+    {
+      "term": "Open source",
+      "def": "Software whose code is published for anyone to read, use and change."
+    },
+    {
+      "term": "Sidecar",
+      "def": "A small helper program that runs next to a main one on the same server. EVCache's Java sidecar talks to Eureka and watches the memcached process."
+    },
+    {
+      "term": "Ketama",
+      "def": "A consistent hashing method for memcached clients. EVCache uses it to spread keys over the nodes of each cluster."
+    },
+    {
+      "term": "Hash ring",
+      "def": "The picture behind consistent hashing: nodes and keys hashed to points on a circle of numbers, each key belonging to the next node clockwise."
+    },
+    {
+      "term": "Replicated cache",
+      "def": "A cache that keeps the same data in more than one place, such as a copy in every zone, so losing one place loses only one copy."
+    },
+    {
+      "term": "Write fan-out",
+      "def": "How many copies each write becomes. With a full copy in each of three zones, every save is three writes."
+    },
+    {
+      "term": "Cross-zone traffic",
+      "def": "Reads and copies that travel from one availability zone to another, which is slower than staying inside a zone. The sim counts cache reads and copies, not database reads."
+    },
+    {
+      "term": "Zone fallback",
+      "def": "EVCache's option to fetch a key from another zone's cluster when the local one misses, before going to the source. In the sim, A asks B, B asks C, C asks A."
+    },
+    {
+      "term": "Write only (EVCache)",
+      "def": "A cluster state in EVCache: the cluster still takes writes, but its zone's reads go to another zone, for example while it has lost instances."
+    },
+    {
+      "term": "Cross-region replication",
+      "def": "Copying cache writes from one cloud region to another, so a member moved to a new region finds a warm cache. EVCache's is asynchronous."
+    },
+    {
+      "term": "Kafka",
+      "def": "Open-source software for durable streams of messages. In EVCache's 2016 design, the client puts each write's key on a Kafka queue for a relay to pick up."
+    },
+    {
+      "term": "Replication relay",
+      "def": "In EVCache's 2016 design, a service that reads keys from the Kafka queue, fetches their values from the local cache and sends them to the other region."
+    },
+    {
+      "term": "Replication proxy",
+      "def": "In EVCache's 2016 design, a service in the receiving region that takes each replicated write and writes it into that region's cache."
+    },
+    {
+      "term": "Metadata",
+      "def": "Data about data. EVCache's replication messages carry the key and a few details, not the value itself."
+    },
+    {
+      "term": "Eventual consistency",
+      "def": "Copies may differ for a while after a write, but they agree once writes stop. EVCache's copies between regions work this way."
+    },
+    {
+      "term": "p99",
+      "def": "The 99th percentile: 99 in 100 measurements are at or below it. EVCache's 2016 post reports its replication latency at p99."
+    },
+    {
+      "term": "Microservice",
+      "def": "A small service that does one job and talks to others over the network. Netflix runs hundreds of them."
+    },
+    {
+      "term": "Chaos Kong",
+      "def": "Netflix's name for its region failover exercises, which move member traffic away from a whole AWS region on purpose."
+    },
+    {
+      "term": "Game day",
+      "def": "A planned exercise where a team breaks something on purpose, such as switching a zone off on a quiet night, to prove the system copes."
+    }
+  ],
+  "atWork": "Picture a team whose Redis node and its replica both sat in one availability zone. When that zone failed, every app server in the other two zones was healthy, and the whole app was down anyway, because every request needed the cache and the database behind it couldn't take the load. Find the cache your team would least like to lose, often a Redis or ElastiCache cluster, and look up which zone each of its nodes is in. If the primary and every replica share a zone, that zone can take the whole app with it, however many zones your app servers use. Put replicas in other zones and turn on Multi-AZ with automatic failover, or run a copy per zone if your reads are local. Then plan a test with your team: in a quiet hour, fail the primary over on purpose and time how long reads fail. Last, write down how many reads a second the database behind the cache can take, next to how many it would get if the cache came back empty.",
+  "board": {
+    "cards": [
+      {
+        "id": "evcache",
+        "title": "EVCache"
+      },
+      {
+        "id": "memcached-based-cache-tier-run-as-a-shared-service",
+        "title": "A cache tier run as a shared service"
+      },
+      {
+        "id": "every-write-copied-to-each-availability-zone",
+        "title": "Every write copied to each zone"
+      },
+      {
+        "id": "consistent-hashing-to-spread-keys-across-nodes",
+        "title": "Consistent hashing across nodes"
+      }
+    ],
+    "strings": [
+      {
+        "from": "every-write-copied-to-each-availability-zone",
+        "to": "availability-zones",
+        "label": "a copy per zone"
+      },
+      {
+        "from": "every-write-copied-to-each-availability-zone",
+        "to": "single-point-of-failure",
+        "label": "no single zone"
+      },
+      {
+        "from": "every-write-copied-to-each-availability-zone",
+        "to": "fan-out",
+        "label": "writes x zones"
+      },
+      {
+        "from": "every-write-copied-to-each-availability-zone",
+        "to": "game-days",
+        "label": "turn a zone off"
+      },
+      {
+        "from": "evcache",
+        "to": "cache-stampede",
+        "label": "empty copy, herd"
+      },
+      {
+        "from": "evcache",
+        "to": "warm-up",
+        "label": "fill from a zone"
+      },
+      {
+        "from": "evcache",
+        "to": "keeping-data-replicated-between-regions",
+        "label": "Kafka, relay"
+      },
+      {
+        "from": "evcache",
+        "to": "service-discovery",
+        "label": "Eureka's list"
+      },
+      {
+        "from": "memcached-based-cache-tier-run-as-a-shared-service",
+        "to": "cache-aside",
+        "label": "miss: database"
+      },
+      {
+        "from": "consistent-hashing-to-spread-keys-across-nodes",
+        "to": "consistent-hashing",
+        "label": "deep dive: Ring"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e15-r1",
+      "kind": "free",
+      "prompt": "A food-delivery app keeps every restaurant's menu in one memcached cluster in zone B. Its app servers in zones A, B and C read menus from it 9,000 times a second, and the menu database behind it answers 1,500 reads a second. Zone B has never failed. What happens when it does, and what would you change? Name what your change costs.",
+      "keyIdeas": [
+        {
+          "idea": "Losing zone B empties the cache for every zone, so all the reads land on a database that answers far fewer, and most fail even though zones A and C are healthy",
+          "match": [
+            "single point",
+            "spof",
+            "overwhelm",
+            "stampede",
+            "can't handle",
+            "cannot handle",
+            "too many reads",
+            "falls over",
+            "whole app"
+          ]
+        },
+        {
+          "idea": "Keep a full copy in each zone: write every change to all of them and read from the local one",
+          "match": [
+            "copy per zone",
+            "copy in each",
+            "copy in every",
+            "cluster per zone",
+            "cluster in each",
+            "cluster in every",
+            "replicat",
+            "local zone",
+            "own zone",
+            "read local",
+            "write to all",
+            "writes to all"
+          ]
+        },
+        {
+          "idea": "On a local miss, ask another zone before the database, so an empty copy fills from a warm one",
+          "match": [
+            "fallback",
+            "fall back",
+            "another zone",
+            "other zone",
+            "next zone",
+            "neighbo",
+            "before the database",
+            "from a warm"
+          ]
+        },
+        {
+          "idea": "The cost: every write goes to every zone, memory multiplied by the zones, and cross-zone traffic for each copy",
+          "match": [
+            "three times",
+            "triple",
+            "memory",
+            "cross-zone",
+            "fan-out",
+            "fan out",
+            "more writes",
+            "every write",
+            "three writes",
+            "network"
+          ]
+        }
+      ],
+      "model": "Today zone B is a single point of failure for all three zones. When it fails, every zone's reads miss at once, and 9,000 reads a second land on a database that answers 1,500: most menus fail to load, in zones that are perfectly healthy. Put a full copy of the menus in each zone, three clusters, and have the client write every change to all three and read from its own zone, as Netflix's EVCache does, so losing a zone loses one copy and reads never leave the zone. Size each zone for the reads it takes when another is down. On a local miss, fall back to another zone before the database and copy the value home, so a zone that comes back empty fills from a warm neighbour. The cost: three times the memory, three writes for every change, two of them crossing a zone, and copies that can briefly disagree. Menus change rarely and are read constantly, so it's worth it. Then switch zone B off on purpose to prove it."
+    },
+    {
+      "id": "s2e15-r2",
+      "kind": "mcq",
+      "prompt": "In Figure 3 of Netflix's 2013 EVCache post, how does a client in one availability zone read and write?",
+      "options": [
+        "Reads and writes both go to its own zone's cluster, and a background job copies them to the others",
+        "Reads go to its own zone's cluster, and writes go to the clusters in every zone",
+        "Reads go to whichever zone answers first, and writes go to its own zone only",
+        "Reads and writes go to one shared cluster, chosen by consistent hashing"
+      ],
+      "answer": 1,
+      "why": "The post: all the reads by a client are performed on the same zone as the client whereas the writes are done across all the zones. Local reads keep latency low, and every zone holding every key means losing a zone costs one copy. Consistent hashing spreads the keys over the three servers inside each zone's cluster; it doesn't decide which zone you read."
+    },
+    {
+      "id": "s2e15-r3",
+      "kind": "free",
+      "prompt": "A team runs a full copy of its cache in each of three zones, writes to all three and reads locally. Each zone serves 6,000 cache reads a second, and every miss goes straight to the database, which answers 2,000 reads a second. A routine deploy restarts zone C's cache nodes, and they come back empty. What happens over the next minute, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "Every read in zone C misses, so its whole load hits a database that answers a third of it: a stampede that fails reads until the copy refills",
+          "match": [
+            "stampede",
+            "overload",
+            "overwhelm",
+            "all miss",
+            "every read",
+            "cold",
+            "empty copy",
+            "reads fail",
+            "requests fail",
+            "time out",
+            "timeout"
+          ]
+        },
+        {
+          "idea": "Turn on zone fallback: a miss in zone C asks a warm zone first and copies the value home, so the database is barely asked",
+          "match": [
+            "fallback",
+            "fall back",
+            "another zone",
+            "other zone",
+            "neighbo",
+            "warm zone",
+            "copy it home",
+            "copies it home",
+            "from zone a",
+            "from zone b"
+          ]
+        },
+        {
+          "idea": "Restart one zone's cache at a time, only once the previous one is warm, or keep the cluster out of reads while it fills",
+          "match": [
+            "one zone at a time",
+            "one at a time",
+            "warm it",
+            "warm up",
+            "warm-up",
+            "pre-warm",
+            "rolling",
+            "before taking",
+            "write only",
+            "stagger"
+          ]
+        }
+      ],
+      "model": "Zone C's nodes come back with nothing, so every one of its 6,000 reads a second misses and goes to a database that answers 2,000: a cache stampede, with about 4,000 reads a second failing or timing out until zone C's copy refills from the database, and the other zones' few misses stuck in the same queue. Meanwhile the copies in zones A and B are full and one zone away. Turn on zone fallback, as Netflix's EVCache does: a miss in zone C asks another zone before the database and copies the answer home, so zone C fills from a warm neighbour and the database hardly notices. Also make deploys restart one zone's cache at a time, and only once the zone before it is warm again. EVCache can also set a cluster to write only and send its zone's reads to another zone while it fills."
+    },
+    {
+      "id": "s2e15-r4",
+      "kind": "mcq",
+      "prompt": "In Netflix's 2016 design for replicating EVCache between regions, what does the client put on the Kafka queue when it writes?",
+      "options": [
+        "The full value, so the other region can write it without asking anyone",
+        "The key and some metadata, not the data; a relay fetches the data from the local cache",
+        "Nothing: the client writes directly to every region's cache itself",
+        "A checksum of the value, so the other region can tell whether its copy differs"
+      ],
+      "answer": 1,
+      "why": "The client library writes metadata, including the key but not the data, to the replication message queue. The Replication Relay fetches the data from the local cache and sends it to the Replication Proxy in the other region. Keeping values out of Kafka keeps it smaller and faster, and some caches send only a DELETE. Clients never talk to other regions."
+    },
+    {
+      "id": "s2e15-r5",
+      "kind": "mcq",
+      "prompt": "A cluster places keys with Ketama consistent hashing over nine nodes. One node dies. Which keys have to find a new node?",
+      "options": [
+        "Every key, because the number of nodes changed",
+        "Only the keys that were on the dead node",
+        "About half of the keys, chosen by the ring",
+        "None, because consistent hashing keeps a second copy of every key"
+      ],
+      "answer": 1,
+      "why": "On the ring, each key belongs to the next node along. When a node leaves, only its keys move, to the next node, and every other key stays where it was. With key mod number of nodes, almost every key would move. Consistent hashing copies nothing, though: the dead node's keys are gone and miss until they're cached again."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. Figure 3 has run since November, and the drill has passed twice. Last Saturday a listener wrote in that her story jumps back nine minutes when she pauses it and comes back, but only on some nights. Amabel found her pause at 02:14:06, saved three times: zones A and B took the new place, and the write to zone C had timed out. When she pressed play at 02:20, her check-in landed on an app server in zone C. The database had her new place the whole time.",
+    "prompt": "Reply to OP. What's going on, and what should Hushwell change?",
+    "keyIdeas": [
+      {
+        "idea": "The copies disagree: the save reached zones A and B but failed on zone C, and reads in zone C get the older place",
+        "match": [
+          "disagree",
+          "inconsistent",
+          "out of sync",
+          "stale",
+          "older copy",
+          "old copy",
+          "old place",
+          "partial write",
+          "partial failure",
+          "failed on"
+        ]
+      },
+      {
+        "idea": "A failed copy must be repaired: retry it, or delete the key in that zone so the next read misses and fetches the database",
+        "match": [
+          "retry",
+          "delete",
+          "invalidat",
+          "remove the key",
+          "evict",
+          "repair",
+          "re-send",
+          "resend"
+        ]
+      },
+      {
+        "idea": "Bound how long a copy can be wrong with a TTL and an alert on failed copies, and keep the database as the source of truth",
+        "match": [
+          "ttl",
+          "expire",
+          "expiry",
+          "source of truth",
+          "from the database",
+          "read the database",
+          "eventual",
+          "alert",
+          "alarm"
+        ]
+      }
+    ],
+    "model": "Figure 3 writes each save to three zones, and nothing makes the three writes succeed together. Her pause was saved in zones A and B, failed on zone C, and zone C kept the older place. Reads are local, so the check-in that landed in zone C read a place nine minutes back. EVCache is built for data where copies may differ for a while, but a listener's place shouldn't differ for hours. When a copy fails, retry it, and if it still fails, delete that key in zone C so its next read misses and fetches the database, which had the new place all along. Give sessions a TTL so any copy that slips through is wrong for minutes at most, and alert on failed copies per zone. It's the invalidation problem from Stale Milk, three times over."
+  },
+  "next": "Next, Field Report: Roll Call: the Netflix TechBlog archive, and how servers in a cloud, where they come and go, sign themselves in to a service registry and renew their lease with heartbeats, so clients can look up the healthy ones and balance load themselves.",
+  "sources": [
+    {
+      "title": "Shashi Madappa, Announcing EVCache: Distributed in-memory datastore for Cloud, Netflix TechBlog, 25 February 2013 (EVCache based on memcached and spymemcached; Ephemeral, Volatile, Cache; the advantages of distributed caching; an EVCache app as a logical grouping of memcached instances; the EVCache server as memcached plus a Java sidecar that interacts with Eureka; Figure 1, 3 nodes sharded by Ketama consistent hashing; Figure 2, two clusters in two zones and write only; Figure 3, three clusters of 3 EVCache servers, one per availability zone, reads in the client's zone, writes to every zone, zone fallback much faster than the source). Read on 2026-10-10 from the Internet Archive's copy, because the live page blocks automated reading.",
+      "url": "https://netflixtechblog.com/announcing-evcache-distributed-in-memory-datastore-for-cloud-c26a698c27f7"
+    },
+    {
+      "title": "The EVCache Team (Shashi Madappa, Vu Nguyen, Scott Mansfield, Sridhar Enugula, Allan Pratt, Faisal Zakaria Siddiqi), Caching for a Global Netflix, Netflix TechBlog, 1 March 2016 (upwards of 30 million requests a second at peak, hundreds of billions of objects, tens of thousands of memcached instances, just under 2 trillion requests a day, in production more than 5 years; 130 additional countries; three AWS regions; cold caches and the thundering herd; strong global consistency a non-requirement, eventual consistency, all replication asynchronous; a simultaneous write to all server groups within a region; the Kafka, Replication Relay and Replication Proxy path; DELETE-only replication for some caches; p99 replication latency under one second, about 400 ms for the highest-volume cache; more than 1.5 million messages a second; dropped messages, maximum latencies, packets-per-second limits). Read on 2026-10-10 from the Internet Archive's copy, because the live page blocks automated reading.",
+      "url": "https://netflixtechblog.com/caching-for-a-global-netflix-7bcc457012f1"
+    },
+    {
+      "title": "Netflix, EVCache repository README on GitHub, read on 2026-10-10 (a memcached and spymemcached based caching solution mainly used for AWS EC2 infrastructure for caching frequently used data; Ephemeral, Volatile, Cache; Java 9+ required)",
+      "url": "https://github.com/Netflix/EVCache"
+    }
+  ]
+}

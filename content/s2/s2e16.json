@@ -1,0 +1,1111 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-09) first version"
+  ],
+  "id": "s2e16",
+  "season": 2,
+  "n": 16,
+  "title": "Field Report: Roll Call",
+  "setting": "the Netflix TechBlog archive",
+  "core": false,
+  "minutes": 12,
+  "concepts": [
+    "eureka",
+    "service-registry-for-a-cloud-where-servers-come",
+    "go",
+    "instances-registering"
+  ],
+  "prerequisites": [
+    "s2e09",
+    "s2e06",
+    "s2e04",
+    "s2e03",
+    "s2e02",
+    "s2e01",
+    "s1e01",
+    "s1e02",
+    "s1e03",
+    "s1e04",
+    "s1e06",
+    "s1e07",
+    "s1e08",
+    "s1e10",
+    "s1e11",
+    "s1e12"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/mast_check_ishbel",
+    "flair": "Field Report",
+    "age": "9h",
+    "votes": 2981,
+    "title": "I keep the night radio at a fishing harbour. Our app's servers answer a roll call every 30 seconds, copied from a Netflix post from 2012. On Tuesday it struck off three that were still alive.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I keep the night radio at Inchkeld harbour, and I'm on call for our fishing co-op's app. Every boat that's out calls in on the half hour. Above the set hangs a card older than me:"
+      },
+      {
+        "t": "note",
+        "title": "INCHKELD RADIO. NIGHT WATCH.",
+        "items": [
+          "EVERY BOAT CALLS ON THE HALF HOUR.",
+          "THREE CALLS MISSED: POST HER OVERDUE.",
+          "HALF THE FLEET QUIET AT ONCE: CHECK THE MAST FIRST."
+        ],
+        "sig": "- card above the set, 1974"
+      },
+      {
+        "t": "p",
+        "text": "Next to it, Struan, who built the app in 2014, pinned a printout from the Netflix TechBlog archive: Netflix Shares Cloud Load Balancing And Failover Tool: Eureka!, posted on 4 September 2012. In AWS, it says, \"servers come and go\". So every service registers with Eureka and must \"send heartbeats to renew their leases every 30 seconds\", and one that stops is \"taken out of the server registry in about 90 seconds.\" Callers keep their own copy of the list, fetched every 30 seconds, and pick a server from it themselves. No load balancer sits in the middle."
+      },
+      {
+        "t": "p",
+        "text": "Struan built ours the same way and called it the Roll. Nine berth servers, a1 to c3, three in each of zones A, B and C, answer it every 30 seconds. Three app servers send them about 90 lookups a second and give up on one after 2 seconds. One lookup in ten books a berth. Struan set the app servers to fetch the list every 5 minutes, not every 30 seconds. \"Calls cost money,\" he wrote in the margin. Then he moved inland. Tuesday night:"
+      },
+      {
+        "t": "log",
+        "text": "02:14:00  b2    zone B: power lost, no goodbye\n02:15:15  roll  b2 struck off: nothing heard for 90 s\n02:20:00  apps  b2 off the last list. 2,600 sent to it, 0 answered\n02:20:30  roll  b4 signs in, zone B (b2's replacement)\n03:30:00  roll  no heartbeats from zone B\n03:31:18  roll  b4, b1, b3 struck off\n03:39:00  roll  zone B heard again. b4, b1, b3 sign in\n03:43:20  apps  every list whole. 7,000 failed since 03:30"
+      },
+      {
+        "t": "beat",
+        "text": "At 03:30, on the radio, five boats missed the call at once. The mast was fine. At 04:00 all five answered, and not one skipper remembered missing a call."
+      },
+      {
+        "t": "p",
+        "text": "The printout says: \"Even during a network partition between the clients and servers, the servers have built-in resiliency to prevent a large scale outage.\" Ours struck off three servers that were answering every lookup, and the six left couldn't carry the load. Agnete, who runs the co-op, wants to replay Tuesday on purpose on Friday night, with whatever we change. What do I tell her to change?"
+      },
+      {
+        "t": "evidence",
+        "label": "netflix_techblog_2012-09-04_eureka.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 400,
+          "aria": "Netflix's high level architecture for Eureka in 2012, redrawn from the post. Three zones of one region, us-east-1c, us-east-1d and us-east-1e, each with a Eureka server; the servers replicate to each other. In us-east-1c and us-east-1e an application service, with the Eureka client inside, registers and renews its lease every 30 seconds; one that stops is taken out in about 90 seconds. In us-east-1d an application client, also with the Eureka client inside, gets the registry from its zone's server every 30 seconds and calls the services in the other zones directly.",
+          "groups": [
+            {
+              "label": "us-east-1c",
+              "x": 15,
+              "y": 30,
+              "w": 230,
+              "h": 320
+            },
+            {
+              "label": "us-east-1d",
+              "x": 255,
+              "y": 30,
+              "w": 230,
+              "h": 320
+            },
+            {
+              "label": "us-east-1e",
+              "x": 495,
+              "y": 30,
+              "w": 230,
+              "h": 320
+            }
+          ],
+          "nodes": [
+            {
+              "id": "esc",
+              "label": "Eureka server",
+              "sub": "registry, this zone",
+              "meta": "silent 90 s: taken out",
+              "x": 130,
+              "y": 95,
+              "w": 170,
+              "h": 62,
+              "shape": "box",
+              "tone": "accent"
+            },
+            {
+              "id": "esd",
+              "label": "Eureka server",
+              "sub": "registry, this zone",
+              "meta": "silent 90 s: taken out",
+              "x": 370,
+              "y": 95,
+              "w": 170,
+              "h": 62,
+              "shape": "box",
+              "tone": "accent"
+            },
+            {
+              "id": "ese",
+              "label": "Eureka server",
+              "sub": "registry, this zone",
+              "meta": "silent 90 s: taken out",
+              "x": 610,
+              "y": 95,
+              "w": 170,
+              "h": 62,
+              "shape": "box",
+              "tone": "accent"
+            },
+            {
+              "id": "svcc",
+              "label": "Application service",
+              "sub": "Eureka client inside",
+              "meta": "renews every 30 s",
+              "x": 130,
+              "y": 290,
+              "w": 170,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "clid",
+              "label": "Application client",
+              "sub": "Eureka client inside",
+              "meta": "fetches every 30 s",
+              "x": 370,
+              "y": 290,
+              "w": 170,
+              "h": 62,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "svce",
+              "label": "Application service",
+              "sub": "Eureka client inside",
+              "meta": "renews every 30 s",
+              "x": 610,
+              "y": 290,
+              "w": 170,
+              "h": 62,
+              "shape": "box",
+              "tone": "ok"
+            }
+          ],
+          "edges": [
+            {
+              "from": "esc",
+              "to": "esd",
+              "label": "replicate",
+              "dash": true,
+              "tone": "muted"
+            },
+            {
+              "from": "esd",
+              "to": "ese",
+              "label": "replicate",
+              "dash": true,
+              "tone": "muted"
+            },
+            {
+              "from": "svcc",
+              "to": "esc",
+              "label": "register, renew"
+            },
+            {
+              "from": "clid",
+              "to": "esd",
+              "label": "get registry"
+            },
+            {
+              "from": "svce",
+              "to": "ese",
+              "label": "register, renew"
+            },
+            {
+              "from": "clid",
+              "to": "svcc",
+              "label": "calls"
+            },
+            {
+              "from": "clid",
+              "to": "svce",
+              "label": "calls"
+            }
+          ],
+          "notes": [
+            {
+              "x": 20,
+              "y": 385,
+              "text": "Redrawn from the post's figure, 4 September 2012",
+              "tone": "muted",
+              "anchor": "start"
+            }
+          ]
+        },
+        "caption": "The post's high level architecture, redrawn and simplified. One Eureka cluster per region, with at least one Eureka server in each zone; the servers replicate registrations and renewals to each other. A service registers, sends a heartbeat to renew its lease every 30 seconds, and cancels when it shuts down; one that stops renewing is taken out of the registry in about 90 seconds. A caller looks up the registry every 30 seconds, keeps it, and calls the services it needs directly, in any zone. The post's figure also has a caller in us-east-1c."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 118,
+      "age": "8h",
+      "text": "Four words for what's on that printout, then questions. A lease is a place on a list that lasts only as long as you keep renewing it; each heartbeat renews it. Eviction, in Eureka's sense, is the registry striking off a server whose lease ran out, as your Roll did. Picking a server from your own copy of the list is client-side load balancing; sending everything to a load balancer in the middle is server-side. And a network partition is a fault that splits machines into groups that can't reach each other, while each group keeps working. Now the log. The Roll struck b2 off at 02:15:15. Why were the app servers still sending it lookups until 02:20:00, and whose number decided that? At 03:30:00 three servers in one zone went quiet in the same second. Which is likelier: three machines failing together, or the one path between them and the Roll? Your card has an opinion. And when a caller's copy of the list is wrong, what should it do with a lookup that gets no answer?",
+      "replies": [
+        {
+          "author": "u/mast_check_ishbel",
+          "op": true,
+          "points": 36,
+          "age": "7h",
+          "text": "Struan's margin note sits next to the 30 seconds. Under it, in pencil, in handwriting nobody at the co-op knows, someone has written one word: don't."
+        }
+      ]
+    },
+    {
+      "author": "u/wiki_page_hesketh",
+      "points": 74,
+      "age": "7h",
+      "text": "The post is the summary. Eureka's wiki is the manual, and it has a page called Server Self Preservation Mode. A client that fails 3 heartbeat renewals in a row is due for eviction, and when more than 15% of the registry is in that state at once, the Eureka server stops evicting anyone until the renewals come back. That's self-preservation, and it's on by default. Another wiki page puts it as renewals falling below 85% of what the server expects, and says it's mainly for a network partition between a group of clients and the server. Your card says the same thing about the mast. The catch is on that page too: \"There may be scenarios in case of a mass outage that this may cause the clients to get the instances that do not exist anymore.\""
+    },
+    {
+      "author": "u/second_server_eilidh",
+      "points": 58,
+      "age": "6h",
+      "text": "Whatever the Roll does, every caller's copy is a little behind it. Eureka's wiki says a change may take up to 2 minutes to reach every client even at its defaults, and tells you to \"retry on failures and keep the timeouts low\". So give up on a lookup quickly and send it once to a different server on the same list: a retry on another instance. Ribbon, the client-side load-balancing library Netflix published, has a setting for exactly that, MaxAutoRetriesNextServer, and its default is 1. One catch: only retry what's safe to repeat. A lookup is idempotent. A booking is a POST, and a retried booking can take the berth twice."
+    },
+    {
+      "author": "u/middle_box_perrin",
+      "points": 41,
+      "age": "5h",
+      "text": "Or don't make the app servers think at all. Put a load balancer in front of the berth servers, health-check them every 10 seconds, and send every lookup to it. That's server-side load balancing, and plenty of teams do it. The post explains why Netflix didn't for its middle tier, the services other services call, in 2012: AWS didn't yet offer a load balancer for it, callers that hold the list keep working when a load balancer, or even every Eureka server, is down, and calling a server directly \"avoids two network hops through a proxy.\" A box in the middle is one more thing every lookup needs."
+    }
+  ],
+  "reply": {
+    "prompt": "On Friday night Agnete will replay Tuesday on purpose: b2 stopped hard at 02:14:00, a new server at 02:20:00, and zone B cut off from the Roll from 03:30:00 to 03:39:00. What should she change first? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Turn on self-preservation, make the app servers fetch the list every 30 seconds, and retry a failed lookup once on another server.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Agnete changed all three on Thursday, and on Friday night we replayed Tuesday on purpose. At 02:14:00 she stopped b2 hard, with no goodbye. The Roll struck it off at 02:15:15, and by 02:15:40 every app server had fetched a list without it: 900 lookups went to it. Each waited 2 seconds and went to another server, so 810 were only slow. The 90 that failed were bookings, which the app servers never retry. b4 started at 02:20:00, signed in at 02:20:30 and had its full share by 02:20:50. At 03:30:00 a firewall rule cut zone B off from the Roll. By 03:30:18 the Roll had heard only 15 of the 18 heartbeats it expects in a minute, and it stopped striking anyone off. Zone B kept answering, and nothing failed. At 03:30, on the radio, the same five boats missed the call. Agnete's firewall doesn't reach the radio. At 04:00 they answered, and one skipper asked me who had been calling his name at half past three.",
+        "senior": "Each change covers a different gap. The 30-second fetch cuts the time a dead server stays on callers' lists from 6 minutes to 100 seconds, and lets a new server in as fast. The retry hides most of what's left, but only for lookups, which are safe to repeat. Self-preservation stops the Roll turning a network fault into a capacity outage, at the price of keeping real deaths listed while it holds, which is exactly what the retries cover. Next, run the Roll in every zone, as Netflix does, and alert when it's holding."
+      },
+      {
+        "text": "Make the app servers fetch the list every 30 seconds, as the post does, and retry a failed lookup once on another server.",
+        "tone": "warn",
+        "verdict": "Trade-off: the dead leave fast, so does everyone else",
+        "part2": "Agnete set a 30-second fetch and one retry on another server, and on Friday we replayed Tuesday. b2 went at 02:14:00, was struck off at 02:15:15 and was gone from every list by 02:15:40: 900 lookups went to it, 810 were retried elsewhere, and only 90 bookings failed. b4 had its share by 02:20:50. At 03:30:00 the Roll stopped hearing zone B, and at 03:31:00, 03:31:12 and 03:31:18 it struck off b4, b1 and b3. This time the app servers heard within 30 seconds. From 03:31:40 all three were sending 90 lookups a second to six servers that answer 12 each, and the retries had nowhere to go: every other server on their lists was full. One lookup in five failed until 03:39:00, and the last failure was at 03:39:19. 8,259 failed, more than Tuesday's 7,000. On the radio, the same five boats missed the 03:30 call.",
+        "senior": "Fetching often and retrying make callers quick to follow the Roll, which is right when the Roll is right: b2 cost 90 failures instead of 2,600. But a registry that strikes off healthy servers is wrong, and callers that follow it quickly spread its mistake quickly, so the partition cost more than on Tuesday. Retries can't help when the problem is too few servers on the list; they only add load. The Roll needs self-preservation, so a network fault doesn't become a capacity outage."
+      },
+      {
+        "text": "Make the app servers fetch the list only every 30 minutes, so a bad few minutes at the Roll can never reach them.",
+        "tone": "bad",
+        "verdict": "Hides the Roll's mistakes by ignoring the Roll",
+        "part2": "Agnete set the app servers to fetch every 30 minutes, and on Friday we replayed Tuesday. b2 went at 02:14:00 and the Roll struck it off at 02:15:15, but app-2 kept it on its list until 02:40:00: 9,600 lookups went to b2 over 26 minutes, and every one failed after a 2-second wait. b4 signed in at 02:20:30, got its first lookup at 02:30:00 and its full share at 02:50:00. At 03:31 the Roll struck off b4, b1 and b3 again, and by luck no app server fetched the list before they signed back in at 03:39. Nothing failed. Agnete called the night a success. I wrote 26 minutes on the card above the set, under the line about three missed calls.",
+        "senior": "A long cache hides the registry's mistakes by ignoring the registry, truths included. A dead server stayed on a list for 26 minutes, and new capacity sat idle for up to 30: on a busy night, when servers are added because the others are full, that is an outage of its own. The partition did no harm only because no fetch landed inside it; one that did would have kept a list of six for half an hour. Give the Roll self-preservation and keep the callers fresh."
+      },
+      {
+        "text": "Turn on self-preservation, so the Roll strikes nobody off when many heartbeats stop at once. Leave the rest as it is.",
+        "tone": "warn",
+        "verdict": "Trade-off: the living stay, the dead linger",
+        "part2": "Agnete turned on self-preservation and nothing else, and on Friday we replayed Tuesday. At 03:30:18 the Roll had heard only 15 of the 18 heartbeats it expects in a minute, and it stopped striking anyone off. b1, b3 and b4 kept their places and their lookups, and nothing failed in zone B's nine minutes. But b2, stopped at 02:14:00, went the way it did on Tuesday: struck off at 02:15:15, on the app servers' lists until 02:20:00, 2,600 lookups sent to it and 2,600 failed. b4 got its first lookup at 02:21:40 and its full share at 02:25:00. The five boats missed the 03:30 radio call again. I checked the mast again.",
+        "senior": "Self-preservation fixed the partition: a network fault no longer strikes off healthy servers. It does nothing about how long callers keep a dead server, which the 5-minute fetch decides, and nothing to hide the failures in that window, which is what retries are for. And while it holds, a server that really dies stays listed too, so it needs the retries even more. Add a 30-second fetch and one retry on another server."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e16",
+    "title": "Run the Roll at Inchkeld",
+    "lede": "You're Ishbel, replaying Tuesday night at Inchkeld from 02:13:50. Nine berth servers, a1 to c3, three in each of zones A, B and C, send the Roll a heartbeat every 30 seconds, each on its own second of the half minute, and the Roll strikes off any server it hasn't heard from in 90 seconds. Those two numbers, the 30-second fetch and the 85% line are Eureka's documented defaults. The rest is the co-op's, in a teaching model: three app servers send 30 lookups a second each, spread evenly over the servers on their own copy of the list, round robin, with no load balancer in between, and each fetches the list on its own schedule, a third of the interval apart. Each berth server answers up to 12 lookups a second; past that, the extra ones fail at once. A lookup sent to a dead server waits 2 seconds and fails. 1 lookup in 10 is a booking, a POST, and is never retried. At 02:14:00 b2 loses its power with no goodbye. At 02:20:00 a new server, b4, starts in zone B and signs in with its first heartbeat, 30 seconds later. From 03:30:00 to 03:39:00 a network fault stops zone B's heartbeats reaching the Roll, while the app servers can still reach zone B. A server that was struck off signs in again with its next heartbeat that gets through. With self-preservation on, the Roll counts the heartbeats it heard in the last minute, and while that is under 85% of two for every server on the roll, it strikes nobody off. A retry goes to one other server on the same app server's list, spread evenly, and works only if that server is alive and has room; the sim counts it in the same second as the try it replaces. Changing a setting replays the night; the clock speed doesn't. Click any box to see what it does.",
+    "tryThis": "Try this: press nothing and watch 02:14:00: b2 dies and keeps getting 10 lookups a second. The Roll strikes it off at 02:15:15, 75 seconds after it died, but the app servers hold it until 02:20:00: 2,600 sent, 2,600 failed. Set the fetch to every 30 seconds: 900. Turn on retries: 90 failed, all of them bookings. Now skip to 03:29:50 and watch the Roll strike off b4, b1 and b3, and the errors reach 20% once the app servers fetch. Turn self-preservation on and skip again: at 03:30:18 the Roll stops striking anyone off, and nothing fails. Try a 30-minute fetch from the start. Last, with self-preservation on, pull the plug on two more servers within half a minute, and watch the Roll keep both."
+  },
+  "explain": {
+    "oneLine": "Nothing at Inchkeld forgot how to count. The Roll did what a Eureka lease does, striking off whatever stops renewing, but without the habits the post's design leans on: callers that refresh their copy of the list often and try another server when one fails, and a registry that blames the network, not the servers, when many fall silent at once.",
+    "steps": [
+      {
+        "title": "Why Netflix built a roll call: servers come and go.",
+        "text": "In 2012 Netflix ran its services on AWS, where instances are replaced and added all the time. A traditional load balancer works with servers at well-known addresses, and the post says AWS did not yet provide one for the middle tier, the services other services call; its ELB was for edge services facing users, and putting mid-tier services behind it would have exposed them to the outside world. So Netflix built Eureka, a service registry run as a roll call. Every instance registers when it starts, renews its lease with a heartbeat every 30 seconds, and cancels when it shuts down cleanly. One that stops renewing is evicted when its lease runs out, about 90 seconds after its last heartbeat. Callers fetch the registry every 30 seconds, keep a copy, and pick a server from it themselves. Struan copied all of that into the Roll, except one number: his app servers fetched every 5 minutes."
+      },
+      {
+        "title": "A lease ends in silence, and silence takes time.",
+        "text": "A dead server sends no goodbye, so the registry learns of its death only when its lease runs out. b2's last heartbeat reached the Roll at 02:13:45, it died at 02:14:00, and the Roll struck it off at 02:15:15: 90 seconds after the heartbeat, 75 after the death. Depending on when in the half minute a server dies, that's between 60 and 90 seconds. Then every caller keeps its copy until its next fetch. With Struan's 5 minutes the last app server dropped b2 at 02:20:00, 360 seconds after it died, and 2,600 lookups went to it. With a 30-second fetch the last one dropped it at 02:15:40 and 900 went. The same lag works in reverse: b4 signed in with its first heartbeat, 30 seconds after it started, and got lookups only as each app server fetched. And the 90 seconds are a floor, not a promise: Eureka's own wiki allows up to 2 minutes for a change to reach every client, and its code says an ungraceful shutdown's lease really lasts twice as long."
+      },
+      {
+        "title": "Client-side load balancing: every caller holds the list.",
+        "text": "With Eureka there is no load balancer in the middle. Each caller balances over its own copy, round robin in Eureka's built-in client, and calls the server directly. The post gives the reasons: callers keep working when a load balancer, or every Eureka server, is down, because the list is cached on the client, and calling directly avoids two network hops through a proxy. It costs a little memory, and something bigger: every caller's copy is out of date for a while, so callers must expect to call servers that are gone. The wiki's advice is to retry on failures and keep the timeouts low. A 2-second timeout and one retry on another server turned b2's 2,600 failures into 260 with the 5-minute fetch, and into 90 with the 30-second one: only the bookings, which are POSTs and not safe to repeat. Retries hide dead servers, not missing capacity: when six servers had to carry nine servers' load, every retry landed on a full server and failed too."
+      },
+      {
+        "title": "Self-preservation: when many go quiet at once, suspect the network.",
+        "text": "One silent server is probably dead. Three in one zone going silent in the same second are probably cut off. Eureka encodes your card's rule: when more than 15% of the registry has missed 3 renewals, or the renewals heard fall below 85% of those expected, the server stops evicting anyone until they come back. On Tuesday, without it, the Roll struck off b4, b1 and b3 between 03:31:00 and 03:31:18, though they were answering every lookup. The app servers fetched the shorter list at 03:31:40, 03:33:20 and 03:35:00, six servers then took 15 lookups a second each against the 12 they answer, one lookup in five failed, and the lists were whole again only at 03:43:20: 7,000 failures. With self-preservation, the Roll heard 15 of the 18 heartbeats it expects by 03:30:18 and struck nobody off. The cost: a server that really dies while it holds stays listed, so callers need their retries, and with few servers a couple of real deaths cross the line. Two of nine is 22%, and the Roll will hold both as if the network had failed."
+      },
+      {
+        "title": "Netflix's shape: a registry in every zone.",
+        "text": "The post's figure runs one Eureka cluster per region, with at least one Eureka server in every zone, copying registrations and renewals to each other. A Eureka client talks to the server in its own zone first and fails over to another zone's if it can't. That is the post's middle-tier failover in two places: a caller trying another server for a request, and a Eureka client trying another zone's registry. The Roll is one server in one place, so a fault on one path made a whole zone look dead. Since 2012 the choices have widened: AWS now offers internal load balancers for server-side balancing in the middle tier, and registries such as AWS Cloud Map, from this season's Front Desk case. The trade-off between a list every caller holds and a box every request passes through is the same."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 420,
+      "aria": "The fix, drawn at 03:31:18 on Friday. The Roll has 9 servers on its roll and heard 12 of the 18 heartbeats it expects in the last minute, so self-preservation is holding and it strikes nobody off. Three app servers fetch the list every 30 seconds, each holds all 9 servers, and each retries a failed lookup once on another server. Zone A has a1 to a3, zone B has b1, b3 and b4, whose heartbeats can't reach the Roll, and zone C has c1 to c3. Every berth server gets 10 lookups a second.",
+      "groups": [
+        {
+          "label": "zone A",
+          "x": 15,
+          "y": 245,
+          "w": 204,
+          "h": 110
+        },
+        {
+          "label": "zone B",
+          "x": 268,
+          "y": 245,
+          "w": 204,
+          "h": 110
+        },
+        {
+          "label": "zone C",
+          "x": 521,
+          "y": 245,
+          "w": 204,
+          "h": 110
+        }
+      ],
+      "nodes": [
+        {
+          "id": "roll",
+          "label": "The Roll",
+          "sub": "9 on the roll, heard 12/18",
+          "meta": "self-preservation: holding",
+          "x": 370,
+          "y": 48,
+          "w": 300,
+          "h": 62,
+          "shape": "box",
+          "tone": "warn"
+        },
+        {
+          "id": "app1",
+          "label": "app-1",
+          "sub": "list of 9, every 30 s",
+          "meta": "retry once elsewhere",
+          "x": 130,
+          "y": 165,
+          "w": 200,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "app2",
+          "label": "app-2",
+          "sub": "list of 9, every 30 s",
+          "meta": "retry once elsewhere",
+          "x": 370,
+          "y": 165,
+          "w": 200,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "app3",
+          "label": "app-3",
+          "sub": "list of 9, every 30 s",
+          "meta": "retry once elsewhere",
+          "x": 610,
+          "y": 165,
+          "w": 200,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        { "id": "a1", "label": "a1", "sub": "10/s", "meta": "on roll", "x": 51, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "ok" },
+        { "id": "a2", "label": "a2", "sub": "10/s", "meta": "on roll", "x": 117, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "ok" },
+        { "id": "a3", "label": "a3", "sub": "10/s", "meta": "on roll", "x": 183, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "ok" },
+        { "id": "b1", "label": "b1", "sub": "10/s", "meta": "no beat", "x": 304, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "warn" },
+        { "id": "b3", "label": "b3", "sub": "10/s", "meta": "no beat", "x": 370, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "warn" },
+        { "id": "b4", "label": "b4", "sub": "10/s", "meta": "no beat", "x": 436, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "warn" },
+        { "id": "c1", "label": "c1", "sub": "10/s", "meta": "on roll", "x": 557, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "ok" },
+        { "id": "c2", "label": "c2", "sub": "10/s", "meta": "on roll", "x": 623, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "ok" },
+        { "id": "c3", "label": "c3", "sub": "10/s", "meta": "on roll", "x": 689, "y": 310, "w": 60, "h": 56, "shape": "box", "tone": "ok" }
+      ],
+      "edges": [
+        {
+          "from": "roll",
+          "to": "app1",
+          "label": "list",
+          "dash": true,
+          "tone": "muted"
+        },
+        {
+          "from": "roll",
+          "to": "app2",
+          "label": "list",
+          "dash": true,
+          "tone": "muted"
+        },
+        {
+          "from": "roll",
+          "to": "app3",
+          "label": "list",
+          "dash": true,
+          "tone": "muted"
+        }
+      ],
+      "notes": [
+        {
+          "x": 20,
+          "y": 385,
+          "text": "Each app server balances over its own list. No load balancer.",
+          "tone": "muted",
+          "anchor": "start"
+        },
+        {
+          "x": 20,
+          "y": 405,
+          "text": "Zone B's heartbeats can't reach the Roll. Friday, 03:31:18",
+          "tone": "warn",
+          "anchor": "start"
+        }
+      ]
+    },
+    "caption": "The fix, drawn at 03:31:18 on Friday. Zone B's heartbeats stopped reaching the Roll at 03:30:00, so it heard only 12 of the 18 it expects a minute, under 85%, and self-preservation holds: b1, b3 and b4 stay on the roll. Each app server fetched its list in the last 30 seconds, still holds all nine servers, and spreads its 30 lookups a second over them, 10 a second per berth server, with no load balancer in between. A lookup that fails is retried once on another server, unless it's a booking.",
+    "fix": {
+      "title": "The fix: callers that refresh and retry, and a registry that blames the network first",
+      "text": "Turn on self-preservation, so the Roll stops striking anyone off while the heartbeats it hears in a minute are under 85% of what it expects. Make the app servers fetch the list every 30 seconds, Eureka's default, so a dead server leaves their lists within about two minutes and a new one gets its share within seconds of signing in. Give every lookup a short timeout, 2 seconds here, and retry it once on another server from the same list; never retry a booking, or give it an idempotency key first. Then do what the Roll lacks next to Netflix's design: run a registry server in every zone, copying to each other, and let the app servers keep their last list when the registry is down. Watch three numbers: lookups sent to servers that don't answer, how long a dead server stays on the app servers' lists, and how often the Roll is holding."
+    },
+    "limits": [
+      "Self-preservation can't tell a network fault from a real mass failure. While it holds, servers that truly died stay on every list, so callers must time out fast and retry elsewhere, and with a small fleet a couple of real deaths are enough to trip it: 2 silent servers of 9 are 22%, over the 15% line. Someone has to notice a registry stuck holding; the wiki expects a human to judge it.",
+      "The documented numbers are floors. About 90 seconds is the lease; Eureka's own code says an ungraceful shutdown's lease really runs twice its duration, its eviction task runs once a minute by default, and the wiki allows up to 2 minutes for a change to reach every client. Plan for minutes of stale lists, not seconds.",
+      "Retries hide dead servers, not missing capacity, and only for requests that are safe to repeat. When a wrong list leaves six servers carrying nine servers' load, every retry lands on a full server, and extra tries only add load."
+    ],
+    "tradeoff": {
+      "head": [
+        "Choice",
+        "What it gets right",
+        "What it costs",
+        "What it misses"
+      ],
+      "rows": [
+        [
+          "Fetch every 5 minutes (the Roll on Tuesday)",
+          "Few calls to the registry.",
+          "b2 stayed on lists for 6 minutes: 2,600 lookups failed.",
+          "New servers wait up to 5 minutes for lookups."
+        ],
+        [
+          "Fetch every 30 seconds (Eureka's default)",
+          "b2 off every list in 100 seconds: 900 lookups went to it.",
+          "Ten times as many fetches, and the registry's mistakes spread as fast as its truths: 8,259 failed in the partition without self-preservation, even with retries.",
+          "Still a window: the wiki allows up to 2 minutes."
+        ],
+        [
+          "Fetch every 30 minutes",
+          "A short fault at the registry may never reach callers.",
+          "b2 on a list for 26 minutes: 9,600 failed. b4 idle until 02:30.",
+          "Luck: a fetch inside the fault keeps a bad list for 30 minutes."
+        ],
+        [
+          "Retry once on another server",
+          "Hides most dead-server failures: 2,600 became 260, or 90 with a 30-second fetch.",
+          "A 2-second wait for every retried lookup, and more load on the rest.",
+          "Bookings, which aren't safe to repeat, and any shortage of capacity."
+        ],
+        [
+          "Self-preservation on",
+          "A network fault strikes off nobody: 0 failed instead of 7,000.",
+          "Servers that really die while it holds stay listed; a small fleet can trip it with two deaths.",
+          "Dead servers' traffic, unless callers retry."
+        ],
+        [
+          "A load balancer in the middle",
+          "Callers need no list and no retry logic; one place runs the health checks.",
+          "Two more network hops, and one more box every lookup needs.",
+          "In 2012, AWS had none for the middle tier, Netflix's reason to build Eureka."
+        ]
+      ]
+    },
+    "seniorTake": "In a cloud where servers come and go, a list of servers is a guess that ages. A registry with leases keeps the guess honest: every server renews, and silence ends the lease. But every step of that loop adds delay, from the lease to the eviction to each caller's cached copy, so callers will hold dead servers for a while: give them short timeouts and one retry on another server, for requests that are safe to repeat. And a registry has to know what silence means. One server going quiet is probably dead; a third of them going quiet in the same second is probably the network, and striking them off turns a network blip into a capacity outage. Eureka's self-preservation encodes that judgment, at the cost of keeping real deaths listed while it holds. Run the registry in every zone, let callers keep working from their copy when it's down, and watch requests sent to instances that don't answer, how long a dead instance stays on callers' lists, and how often the registry is holding.",
+    "realWorld": [
+      {
+        "title": "The post, 4 September 2012",
+        "text": "Karthikeyan Ranganathan's post on the Netflix TechBlog announced Eureka as a service registry that is a critical component of the Netflix infrastructure in the AWS cloud, underpinning its mid-tier load balancing, deployment automation, data storage, caching and various other services. It has two parts: the Eureka Server, a REST based service for locating services for load balancing and failover of middle-tier servers, and a Java Eureka Client whose built-in load balancer does basic round-robin load balancing. At Netflix, the post says, a much more sophisticated load balancer wraps Eureka to provide weighted load balancing based on factors such as traffic, resource usage and error conditions.",
+        "source": 0
+      },
+      {
+        "title": "Why not ELB, or DNS",
+        "text": "The post's reasons belong to their time and place. In AWS, servers come and go, and AWS did not yet provide a middle tier load balancer. AWS ELB was for edge services exposed to end-user web traffic, and putting mid-tier services behind it would expose them to the outside world and lose the usefulness of AWS security groups. ELB is proxy-based; with Eureka the client instances know which servers they need and contact them directly, so an application can be resilient to load balancer outages, because the server list is cached on the client, for a small amount of memory, and avoids two network hops through a proxy. Route 53, it says, carries the drawback of traditional DNS-based load balancing: traffic can still be routed to servers that may not be healthy or may not even exist. Eureka offers no sticky sessions, and the post notes that most of Netflix's mid-tier services were stateless.",
+        "source": 0
+      },
+      {
+        "title": "What else it was for",
+        "text": "Besides mid-tier load balancing, the post lists Eureka's other jobs at Netflix: helping Asgard, Netflix's open-source tool for managing cloud deployments; fast rollback of versions without re-launching hundreds of instances; rolling pushes that don't send a new version to every instance at once; taking Cassandra instances out of traffic for maintenance; letting the memcached-based EVCache find the list of its nodes; and carrying other metadata about services.",
+        "source": 0
+      },
+      {
+        "title": "A registry in every zone",
+        "text": "Eureka's wiki page Eureka at a glance describes the architecture in the post's figure: one eureka cluster per region, which knows only about instances in its region, and at least one eureka server per zone to handle zone failures. Registrations and renewals are replicated to every node in the cluster, and clients in any zone look up the registry every 30 seconds to find services in any zone. Because clients hold the registry cache, the page says they can operate reasonably well even when all of the eureka servers go down.",
+        "source": 1
+      },
+      {
+        "title": "Register, renew, fetch, cancel",
+        "text": "The wiki's page on client-server communication gives the client's calls. Registration happens on first heartbeat, after 30 seconds. The client renews by sending heartbeats every 30 seconds, and if the server hasn't seen a renewal for 90 seconds, it removes the instance; the page advises not changing the renewal interval, because the server uses it to detect a wide spread problem. The client fetches the registry every 30 seconds as changes since the last fetch and caches it, and sends a cancel on shutdown. All of this can take up to 2 minutes to reach every client. A client talks to the Eureka server in its own zone first and fails over to other zones. And: make sure you retry on failures and keep the timeouts low, because Eureka could return instances that no longer exist in the case of outages.",
+        "source": 2
+      },
+      {
+        "title": "Self Preservation Mode",
+        "text": "The wiki's Server Self Preservation Mode page says a client that fails 3 consecutive heartbeat renewals is considered to have terminated uncleanly and will be evicted by the background eviction process, and that when more than 15% of the current registry is in that state, self preservation is enabled: the server stops evicting all instances until the renewals it sees are back above the expected threshold, or self preservation is turned off. It is on by default, set by eureka.enableSelfPreservation, with the threshold in eureka.renewalPercentThreshold. If servers enter it for a legitimate reason, the page expects a human to evaluate the situation and act.",
+        "source": 3
+      },
+      {
+        "title": "Built for partitions",
+        "text": "The wiki's page on peer-to-peer communication says that if renewals fall below 85% within 15 minutes, the server stops expiring instances, and that this self-preservation is primarily a protection when there is a network partition between a group of clients and the Eureka server. It warns that in a mass outage clients may get instances that do not exist anymore, and that the best protection is to time out quickly and try other servers. When Eureka servers can't reach each other, clients may for a while see different views of the registry.",
+        "source": 4
+      },
+      {
+        "title": "Twice the lease",
+        "text": "A comment in Eureka's Lease.java says that because of how renew() sets its timestamp, the expiry will actually be 2 * duration, calls it a minor bug that should only affect instances that ungracefully shut down, and says that because of possible wide ranging impact to existing usage, this will not be fixed. The documented 90 seconds is the shortest a silent instance stays listed, not the longest.",
+        "source": 5
+      },
+      {
+        "title": "The defaults in code",
+        "text": "Eureka's DefaultEurekaServerConfig.java sets enableSelfPreservation to true, renewalPercentThreshold to 0.85, expectedClientRenewalIntervalSeconds to 30, the eviction task's interval, evictionIntervalTimerInMs, to 60 * 1000, and renewalThresholdUpdateIntervalMs to 15 * 60 * 1000: the expected number of renewals is recalculated every 15 minutes.",
+        "source": 6
+      },
+      {
+        "title": "Why it holds",
+        "text": "In PeerAwareInstanceRegistryImpl.java, the comment on self-preservation says it is enabled when the renewals in the last minute are below the expected threshold, and that Eureka perceives this as a danger and stops expiring instances as this is most likely because of a network event.",
+        "source": 7
+      },
+      {
+        "title": "Signing back in",
+        "text": "Eureka's DiscoveryClient.java shows what a struck-off instance does: when its heartbeat comes back NOT_FOUND, the client re-registers. That is why, once a partition heals, evicted instances return by themselves at their next heartbeat that gets through.",
+        "source": 8
+      },
+      {
+        "title": "Eureka today",
+        "text": "The Eureka repository's README, as it reads today, describes Eureka as a RESTful service primarily used in the AWS cloud for discovery, load balancing and failover of middle-tier servers, and says it plays a critical role in Netflix mid-tier infra.",
+        "source": 9
+      },
+      {
+        "title": "Three heartbeats to be found",
+        "text": "Spring Cloud Netflix, which lets Spring applications use Eureka, answers the question why is it so slow to register a service: a service is not available for discovery by clients until the instance, the server, and the client all have the same metadata in their local cache, so it could take 3 heartbeats. It adds that in production it is probably better to stick with the default heartbeat, because of internal computations in the server that make assumptions about the lease renewal period.",
+        "source": 10
+      },
+      {
+        "title": "Ribbon",
+        "text": "Ribbon's README describes it as a client side IPC library that is battle-tested in cloud, with load balancing and fault tolerance among its features; its ribbon-eureka module uses the Eureka client to provide a dynamic server list for cloud. The README's project status today is On Maintenance, and it lists ribbon-eureka as deployed at scale in production.",
+        "source": 11
+      },
+      {
+        "title": "Retry the next server, once",
+        "text": "In Ribbon's CommonClientConfigKey.java, MaxAutoRetries, the retries on the same server, defaults to 0, MaxAutoRetriesNextServer, the other servers to try, defaults to 1, and OkToRetryOnAllOperations defaults to false: by default, one other server, and not every kind of request.",
+        "source": 12
+      },
+      {
+        "title": "A load balancer in the middle, since",
+        "text": "The post's line that AWS does not yet provide a middle tier load balancer dates from 2012. AWS's Application Load Balancer guide today talks about your internet-facing and internal load balancers, so server-side balancing between internal services is now an AWS option too.",
+        "source": 13
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How does service discovery work in a cloud where IP addresses change?",
+        "Client-side vs server-side load balancing: when would you pick each?",
+        "What should a service registry do when it can't hear from most of its instances?"
+      ],
+      "answer": "In a cloud, instances are replaced and scaled all the time, so their addresses can't live in a configuration file. Service discovery puts them in a registry: each instance registers its address when it starts, renews a lease with a heartbeat (Eureka: every 30 seconds) and cancels when it shuts down cleanly, and one that stops renewing is evicted when its lease runs out (Eureka: about 90 seconds). Callers find instances either through a load balancer that reads the registry, server-side, or by fetching and caching the registry themselves and picking an instance, client-side, as Eureka's clients do every 30 seconds with round robin. Client-side removes a hop and a central box, and callers keep working from their cache when the registry is down, but every caller can hold a stale list, so use short timeouts and retry once on another instance, for idempotent requests only. Server-side keeps callers simple and puts health checks in one place, at the cost of an extra hop and a component every request needs. When the registry stops hearing from many instances at once, it should assume a network problem, not mass death, and stop evicting: Eureka's self-preservation does this when renewals fall below 85% of those expected. Evicting them would pile their load onto the rest and turn a network blip into an outage. The catch: instances that really die meanwhile stay listed, which is why callers retry, and with a small fleet two real deaths can trip it. Finish with what you'd run and watch: a registry server in every zone, alerts when it's holding, and requests sent to instances that don't answer."
+    }
+  },
+  "terms": [
+    {
+      "term": "Night radio (at Inchkeld)",
+      "def": "The harbour's radio, kept overnight. Every boat at sea calls in on it, and the night keeper logs each call."
+    },
+    {
+      "term": "Overdue (a boat)",
+      "def": "Not back or not heard from when expected. Posting a boat overdue starts a search for it."
+    },
+    {
+      "term": "Mast",
+      "def": "The pole that holds a radio's aerial up high. If it fails, the radio hears nobody, though every boat is fine."
+    },
+    {
+      "term": "Skipper",
+      "def": "The captain of a fishing boat."
+    },
+    {
+      "term": "On call",
+      "def": "Being the person an alert goes to, who must respond when a system breaks out of hours."
+    },
+    {
+      "term": "Berth",
+      "def": "A place in a harbour where a boat ties up."
+    },
+    {
+      "term": "Berth server",
+      "def": "One of the co-op's servers that answer the app's questions about berths: a1 to c3, and b4 from Tuesday. Each answers up to 12 lookups a second."
+    },
+    {
+      "term": "Lookup (at Inchkeld)",
+      "def": "One request from an app server to a berth server. 9 in 10 only read, such as which berth is free; 1 in 10 books a berth, which is a POST."
+    },
+    {
+      "term": "The Roll",
+      "def": "Struan's service registry for the co-op, copied from the Eureka post: servers sign in, send a heartbeat every 30 seconds, and are struck off after 90 seconds of silence."
+    },
+    {
+      "term": "Lease (Eureka)",
+      "def": "A server's place in the registry, which lasts only while it keeps renewing it. Eureka's are renewed every 30 seconds and run out 90 seconds after the last renewal."
+    },
+    {
+      "term": "Renew (a lease)",
+      "def": "To tell the registry you're still alive, which extends your lease. In Eureka each renewal is a heartbeat."
+    },
+    {
+      "term": "Eviction (Eureka)",
+      "def": "The registry removing a server whose lease ran out, without asking it. Not the same as cache eviction."
+    },
+    {
+      "term": "Strike off",
+      "def": "Ishbel's words for eviction: taking a server off the registry's list."
+    },
+    {
+      "term": "Cancel (Eureka)",
+      "def": "The goodbye a Eureka client sends when it shuts down cleanly, so the registry removes it at once. A server that loses its power can't send it."
+    },
+    {
+      "term": "Eureka Server",
+      "def": "The registry half of Eureka: a REST service that holds the list of instances. Netflix runs at least one in every zone, copying to each other."
+    },
+    {
+      "term": "Eureka Client",
+      "def": "The Java library inside every program that uses Eureka. It registers, renews and cancels for its own instance, and fetches and keeps a copy of the registry."
+    },
+    {
+      "term": "Fetch (the list)",
+      "def": "To download the registry's current list of servers into a caller's own copy. Eureka clients fetch every 30 seconds by default."
+    },
+    {
+      "term": "Client-side load balancing",
+      "def": "Each caller picks a server for every request from its own copy of the list, with no load balancer in the middle."
+    },
+    {
+      "term": "Server-side load balancing",
+      "def": "Callers send every request to a load balancer in the middle, which picks a server. The callers need no list."
+    },
+    {
+      "term": "Network partition",
+      "def": "A network fault that splits machines into groups that can't reach each other, while each group keeps working. It can cut a single path, as between zone B and the Roll."
+    },
+    {
+      "term": "Self-preservation",
+      "def": "Eureka's rule: when renewals fall below 85% of those expected, or more than 15% of servers are silent, stop evicting anyone, because the network is the likelier cause."
+    },
+    {
+      "term": "Retry on another instance",
+      "def": "After a request to one server fails or times out, sending it once to a different server from the same list."
+    },
+    {
+      "term": "Middle tier",
+      "def": "Services that other services call, out of users' sight, such as the co-op's berth servers. Netflix's post calls it the mid-tier."
+    },
+    {
+      "term": "Edge service",
+      "def": "A service that users' devices reach directly from the internet. In 2012 Netflix used AWS ELB for these."
+    },
+    {
+      "term": "Replicate (Eureka)",
+      "def": "Eureka servers copy every registration and renewal to each other, so each zone's server holds the whole list."
+    },
+    {
+      "term": "Firewall rule",
+      "def": "One line of a firewall's settings, saying which traffic may pass. Agnete used one to block zone B's heartbeats to the Roll."
+    },
+    {
+      "term": "Open source",
+      "def": "Software whose code is published for anyone to read, use and change under its licence."
+    },
+    {
+      "term": "Asgard",
+      "def": "Netflix's open-source tool for managing deployments on AWS, named in the 2012 post."
+    },
+    {
+      "term": "Rollback",
+      "def": "Putting the previous version of a program back after a bad deploy."
+    },
+    {
+      "term": "Rolling push",
+      "def": "The post's name for a rolling deploy: putting a new version live a few instances at a time."
+    },
+    {
+      "term": "Cassandra",
+      "def": "An open-source database that spreads data across many machines. Netflix ran it on AWS."
+    },
+    {
+      "term": "EVCache",
+      "def": "Netflix's caching service built on memcached, which used Eureka to find the list of its nodes."
+    },
+    {
+      "term": "Metadata",
+      "def": "Data about other data. Here, an instance's details in the registry, such as its address and port."
+    },
+    {
+      "term": "Sticky sessions",
+      "def": "Sending each user back to the same server every time. Eureka doesn't offer it."
+    },
+    {
+      "term": "Spring Cloud Netflix",
+      "def": "An open-source project that lets Java programs built with the Spring framework use Eureka."
+    },
+    {
+      "term": "Ribbon",
+      "def": "Netflix's open-source client-side load-balancing library for Java. Its ribbon-eureka module gets its server list from the Eureka client."
+    },
+    {
+      "term": "IPC",
+      "def": "Inter-process communication: programs sending each other requests, here over the network."
+    },
+    {
+      "term": "MaxAutoRetriesNextServer",
+      "def": "Ribbon's setting for how many other servers to try after the first one fails. Its default is 1."
+    },
+    {
+      "term": "OkToRetryOnAllOperations",
+      "def": "Ribbon's setting for whether every kind of request may be retried. Its default is false."
+    },
+    {
+      "term": "Internal load balancer",
+      "def": "A load balancer reachable only from inside a private network, for services that other services call."
+    },
+    {
+      "term": "Instance status (Eureka)",
+      "def": "What an instance tells the registry about itself: STARTING while it boots, UP when it's ready for traffic, DOWN if a health check says so."
+    },
+    {
+      "term": "Idempotency key",
+      "def": "A unique ID sent with a request, so the server can recognise a repeat and do the work only once."
+    }
+  ],
+  "atWork": "A common outage looks like this. A team's services find each other through a registry, and to cut the load on it they set the callers to keep the list for 10 minutes. At 2 AM an instance's host fails. The registry evicts it within a couple of minutes, but every caller keeps sending it a share of requests until its next refresh, up to 10 minutes later, while the Auto Scaling group's replacement sits registered and idle for as long. The fix is three settings: refresh the list about every 30 seconds, retry a failed idempotent request once on another instance with a short timeout, and register an instance for traffic only once it passes a health check (a Eureka client starts as STARTING and goes UP when the application says it's ready, and a health check callback can mark it DOWN). Now look at yours, read-only. Which registry do your services use: Eureka, AWS Cloud Map, Kubernetes Services, or a load balancer's target group? How long does a caller keep its list, and where is that set? When an instance doesn't answer, how long does the caller wait, does it retry elsewhere, and only for requests that are safe to repeat? And if the registry stopped hearing from a whole zone, would it evict them, and would anyone be alerted?",
+  "board": {
+    "cards": [
+      {
+        "id": "eureka",
+        "title": "Eureka"
+      },
+      {
+        "id": "service-registry-for-a-cloud-where-servers-come",
+        "title": "Registry with leases"
+      },
+      {
+        "id": "instances-registering",
+        "title": "Heartbeats and eviction"
+      }
+    ],
+    "strings": [
+      {
+        "from": "eureka",
+        "to": "service-discovery",
+        "label": "client-side kind"
+      },
+      {
+        "from": "eureka",
+        "to": "load-balancers",
+        "label": "no middle box"
+      },
+      {
+        "from": "eureka",
+        "to": "availability-zones",
+        "label": "one per zone"
+      },
+      {
+        "from": "instances-registering",
+        "to": "heartbeats",
+        "label": "lease renewals"
+      },
+      {
+        "from": "instances-registering",
+        "to": "leases",
+        "label": "90 s of silence"
+      },
+      {
+        "from": "service-registry-for-a-cloud-where-servers-come",
+        "to": "health-check",
+        "label": "who is alive"
+      },
+      {
+        "from": "service-registry-for-a-cloud-where-servers-come",
+        "to": "retries",
+        "label": "stale list: retry"
+      },
+      {
+        "from": "eureka",
+        "to": "single-point-of-failure",
+        "label": "cached on client"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e16-r1",
+      "kind": "free",
+      "prompt": "Your team's services find each other through a registry, and callers keep the list for 10 minutes. At 3 AM an instance's host fails. The registry drops it within 2 minutes, but for 10 more minutes about a tenth of requests hang and error, and the instance that replaced it gets no traffic. What happened, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "Callers kept their own copy: the dead instance stayed on it, and the new one stayed off it, until each refreshed",
+          "match": [
+            "stale",
+            "out of date",
+            "old list",
+            "old copy",
+            "cached copy",
+            "their copy",
+            "next refresh",
+            "until it refresh",
+            "until they refresh",
+            "refresh interval",
+            "fetch interval"
+          ]
+        },
+        {
+          "idea": "Refresh much more often, around 30 seconds, so the dead leave and the new arrive quickly",
+          "match": [
+            "30 seconds",
+            "every 30",
+            "more often",
+            "more frequent",
+            "shorter interval",
+            "refresh faster",
+            "fetch faster",
+            "every minute"
+          ]
+        },
+        {
+          "idea": "Retry a failed request once on another instance, with a short timeout, if it's safe to repeat",
+          "match": [
+            "retry",
+            "retries",
+            "another instance",
+            "another server",
+            "different instance",
+            "next instance",
+            "timeout",
+            "time out",
+            "failover",
+            "fail over"
+          ]
+        },
+        {
+          "idea": "Register an instance for traffic only once it passes a health check",
+          "match": [
+            "health check",
+            "health-check",
+            "readiness",
+            "status up",
+            "healthy",
+            "/health"
+          ]
+        }
+      ],
+      "model": "Every caller keeps its own copy of the list and refreshes it only every 10 minutes. The registry evicted the dead instance quickly, but each caller kept sending it a share of requests until its next refresh, and the replacement got nothing until the same refresh brought it in. Refresh the list about every 30 seconds, as Eureka's clients do by default. Give requests a short timeout and retry a failed one once on another instance, for idempotent requests only, so the window that remains costs latency, not errors. And register instances for traffic only when they pass a health check, so callers never get a list with a server that isn't ready."
+    },
+    {
+      "id": "s2e16-r2",
+      "kind": "mcq",
+      "prompt": "With Eureka's documented defaults, an instance renews every 30 seconds and is taken out after 90 seconds without a renewal. It loses its power 10 seconds after its last heartbeat. Roughly when does the registry take it out?",
+      "options": [
+        "About 10 seconds after it dies",
+        "About 80 seconds after it dies",
+        "About 90 seconds after it dies",
+        "About 120 seconds after it dies"
+      ],
+      "answer": 1,
+      "why": "The lease runs out 90 seconds after the last renewal, not after the death: 90 - 10 = 80 seconds. Depending on when in the half minute a server dies, it's 60 to 90 seconds. Callers then drop it only at their next fetch, and Eureka's code notes that a lease can really last twice as long."
+    },
+    {
+      "id": "s2e16-r3",
+      "kind": "free",
+      "prompt": "A service registry stops hearing from 40% of its instances in the same minute. What should it do, and why? What's the catch?",
+      "keyIdeas": [
+        {
+          "idea": "So many at once is more likely a network problem than mass death, so stop evicting (self-preservation)",
+          "match": [
+            "network",
+            "partition",
+            "self-preservation",
+            "self preservation",
+            "stop evicting",
+            "stop removing",
+            "don't evict",
+            "do not evict",
+            "not evict",
+            "keep them"
+          ]
+        },
+        {
+          "idea": "Evicting them would push their load onto the rest and overload them",
+          "match": [
+            "overload",
+            "capacity",
+            "remaining",
+            "the rest",
+            "too much load",
+            "carry the load",
+            "fewer servers"
+          ]
+        },
+        {
+          "idea": "Catch: instances that really died stay listed, so callers must time out fast and retry elsewhere, and someone should be alerted",
+          "match": [
+            "retry",
+            "time out",
+            "timeout",
+            "really dead",
+            "actually dead",
+            "truly dead",
+            "really died",
+            "alert",
+            "human"
+          ]
+        }
+      ],
+      "model": "Stop evicting. When far more renewals go missing at once than deaths would explain, the likelier cause is the network between the instances and the registry, and evicting them would send their share to the rest and overload them, turning a network fault into an outage. That's Eureka's self-preservation: below 85% of expected renewals, it strikes nobody off until they come back. The catch is that it can't tell a partition from a real mass failure, so instances that truly died stay listed: callers need short timeouts and a retry on another instance, and someone should be alerted when the registry is holding."
+    },
+    {
+      "id": "s2e16-r4",
+      "kind": "mcq",
+      "prompt": "What does client-side load balancing remove, compared with a load balancer in the middle?",
+      "options": [
+        "The need for any list of servers",
+        "A network hop through a proxy, and a box every request depends on",
+        "The need to retry requests that fail",
+        "Out-of-date information about which servers exist"
+      ],
+      "answer": 1,
+      "why": "Each caller picks a server from its own copy of the list and calls it directly, which avoids the hops through a proxy and keeps working if the registry or a load balancer is down. It doesn't remove stale lists; it spreads them to every caller, which is why callers need short timeouts and retries."
+    },
+    {
+      "id": "s2e16-r5",
+      "kind": "mcq",
+      "prompt": "Self-preservation is on, and nine instances are registered. Two of them lose their power in the same minute. What does the registry do?",
+      "options": [
+        "Evicts both about 90 seconds after their last renewal, as usual",
+        "Evicts the first one and keeps the second",
+        "Keeps both: two of nine is over 15%, so it suspects the network",
+        "Evicts every instance until the heartbeats come back"
+      ],
+      "answer": 2,
+      "why": "Two silent instances of nine is 22%, more than the 15% the wiki names, so the registry holds and strikes nobody off. In a small fleet a couple of real deaths look like a partition, so the dead stay listed until someone notices, and callers must retry elsewhere meanwhile."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. Agnete turned on self-preservation, the app servers fetch every 30 seconds and retry a lookup once on another server, and every Friday drill passes. Last night a storm took out the power to zone C for real, all three servers, at 01:40. The Roll heard only 12 of the 18 heartbeats it expects a minute and held, striking nobody off. The app servers kept sending a third of their lookups to zone C, and every one waited 2 seconds before its retry, until Agnete turned self-preservation off by hand at 02:20. Every booking sent to zone C failed. I checked the mast. It was fine.",
+    "prompt": "Reply to OP. Self-preservation did what it was built to do. What went wrong, and what should the co-op add?",
+    "keyIdeas": [
+      {
+        "idea": "A real mass failure looks just like a partition to the registry, so it kept the dead zone listed",
+        "match": [
+          "looks the same",
+          "looks like a partition",
+          "can't tell",
+          "cannot tell",
+          "real outage",
+          "real failure",
+          "mass failure",
+          "really dead",
+          "actually dead"
+        ]
+      },
+      {
+        "idea": "Callers need their own judgment: stop sending to a server that keeps failing for a while (a passive health check), with short timeouts",
+        "match": [
+          "passive",
+          "stop sending",
+          "skip",
+          "mark it down",
+          "mark them down",
+          "health check",
+          "keeps failing",
+          "outlier",
+          "circuit"
+        ]
+      },
+      {
+        "idea": "Alert a human when the registry starts holding, and check from another side whether the zone is really dead",
+        "match": [
+          "alert",
+          "page",
+          "alarm",
+          "human",
+          "operator",
+          "notify",
+          "dashboard"
+        ]
+      },
+      {
+        "idea": "Keep enough spare capacity that losing a zone is survivable",
+        "match": [
+          "headroom",
+          "spare",
+          "extra server",
+          "more servers",
+          "scale",
+          "n+1",
+          "zone's worth"
+        ]
+      }
+    ],
+    "model": "Self-preservation can't tell a partition from a real mass failure: a whole zone losing its power looks to the Roll exactly like a zone losing its network, so it held and kept three dead servers listed for 40 minutes. Retries made the lookups slow instead of failed, but bookings aren't retried, and every caller kept paying a 2-second wait. Give the app servers their own judgment: a passive health check that stops sending to a server after a few failures for a while, so a dead server costs a few seconds, not 40 minutes. Alert someone the moment the Roll starts holding, with a way to check the zone from another side, such as the cloud's own status, before deciding to turn it off. And keep enough spare capacity that six servers can carry the night if a zone is really gone."
+  },
+  "next": "Next, the 3 AM Interview: design a URL shortener, and then Season 3, The Basement Archive. Data: how databases really store, protect, copy and split it.",
+  "sources": [
+    {
+      "title": "Karthikeyan Ranganathan, Netflix Shares Cloud Load Balancing And Failover Tool: Eureka!, Netflix TechBlog, 4 September 2012 (originally on techblog.netflix.com; read from the Internet Archive's capture of 19 September 2026, because the live page refuses automated reads). Servers come and go; heartbeats renew leases every 30 seconds; taken out in about 90 seconds; registry looked up every 30 seconds; Eureka vs AWS ELB and Route 53; uses at Netflix; network partition resilience",
+      "url": "https://netflixtechblog.com/netflix-shares-cloud-load-balancing-and-failover-tool-eureka-c10647ef95e5"
+    },
+    {
+      "title": "Eureka wiki: Eureka at a glance (one eureka cluster per region; at least one eureka server per zone; replication of registrations and renewals; lookups every 30 seconds; clients operate reasonably well even when all eureka servers go down)",
+      "url": "https://github.com/Netflix/eureka/wiki/Eureka-at-a-glance"
+    },
+    {
+      "title": "Eureka wiki: Understanding eureka client server communication (registration on first heartbeat, after 30 seconds; renew every 30 seconds, removed after 90 seconds; don't change the renewal interval; fetch every 30 seconds; cancel on shutdown; up to 2 mins to reach all clients; retry on failures and keep the timeouts low; same-zone server first; instance statuses STARTING, UP, DOWN)",
+      "url": "https://github.com/Netflix/eureka/wiki/Understanding-eureka-client-server-communication"
+    },
+    {
+      "title": "Eureka wiki: Server Self Preservation Mode (3 consecutive failed renewals; more than 15% of the registry; stops eviction until renewals recover or it is disabled; enabled by default; eureka.renewalPercentThreshold and eureka.enableSelfPreservation)",
+      "url": "https://github.com/Netflix/eureka/wiki/Server-Self-Preservation-Mode"
+    },
+    {
+      "title": "Eureka wiki: Understanding Eureka Peer to Peer Communication (below 85% within 15 mins; protection against a network partition between a group of clients and the server; in a mass outage clients may get instances that no longer exist; time out quickly and try other servers)",
+      "url": "https://github.com/Netflix/eureka/wiki/Understanding-Eureka-Peer-to-Peer-Communication"
+    },
+    {
+      "title": "Eureka source: eureka-core Lease.java (comment on isExpired: the expiry will actually be 2 * duration; a minor bug that will not be fixed)",
+      "url": "https://github.com/Netflix/eureka/blob/master/eureka-core/src/main/java/com/netflix/eureka/lease/Lease.java"
+    },
+    {
+      "title": "Eureka source: eureka-core DefaultEurekaServerConfig.java (enableSelfPreservation true, renewalPercentThreshold 0.85, expectedClientRenewalIntervalSeconds 30, evictionIntervalTimerInMs 60 * 1000, renewalThresholdUpdateIntervalMs 15 * 60 * 1000)",
+      "url": "https://github.com/Netflix/eureka/blob/master/eureka-core/src/main/java/com/netflix/eureka/DefaultEurekaServerConfig.java"
+    },
+    {
+      "title": "Eureka source: eureka-core PeerAwareInstanceRegistryImpl.java (self-preservation comment: stops expiring instances as this is most likely because of a network event)",
+      "url": "https://github.com/Netflix/eureka/blob/master/eureka-core/src/main/java/com/netflix/eureka/registry/PeerAwareInstanceRegistryImpl.java"
+    },
+    {
+      "title": "Eureka source: eureka-client DiscoveryClient.java (renew(): a heartbeat answered NOT_FOUND makes the client re-register)",
+      "url": "https://github.com/Netflix/eureka/blob/master/eureka-client/src/main/java/com/netflix/discovery/DiscoveryClient.java"
+    },
+    {
+      "title": "Netflix/eureka repository README (a RESTful service primarily used in the AWS cloud for discovery, load balancing and failover of middle-tier servers; plays a critical role in Netflix mid-tier infra)",
+      "url": "https://github.com/Netflix/eureka"
+    },
+    {
+      "title": "Spring Cloud Netflix reference documentation: Why Is It so Slow to Register a Service? (default heartbeat 30 seconds; it could take 3 heartbeats; better to stick with the default in production)",
+      "url": "https://docs.spring.io/spring-cloud-netflix/reference/spring-cloud-netflix.html"
+    },
+    {
+      "title": "Netflix/ribbon repository README (a client side IPC library that is battle-tested in cloud; ribbon-eureka; Project Status: On Maintenance; ribbon-eureka deployed at scale in production)",
+      "url": "https://github.com/Netflix/ribbon"
+    },
+    {
+      "title": "Ribbon source: ribbon-core CommonClientConfigKey.java (MaxAutoRetries default 0, MaxAutoRetriesNextServer default 1, OkToRetryOnAllOperations default false)",
+      "url": "https://github.com/Netflix/ribbon/blob/master/ribbon-core/src/main/java/com/netflix/client/config/CommonClientConfigKey.java"
+    },
+    {
+      "title": "Elastic Load Balancing User Guide for Application Load Balancers: Application Load Balancers (IP address types for your internet-facing and internal load balancers)",
+      "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html"
+    }
+  ]
+}

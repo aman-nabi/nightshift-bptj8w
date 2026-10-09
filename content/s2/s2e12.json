@@ -1,0 +1,1136 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-10) first version"
+  ],
+  "id": "s2e12",
+  "season": 2,
+  "n": 12,
+  "title": "The Copy in the Back Room",
+  "setting": "a library reading room",
+  "core": false,
+  "minutes": 12,
+  "concepts": [
+    "read-replicas-for-read-heavy-traffic"
+  ],
+  "prerequisites": [
+    "s2e04",
+    "s2e05",
+    "s2e02",
+    "s2e01",
+    "s1e01",
+    "s1e02",
+    "s1e04",
+    "s1e07",
+    "s1e09",
+    "s1e10",
+    "s1e11",
+    "s1e13"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/call_slip_solveig",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 2764,
+    "title": "I work evenings in a library reading room. A woman returned her overdue book at the front desk, and a minute later my screen said it was still out in her name, fine unpaid. Then it changed by itself, and someone walked down the corridor to the back room.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm the evening attendant in the reading room of the Merrow Library. Our terminals and the city's library app read the same catalogue, 600,000 records, and on exam-season evenings that's 1,500 reads a second. Loans, returns, renewals and holds are writes, about 20 a second, from the front desk and the app."
+      },
+      {
+        "t": "p",
+        "text": "Teodor, our only IT man, says a database server like ours does about 1,000 queries a second, reads or writes. Last spring our one server got 1,520 queries a second on exam evenings, and searches took minutes. So in October he set up two copies of the database in the back room, where the duplicate card catalogue was kept until 1987. Same kind of server, 380 a month each. The primary takes every write and sends each change on to the copies, and every read goes to a copy, taking turns. The primary sits at 2%. Each copy answers 750 reads a second, applies the 20 changes, and is normally a second behind."
+      },
+      {
+        "t": "p",
+        "text": "At 19:00 every evening the overdue run writes a new fine or due date for each of the city's 58,800 open loans, 980 changes a second for a minute. Last Thursday at 19:00:40 Mrs Penhallow returned a book four days overdue at the front desk and paid her 1.40 fine. Same chair every evening, same green coat. At 19:01:50 she came to my desk, because her phone still said the book was out."
+      },
+      {
+        "t": "beat",
+        "text": "My screen said it was still out in her name. Four days overdue. Fine 1.40, unpaid."
+      },
+      {
+        "t": "p",
+        "text": "She had the receipt in her hand. At 19:02:44 my screen changed by itself: returned, 19:00:40. Then footsteps went down the corridor to the back room, which is locked after 17:00. Teodor had gone home. His log:"
+      },
+      {
+        "t": "log",
+        "text": "19:00:00  overdue run   58,800 loans, 980 changes/s   primary 100% busy\n19:00:40  front desk    PENHALLOW  RETURN  fine 1.40 paid\n19:00:42  app           PENHALLOW  copy 1, 33 s behind: ON LOAN, 4 DAYS OVERDUE\n19:01:00  overdue run   done  copies 46 s behind\n19:01:50  reading room  PENHALLOW  copy 2, 84 s behind: ON LOAN, FINE 1.40 UNPAID\n19:02:44  copy 2        applies RETURN PENHALLOW, 124 s after the primary\n19:04:00  replication   copies 181 s behind\n19:04:16  replication   copies 1 s behind"
+      },
+      {
+        "t": "p",
+        "text": "On Tuesday at 18:39 a reader asked for manuscript MS 114, withdrawn at 17:41. My screen said on the shelf. Refresh: withdrawn. Refresh: on the shelf. The sign on the back room door is older than anyone here:"
+      },
+      {
+        "t": "note",
+        "title": "READERS WHO HAVE JUST RETURNED A BOOK",
+        "items": [
+          "PLEASE ENQUIRE AT THE FRONT DESK.",
+          "THE BACK ROOM IS TOLD EVERY QUARTER HOUR."
+        ],
+        "sig": "- enamel sign, back room door, 1931"
+      },
+      {
+        "t": "p",
+        "text": "What should Teodor change before Thursday?"
+      },
+      {
+        "t": "evidence",
+        "label": "teodor_catalogue_190150.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 490,
+          "aria": "Teodor's drawing of the catalogue at 19:01:50 on Thursday. The overdue run wrote 980 changes a second to the primary and finished at 19:01:00. The front desk and the app send 20 writes a second through the catalogue service to the primary, which has had Mrs Penhallow's return since 19:00:40 and is 2% busy. The reading room and the app send 1,500 reads a second through the catalogue service to the two copies in turn. The primary sends every change to both copies. Each copy is 84 seconds behind and 100% busy, and copy 2, which Solveig's screen asked, still has Mrs Penhallow's book on loan.",
+          "nodes": [
+            {
+              "id": "run",
+              "label": "Overdue run",
+              "sub": "980 changes/s",
+              "meta": "done at 19:01:00",
+              "x": 110,
+              "y": 45,
+              "w": 190,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "desk",
+              "label": "Front desk and app",
+              "sub": "20 writes/s",
+              "meta": "19:00:40 return, paid",
+              "x": 330,
+              "y": 45,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "readers",
+              "label": "Reading room and app",
+              "sub": "1,500 reads/s",
+              "meta": "my screen: copy 2",
+              "x": 590,
+              "y": 45,
+              "w": 230,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "svc",
+              "label": "Catalogue service",
+              "sub": "writes to the primary",
+              "meta": "reads to the copies, in turn",
+              "x": 460,
+              "y": 165,
+              "w": 340,
+              "h": 62,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "primary",
+              "label": "Primary",
+              "sub": "busy 2%",
+              "meta": "Penhallow: returned",
+              "x": 130,
+              "y": 290,
+              "w": 220,
+              "h": 72,
+              "shape": "db",
+              "tone": "ok"
+            },
+            {
+              "id": "c1",
+              "label": "Copy 1",
+              "sub": "84 s behind",
+              "meta": "busy 100%",
+              "x": 330,
+              "y": 425,
+              "w": 170,
+              "h": 62,
+              "shape": "db",
+              "tone": "warn"
+            },
+            {
+              "id": "c2",
+              "label": "Copy 2",
+              "sub": "84 s behind",
+              "meta": "Penhallow: on loan",
+              "x": 540,
+              "y": 425,
+              "w": 170,
+              "h": 62,
+              "shape": "db",
+              "tone": "bad"
+            }
+          ],
+          "edges": [
+            {
+              "from": "desk",
+              "to": "svc"
+            },
+            {
+              "from": "readers",
+              "to": "svc"
+            },
+            {
+              "from": "run",
+              "to": "primary"
+            },
+            {
+              "from": "svc",
+              "to": "primary",
+              "label": "writes"
+            },
+            {
+              "from": "svc",
+              "to": "c1",
+              "label": "reads"
+            },
+            {
+              "from": "svc",
+              "to": "c2"
+            },
+            {
+              "from": "primary",
+              "to": "c1",
+              "label": "changes",
+              "via": [
+                [
+                  130,
+                  365
+                ],
+                [
+                  330,
+                  365
+                ]
+              ]
+            },
+            {
+              "from": "primary",
+              "to": "c2",
+              "via": [
+                [
+                  130,
+                  365
+                ],
+                [
+                  540,
+                  365
+                ]
+              ]
+            }
+          ],
+          "notes": [
+            {
+              "x": 720,
+              "y": 478,
+              "text": "Thursday, 19:01:50",
+              "tone": "muted",
+              "anchor": "end"
+            }
+          ]
+        },
+        "caption": "Teodor's drawing of the catalogue at 19:01:50 on Thursday. Every write goes to the primary, which has had Mrs Penhallow's return since 19:00:40 and is 2% busy again now the overdue run has finished. Every read goes to a copy in the back room, taking turns. The run wrote 980 changes a second for a minute, each copy applies at most 250 a second, and both copies are 84 seconds behind and 100% busy. Copy 2, which my screen asked, still has her book on loan."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 118,
+      "age": "5h",
+      "text": "Your back room holds two read replicas: copies of the primary database that apply its changes and answer reads, so reads can spread over several servers while every write still goes to one. Sending writes to one place and reads to another is read/write splitting, and how far behind a copy is, is its replication lag. When people always see their own changes straight after making them, the system gives read-your-writes; you met it as read-after-write at the dairy. Now your log. How fast does the overdue run write, and how fast can a copy apply? Where did the front desk's write go, and where did your screen's read go? What had the person asking just done? And on Tuesday, which copy answered each refresh?",
+      "replies": [
+        {
+          "author": "u/call_slip_solveig",
+          "op": true,
+          "points": 34,
+          "age": "4h",
+          "text": "Teodor says a copy applies changes one at a time, in the order the primary made them, 250 a second at most. The run writes 980. He has never looked at the lag. Mrs Penhallow says that until 1968 a clerk, Mr Cuthbert Laming, carried the change slips from the front desk to the back room every quarter hour, so its catalogue would agree. She says you could hear him in the corridor, and that he walked faster when the slips piled up."
+        }
+      ]
+    },
+    {
+      "author": "u/hot_standby_saoirse",
+      "points": 77,
+      "age": "4h",
+      "text": "Tuesday sounds like a hot standby holding its replay. PostgreSQL lets a copy answer reads while it applies the primary's changes, but some changes can't be applied while a query on the copy still needs the rows they clean away. The copy waits up to max_standby_streaming_delay, 30 seconds by default, then cancels the query. People set it to -1 so a long report can finish, and then the copy waits as long as the report runs, falling further behind every second. What ran on copy 2 on Tuesday?",
+      "replies": [
+        {
+          "author": "u/call_slip_solveig",
+          "op": true,
+          "points": 29,
+          "age": "3h",
+          "text": "Teodor's yearly stock report, on copy 2, from 17:40 to 18:40. He set that to -1 last year because the report kept being cancelled. And the terminals take turns between the copies on every refresh."
+        }
+      ]
+    },
+    {
+      "author": "u/same_copy_mireille",
+      "points": 52,
+      "age": "3h",
+      "text": "For a reader, Tuesday is worse than an old answer. Your screen showed withdrawn, then on the shelf again: the catalogue went back in time. The promise you wanted there is monotonic reads: once you've seen a value, you never see an older one. The cheap way is a sticky copy, keeping each reader on the same copy every time. It won't show anyone their own change sooner, though."
+    },
+    {
+      "author": "u/not_a_backup_ruslan",
+      "points": 40,
+      "age": "2h",
+      "text": "Whatever Teodor picks, don't let anyone call the back room a backup. A copy applies a mistaken delete as faithfully as a return, a second later. And if the primary dies, he can promote a copy to take the writes, but whatever it hadn't applied is gone. Lag is also how much you'd lose."
+    }
+  ],
+  "reply": {
+    "prompt": "Thursday's overdue run starts at 19:00 again, and Mrs Penhallow will be at the front desk. What should Teodor change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Slow the overdue run to 200 changes a second, send a patron's own reads to the primary for 5 s after they write, and alert on lag over 5 s.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Teodor slowed the overdue run to 200 changes a second, so it took 4 minutes 54 seconds instead of one. He changed the catalogue service so that for 5 seconds after a patron borrows or returns a book, their own reads go to the primary, and set an alert for any copy more than 5 seconds behind. On Thursday the primary was 22% busy during the run and the copies 97%, but every change reached them within a second. Mrs Penhallow returned this week's book at 19:00:40, four days overdue again. Her phone asked the primary: returned. At 19:01:50 my screen asked copy 2, a second behind: returned. By 19:05 the copies had served 165 stale reads instead of 14,546, no patron had missed their own change, and the alert never fired. Teodor asked whether more copies would have let the run go faster. They wouldn't: every copy applies every change. At 19:15 there were no footsteps in the corridor. Mrs Penhallow says the sign was right all along: you ask the front desk, and you let the back room catch up.",
+        "senior": "The copies take the reads, which is what they're for: with every read on it the primary would be 152% busy, and with the copies it's 2%. But every copy applies every write, so a burst of writes is a burst on every copy too, and the lag grows whenever changes arrive faster than a copy can apply them. Pace big batch writes below what a copy can apply, give each person their own changes from the primary for a window longer than the usual lag, and alert when the lag passes that window, because beyond it the window no longer covers anyone."
+      },
+      {
+        "text": "Build two more copies in the back room, four in all, so the reading room's reads and the overdue run's changes are spread four ways.",
+        "tone": "bad",
+        "verdict": "More copies, the same lag",
+        "part2": "Teodor built copies 3 and 4 on Monday, and on Thursday the reads were spread four ways, 375 a second each. During the run the copies were 63% busy instead of 100%. But at 19:00 the primary was still 100% busy with the run's writes alone, and every copy still had all 58,800 changes to apply, 250 a second, one at a time. All four were 46 seconds behind when the run ended and 181 behind at worst, exactly as before. Mrs Penhallow returned this week's book at 19:00:40, four days overdue again. At 19:01:50 my screen asked copy 2: on loan to her, four days overdue, fine 1.40 unpaid. By 19:05, 41 patrons had missed their own change, the same as the week before, and the catalogue now costs 1,900 a month instead of 1,140. At 19:02:44 the footsteps went down the corridor again, and this time they came back.",
+        "senior": "Copies scale reads, not writes. Every write lands on the primary and then on every copy, so more copies spread the reading room's reads thinner but leave each one the whole overdue run to apply, at the same 250 a second. The lag comes from changes arriving faster than one copy can apply them, and the number of copies doesn't change that. Each copy is also a whole copy of the catalogue at full price. Add copies when reads are the bottleneck; when writes are, pace them, make them smaller, or split the data."
+      },
+      {
+        "text": "From 19:00 until the copies catch up, send every read to the primary, which always has the newest data, and use the copies after that.",
+        "tone": "warn",
+        "verdict": "Trade-off: never stale, never fast",
+        "part2": "Teodor set the catalogue service to send every read to the primary from 19:00 until the copies caught up, at 19:04:16. Nobody saw an old loan: Mrs Penhallow's phone and my screen both said returned. But during the run the primary was asked for 2,500 queries a second, 250% of what it can do, and after it 1,520, 152%, until the reads went back to the copies. Searches took minutes, the way they did last spring, and the front desk's returns waited in the same line as everyone's searches. A student at the terminals gave up and wrote what she wanted on a slip of paper, the way readers did when the sign was new. At 19:04:16 the reads went back to the copies, and everything was quick again.",
+        "senior": "Reading from the primary is the one sure way never to be stale, which is why it's tempting the moment copies lag. But the copies exist because the primary can't take the reads: 1,500 reads a second is more than its 1,000 on their own, so falling back to it during a burst brings back last spring's slowdown at the worst moment. Keep the primary for the few reads that must be current, such as a person's own change just after they make it, and fix the lag itself."
+      },
+      {
+        "text": "Send each patron's own reads to the primary for 5 seconds after they borrow or return a book, and leave the overdue run just as it is.",
+        "tone": "warn",
+        "verdict": "Trade-off: the phone, not the desk",
+        "part2": "Teodor changed the catalogue service so that for 5 seconds after a patron borrows or returns a book, their own reads go to the primary, and left the overdue run as it was. Mrs Penhallow returned this week's book at 19:00:40, four days overdue again. At 19:00:42 her phone asked the primary: returned, nothing owed. At 19:01:50 my screen asked copy 2, 84 seconds behind: on loan to her, four days overdue, fine 1.40 unpaid. Her phone had shown the return, and my screen took it back. By 19:05 every phone check had been right, but 15 patrons had the same thing happen at the reading room desk. The copies still fell 181 seconds behind, and nobody was told. At 19:02:44 the footsteps came again, slower.",
+        "senior": "A window sends a person's own reads to the primary for a few seconds after they write, and it works only while every copy is less than a window behind. Here the copies were 84 seconds behind when she reached the desk, 70 seconds after her return, so the window had long closed. A window needs the lag kept below it, and an alert for when it isn't. Rails' version of this defaults to 2 seconds and tells you to change it to suit your database."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s2e12",
+    "title": "Run the Merrow Library's catalogue",
+    "lede": "You're Teodor, replaying Thursday evening from 18:59:00, a second at a time. The primary and each copy can do 1,000 queries a second, and a read or an applied change counts as one. The reading room and the app send 1,500 reads a second. The front desk and the app send 20 writes a second, all to the primary, and each copy applies them in order, up to 250 a second, once its normal lag has passed. A patron uses the front desk every 10 seconds, then checks their loans on their phone 2 seconds later and at the reading room desk 70 seconds later; the patron at 19:00:40 is Mrs Penhallow. The overdue run starts at 19:00. Pick where reads go: every read to the primary, to the copies in turn (as now), to the copies with a 5-second read-your-writes window, or to one sticky copy per patron. Stale reads served estimates the reads of a record with a change the copy hadn't applied yet. Own change missing counts patrons' checks that didn't show their own change, and went back in time counts patrons whose phone showed it and whose reading room check then didn't. Each second the primary commits its writes, the copies apply what has reached them, and then the reads are served, and the log describes each second as it was then. Changing where reads go, the lag, the overdue run or the number of copies replays from 18:59:00; the long report switch acts at once. Click any box to see what it does.",
+    "tryThis": "Try this: as now, skip 6 minutes. The copies fall 181 s behind, Mrs Penhallow's phone and the reading room both show her book on loan, and by 19:05:00, 41 patrons have missed their own change and 14,546 stale reads have been served. Send every read to the primary: 152% before the run, 250% at 19:00. Back to the copies, and add two: four copies at 63% busy during the run, the primary still 100% at 19:00, the lag the same, 1,900 a month. Remove them and pick the 5-second window: every phone check is right, but 15 reading room checks go back in time. Slow the run to 200 a second: the copies stay 1 s behind, 165 stale reads, nobody's own change missing. Turn the run off, set the lag to 3 s and skip 2 minutes, with and without the window. Last, set the lag back to 1 s and reads to the copies, in turn; skip a minute, let the long report hold copy 2 and skip 10 minutes: 57 own changes missing, 27 gone back in time. Then try it with sticky copies."
+  },
+  "explain": {
+    "oneLine": "Nothing walked the corridor. The reading room reads a copy of the catalogue, and a copy is always a little behind the primary. The overdue run left both copies 84 seconds behind just as Mrs Penhallow asked about the book she had returned 70 seconds earlier.",
+    "steps": [
+      {
+        "title": "Copies take the reads; the primary takes every write.",
+        "text": "A read replica is a copy of a database that applies the primary's changes and answers reads. Every write still goes to the one primary, and reads spread across the copies, so reads scale out while writes stay in one place. Something has to send each query to the right server, which is read/write splitting. Teodor's catalogue service does it in the app. Rails can switch connections for you, and MySQL's manual suggests a wrapper library that sends writes to the source and reads to a replica. A proxy such as ProxySQL can split without changing the app, though its own guide warns against sending every SELECT to replicas without studying your workload first. The library needed it because of simple arithmetic: one server does 1,000 queries a second, and exam evenings bring 1,500 reads and 20 writes, 152%. Reads alone overload it. With two copies the primary does the 20 writes, 2%, and each copy answers 750 reads and applies 20 changes, 77%."
+      },
+      {
+        "title": "Every copy is a little behind, and a burst of writes makes it worse.",
+        "text": "The primary commits a change and sends it on without waiting, and each copy applies it a moment later: asynchronous replication. The gap is replication lag. PostgreSQL's manual says it's typically under one second, assuming the standby can keep up with the load, and Teodor's copies are normally a second behind. They can't keep up when changes arrive faster than they can apply them. During the overdue run the primary committed 1,000 changes a second, the run's 980 and the usual 20, and a copy applies at most 250, one at a time, in order. So each copy's backlog grew by 750 changes every second of the run. The copies were 46 seconds behind when it ended at 19:01:00, 84 at 19:01:50 and 181 at worst, at 19:04:00, and only caught up at 19:04:16. Until then, a read of any record with a change still waiting got the old answer: 14,546 stale reads by 19:05. None of it shows unless someone measures it. PostgreSQL reports replay_lag for each standby, and Amazon RDS publishes ReplicaLag to CloudWatch."
+      },
+      {
+        "title": "Your own change, and time running backwards.",
+        "text": "Werner Vogels calls the promise that a person who has updated something never sees an older value read-your-writes. Mrs Penhallow didn't get it: she wrote at the front desk, then read copies that hadn't applied her write. There are two usual ways to give it. A window: for a few seconds after a person writes, send their reads to the primary. Rails does this, 2 seconds by default, and says to change that to suit your database. It works only while the lag is shorter than the window. Position tracking: when a person writes, note how far the primary's log had got, and send their reads only to a copy that has applied that far, which PostgreSQL reports with pg_last_wal_replay_lsn, or to the primary if none has. Tuesday broke a different promise, monotonic reads: once you've seen a value, you never see an older one. The terminals took turns between a copy an hour behind and one a second behind. Keeping each reader on one sticky copy gives monotonic reads, though it shows nobody their own change sooner. Neither promise covers anyone else: another reader can still see the old loan."
+      },
+      {
+        "title": "What copies don't do.",
+        "text": "Copies add no write capacity. Taking the reads away frees the primary for writes, but only up to one server's worth, and every change is applied on the primary and then on every copy, so four copies made each one less busy with reads, 63% instead of 100% during the run, but left the primary at 100% and every copy 181 seconds behind at worst. When writes are the problem, pace big batch jobs below what a copy can apply, make them smaller, or split the data across several primaries, which is sharding; Splitting the Archive, in Season 3, covers it. Copies aren't backups either: a mistaken delete reaches them a second later. And if the primary fails, a copy can be promoted to take the writes, but whatever it hadn't applied is lost. PostgreSQL's manual says the amount of data loss is proportional to the replication delay at the time of failover. The Copy That Lags, in Season 3, goes deeper. An RDS Multi-AZ standby is a different thing again: it gets changes synchronously, and unlike a read replica it can't serve reads."
+      },
+      {
+        "title": "Each copy is a whole copy, and needs watching.",
+        "text": "A copy holds the whole catalogue, all 600,000 records, on a server as big as the primary, because it applies every change the primary does. Amazon RDS bills read replicas as standard DB instances at the same rates. Teodor's two cost 760 a month on top of the primary's 380, and four would bring the total to 1,900. Before adding one, check that reads really are the bottleneck, that the copies can keep up with the writes, and that the app can live with reading a little in the past. Then watch the lag like any other limit: alert when it passes the window you've promised, and keep long reports off the copies that serve readers, or give them a copy of their own, because a change a copy is holding back holds back every change after it."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 470,
+      "aria": "The fix, drawn for next Thursday. The overdue run writes 200 changes a second to the primary from 19:00 to 19:04:54. The front desk and the app send 20 writes a second, and the reading room and the app 1,500 reads a second, through the catalogue service. It sends every write to the primary, and a patron's own reads too for 5 seconds after they write. Every other read goes to the two copies. The primary is 22% busy and sends every change to both copies, which are 1 second behind and 97% busy. A lag alert watches both copies and fires if either is more than 5 seconds behind.",
+      "nodes": [
+        {
+          "id": "run",
+          "label": "Overdue run",
+          "sub": "200 changes/s",
+          "meta": "19:00 to 19:04:54",
+          "x": 110,
+          "y": 45,
+          "w": 190,
+          "h": 62,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "desk",
+          "label": "Front desk and app",
+          "sub": "20 writes/s",
+          "meta": "a patron every 10 s",
+          "x": 330,
+          "y": 45,
+          "w": 200,
+          "h": 62,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "readers",
+          "label": "Reading room and app",
+          "sub": "1,500 reads/s",
+          "x": 590,
+          "y": 45,
+          "w": 230,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "svc",
+          "label": "Catalogue service",
+          "sub": "writes to the primary",
+          "meta": "own reads: primary for 5 s",
+          "x": 460,
+          "y": 165,
+          "w": 340,
+          "h": 62,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "primary",
+          "label": "Primary",
+          "sub": "busy 22%",
+          "meta": "every write",
+          "x": 130,
+          "y": 300,
+          "w": 220,
+          "h": 72,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "c1",
+          "label": "Copy 1",
+          "sub": "1 s behind",
+          "meta": "busy 97%",
+          "x": 340,
+          "y": 420,
+          "w": 150,
+          "h": 62,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "c2",
+          "label": "Copy 2",
+          "sub": "1 s behind",
+          "meta": "busy 97%",
+          "x": 520,
+          "y": 420,
+          "w": 150,
+          "h": 62,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "alert",
+          "label": "Lag alert",
+          "sub": "any copy over 5 s",
+          "x": 660,
+          "y": 300,
+          "w": 150,
+          "h": 52,
+          "shape": "box",
+          "tone": "accent"
+        }
+      ],
+      "edges": [
+        {
+          "from": "desk",
+          "to": "svc"
+        },
+        {
+          "from": "readers",
+          "to": "svc"
+        },
+        {
+          "from": "run",
+          "to": "primary"
+        },
+        {
+          "from": "svc",
+          "to": "primary",
+          "label": "writes, own reads"
+        },
+        {
+          "from": "svc",
+          "to": "c1",
+          "label": "reads"
+        },
+        {
+          "from": "svc",
+          "to": "c2"
+        },
+        {
+          "from": "primary",
+          "to": "c1",
+          "label": "changes",
+          "via": [
+            [
+              130,
+              365
+            ],
+            [
+              340,
+              365
+            ]
+          ]
+        },
+        {
+          "from": "primary",
+          "to": "c2",
+          "via": [
+            [
+              130,
+              365
+            ],
+            [
+              520,
+              365
+            ]
+          ]
+        },
+        {
+          "from": "c1",
+          "to": "alert",
+          "dash": true,
+          "tone": "muted"
+        },
+        {
+          "from": "c2",
+          "to": "alert",
+          "dash": true,
+          "tone": "muted"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for next Thursday. The overdue run writes 200 changes a second, from 19:00 to 19:04:54, so the primary is 22% busy and each copy, 97% busy, applies every change within a second. Every write goes to the primary, and so does a patron's own read for 5 seconds after they write. Every other read goes to the copies, in turn. An alert fires if either copy is more than 5 seconds behind.",
+    "fix": {
+      "title": "The fix: pace the run, give patrons their own changes, and watch the lag",
+      "text": "Slow the overdue run to 200 changes a second, below the 250 a copy can apply. It takes 4 minutes 54 seconds instead of one, the primary is 22% busy instead of 100%, and the copies stay a second behind at 97% busy: 165 stale reads by 19:05 instead of 14,546. For 5 seconds after a patron borrows or returns a book, send their own reads to the primary: five times the copies' normal lag, and only one patron writes every 10 seconds, so it costs the primary almost nothing. Alert when either copy is more than 5 seconds behind, because past that the window no longer covers a patron's own change. Move the yearly stock report off the copies that serve readers, and put max_standby_streaming_delay back to a limit. Later, if a time window ever isn't enough, track positions instead."
+    },
+    "limits": [
+      "The window covers only the person who wrote. Anyone else reading that loan in the first seconds, or for as long as a copy is behind, still sees the old one, and Rails says the same of its own window. Anything that must never be stale for anyone, such as whether a fine is paid when it's charged, should be read from the primary.",
+      "A time window is a guess about the lag. If a copy falls further behind than the window, the window stops working without any sign, and only the alert tells you. Position tracking doesn't guess, but the app has to carry each person's last write position and the copies have to report theirs.",
+      "Pacing the run fixes this burst, not growth in writes. If writes keep rising, every copy has to apply all of them and more copies won't help; the answer then is fewer or smaller writes, or splitting the data, which Season 3 covers."
+    ],
+    "tradeoff": {
+      "head": [
+        "Choice",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "Every read to the primary",
+          "Never stale: no stale reads and no own change missing.",
+          "The primary takes 1,520 queries a second, 152%, and 250% during the run. Reads alone overload it, which is why the copies exist."
+        ],
+        [
+          "To the copies, in turn (as now)",
+          "The primary does only the writes, 2%. Two copies at 77% each.",
+          "Readers see the lag. Thursday: 14,546 stale reads and 41 own changes missing by 19:05. Tuesday's refreshes went back in time."
+        ],
+        [
+          "Copies, with a 5-second window for your own reads",
+          "A patron sees their own change at once while the lag stays under 5 s. With the run paced: nothing missing, 165 stale reads.",
+          "Covers only the writer, and only while the lag is shorter than the window. With the run as now: 15 reading room checks still miss the change, and each one went back in time."
+        ],
+        [
+          "One sticky copy per patron",
+          "Monotonic reads: nobody sees time run backwards. With copy 2 held for 10 minutes, none went back in time, against 27 with copies in turn.",
+          "Shows nobody their own change sooner: 57 own changes missing in the same test. A patron on a lagging copy stays on it."
+        ],
+        [
+          "Add copies",
+          "More room for reads: four copies at 63% during the run instead of 100%.",
+          "No help with writes: the primary still 100% and every copy 181 s behind at worst. 1,900 a month instead of 1,140."
+        ]
+      ]
+    },
+    "seniorTake": "Read replicas are the cheapest way to scale reads, as long as the readers can live a little in the past. Before adding one, check that reads are the bottleneck: copies add no write capacity, because every copy applies every write too. Then decide which reads can be stale and by how much, for each kind of data, and send the rest to the primary: a person's own change for a window longer than the usual lag, or by position when a window isn't enough, and anything that decides money every time. Keep readers on one copy if seeing time run backwards would confuse them. Measure the lag, alert on it at the size of your promise, and keep long queries and batch writes from blowing through it. And remember what a copy is not: a backup, or a free failover.",
+    "realWorld": [
+      {
+        "title": "PostgreSQL 18: reading from a hot standby",
+        "text": "PostgreSQL's manual uses the term hot standby for being able to connect to a server and run read-only queries while it is still a standby. It is plain about the lag: data on the standby takes some time to arrive from the primary, so there will be a measurable delay, and the same query run nearly simultaneously on both might return differing results. The data on the standby, it says, is eventually consistent with the primary. Some changes conflict with queries on the standby, such as cleaning away rows a query can still see, and once max_standby_streaming_delay has been exceeded, conflicting queries are canceled. For a standby kept for long analytical queries, the manual says it might be acceptable to set the delay to many hours, or even -1, which means wait forever. But it warns that a long-running query could cause other sessions on the standby to not see recent changes on the primary, and that allowing WAL application to wait indefinitely may be very undesirable, because the standby's state will become increasingly far behind the primary's. That was Tuesday.",
+        "source": 0
+      },
+      {
+        "title": "PostgreSQL 18: asynchronous by default",
+        "text": "Streaming replication is asynchronous by default, the manual says, so there is a small delay between committing a transaction on the primary and the changes becoming visible on the standby, typically under one second assuming the standby is powerful enough to keep up with the load. The overdue run is what that assumption looks like when it fails. If the primary crashes, some committed transactions may not have reached the standby, and the amount of data loss is proportional to the replication delay at the time of failover. Setting synchronous_commit to remote_apply makes each commit wait until the synchronous standbys report they have replayed it, making it visible to their queries; in simple cases, the manual says, this allows for load balancing with causal consistency.",
+        "source": 1
+      },
+      {
+        "title": "PostgreSQL 18: the delay settings",
+        "text": "max_standby_streaming_delay defaults to 30 seconds, and a value of -1 allows the standby to wait forever for conflicting queries to complete, which is what Teodor had set. recovery_min_apply_delay does something read replicas never want and a safety copy sometimes does: it keeps a time-delayed copy of the data, offering opportunities to correct data loss errors. Set it to 5min, the manual's example, and the standby replays each commit only when its clock is at least five minutes past the commit time reported by the primary. The default is zero, adding no delay.",
+        "source": 2
+      },
+      {
+        "title": "PostgreSQL 18: measuring the lag",
+        "text": "On the primary, the pg_stat_replication view has one row for each connected standby. Its replay_lag column is the time elapsed between flushing recent WAL locally and hearing that the standby has written, flushed and applied it, and for an asynchronous standby it approximates the delay before recent transactions became visible to queries. That's the number Teodor had never looked at.",
+        "source": 3
+      },
+      {
+        "title": "PostgreSQL 18: how far a standby has got",
+        "text": "pg_last_wal_replay_lsn returns the last write-ahead log location a standby has replayed, and while the standby is still replaying it only increases. That makes it the number position tracking compares: if a standby has replayed past the position of a person's last write, it can answer that person's reads.",
+        "source": 4
+      },
+      {
+        "title": "Amazon RDS: read replicas",
+        "text": "Amazon RDS describes a read replica as a read-only copy of a DB instance: route queries to it to reduce the load on your primary, and elastically scale out beyond the capacity constraints of a single DB instance for read-heavy database workloads. When you update the primary, RDS copies the changes asynchronously to the read replica. You must create read replicas manually; RDS doesn't add or remove them as read demand changes. They are billed as standard DB instances at the same rates as the DB instance class used for the replica. And RDS draws the line this case draws: a Multi-AZ standby receives updates synchronously, but unlike a read replica, a standby replica can't serve read traffic.",
+        "source": 5
+      },
+      {
+        "title": "Amazon RDS: the ReplicaLag metric",
+        "text": "RDS publishes replication lag to CloudWatch as the ReplicaLag metric. When it reaches 0, the replica has caught up with the primary; if it returns -1, replication is not active. For PostgreSQL, RDS computes it with a query that subtracts pg_last_xact_replay_timestamp, the time of the last transaction the replica replayed, from the current time.",
+        "source": 6
+      },
+      {
+        "title": "Amazon RDS: promoting a read replica",
+        "text": "A read replica can be promoted to a standalone DB instance. RDS reboots it before making it available, and promotion can take several minutes or longer, depending on the replica's size. To promote without losing changes, the guide says to stop any transactions from being written to the primary and then wait for RDS to apply all updates to the replica. You can also promote one for data recovery, it adds, if you are aware of the ramifications and limitations of asynchronous replication. A replica is a way back from a dead primary, not from a wrong write.",
+        "source": 7
+      },
+      {
+        "title": "MySQL 8.4: asynchronous, and made for scale-out",
+        "text": "MySQL's manual says replication is asynchronous by default, and lists scale-out among its advantages: spreading the load among multiple replicas to improve performance, with all writes and updates on the source server and reads on one or more replicas.",
+        "source": 8
+      },
+      {
+        "title": "MySQL 8.4: splitting in the app",
+        "text": "The manual's scale-out section says replication for scale-out works best where you have a high number of reads and a low number of writes and updates. It suggests changing your database access to send all writes to the source and reads to either the source or a replica, through a wrapper library with functions such as safe_writer_connect() and safe_reader_connect().",
+        "source": 9
+      },
+      {
+        "title": "Rails: a window for your own writes",
+        "text": "Rails can switch a request between the writer database and a replica automatically, based on the request's HTTP method and whether the requesting user wrote recently. Its guide says Rails guarantees read your own write and will send that user's read requests, such as a GET, to the writer if they're within the delay window, which is 2 seconds by default, and that you should change this based on your database infrastructure. Rails doesn't guarantee read a recent write for other users within that window. And Rails doesn't support automatic load balancing of replicas.",
+        "source": 10
+      },
+      {
+        "title": "ProxySQL: splitting in a proxy",
+        "text": "ProxySQL's guide calls read/write split one of the most common query routing patterns, and says ProxySQL can route queries without requiring application modifications. Its example of sending every SELECT to replicas carries a warning, do not use in production, because generic SELECT routing rules cause problems with transactions, session state and consistency. Analyse your workload first, it says, and create targeted rules instead.",
+        "source": 11
+      },
+      {
+        "title": "Werner Vogels: the promises, 2008",
+        "text": "In Eventually Consistent - Revisited, Werner Vogels defines read-your-writes consistency: process A, after it has updated a data item, always accesses the updated value and will never see an older value. And monotonic read consistency: if a process has seen a particular value for the object, any subsequent accesses will never return any previous values. Databases that let you read from the backup, he writes, are a classical case of eventual consistency, with inconsistency windows that depend on the periodicity of the log shipping. Whether read-your-writes and monotonic reads can be achieved depends in general on the stickiness of clients to a server: if it's the same server every time, they are relatively easy to guarantee. Versions are another way: the client discards reads of values with versions that precede the last-seen version.",
+        "source": 12
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How do you scale a read-heavy database?",
+        "What is replication lag, and how do you handle read-your-own-writes?",
+        "Why don't read replicas help with writes?"
+      ],
+      "answer": "Start by measuring: what share of the load is reads, and could a cache answer the hottest ones? If reads dominate, add read replicas. The primary takes every write and streams its changes to the replicas, which serve reads, and the app or a proxy splits reads from writes. Then say what it costs. Replication is usually asynchronous, so each replica lags the primary, often by under a second, and by much more when writes arrive faster than it can apply them or a long query holds its replay. Decide which reads can tolerate that. For read-your-own-writes, send a user's reads to the primary for a window after they write, longer than the usual lag, or record the log position of their write and read only from a replica that has replayed past it. Keep a user on one replica if they mustn't see time run backwards. Replicas don't add write capacity: taking reads off the primary frees it for writes only up to one server's worth, every replica applies every write, and a write burst makes every replica lag. For writes, batch and pace them, or shard. Finish with operations: alert on replica lag, take a lagging replica out of rotation, remember each replica is a whole copy at full price, and that a replica is neither a backup nor an automatic failover."
+    }
+  },
+  "terms": [
+    {
+      "term": "Catalogue (library)",
+      "def": "The library's database of every book and manuscript: where it is, and who has it on loan. The Merrow's holds 600,000 records for every branch in the city."
+    },
+    {
+      "term": "Hold (library)",
+      "def": "A request to keep a book for a patron when it comes back. Placing one is a write."
+    },
+    {
+      "term": "Withdrawn (library)",
+      "def": "Taken out of the collection, so it can't be borrowed. MS 114 was withdrawn at the front desk at 17:41 on Tuesday."
+    },
+    {
+      "term": "Overdue run",
+      "def": "The Merrow's job that runs at 19:00 every evening and writes each open loan's new fine or due date: 58,800 changes, 980 a second as now."
+    },
+    {
+      "term": "Change slip",
+      "def": "A paper note of a loan or return. Until 1968 a clerk carried them from the front desk to the back room every quarter hour."
+    },
+    {
+      "term": "Catalogue service",
+      "def": "Teodor's program between the terminals, the app and the database. It sends every write to the primary and decides where each read goes."
+    },
+    {
+      "term": "Stock report",
+      "def": "Teodor's yearly report on every item in the collection. On Tuesday it ran on copy 2 for an hour. The sim's long report switch holds copy 2 the same way."
+    },
+    {
+      "term": "Read replica",
+      "def": "A copy of a database that applies the primary's changes and answers reads, so reads can spread over several servers. Teodor calls his two the copies."
+    },
+    {
+      "term": "Primary",
+      "def": "The one database server that takes every write and sends its changes on to the read replicas."
+    },
+    {
+      "term": "Apply (a change)",
+      "def": "What a replica does with each change it receives from the primary: make the same change to its own copy, in the same order."
+    },
+    {
+      "term": "Replay",
+      "def": "PostgreSQL's word for a standby applying the changes in the primary's log."
+    },
+    {
+      "term": "Read/write splitting",
+      "def": "Sending writes to the primary and reads to read replicas, done in the app or in a proxy between the app and the databases."
+    },
+    {
+      "term": "Asynchronous replication",
+      "def": "The primary commits a change without waiting for its replicas and sends it on; they apply it a little later. The usual default."
+    },
+    {
+      "term": "Replication lag",
+      "def": "How far a replica is behind the primary, usually measured in seconds. The Merrow's copies are normally 1 s behind; in the sim this is the copies' normal lag."
+    },
+    {
+      "term": "Backlog",
+      "def": "Changes a replica has received but not yet applied. During the overdue run each copy's grew by 750 a second."
+    },
+    {
+      "term": "Read-heavy",
+      "def": "A workload with many more reads than writes, like the Merrow's 1,500 reads and 20 writes a second."
+    },
+    {
+      "term": "Read-your-writes",
+      "def": "A promise that once you've changed something, your own later reads always show the change. Also called read-your-own-writes."
+    },
+    {
+      "term": "Read-your-writes window",
+      "def": "Sending a person's own reads to the primary for a set time after they write, such as 5 seconds. Rails' version uses 2 seconds by default."
+    },
+    {
+      "term": "Position tracking",
+      "def": "Noting how far the primary's log had got when a person wrote, and reading for them only from a replica that has applied that far, or from the primary."
+    },
+    {
+      "term": "Monotonic reads",
+      "def": "A promise that once you've seen a value, you never see an older one. Taking turns between replicas that are differently behind breaks it."
+    },
+    {
+      "term": "Sticky copy",
+      "def": "Keeping each reader on the same replica for every read, so what they see only moves forward. In the sim, each patron always reads the same copy."
+    },
+    {
+      "term": "Own change missing",
+      "def": "The sim's count of patrons' checks that didn't show the change they had just made at the front desk."
+    },
+    {
+      "term": "Went back in time",
+      "def": "The sim's count of patrons whose phone showed their change and whose reading room check then didn't."
+    },
+    {
+      "term": "Lag alert",
+      "def": "An alert that fires when a replica is further behind than a set limit, such as 5 seconds. The sim logs one when a copy passes 5 s."
+    },
+    {
+      "term": "Hot standby",
+      "def": "PostgreSQL's name for a standby that answers read-only queries while it applies the primary's changes: a read replica, in PostgreSQL terms."
+    },
+    {
+      "term": "Streaming replication",
+      "def": "PostgreSQL sending its log of changes to standbys as they happen, rather than in finished files. Asynchronous by default."
+    },
+    {
+      "term": "WAL",
+      "def": "Write-ahead log: PostgreSQL's record of every change, written before the change itself. Standbys apply it in order."
+    },
+    {
+      "term": "Conflict (hot standby)",
+      "def": "A change a standby can't apply while one of its queries still needs what the change removes. The standby must wait or cancel the query."
+    },
+    {
+      "term": "max_standby_streaming_delay",
+      "def": "How long a PostgreSQL standby waits for conflicting queries before cancelling them. The default is 30 seconds; -1 waits forever."
+    },
+    {
+      "term": "pg_stat_replication",
+      "def": "A PostgreSQL view on the primary with one row for each connected standby, showing how far each has got."
+    },
+    {
+      "term": "replay_lag",
+      "def": "A column of pg_stat_replication: roughly how long a standby takes to make recent changes visible to its queries."
+    },
+    {
+      "term": "pg_last_wal_replay_lsn",
+      "def": "A PostgreSQL function that returns the last position in the WAL a standby has replayed. It only moves forward while the standby runs."
+    },
+    {
+      "term": "pg_last_xact_replay_timestamp",
+      "def": "A PostgreSQL function that returns the time of the last transaction a standby has replayed."
+    },
+    {
+      "term": "recovery_min_apply_delay",
+      "def": "A PostgreSQL setting that keeps a standby a fixed time behind on purpose, so a mistake can be caught before it arrives. The default is zero."
+    },
+    {
+      "term": "Delayed copy",
+      "def": "A replica kept a fixed time behind on purpose, such as an hour, so a bad change can be stopped before it reaches it."
+    },
+    {
+      "term": "synchronous_commit = remote_apply",
+      "def": "A PostgreSQL setting that makes each commit wait until the synchronous standbys have applied it and it is visible to their queries."
+    },
+    {
+      "term": "Causal consistency",
+      "def": "A promise that if one change led to another, nobody sees the second without the first. PostgreSQL says remote_apply can give it in simple cases."
+    },
+    {
+      "term": "Eventually consistent",
+      "def": "Data that will match its source once changes stop arriving and have been applied, but may not match it at any given moment."
+    },
+    {
+      "term": "Promote",
+      "def": "Turning a replica into a primary that takes writes, usually because the old primary has failed."
+    },
+    {
+      "term": "Sharding",
+      "def": "Splitting data across several primaries, each holding part of it, so writes spread out too. Season 3 covers it."
+    },
+    {
+      "term": "DB instance",
+      "def": "Amazon RDS's name for one database server it runs for you."
+    },
+    {
+      "term": "ReplicaLag",
+      "def": "The Amazon RDS CloudWatch metric for how far a read replica is behind its primary. 0 means caught up; -1 means replication isn't active."
+    },
+    {
+      "term": "Source (MySQL)",
+      "def": "MySQL's name for the primary in replication."
+    },
+    {
+      "term": "Wrapper library",
+      "def": "Your own small set of functions that the rest of the code calls instead of the database library, so one place decides where each query goes."
+    },
+    {
+      "term": "ProxySQL",
+      "def": "An open-source proxy that sits between an app and MySQL servers and routes each query by rules, such as reads to replicas."
+    },
+    {
+      "term": "Log shipping",
+      "def": "Copying a database's log of changes to another server, which applies it. PostgreSQL's streaming replication is one kind."
+    },
+    {
+      "term": "Connection string",
+      "def": "The address and settings an app uses to connect to a database. A second one for reads lets the app send its reads to a replica."
+    },
+    {
+      "term": "Metric (CloudWatch)",
+      "def": "A number CloudWatch records over time for a resource, such as a database's CPU or a replica's lag, which alerts can watch."
+    },
+    {
+      "term": "Point-in-time recovery",
+      "def": "Restoring a database from a backup and replaying its changes up to a chosen moment, such as just before a mistaken delete."
+    }
+  ],
+  "atWork": "Pick a database your team reads from replicas, such as an Amazon RDS database with read replicas, and find where the app decides which server each query goes to: a Rails database selector, a second connection string for reads, or a proxy. A common bug looks like this: a user uploads a new profile photo, the upload writes to the primary, the page reloads from a replica that hasn't applied it yet, and the user sees the old photo and uploads it again. The usual fix sends that user's reads to the primary for a short window after they write, longer than the replicas' normal lag, and alerts when the lag passes the window. With read-only access, open CloudWatch and look at ReplicaLag for each replica over the last month: what's normal, what's the worst, and what was running at the time? Check whether anything alerts on it, and whether long reports run on the replicas that serve users. Then ask what a user sees of their own change if the lag ever goes past your window.",
+  "board": {
+    "cards": [
+      {
+        "id": "read-replicas-for-read-heavy-traffic",
+        "title": "Read replicas"
+      }
+    ],
+    "strings": [
+      {
+        "from": "read-replicas-for-read-heavy-traffic",
+        "to": "horizontal-scaling",
+        "label": "reads scale out"
+      },
+      {
+        "from": "read-replicas-for-read-heavy-traffic",
+        "to": "replication-lag",
+        "label": "copies run behind"
+      },
+      {
+        "from": "read-replicas-for-read-heavy-traffic",
+        "to": "read-your-writes",
+        "label": "your own change"
+      },
+      {
+        "from": "read-replicas-for-read-heavy-traffic",
+        "to": "stale-reads",
+        "label": "old loans shown"
+      },
+      {
+        "from": "read-replicas-for-read-heavy-traffic",
+        "to": "consistency-models",
+        "label": "monotonic reads"
+      },
+      {
+        "from": "read-replicas-for-read-heavy-traffic",
+        "to": "sync-vs-async",
+        "label": "async by default"
+      },
+      {
+        "from": "read-replicas-for-read-heavy-traffic",
+        "to": "sharding",
+        "label": "writes: shard"
+      },
+      {
+        "from": "read-replicas-for-read-heavy-traffic",
+        "to": "backups",
+        "label": "not a backup"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s2e12-r1",
+      "kind": "free",
+      "prompt": "A recipe site's PostgreSQL database runs at 95% CPU every evening. Its query log shows that 97 of every 100 queries are reads, and the team already runs the biggest server its provider sells. What would you suggest, and what would you warn them about?",
+      "keyIdeas": [
+        {
+          "idea": "Add read replicas and send reads to them, keeping every write on the primary",
+          "match": [
+            "replica",
+            "follower",
+            "read/write split",
+            "split reads",
+            "split the reads",
+            "copies of the database",
+            "secondar",
+            "read-only cop"
+          ]
+        },
+        {
+          "idea": "Replicas lag, so some reads will be stale, and a user's own fresh change must come from the primary or a replica that has applied it",
+          "match": [
+            "lag",
+            "behind",
+            "stale",
+            "out of date",
+            "own write",
+            "own change",
+            "read-your-writes",
+            "read your writes",
+            "eventual"
+          ]
+        },
+        {
+          "idea": "Replicas add no write capacity, and each one is a whole copy at full price",
+          "match": [
+            "write capacity",
+            "every write",
+            "help with writes",
+            "not writes",
+            "full copy",
+            "whole copy",
+            "cost",
+            "price",
+            "each replica"
+          ]
+        }
+      ],
+      "model": "Reads are the load, so scale them out: add one or two read replicas, have the app or a proxy send writes to the primary and most reads to the replicas, and keep the primary for writes. Then warn them about three things. Replicas lag the primary, usually by under a second and by more when writes spike, so some reads will be a little stale; anything a user has just changed, such as a recipe they just saved, should be read from the primary for a short window after the write, or from a replica known to have applied it. Replicas add no write capacity: every replica applies every write, so if writes grow they'll have to batch, pace or split them. And each replica is a whole copy at full price, so watch the lag, alert on it, and don't treat a replica as a backup."
+    },
+    {
+      "id": "s2e12-r2",
+      "kind": "free",
+      "prompt": "A shopper changes their delivery address in a shop's app and taps Save. The confirmation page shows the old address. They refresh: the new one. Refresh again: the old one. The app reads from two replicas, taking turns. What is the shopper seeing, and how would you fix each part?",
+      "keyIdeas": [
+        {
+          "idea": "The confirmation read went to a replica that hadn't applied the save yet: replication lag",
+          "match": [
+            "lag",
+            "behind",
+            "hadn't applied",
+            "had not applied",
+            "not yet applied",
+            "hasn't caught up",
+            "not caught up",
+            "asynchronous",
+            "stale"
+          ]
+        },
+        {
+          "idea": "Give read-your-writes: the user's reads go to the primary for a short window after the save, or only to a replica that has reached the save's position",
+          "match": [
+            "primary",
+            "read-your-writes",
+            "read your writes",
+            "read your own",
+            "own write",
+            "window",
+            "position",
+            "lsn",
+            "after a write"
+          ]
+        },
+        {
+          "idea": "The flip from new back to old breaks monotonic reads, because the two replicas are differently behind; keep each user on one replica",
+          "match": [
+            "monotonic",
+            "sticky",
+            "same replica",
+            "one replica",
+            "pinned",
+            "stick to",
+            "back in time",
+            "backwards",
+            "alternat"
+          ]
+        }
+      ],
+      "model": "Both replicas are a little behind the primary, by different amounts. The confirmation page read a replica that hadn't applied the save yet, so it showed the old address: replication lag breaking read-your-writes. The next refresh hit the other replica, which had applied it, and the one after went back to the first, still behind, so the address went back in time: a failure of monotonic reads. For the first, send the user's reads to the primary for a short window after they save, longer than the usual lag, or remember the log position of the save and read only from a replica that has reached it. For the second, keep each user on one sticky replica, so they never see an older value after a newer one. Then alert on the lag, so you know when the window has become too short."
+    },
+    {
+      "id": "s2e12-r3",
+      "kind": "mcq",
+      "prompt": "During a nightly import, writes to a database rise from 50 to 900 a second, and its three read replicas fall minutes behind. A colleague suggests adding two more replicas. What happens to the lag?",
+      "options": [
+        "It roughly halves, because five replicas share the import's changes",
+        "It stays about the same, because every replica applies every change",
+        "It disappears, because the new replicas start from a current copy",
+        "It shrinks, because the replicas take some of the primary's writes"
+      ],
+      "answer": 1,
+      "why": "Replicas spread reads, not writes. Each replica applies the whole stream of changes from the primary, so a new replica has exactly as much to apply as the old ones, at the same rate, once it has caught up. Two more replicas add read capacity and cost, but the lag comes from changes arriving faster than one replica can apply them. Pace or shrink the import, or, if writes keep growing, split the data."
+    },
+    {
+      "id": "s2e12-r4",
+      "kind": "mcq",
+      "prompt": "Which change gives a user monotonic reads, so they never see an older value after a newer one?",
+      "options": [
+        "Send the user's reads to the primary for 5 seconds after each write",
+        "Always send each user's reads to the same one of the replicas",
+        "Add replicas so that each one serves fewer reads at once",
+        "Let long queries hold replay so a replica changes less often"
+      ],
+      "answer": 1,
+      "why": "Werner Vogels notes that if a client reaches the same server every time, read-your-writes and monotonic reads are relatively easy to guarantee. A sticky replica only moves forward, so the user never sees time run backwards, though it may be behind. The 5-second window covers the user's own change, but once it closes, their reads can still alternate between replicas that are differently behind."
+    },
+    {
+      "id": "s2e12-r5",
+      "kind": "mcq",
+      "prompt": "According to Amazon RDS's documentation, how does RDS send changes from a primary DB instance to a read replica, and where can you watch the gap?",
+      "options": [
+        "Synchronously, so the gap is always zero and there's nothing to watch",
+        "Asynchronously, and the ReplicaLag metric in CloudWatch shows the gap",
+        "Synchronously, through the Multi-AZ standby, which also serves reads",
+        "Asynchronously, once an hour, and the gap shows in the RDS event log"
+      ],
+      "answer": 1,
+      "why": "RDS says that when you make updates to the primary DB instance, it copies them asynchronously to the read replica, and that you can monitor replication lag in CloudWatch with the ReplicaLag metric: 0 means the replica has caught up, -1 that replication isn't active. The Multi-AZ standby is the synchronous one, and unlike a read replica it can't serve read traffic."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. The overdue run is slowed, the window works, and the lag alert has fired once, when Teodor ran a report on copy 2 by mistake. Last night a volunteer ran a script on the primary to clear out loan records more than ten years old. It had a typo, and at 21:14 it removed every closed loan in the catalogue. Teodor saw it at 21:20 and went to the back room to copy the rows back from one of the copies. Both had lost them by 21:14:01. He says the copies were meant to be the safe ones. Mrs Penhallow says Mr Laming kept every slip in a drawer for a year after he'd carried it, just in case.",
+    "prompt": "Reply to OP. What went wrong, and what should Teodor set up?",
+    "keyIdeas": [
+      {
+        "idea": "A replica applies every change, a mistaken delete included, about a second later, so it isn't a backup",
+        "match": [
+          "not a backup",
+          "isn't a backup",
+          "aren't backups",
+          "are not backups",
+          "not backups",
+          "applies every",
+          "applied the delete",
+          "replicated the delete",
+          "copied the delete",
+          "every change",
+          "delete too"
+        ]
+      },
+      {
+        "idea": "Keep real backups apart from the copies, with point-in-time recovery to just before the mistake, and test restoring them",
+        "match": [
+          "point-in-time",
+          "point in time",
+          "pitr",
+          "restore",
+          "real backup",
+          "proper backup",
+          "separate backup",
+          "nightly backup",
+          "backups kept",
+          "snapshot"
+        ]
+      },
+      {
+        "idea": "A delayed copy, kept behind on purpose with recovery_min_apply_delay, buys time to stop a mistake before it arrives",
+        "match": [
+          "delay",
+          "recovery_min_apply",
+          "min_apply",
+          "on purpose",
+          "hour behind",
+          "hours behind",
+          "time-delayed"
+        ]
+      }
+    ],
+    "model": "The copies did exactly their job: they apply the primary's changes, and a delete is a change, so it reached both of them about a second later. A read replica protects you from a dead primary, not from a wrong write; it isn't a backup. Teodor needs backups the copies can't touch, kept apart from the database, with point-in-time recovery so he can restore to just before 21:14, and a restore he has actually tested. Mr Laming's drawer was exactly that. If Teodor also wants a quicker way to catch mistakes, PostgreSQL can keep a deliberately delayed copy with recovery_min_apply_delay, say an hour behind, so a bad delete can be stopped there before it arrives. And a script that deletes should first count what it will remove, inside a transaction that can be rolled back."
+  },
+  "next": "Next, The Queue Outside: a club's line, and offloading slow work to a background queue.",
+  "sources": [
+    {
+      "title": "PostgreSQL 18 Documentation, 26.4 Hot Standby (read-only queries on a standby; a measurable delay, so data on the standby is eventually consistent with the primary; conflicts with WAL replay, cancelled once max_standby_streaming_delay is exceeded; many hours or -1 for long queries, which keeps other sessions from seeing recent changes; waiting indefinitely leaves the standby increasingly far behind)",
+      "url": "https://www.postgresql.org/docs/current/hot-standby.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 26.2 Log-Shipping Standby Servers (streaming replication asynchronous by default, typically under one second if the standby keeps up; data loss proportional to the replication delay at failover; synchronous_commit remote_apply allows load balancing with causal consistency)",
+      "url": "https://www.postgresql.org/docs/current/warm-standby.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 19.6 Replication (max_standby_streaming_delay, default 30 seconds, -1 waits forever; recovery_min_apply_delay, a time-delayed copy to correct data loss errors, default zero)",
+      "url": "https://www.postgresql.org/docs/current/runtime-config-replication.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 27.2 The Cumulative Statistics System (pg_stat_replication, one row per standby; replay_lag approximates the delay before recent transactions become visible to queries)",
+      "url": "https://www.postgresql.org/docs/current/monitoring-stats.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 9.28 System Administration Functions (pg_last_wal_replay_lsn, the last WAL location replayed, increasing monotonically during recovery)",
+      "url": "https://www.postgresql.org/docs/current/functions-admin.html"
+    },
+    {
+      "title": "Amazon RDS User Guide: Working with DB instance read replicas (a read-only copy that scales out read-heavy workloads; updates copied asynchronously; created manually, no autoscaling; billed as standard DB instances at the same rates; a Multi-AZ standby is synchronous and can't serve read traffic)",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html"
+    },
+    {
+      "title": "Amazon RDS User Guide: Monitoring read replication (the ReplicaLag metric in CloudWatch; 0 means caught up, -1 means replication is not active; for PostgreSQL, now minus pg_last_xact_replay_timestamp)",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.Monitoring.html"
+    },
+    {
+      "title": "Amazon RDS User Guide: Promoting a read replica to be a standalone DB instance (RDS reboots the replica; several minutes or longer; stop writes to the primary and wait for all updates to be applied; the ramifications and limitations of asynchronous replication)",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.Promote.html"
+    },
+    {
+      "title": "MySQL 8.4 Reference Manual, Chapter 19 Replication (asynchronous by default; scale-out by spreading reads among replicas, with all writes on the source)",
+      "url": "https://dev.mysql.com/doc/refman/8.4/en/replication.html"
+    },
+    {
+      "title": "MySQL 8.4 Reference Manual, 19.4.5 Using Replication for Scale-Out (works best with many reads and few writes; send writes to the source and reads to the source or a replica through a wrapper library)",
+      "url": "https://dev.mysql.com/doc/refman/8.4/en/replication-solutions-scaleout.html"
+    },
+    {
+      "title": "Ruby on Rails Guides: Multiple Databases with Active Record (automatic role switching; read your own write within the delay window, 2 seconds by default; no guarantee for other users; no automatic load balancing of replicas)",
+      "url": "https://guides.rubyonrails.org/active_record_multiple_databases.html"
+    },
+    {
+      "title": "ProxySQL Documentation: How to Set Up ProxySQL Read/Write Split (one of the most common routing patterns, without application changes; generic SELECT routing not for production; analyse the workload and write targeted rules)",
+      "url": "https://proxysql.com/documentation/proxysql-read-write-split-howto/"
+    },
+    {
+      "title": "Werner Vogels, Eventually Consistent - Revisited, All Things Distributed, 23 December 2008 (read-your-writes and monotonic read consistency; reading from the backup as eventual consistency; stickiness of clients to a server; versions on writes)",
+      "url": "https://www.allthingsdistributed.com/2008/12/eventually_consistent.html"
+    }
+  ]
+}
