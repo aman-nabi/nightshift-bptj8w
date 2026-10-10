@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.1 (2026-10-10) Season 2 review fixes: RabbitMQ 4.3's delivery limit counts only failed deliveries, so a nack requeue never reaches it (u/returned_mail_dorota, explain step 4, the quorum queue real-world note, the Delivery limit term, the source title), with a new basic.nack and basic.reject term; the oldest-ticket commenter is renamed u/oldest_ticket_augustin, since s2e12 already has a character with the old name; the cold case no longer gives a dead-letter count the two workers couldn't reach; the Builders' Library note quotes the article, not Amazon, and gives its real reason for watching age; the redrive source carries its current page title; the guide comment drops the producer and consumer definitions; RabbitMQ is introduced as a message broker; recall r4's options balanced and its answer moved to index 3; option D trimmed; recall and cold case fragments tightened",
     "v1.0.0 (2026-10-09) first version"
   ],
   "id": "s2e13",
@@ -190,7 +191,7 @@
       "author": "u/grey_pager",
       "points": 96,
       "age": "6h",
-      "text": "Some words first, then questions. Work done while the guest waits for the answer is synchronous: before May, the email was sent inside the request. Work done after the answer is asynchronous, or background work. The web server is the producer: it puts the emails on a queue, Fenna's box, as jobs. The workers are consumers: they take jobs off and do them. And 202 Accepted is the status code for what the server says now: I have your request, and it isn't finished. Now the evidence. Before May, 8 signups at once at 1.6 seconds each: how many a second, against the 10 the late train brings? Since June, how many workers have really been sending? Since 02:00, how many? Why did the door keep moving all night while nothing left the box? And what in Fenna's code ever decides that a ticket won't be tried again?",
+      "text": "Some words first, then questions. Work done while the guest waits for the answer is synchronous: before May, the email was sent inside the request. Work done after the answer is asynchronous, or background work. The web server puts the emails on a queue, Fenna's box, as jobs, and the workers take them off and do them. And 202 Accepted is the status code for what the server says now: I have your request, and it isn't finished. Now the evidence. Before May, 8 signups at once at 1.6 seconds each: how many a second, against the 10 the late train brings? Since June, how many workers have really been sending? Since 02:00, how many? Why did the door keep moving all night while nothing left the box? And what in Fenna's code ever decides that a ticket won't be tried again?",
       "replies": [
         {
           "author": "u/brindle_lane_door",
@@ -205,7 +206,7 @@
       "author": "u/returned_mail_dorota",
       "points": 77,
       "age": "5h",
-      "text": "Post offices had a name for letters they could neither deliver nor send back: dead letters, opened in a dead letter office to find out where they belonged. This board should find that familiar. Queues borrowed it. A dead-letter queue, or DLQ, is a second queue where a message goes after failing a set number of times, instead of back on top. In Amazon SQS the number is maxReceiveCount, set in the queue's redrive policy. RabbitMQ's quorum queues have a delivery limit, 20 by default since version 4.0. Two catches. A DLQ is a place to look, not a fix: alarm on it and make sure someone reads it. And don't set the limit so low that a provider's bad minute fills it with tickets that would have gone through on the next try."
+      "text": "Post offices had a name for letters they could neither deliver nor send back: dead letters, opened in a dead letter office to find out where they belonged. This board should find that familiar. Queues borrowed it. A dead-letter queue, or DLQ, is a second queue where a message goes after failing a set number of times, instead of back on top. In Amazon SQS the number is maxReceiveCount, set in the queue's redrive policy. RabbitMQ's quorum queues have a delivery limit, 20 by default since version 4.0, though since 4.3 a message handed back with nack doesn't count. Two catches. A DLQ is a place to look, not a fix: alarm on it and make sure someone reads it. And don't set the limit so low that a provider's bad minute fills it with tickets that would have gone through on the next try."
     },
     {
       "author": "u/backoff_briony",
@@ -223,7 +224,7 @@
       ]
     },
     {
-      "author": "u/oldest_ticket_saoirse",
+      "author": "u/oldest_ticket_augustin",
       "points": 46,
       "age": "4h",
       "text": "Watch the age, not just the count. 359 tickets in a box could be a busy night; a ticket that has waited an hour is an outage. SQS reports both to CloudWatch: ApproximateNumberOfMessagesVisible for how many are waiting, ApproximateAgeOfOldestMessage for how long the oldest has waited. One odd detail: SQS leaves poison-pill messages, ones received again and again and never deleted, out of that age metric, so it wouldn't have shown you 413 itself, only the tickets piling up behind it. By my sums, an alarm at 10 minutes on the oldest ticket's age would have rung at about 23:11 every Saturday since June."
@@ -254,7 +255,7 @@
         "senior": "Capping the tries frees the workers, and that's the right half. Throwing the ticket away is the wrong half: the guest never gets the email, and nobody can tell it happened or why. A dead-letter queue keeps the failed ticket where a person can read it, fix the cause and send it again, and an alarm on it says when to look."
       },
       {
-        "text": "Give each ticket 3 tries, then park it in a dead-letter queue, with alarms on that queue and on the oldest ticket's age.",
+        "text": "Give each ticket 3 tries, then park it in a dead-letter queue; alarm on that queue and the oldest ticket's age.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "Fenna made the change on Wednesday, with one alarm for when the dead-letter queue holds anything and another for when the oldest ticket has waited 10 minutes. On Saturday at 22:59:51.5 ticket 413 failed its 6,854,401st try and went to the dead-letter queue, and her phone buzzed. Both workers took the late train: 519 tickets waiting at 23:01, the last email sent at 23:07:30.2 and the box empty at 23:08:01.6. The oldest ticket's age never passed 390 seconds, so the age alarm stayed quiet. At 02:00:04.6 ticket 2035 failed its third try and was parked, and her phone buzzed again. She read the address, put the dot back and sent it again by hand, and he had it before he left. Then she opened 413. Address: *back for my coat*. She marked it done. At closing, hook 413 was empty for the first time since June. Clodagh didn't see anyone take the coat.",
@@ -285,7 +286,7 @@
       },
       {
         "title": "Retry what can pass, park what can't.",
-        "text": "A send can hit a transient failure that passes, like a 503 from a provider having a bad night, or a permanent failure that never will, like an address that isn't one. Fenna's rule put every failure back on top, and RabbitMQ's docs describe what follows: a requeued message goes back at or near the head, and consumers that keep requeueing it make a requeue/redelivery loop. A poison message in that loop holds a worker forever: 413 has failed about 6.9 million times. So cap the tries; for transient failures, wait between them with exponential backoff and jitter; and after the cap, move the job to a dead-letter queue, where it waits for a person instead of a worker. SQS does it with maxReceiveCount, and RabbitMQ's quorum queues with a delivery limit. A DLQ only helps if someone looks: alarm on it, fix the cause, then redrive the jobs. And because queues like SQS deliver at least once, a job can run twice, so make it idempotent, for example by using the ticket number as an idempotency key: record each send, and check for it before sending. Season 4 goes deeper."
+        "text": "A send can hit a transient failure that passes, like a 503 from a provider having a bad night, or a permanent failure that never will, like an address that isn't one. Fenna's rule put every failure back on top, and RabbitMQ's docs describe what follows: a requeued message goes back at or near the head, and consumers that keep requeueing it make a requeue/redelivery loop. A poison message in that loop holds a worker forever: 413 has failed about 6.9 million times. So cap the tries; for transient failures, wait between them with exponential backoff and jitter; and after the cap, move the job to a dead-letter queue, where it waits for a person instead of a worker. SQS does it with maxReceiveCount, and RabbitMQ's quorum queues with a delivery limit (since 4.3, failed deliveries only). A DLQ only helps if someone looks: alarm on it, fix the cause, then redrive the jobs. And because queues like SQS deliver at least once, a job can run twice, so make it idempotent, for example by using the ticket number as an idempotency key: record each send, and check for it before sending. Season 4 goes deeper."
       },
       {
         "title": "Watch the oldest job's age, not just the count.",
@@ -515,17 +516,17 @@
       },
       {
         "title": "RabbitMQ: the requeue loop",
-        "text": "RabbitMQ's documentation on consumer acknowledgements says a requeued message is placed at its original position in its queue if possible, or otherwise closer to the head, and may be immediately ready for redelivery. If all consumers requeue because they can't process a delivery for a transient reason, they create a requeue/redelivery loop, costly in network bandwidth and CPU. Consumers can track the number of redeliveries and reject messages for good, or requeue after a delay. Any delivery not acknowledged when its connection closes is requeued automatically, so consumers must be prepared for redeliveries and built with idempotence in mind.",
+        "text": "RabbitMQ, a message broker, documents consumer acknowledgements, and its docs say a requeued message is placed at its original position in its queue if possible, or otherwise closer to the head, and may be immediately ready for redelivery. If all consumers requeue because they can't process a delivery for a transient reason, they create a requeue/redelivery loop, costly in network bandwidth and CPU. Consumers can track the number of redeliveries and reject messages for good, or requeue after a delay. Any delivery not acknowledged when its connection closes is requeued automatically, so consumers must be prepared for redeliveries and built with idempotence in mind.",
         "source": 8
       },
       {
         "title": "RabbitMQ: poison messages and the delivery limit",
-        "text": "RabbitMQ's quorum queues handle poison messages, which its docs describe as messages that make a consumer requeue a delivery over and over, so it's never consumed completely and positively acknowledged. Since RabbitMQ 4.0 their delivery limit defaults to 20: a message redelivered more times than that is dropped, or moved to a dead-letter queue if one is configured. The docs recommend a dead letter configuration on every quorum queue so messages aren't dropped and lost by accident, and advise against disabling the limit, because repeated requeues can threaten the stability of the queue and the RabbitMQ servers.",
+        "text": "RabbitMQ's quorum queues handle poison messages, which its docs describe as messages that make a consumer requeue a delivery over and over, so it's never consumed completely and positively acknowledged. Since RabbitMQ 4.0 their delivery limit defaults to 20: a message redelivered more times than that is dropped, or moved to a dead-letter queue if one is configured. The docs recommend a dead letter configuration on every quorum queue so messages aren't dropped and lost by accident, and advise against disabling the limit, because repeated requeues can threaten the stability of the queue and the RabbitMQ servers. Since RabbitMQ 4.3 the limit counts only failed deliveries, such as a consumer crash or a basic.reject, so a consumer that hands a message back with basic.nack can requeue it forever without reaching the limit: count the tries in the consumer too.",
         "source": 9
       },
       {
         "title": "Amazon: alarm on the age",
-        "text": "In the Amazon Builders' Library article Avoiding insurmountable queue backlogs, Amazon says a queue increases a system's durability and availability at the price of occasional increased latency due to retries, and that when processing stops but messages keep arriving, a large backlog can make work complete too late to be useful. It warns that even short load spikes can mean multi-hour recovery times. Amazon alarms if there are any messages in a dead-letter queue, because that means a bug to fix, and the DLQ lets it re-process the messages after the fix. But because DLQ information arrives too late to rely on alone, it focuses more on measuring the age of messages in the queue, which quickly catches systems that are behind or erroring out and retrying.",
+        "text": "The Amazon Builders' Library article Avoiding insurmountable queue backlogs says a queue increases a system's durability and availability at the price of occasional increased latency due to retries, and that when processing stops but messages keep arriving, a large backlog can make work complete too late to be useful. It warns that even short load spikes can mean multi-hour recovery times. The team alarms if there are any messages in a dead-letter queue, because that means a bug to fix, and the DLQ lets it re-process the messages after the fix. But DLQ information arrives too late to rely on alone, and the latency producers see only mirrors the queue service's own, so it focuses more on measuring the age of messages in the queue, which quickly catches systems that are behind or erroring out and retrying.",
         "source": 10
       }
     ],
@@ -669,7 +670,11 @@
     },
     {
       "term": "Delivery limit",
-      "def": "In RabbitMQ's quorum queues, how many times a message may be redelivered before it's dropped or moved to a dead-letter queue. 20 by default since RabbitMQ 4.0."
+      "def": "In a RabbitMQ quorum queue, how many times a message may be redelivered before it's dropped or sent to a DLQ, 20 by default since 4.0. Since 4.3 only failed deliveries count, not messages a consumer hands back with nack."
+    },
+    {
+      "term": "basic.nack and basic.reject",
+      "def": "Two ways a RabbitMQ consumer can refuse a message, putting it back on the queue if it asks to. Since 4.3 a reject counts toward a quorum queue's delivery limit and a nack, short for basic.nack, doesn't."
     },
     {
       "term": "Quorum queue",
@@ -705,7 +710,7 @@
     },
     {
       "term": "RabbitMQ",
-      "def": "A widely used message broker that teams run on their own servers."
+      "def": "A widely used message broker that teams often run on their own servers."
     },
     {
       "term": "PDF",
@@ -824,18 +829,17 @@
             "async",
             "worker",
             "consumer",
-            "offload",
-            "later"
+            "offload"
           ]
         },
         {
           "idea": "Each checkout holds a thread for the whole 3 seconds, so 20 at once is under 7 checkouts a second",
           "match": [
             "thread",
-            "hold",
+            "holds a thread",
             "capacity",
             "per second",
-            "a second",
+            "checkouts a second",
             "tied up",
             "blocks"
           ]
@@ -856,7 +860,11 @@
         {
           "idea": "Watch the queue's depth and its oldest job's age, and give the customer a way to check on the receipt",
           "match": [
-            "age",
+            "its age",
+            "message age",
+            "age of the oldest",
+            "oldest message",
+            "how old",
             "oldest",
             "depth",
             "backlog",
@@ -909,17 +917,20 @@
             "fourth",
             "another worker",
             "cheaper",
-            "faster"
+            "faster jobs",
+            "make each job faster"
           ]
         },
         {
           "idea": "Alarm on the age of the oldest message, not only the depth",
           "match": [
-            "age",
+            "its age",
+            "message age",
+            "age of the oldest",
+            "oldest message",
+            "how old",
             "oldest",
-            "depth",
             "alarm",
-            "monitor",
             "how long"
           ]
         },
@@ -945,17 +956,17 @@
       "kind": "mcq",
       "prompt": "What is a dead-letter queue for?",
       "options": [
-        "Messages that arrive out of order",
-        "Messages that failed a set number of times, kept apart so someone can look, fix the cause and send them again",
-        "Messages older than the queue's retention period",
-        "Extra room when the main queue is full"
+        "Messages that arrive out of order, held back until the gap is filled",
+        "Spare room for messages when the main queue is full, so none are lost",
+        "Messages older than the queue's retention period, kept a little longer",
+        "Messages that failed too many times, kept for a person to fix and resend"
       ],
-      "answer": 1,
+      "answer": 3,
       "why": "After maxReceiveCount receives in SQS, or the delivery limit in RabbitMQ, a failing message moves to the DLQ so it stops holding a worker and isn't lost. Alarm on it, read it, fix the cause and redrive. A DLQ isn't a fix by itself: it's a place to look."
     }
   ],
   "coldCase": {
-    "update": "UPDATE, 4 months later. Fenna moved the box to Amazon SQS, with a dead-letter queue after 3 receives and alarms on it and on the oldest ticket's age. In February the email provider slowed down, and a send started taking about 40 seconds. SQS gives a worker 30 seconds with a ticket before the others can see it again. That Saturday guests got two and three copies of the same welcome email, and by 23:30 the dead-letter queue held 212 tickets whose emails had all gone out.",
+    "update": "UPDATE, 4 months later. Fenna moved the box to Amazon SQS, with a dead-letter queue after 3 receives and alarms on it and on the oldest ticket's age. In February the email provider slowed down, and a send started taking about 40 seconds. SQS gives a worker 30 seconds with a ticket before the others can see it again. That Saturday guests got two and three copies of the same welcome email, and by 23:30 the dead-letter queue was filling with tickets whose emails had all gone out.",
     "prompt": "Reply to OP. Why did guests get the same email two and three times, why did sent tickets end up in the dead-letter queue, and what should Fenna change?",
     "keyIdeas": [
       {
@@ -967,7 +978,8 @@
           "came back",
           "another worker",
           "second worker",
-          "longer than"
+          "longer than the visibility",
+          "longer than 30"
         ]
       },
       {
@@ -975,7 +987,7 @@
         "match": [
           "maxreceivecount",
           "receive count",
-          "counted",
+          "counted toward",
           "each receive",
           "hit the limit",
           "reached the limit",
@@ -985,13 +997,14 @@
       {
         "idea": "Raise the visibility timeout above the slowest send, or extend it while a send runs, and put a timeout on the provider call",
         "match": [
-          "raise",
-          "increase",
+          "raise the visibility",
+          "increase the visibility",
+          "longer visibility",
+          "visibility timeout above",
           "extend",
-          "change visibility",
-          "longer timeout",
           "heartbeat",
-          "above"
+          "change visibility",
+          "longer timeout"
         ]
       },
       {
@@ -1002,7 +1015,8 @@
           "check first",
           "dedup",
           "de-dup",
-          "record",
+          "record each send",
+          "record the send",
           "once per ticket"
         ]
       }
@@ -1040,7 +1054,7 @@
       "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html"
     },
     {
-      "title": "Amazon SQS Developer Guide: Configuring a dead-letter queue redrive (moves unconsumed messages from a DLQ to another destination, by default the source queue; custom maximum velocity up to 500 messages per second)",
+      "title": "Amazon SQS Developer Guide: Learn how to configure a dead-letter queue redrive in Amazon SQS (moves unconsumed messages from a DLQ to another destination, by default the source queue; custom maximum velocity up to 500 messages per second)",
       "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-dead-letter-queue-redrive.html"
     },
     {
@@ -1048,7 +1062,7 @@
       "url": "https://www.rabbitmq.com/docs/confirms"
     },
     {
-      "title": "RabbitMQ documentation: Quorum Queues (poison message handling; delivery limit defaults to 20 since RabbitMQ 4.0; dropped or dead-lettered past the limit; a dead letter configuration recommended; disabling the limit not recommended)",
+      "title": "RabbitMQ documentation: Quorum Queues (poison message handling; delivery limit defaults to 20 since RabbitMQ 4.0; since 4.3, delivery-count rather than acquired-count; nack returns don't count; dropped or dead-lettered past the limit; a dead letter configuration recommended; disabling the limit not recommended)",
       "url": "https://www.rabbitmq.com/docs/quorum-queues"
     },
     {

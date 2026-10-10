@@ -1,5 +1,7 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-10) QA: the new database-timeout limit merged into the first limit (the schema allows 3); Shared cache, used from the first comment on, defined in terms",
+    "v1.0.1 (2026-10-10) Season 2 review fixes: recall fragments (prime, vary, slows, slower, give up) tightened; Wasted work, Synchronized expiry, Rolling restart and Hold-off time now used in the text; Builders' Library source moved to AWS Builder Center; singleflight version v0.24.0; sim.tryThis last steps reordered; option C's senior take names the brass plate instead of Rule 7; options B and explain.fix say the external cache; option B trimmed to match the others; a limit on stopping wasted work",
     "v1.0.0 (2026-10-07) first version"
   ],
   "id": "s2e06",
@@ -233,18 +235,18 @@
         "senior": "A long TTL hides the herd at 6:00, but the cache still empties: on a deploy, a restart or a failed node. When it does, the whole crowd is inside, every lookup is a rebuild, and nothing protects the stockroom. Meanwhile every price can be a day out of date. Fix the herd itself: rebuild each key once, spread the expiries, and after every restart warm the cache and let traffic in gradually, not only at the bell."
       },
       {
-        "text": "Warm the prices at 5:50 with a random 0 to 2 minutes on each TTL, turn on coalescing, and open one door every 10 seconds.",
+        "text": "Keep the warm-up, add a random 0 to 2 minutes to each TTL, turn on coalescing, and open one door every 10 seconds.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "Lucan changed all three on Tuesday night. At 5:50 on Wednesday the warm-up put the 50 prices in, each for 10 minutes plus its own random extra of up to 2. At 6:00 I rang the bell and opened door 1, then another every 10 seconds, and all six were open by 6:00:50. Between 6:00:00.5 and 6:02:00.5 the prices ran out one or two at a time, and each came back in under a second after a single rebuild: 50 rebuilds in two minutes, never more than 2 at once. At 11:40 Lucan deployed a fix and the price cache came back empty with the store full. 600 lookups a second missed together, but the stockroom got one rebuild per price, and half a second later every board was lit. Nobody on the floor looked up. When I locked door 1 that evening, the brass plate was back on it, polished. Lucan says he didn't put it there.",
-        "senior": "Each fix covers a different moment the cache can't answer. The warm-up covers the bell. Jitter stops prices that went in together from running out together. Coalescing caps every herd at one rebuild per price, even the deploy nobody planned for. And opening one door at a time keeps the first misses inside what the stockroom can rebuild. Serving the old price while one lookup refreshes would hide even the half-second blinks, and with more than one price server, coalescing needs a lock or a lease in the shared cache to stay one rebuild per price."
+        "senior": "Each fix covers a different moment the cache can't answer. The warm-up covers the bell. Jitter stops prices that went in together from running out together. Coalescing caps every herd at one rebuild per price, even the deploy nobody planned for. And opening one door at a time keeps the first misses inside what the stockroom can rebuild. Serving the old price while one lookup refreshes would hide even the half-second blinks, and with more than one price server, coalescing needs a lock or a lease in the external cache to stay one rebuild per price."
       },
       {
         "text": "Open one door every 10 seconds, as the brass plate says, and leave the warm-up and the price service as they are.",
         "tone": "warn",
         "verdict": "Trade-off: the doors are safe, the cache isn't",
         "part2": "On Wednesday the warm-up ran at 5:50 and I opened door 1 at 6:00. At 6:00:00.5 every warmed price ran out at once, but with one door open the stockroom rebuilt them one each, and every board was lit again by 6:00:01.4. I opened a door every 10 seconds. By 6:00:50 all six were open and every board was lit. At 6:10:01 every price ran out again within half a second, because they had all gone back in within half a second, and this time the whole crowd was inside. 600 lookups a second, every one a miss, and not one price came back. The tills gave up two seconds later. I went to find the doorman. He was at door 1, holding it shut, shaking his head.",
-        "senior": "Rule 7 protects the moment traffic arrives: one door's 100 lookups a second rebuild 50 prices without ever giving the stockroom more than its 50 at once. It does nothing about the cache's own herds. Prices that go in together run out together, and by then every door is open. Opening slowly is for the bell; jitter and coalescing are for every moment after it when the cache forgets."
+        "senior": "The brass plate's rule protects the moment traffic arrives: one door's 100 lookups a second rebuild 50 prices without ever giving the stockroom more than its 50 at once. It does nothing about the cache's own herds. Prices that go in together run out together, and by then every door is open. Opening slowly is for the bell; jitter and coalescing are for every moment after it when the cache forgets."
       },
       {
         "text": "Turn on coalescing, so each price is rebuilt once however many tills ask, and keep the warm-up and all six doors.",
@@ -259,7 +261,7 @@
     "module": "s2e06",
     "title": "Run the doors at Brackwater's",
     "lede": "You're Lucan, replaying a sale morning at Brackwater's from 05:59:57. At 6:00 the bell rings and the doors open. Each open door brings 100 lookups a second, spread evenly over the 50 sale prices, so all six bring 600, 12 for each price. The price service does cache-aside: a fresh price in the cache answers at once, and a miss asks the stockroom to rebuild the price. The stockroom works on 50 rebuilds at once at full speed, half a second each, so it manages 100 a second; with more in progress it shares its time, and every rebuild in progress slows down together. A till waits 2 seconds, then gives up, and a rebuild that comes back after that is thrown away, so it never reaches the cache. Lucan's warm-up puts all 50 prices in at 05:50:00.5. With jitter, the sim spreads the random extras evenly on purpose: price 1 gets a point somewhere in the first 2.4 seconds, price 2 in the next 2.4, and so on, so no more than 2 prices run out in any second. Real jitter is plain random, and now and then a few land together. Serve stale keeps a price up to a minute past its TTL while one lookup refreshes it. Rebuilds per price counts the rebuilds since the bell, the skip or the last restart, divided by the prices they were for. Changing a setting replays the morning. The clock runs twice as fast as real life. Click any box to see what it does.",
-    "tryThis": "Try this: press nothing and watch Monday: every board dark, the stockroom asked for 600 rebuilds a second, the first tills giving up at 06:00:02 and 6,000 rebuilds in progress by 06:00:10, with none answered. Turn on coalescing: 50 rebuilds, and every board lit half a second after the bell. Turn it off and open one door every 10 seconds instead: lit in 0.9 seconds, one rebuild per price. Now pick Lucan's warm-up with all six doors: lit at the bell, dark at 06:00:00.5. Add coalescing, then try serve stale instead, then jitter, and read the summary line each time. Last, with one door at a time and the warm-up, skip to 06:09:55 and watch 06:10:01, then press Deploy with and without coalescing."
+    "tryThis": "Try this: press nothing and watch Monday: every board dark, the stockroom asked for 600 rebuilds a second, the first tills giving up at 06:00:02 and 6,000 rebuilds in progress by 06:00:10, with none answered. Turn on coalescing: 50 rebuilds, and every board lit half a second after the bell. Turn it off and open one door every 10 seconds instead: lit in 0.9 seconds, one rebuild per price. Now pick Lucan's warm-up with all six doors: lit at the bell, dark at 06:00:00.5. Add coalescing, then try serve stale instead, then jitter, and read the summary line each time. Last, with one door at a time and the warm-up, skip to 06:09:55 and watch 06:10:01. Then turn on coalescing (the morning replays), skip again, watch 06:10:01 and press Deploy."
   },
   "explain": {
     "oneLine": "Nothing in the walls froze the store. On Monday an empty cache, and on Tuesday a cache whose 50 prices all ran out in the same half second, turned 600 lookups a second into 600 rebuilds a second for a stockroom that manages 100. That's a cache stampede, and at full load it feeds itself.",
@@ -270,7 +272,7 @@
       },
       {
         "title": "A cache stampede feeds itself.",
-        "text": "A cache stampede, or dogpile, is a herd meeting a missing key. In cache-aside every lookup that misses asks the database to rebuild the value, and nothing stops many lookups rebuilding the same one. How many pile up is the request rate times the rebuild time: 12 lookups a second for one price, times half a second, is 6 rebuilds of that price even while the stockroom keeps up. Monday's cache was cold, its hit ratio 0, so all 600 lookups a second became rebuilds, six times the 100 the stockroom manages. A busy database doesn't just make work wait its turn: the rebuilds in progress share its CPU and disk, so each one slows down. By 6:00:10 there were 6,000 in progress and none had finished. In cache-aside it's the price service that writes the answer back, and it had given up after 2 seconds, so nothing reached the cache, the hit ratio stayed at 0, and the stockroom spent the morning on answers nobody was waiting for. At full load a stampede doesn't recover on its own: something has to cut the load or the rebuilds, which is why Lucan had to restart the stockroom and the doorman had to empty the store."
+        "text": "A cache stampede, or dogpile, is a herd meeting a missing key. In cache-aside every lookup that misses asks the database to rebuild the value, and nothing stops many lookups rebuilding the same one. How many pile up is the request rate times the rebuild time: 12 lookups a second for one price, times half a second, is 6 rebuilds of that price even while the stockroom keeps up. Monday's cache was cold, its hit ratio 0, so all 600 lookups a second became rebuilds, six times the 100 the stockroom manages. A busy database doesn't just make work wait its turn: the rebuilds in progress share its CPU and disk, so each one slows down. By 6:00:10 there were 6,000 in progress and none had finished. In cache-aside it's the price service that writes the answer back, and it had given up after 2 seconds, so nothing reached the cache, the hit ratio stayed at 0, and the stockroom spent the morning on wasted work: answers nobody was waiting for. At full load a stampede doesn't recover on its own: something has to cut the load or the rebuilds, which is why Lucan had to restart the stockroom and the doorman had to empty the store."
       },
       {
         "title": "One rebuild per key: coalescing, locks and leases.",
@@ -278,11 +280,11 @@
       },
       {
         "title": "Keys that go in together run out together.",
-        "text": "Tuesday's cache was warm, and it went dark anyway. Lucan's warm-up put all 50 prices in at 05:50:00.5, each for exactly 10 minutes, so all 50 ran out at 06:00:00.5, half a second after the bell: a cold cache on a timer. Three fixes help. Jitter adds a random extra to each TTL, here 0 to 2 minutes, so the prices run out one or two at a time and the stockroom rebuilds one or two prices at once instead of all 50. Serving stale while one refreshes hands out the old price for a short while and lets one lookup fetch the new one, which HTTP calls stale-while-revalidate: no board goes dark, but it can't help an empty cache. And refreshing early lets a request rebuild a hot key a little before it expires, an idea called probabilistic early expiration, which a 2015 paper studied and made optimal."
+        "text": "Tuesday's cache was warm, and it went dark anyway. Lucan's warm-up put all 50 prices in at 05:50:00.5, each for exactly 10 minutes, so all 50 ran out at 06:00:00.5, half a second after the bell: a synchronized expiry, a cold cache on a timer. Three fixes help. Jitter adds a random extra to each TTL, here 0 to 2 minutes, so the prices run out one or two at a time and the stockroom rebuilds one or two prices at once instead of all 50. Serving stale while one refreshes hands out the old price for a short while and lets one lookup fetch the new one, which HTTP calls stale-while-revalidate: no board goes dark, but it can't help an empty cache. And refreshing early lets a request rebuild a hot key a little before it expires, an idea called probabilistic early expiration, which a 2015 paper studied and made optimal."
       },
       {
         "title": "Warm first, then let them in a few at a time.",
-        "text": "A cache that starts empty has to be filled before the crowd arrives, or slowly while it does. Warming means loading the hot keys before taking traffic: Lucan's warm-up, or Facebook letting an empty cluster read from a full one. Letting traffic in gradually means the misses arrive no faster than the database can rebuild them. That's Rule 7. One door brings 100 lookups a second, so the 50 prices are rebuilt one each, never more than 50 in progress, all at full speed, and every board is lit in 0.9 seconds. Every door after that finds a warm cache. Deploys deserve the same care: restart cache nodes and servers a few at a time, warm each one before it takes traffic, and never empty the whole fleet's cache at the bell."
+        "text": "A cache that starts empty has to be filled before the crowd arrives, or slowly while it does. Warming means loading the hot keys before taking traffic: Lucan's warm-up, or Facebook letting an empty cluster read from a full one. Letting traffic in gradually means the misses arrive no faster than the database can rebuild them. That's Rule 7. One door brings 100 lookups a second, so the 50 prices are rebuilt one each, never more than 50 in progress, all at full speed, and every board is lit in 0.9 seconds. Every door after that finds a warm cache. Deploys deserve the same care: restart cache nodes and servers a few at a time, a rolling restart, and warm each one before it takes traffic, and never empty the whole fleet's cache at the bell."
       }
     ],
     "diagram": {
@@ -389,10 +391,10 @@
     "caption": "The fix, drawn for Wednesday from 6:00 to 6:02. The warm-up filled the 50 prices at 5:50, each with its own random extra of up to 2 minutes. The doors opened one every 10 seconds, 600 lookups a second by 6:00:50, nearly all hits. When a price ran out, the price service sent one rebuild for it however many tills asked: 50 rebuilds in two minutes, never more than 2 at once.",
     "fix": {
       "title": "The fix: warm the cache, rebuild each price once, spread the expiries, and open the doors a few at a time",
-      "text": "Run the warm-up before the bell, and give every price its own random extra on the TTL, 0 to 2 minutes here, so the 50 prices never run out in the same second. Turn on coalescing so one lookup rebuilds each missing price and the others wait for it; with several price servers, use a lock or lease in the shared cache so it's one rebuild per price in total. Where a slightly old price is fine, serve it for up to a minute while one lookup refreshes it. Open one door every 10 seconds: one door's 100 lookups a second rebuild all 50 prices without the stockroom ever going past the 50 it works on at full speed, and every door after that finds a warm cache. Make deploys behave the same way: restart cache nodes one at a time and warm the hot keys before a node takes traffic. Then watch the stockroom's load at the bell and after every deploy, and the rebuilds per price."
+      "text": "Run the warm-up before the bell, and give every price its own random extra on the TTL, 0 to 2 minutes here, so the 50 prices never run out in the same second. Turn on coalescing so one lookup rebuilds each missing price and the others wait for it; with several price servers, use a lock or lease in the external cache so it's one rebuild per price in total. Where a slightly old price is fine, serve it for up to a minute while one lookup refreshes it. Open one door every 10 seconds: one door's 100 lookups a second rebuild all 50 prices without the stockroom ever going past the 50 it works on at full speed, and every door after that finds a warm cache. Make deploys behave the same way: restart cache nodes one at a time and warm the hot keys before a node takes traffic. Then watch the stockroom's load at the bell and after every deploy, and the rebuilds per price."
     },
     "limits": [
-      "Coalescing and leases limit rebuilds per key, not the number of keys. A cache of 50,000 items that comes back empty still sends 50,000 different rebuilds, so a cold start at scale still needs warming and a gradual start, and everyone waiting on a key shares the fate of its one rebuild.",
+      "Coalescing and leases limit rebuilds per key, not the number of keys. A cache of 50,000 items that comes back empty still sends 50,000 different rebuilds, so a cold start at scale still needs warming and a gradual start, and everyone waiting on a key shares the fate of its one rebuild. Give the database a timeout no longer than the till's 2 seconds, or cancel the rebuild when the till gives up, so it stops doing wasted work.",
       "Serving stale and jittered TTLs both mean some answers are older than before. That's fine for a price board for a minute, not for anything you charge or promise: the till should still check the source of truth at payment.",
       "Letting traffic in a few at a time only works where you control the doors. Shoppers on a website arrive when they like: there the same idea is a waiting room or a gradual shift of traffic, and the cache has to survive a full crowd on its own."
     ],
@@ -456,7 +458,7 @@
       },
       {
         "title": "Facebook's Cold Cluster Warmup",
-        "text": "When Facebook brings a new cluster online, an existing one fails, or it performs scheduled maintenance, the caches have very poor hit rates. A system called Cold Cluster Warmup lets clients in the cold cluster, the frontend cluster with an empty cache, fetch data from a warm cluster's caches instead of persistent storage, which brings cold clusters back to full capacity in a few hours instead of a few days. To avoid filling the cold cluster with a value that has just changed, deletes there carry a two-second hold-off that rejects adds of that key, and the system is turned off once the cold cluster's hit rate stabilizes.",
+        "text": "When Facebook brings a new cluster online, an existing one fails, or it performs scheduled maintenance, the caches have very poor hit rates. A system called Cold Cluster Warmup lets clients in the cold cluster, the frontend cluster with an empty cache, fetch data from a warm cluster's caches instead of persistent storage, which brings cold clusters back to full capacity in a few hours instead of a few days. To avoid filling the cold cluster with a value that has just changed, deletes there carry a two-second hold-off time that rejects adds of that key, and the system is turned off once the cold cluster's hit rate stabilizes.",
         "source": 0
       },
       {
@@ -466,7 +468,7 @@
       },
       {
         "title": "AWS on cold starts and herds",
-        "text": "In the Amazon Builders' Library article Caching challenges and strategies, Matt Brinkley and Jas Chhabra warn that in-memory caches suffer cold starts: a new server launches with a completely empty cache, which can cause a burst of requests to the dependent service as it fills, a significant issue during deployments or whenever the cache is flushed fleet-wide. They describe the thundering herd as many clients making requests that need the same uncached downstream resource at about the same time, which can lead to throttling or brownout. Their remedy is request coalescing, where the servers or an external cache make sure only one pending request is out for an uncached resource, and they note that some caching libraries, and caches such as Nginx and Varnish, support it.",
+        "text": "In Amazon's article Caching challenges and strategies, first published in the Builders' Library, its authors warn that in-memory caches suffer cold starts: a new server launches with a completely empty cache, which can cause a burst of requests to the dependent service as it fills, a significant issue during deployments or whenever the cache is flushed fleet-wide. They describe the thundering herd as many clients making requests that need the same uncached downstream resource at about the same time, which can lead to throttling or brownout. Their remedy is request coalescing, where the servers or an external cache make sure only one pending request is out for an uncached resource, and they note that some caching libraries, and caches such as Nginx and Varnish, support it.",
         "source": 4
       },
       {
@@ -486,7 +488,7 @@
       },
       {
         "title": "Go's singleflight",
-        "text": "Go's golang.org/x/sync (the version pkg.go.dev showed when this case was written was v0.23.0) includes the singleflight package, which its documentation describes as a way to suppress duplicate calls. Its Do call runs the work for a key, making sure that only one run is in flight for a given key at a time; if a duplicate call comes in, it waits for the original to complete and receives the same results. That's request coalescing inside one program. It doesn't coordinate separate servers.",
+        "text": "Go's golang.org/x/sync (the version pkg.go.dev showed when this case was written was v0.24.0) includes the singleflight package, which its documentation describes as a way to suppress duplicate calls. Its Do call runs the work for a key, making sure that only one run is in flight for a given key at a time; if a duplicate call comes in, it waits for the original to complete and receives the same results. That's request coalescing inside one program. It doesn't coordinate separate servers.",
         "source": 3
       },
       {
@@ -774,6 +776,10 @@
       "def": "A cache that runs outside the app's own servers, such as Redis on ElastiCache, shared by all of them."
     },
     {
+      "term": "Shared cache",
+      "def": "One cache that every server reads and writes, such as Redis, so a price one till fetched is there for all the others. Another name for an external cache."
+    },
+    {
       "term": "Concurrent",
       "def": "Happening at the same time, like many rebuilds of the same price running together."
     },
@@ -904,18 +910,17 @@
         {
           "idea": "Past its limit the database slows every query, requests give up before results are written back, so the cache never fills and it can't recover alone",
           "match": [
-            "slows",
-            "slower",
             "never fill",
             "can't fill",
             "couldn't fill",
             "gave up",
-            "give up",
             "wasted",
             "feeds itself",
             "spiral",
             "nobody waiting",
-            "thrown away"
+            "thrown away",
+            "can't recover",
+            "won't recover"
           ]
         },
         {
@@ -929,7 +934,8 @@
             "warm",
             "preload",
             "pre-load",
-            "prime"
+            "priming",
+            "prime the cache"
           ]
         },
         {
@@ -1001,7 +1007,8 @@
             "random",
             "spread",
             "stagger",
-            "vary"
+            "varied",
+            "vary the ttl"
           ]
         },
         {
@@ -1050,7 +1057,8 @@
           "stagger",
           "warm",
           "preload",
-          "prime",
+          "priming",
+          "prime the cache",
           "not before",
           "earlier in the day",
           "after the sale"
@@ -1103,12 +1111,12 @@
       "url": "https://www.vldb.org/pvldb/vol8/p886-vattani.pdf"
     },
     {
-      "title": "Go packages: golang.org/x/sync/singleflight, page as shown for v0.23.0 (a duplicate function call suppression mechanism; Group.Do runs one execution per key, duplicates wait and receive the same results)",
+      "title": "Go packages: golang.org/x/sync/singleflight, page as shown for v0.24.0 (a duplicate function call suppression mechanism; Group.Do runs one execution per key, duplicates wait and receive the same results)",
       "url": "https://pkg.go.dev/golang.org/x/sync/singleflight"
     },
     {
-      "title": "Amazon Builders' Library: Caching challenges and strategies, by Matt Brinkley and Jas Chhabra (cold starts during deployments; the thundering herd; request coalescing; Nginx and Varnish; load shedding and capping requests to dependent services)",
-      "url": "https://aws.amazon.com/builders-library/caching-challenges-and-strategies/"
+      "title": "AWS Builder Center (formerly the Amazon Builders' Library): Caching challenges and strategies, by Jas Chhabra, first published with Matt Brinkley (cold starts during deployments; the thundering herd; request coalescing; Nginx and Varnish; load shedding and capping requests to dependent services)",
+      "url": "https://builder.aws.com/content/3K9TeXp6strMiJ4vhakpRD7BQWO/caching-challenges-and-strategies"
     },
     {
       "title": "nginx documentation: Module ngx_http_proxy_module (proxy_cache_lock, off by default, since 1.1.12; proxy_cache_lock_timeout 5s; proxy_cache_use_stale updating; proxy_cache_background_update, since 1.11.10)",

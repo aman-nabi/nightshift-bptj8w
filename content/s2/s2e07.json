@@ -1,5 +1,7 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-10) QA: the cold case's second key idea no longer offers Vary or credits it, matching the corrected model",
+    "v1.0.1 (2026-10-10) Season 2 review fixes: OP's reply says the other three edges fetched /tour days after the deploy; the cold-case model and explain step 2 warn that Cloudflare ignores a plain Vary header, and the Cloudflare Origin Cache Control page joins the sources; purge everything is 28 requests in the first second, then 20 a second for the next 99; GDPR and Cloudflare are introduced in Jessamy's comment and options A and D; the first page on each connection costs three round trips, later pages one; prerequisites add s1e06 and s1e02; new terms CSS and Accept-Encoding; recall fragments tightened",
     "v1.0.0 (2026-10-09) first version"
   ],
   "id": "s2e07",
@@ -20,9 +22,11 @@
     "s2e04",
     "s2e01",
     "s1e01",
+    "s1e02",
     "s1e03",
     "s1e04",
     "s1e05",
+    "s1e06",
     "s1e07",
     "s1e10",
     "s1e11",
@@ -39,7 +43,7 @@
     "blocks": [
       {
         "t": "p",
-        "text": "I sell the shirts for The Gloaming, four friends from Montreal on a world tour this autumn: Montreal, Lisbon, Seoul, Perth. Thaddeus, our bass player, built the fan site. Last tour it ran on one small server in Montreal that manages about 15 requests a second. On show nights it got 28, and fans in Perth waited most of a second for every page."
+        "text": "I sell the shirts for The Gloaming, four friends from Montreal on a world tour this autumn: Montreal, Lisbon, Seoul, Perth. Thaddeus, our bass player, built the fan site. Last tour it ran on one small server in Montreal that manages about 15 requests a second. On show nights it got 28, and fans in Perth waited most of a second for the first page and a third of a second for every page after it."
       },
       {
         "t": "p",
@@ -198,7 +202,7 @@
           "op": true,
           "points": 34,
           "age": "6h",
-          "text": "Thaddeus worked it out. Perth's edge fetched /tour at 17:52 on the 1st, eight minutes before he deployed, and the other three fetched theirs days before. I asked the Leocadia's caretaker about the guitar. He says the building has been locked since the 1st and the only key is his. He also says somebody swept the stage on Sunday, and it wasn't him."
+          "text": "Thaddeus worked it out. Perth's edge fetched /tour at 17:52 on the 1st, eight minutes before he deployed, and the other three fetched theirs days after it, when their older copies ran out on the 4th, 6th and 7th. I asked the Leocadia's caretaker about the guitar. He says the building has been locked since the 1st and the only key is his. He also says somebody swept the stage on Sunday, and it wasn't him."
         }
       ]
     },
@@ -218,7 +222,7 @@
       "author": "u/wrong_ticket_jessamy",
       "points": 49,
       "age": "4h",
-      "text": "While Thaddeus is in the settings, check /my-ticket. An edge finds a copy by its cache key, which is usually the URL and little else. The cookie that says which fan is asking isn't part of it. So if /my-ticket is ever sent as public, which tells every cache it may keep the response, the first fan's ticket page becomes the copy everyone in that city gets. private means only the fan's own browser may keep it; no-store means nothing may. We cached an account page by accident once, for twenty minutes. Customers saw each other's addresses, and we spent the next month writing to them.",
+      "text": "While Thaddeus is in the settings, check /my-ticket. An edge finds a copy by its cache key, which is usually the URL and little else. The cookie that says which fan is asking isn't part of it. So if /my-ticket is ever sent as public, which tells every cache it may keep the response, the first fan's ticket page becomes the copy everyone in that city gets. private means only the fan's own browser may keep it; no-store means nothing may. We cached an account page by accident once, for twenty minutes. Customers saw each other's addresses, and we spent the next month writing to them, as the EU's data protection law, the GDPR, required.",
       "replies": [
         {
           "author": "u/merch_trunk_ferelith",
@@ -238,7 +242,7 @@
         "tone": "bad",
         "verdict": "A stampede on every deploy",
         "part2": "Thaddeus pressed purge everything at 10:00 on Thursday. All four edges dropped every copy they held, and in that second the origin got 28 requests: the page, the script, 4 photos and a ticket from every city. For the next 99 seconds it got 20 a second while each edge fetched its 400 photos again, 4 at a time, and it manages 15. For a minute and forty seconds every request that needed it queued, in every city, and Perth showed the cancellation as soon as its pages got through. He put the same purge in the deploy script. On Friday at 10:00 the rebooked show went up, every edge threw away the photos it had fetched the day before, and the origin was over its limit for another 100 seconds. Thaddeus says the site now has a stampede every time he fixes a typo. On Friday evening the Leocadia's caretaker emailed to ask whether we knew why the ballroom lights had flickered at six, for a minute and forty seconds.",
-        "senior": "Purge everything does fix the page, by making every edge forget every file and fetch them all from the origin at once: a stampede you start yourself, which Cloudflare's docs warn can overload an origin on a busy site with many files. It also throws away the fingerprinted files, which never needed it. Purge only the URLs a deploy changed, and let the hashed files keep their year."
+        "senior": "Purge everything does fix the page, by making every edge forget every file and fetch them all from the origin at once: a stampede you start yourself, which one large CDN, Cloudflare, warns in its docs can overload an origin on a busy site with many files. It also throws away the fingerprinted files, which never needed it. Purge only the URLs a deploy changed, and let the hashed files keep their year."
       },
       {
         "text": "Change /tour to public, max-age=60, so any change reaches every city within a minute. Perth's old copy runs out at 17:52 today anyway.",
@@ -259,7 +263,7 @@
         "tone": "bad",
         "verdict": "Fresh pages, someone else's ticket",
         "part2": "Thaddeus set the rule at 10:00 on Thursday and purged nothing. At 10:00:00 the first fan in each city to open /my-ticket had their page kept at that city's edge, and for the next minute every fan there who opened /my-ticket got it: that fan's name, email and seat. Then the next fan's, for the minute after. 236 ticket pages a minute went to the wrong fan, and the origin went from 4 requests a second to almost none. At 11:41 a fan in Lisbon posted a screenshot of a stranger's ticket, and Thaddeus switched the rule off. In 101 minutes, 23,836 tickets had been shown to the wrong fan. Perth kept showing the Leocadia until 17:52, as it would have anyway. The band reported the breach to the data protection regulator within 72 hours and wrote to every fan whose page had been seen. Every Perth fan who opened /my-ticket between 10:07 and 10:08 had been shown the same ticket: the Leocadia, 3 October, row A, seat 1. The Leocadia has no seats.",
-        "senior": "A short TTL fixes staleness, and it's the wrong rule for a personal page. A shared cache keys copies by URL, and the cookie that says who is asking isn't in the key, so once /my-ticket is public the first fan's page is everyone's. Showing one person's data to another is a personal data breach, with reporting duties where GDPR applies. Personal pages stay private, no-store whatever the site-wide rule says, and a test should fail the build if they ever don't."
+        "senior": "A short TTL fixes staleness, and it's the wrong rule for a personal page. A shared cache keys copies by URL, and the cookie that says who is asking isn't in the key, so once /my-ticket is public the first fan's page is everyone's. Showing one person's data to another is a personal data breach, with reporting duties under data protection law, such as the EU's GDPR where it applies. Personal pages stay private, no-store whatever the site-wide rule says, and a test should fail the build if they ever don't."
       }
     ]
   },
@@ -267,18 +271,18 @@
     "module": "s2e07",
     "title": "Run the edges for The Gloaming",
     "lede": "You're Thaddeus, from 18:00:00 UTC on Thursday 1 October, with the CDN warm. Each city's fans send 7 requests a second to their own edge: /tour, the script that page names, 4 of the 400 tour photos in turn, and /my-ticket, each from a different fan. An edge finds a copy by its URL alone. A copy from the edge takes 20 ms. A request the edge passes to the origin adds the round trip to Montreal, 10 ms from Montreal, 90 from Lisbon, 190 from Seoul and 260 from Perth, plus 40 ms at the origin. The origin manages about 15 requests a second; past that, the sim says over limit instead of guessing the wait. A city's typical wait is the middle one of its 7 requests in the last second. A copy keeps the Cache-Control it was fetched with: a new header reaches only copies fetched after it, and a purge drops copies at once. Where a header has s-maxage, the edges use it; browsers aren't in the sim. The script and photos have fingerprinted names and are kept a year. Deploy puts the cancellation live, and a second press adds the rebooked show. Skips run through every second in between. The clock runs 4 times faster than real life. Click any box to see what it does.",
-    "tryThis": "Try this: watch the warm site, with 85.7% of requests answered at the edges, 4 a second at the origin and 20 ms in every city. Press Deploy, then skip to the post: 1,749,540 old pages served, and only Perth's edge still shows the show, with 7h 52m left. Purge /tour: 9 origin requests in one second, Perth shows the cancellation, and the log shows Perth fetching app.7b1e.js once. Now purge everything and watch the origin take 28 requests, then 20 a second for 100 seconds. Reset, deploy, skip to the post, set /tour to public, max-age=60 and purge nothing: skip a day and deploy again, and only Perth gets the rebooked show. Try it again with max-age=60, s-maxage=300 and a purge after each deploy. Last, reset, mark /my-ticket public for a minute and count the tickets shown to the wrong fan, then try private, max-age=300."
+    "tryThis": "Try this: watch the warm site, with 85.7% of requests answered at the edges, 4 a second at the origin and 20 ms in every city. Press Deploy, then skip to the post: 1,749,540 old pages served, and only Perth's edge still shows the show, with 7h 52m left. Purge /tour: 9 origin requests in one second, Perth shows the cancellation, and the log shows Perth fetching app.7b1e.js once. Now purge everything and watch the origin take 28 requests in the first second, then 20 a second for the next 99. Reset, deploy, skip to the post, set /tour to public, max-age=60 and purge nothing: skip a day and deploy again, and only Perth gets the rebooked show. Try it again with max-age=60, s-maxage=300 and a purge after each deploy. Last, reset, mark /my-ticket public for a minute and count the tickets shown to the wrong fan, then try private, max-age=300."
   },
   "explain": {
     "oneLine": "Nothing came back from the dead at the Leocadia except a copy. Each edge kept its own copy of /tour for the week its header allowed, Perth's was fetched eight minutes before the deploy, and nothing ever told the edges the page had changed.",
     "steps": [
       {
         "title": "A CDN is a mirror in every city.",
-        "text": "A CDN puts edge servers near your users, each with its own cache, in front of your origin, the one server that holds the real site. A fan in Perth talks to Perth's edge: about 20 ms for a copy, where last tour every page cost three round trips to Montreal, for the TCP handshake, the TLS handshake and the request, at 260 ms each, plus 40 ms at the origin: 820 ms. The origin hears only what the edges can't answer. The Gloaming's edges answer 24 of every 28 requests, 85.7%, so the origin gets 4 a second instead of 28, and a crowd that all wants the same photo costs it one request per edge. CDNs also coalesce misses: Cloudflare sends only the first of many requests for the same missing file to the origin and hands its answer to the rest. The catch is in the word each. Four edges are four separate caches. Each fetched /tour at its own moment and kept it for the week its header allowed, so after the deploy Montreal showed the old page until Sunday, and Perth, whose copy was fetched eight minutes before the deploy, until Thursday evening."
+        "text": "A CDN puts edge servers near your users, each with its own cache, in front of your origin, the one server that holds the real site. A fan in Perth talks to Perth's edge: about 20 ms for a copy, where last tour the first page on each connection cost three round trips to Montreal, for the TCP handshake, the TLS 1.3 handshake and the request, at 260 ms each, plus 40 ms at the origin: 820 ms, and every page after it at least one, 300 ms. The origin hears only what the edges can't answer. The Gloaming's edges answer 24 of every 28 requests, 85.7%, so the origin gets 4 a second instead of 28, and a crowd that all wants the same photo costs it one request per edge. CDNs also coalesce misses: Cloudflare sends only the first of many requests for the same missing file to the origin and hands its answer to the rest. The catch is in the word each. Four edges are four separate caches. Each fetched /tour at its own moment and kept it for the week its header allowed, so after the deploy Montreal showed the old page until Sunday, and Perth, whose copy was fetched eight minutes before the deploy, until Thursday evening."
       },
       {
         "title": "What goes on the edge, and under what name.",
-        "text": "Three kinds of response pass through a CDN. Static files, such as scripts, images and fonts, are the same for everyone and change only with a new build: the easy win. Pages built for everyone, like /tour, are dynamic but shared: worth caching once you decide how stale they may be. Personal pages, built for one signed-in user, like /my-ticket, an account page or a basket, must never sit in a shared cache. Many CDNs start cautious: Cloudflare caches by file extension and leaves HTML alone unless a cache rule says otherwise, so caching a page like /tour, as Thaddeus does, usually takes a rule of its own. An edge finds a copy by its cache key. RFC 9111, HTTP's caching standard, says the key is at least the request method and the URL, and that many caches store only GET responses, so in practice it's the URL. Cloudflare's default key is the full URL with its query string, so /tour?from=poster is a separate copy from /tour, plus a few request headers. A response can add request headers to the match with Vary, such as Vary: Accept-Language. Cookies stay out of the key unless you put them in, and that is the hole /my-ticket could fall through."
+        "text": "Three kinds of response pass through a CDN. Static files, such as scripts, images and fonts, are the same for everyone and change only with a new build: the easy win. Pages built for everyone, like /tour, are dynamic but shared: worth caching once you decide how stale they may be. Personal pages, built for one signed-in user, like /my-ticket, an account page or a basket, must never sit in a shared cache. Many CDNs start cautious: Cloudflare caches by file extension and leaves HTML alone unless a cache rule says otherwise, so caching a page like /tour, as Thaddeus does, usually takes a rule of its own. An edge finds a copy by its cache key. RFC 9111, HTTP's caching standard, says the key is at least the request method and the URL, and that many caches store only GET responses, so in practice it's the URL. Cloudflare's default key is the full URL with its query string, so /tour?from=poster is a separate copy from /tour, plus a few request headers. A response can add request headers to the match with Vary, such as Vary: Accept-Language. CDNs differ here: Cloudflare ignores Vary by default except for Accept-Encoding, so check what yours keys on. Cookies stay out of the key unless you put them in, and that is the hole /my-ticket could fall through."
       },
       {
         "title": "Cache-Control tells every cache what it may do.",
@@ -286,7 +290,7 @@
       },
       {
         "title": "Rename the files, purge the pages.",
-        "text": "Fingerprinted names fix staleness for files. app.3f9c.js carries a short hash of its contents. Change the contents and the build changes the name, so the new page asks for a URL no edge has seen, each edge fetches it once, and nothing old can be handed out under the new name. MDN calls this the cache-busting pattern and pairs it with max-age=31536000, immutable, and AWS recommends versioned names over invalidations for files you update often. Fingerprints don't help the page that names them: Perth's stale /tour still asked for app.3f9c.js, and got it. /tour is the URL people type, so the page needs a short life and a purge on every deploy that changes it. Purge the URLs you changed: Cloudflare strongly recommends purging single files over purging everything. Purge everything drops every copy at every edge, and each must come from the origin again: for The Gloaming, 28 requests in the first second and 20 a second for 100 seconds, against an origin that manages 15. Cloudflare warns that on busy sites with many files this can overload the origin. It's the last case's stampede, started by hand. Fastly's soft purge is gentler: it marks copies stale, so edges can keep serving them while they fetch new ones."
+        "text": "Fingerprinted names fix staleness for files. app.3f9c.js carries a short hash of its contents. Change the contents and the build changes the name, so the new page asks for a URL no edge has seen, each edge fetches it once, and nothing old can be handed out under the new name. MDN calls this the cache-busting pattern and pairs it with max-age=31536000, immutable, and AWS recommends versioned names over invalidations for files you update often. Fingerprints don't help the page that names them: Perth's stale /tour still asked for app.3f9c.js, and got it. /tour is the URL people type, so the page needs a short life and a purge on every deploy that changes it. Purge the URLs you changed: Cloudflare strongly recommends purging single files over purging everything. Purge everything drops every copy at every edge, and each must come from the origin again: for The Gloaming, 28 requests in the first second, then 20 a second for the next 99, against an origin that manages 15. Cloudflare warns that on busy sites with many files this can overload the origin. It's the last case's stampede, started by hand. Fastly's soft purge is gentler: it marks copies stale, so edges can keep serving them while they fetch new ones."
       },
       {
         "title": "Never put one fan's page in a shared cache.",
@@ -431,7 +435,7 @@
         [
           "Purge everything",
           "Emergencies: something is wrong and you can't tell which files.",
-          "Every edge refetches every file: 28 origin requests, then 20 a second for 100 seconds, against 15.",
+          "Every edge refetches every file: 28 requests in the first second, then 20 a second for the next 99, against 15.",
           "The origin can't take a full refill at peak: a stampede you started."
         ],
         [
@@ -587,6 +591,10 @@
       "def": "The text format web pages are written in. A browser loads the HTML first, then the scripts, styles and images it names."
     },
     {
+      "term": "CSS",
+      "def": "The language for a web page's look, such as colours and layout, kept in .css files a page loads."
+    },
+    {
       "term": "Build",
       "def": "The step that turns a site's source into the files that get deployed. Thaddeus's build fingerprints the script's and photos' names."
     },
@@ -641,6 +649,10 @@
     {
       "term": "Accept-Language",
       "def": "A request header in which the browser lists the languages its user prefers."
+    },
+    {
+      "term": "Accept-Encoding",
+      "def": "A request header in which the browser lists the compressed formats it can unpack. It's the one Vary header Cloudflare honours by default."
     },
     {
       "term": "Purge",
@@ -849,8 +861,10 @@
             "different times",
             "old script",
             "new page with",
-            "old version of",
-            "stale",
+            "new page, old script",
+            "old page, new script",
+            "different copies",
+            "don't match",
             "two copies"
           ]
         },
@@ -948,7 +962,7 @@
         "idea": "The edge keys /merch on the URL alone, so whichever country's page it fetched first is shown to everyone it serves",
         "match": [
           "cache key",
-          "the key",
+          "in the key",
           "keyed",
           "same url",
           "url alone",
@@ -959,18 +973,19 @@
         ]
       },
       {
-        "idea": "Add the country to the cache key or send Vary on it, or keep /merch off the edge and work out the currency elsewhere",
+        "idea": "Put the country into the cache key itself, or keep /merch off the edge and work out the currency elsewhere",
         "match": [
-          "vary",
           "add the country",
           "include the country",
           "key on",
-          "per country",
-          "by country",
+          "key by country",
+          "copy per country",
+          "country in the key",
           "don't cache",
           "do not cache",
           "bypass",
-          "in the browser",
+          "currency in the browser",
+          "work it out in the browser",
           "client side",
           "client-side"
         ]
@@ -993,7 +1008,7 @@
         ]
       }
     ],
-    "model": "The page varies by country, but the edge finds copies by URL alone. Each time /merch's copy runs out, the next fan's request decides which currency every fan at that edge sees for the next 10 minutes: a Portuguese fan's euros for London, then a British fan's pounds for Lisbon. Purge everything only emptied the caches. The first request after it filled them the same way, so the prices were wrong again two minutes later, and the purge made the origin refetch every file at every edge, which is why the site was over limit. Either put the country into the cache key, with a custom key or Vary on that header, so each country gets its own copy, or keep /merch off the edge and work out the currency elsewhere, such as in the browser. Check the result by asking each edge for /merch from two countries. And next time, purge /merch, not everything."
+    "model": "The page varies by country, but the edge finds copies by URL alone. Each time /merch's copy runs out, the next fan's request decides which currency every fan at that edge sees for the next 10 minutes: a Portuguese fan's euros for London, then a British fan's pounds for Lisbon. Purge everything only emptied the caches. The first request after it filled them the same way, so the prices were wrong again two minutes later, and the purge made the origin refetch every file at every edge, which is why the site was over limit. Either put the country into the cache key itself (on CloudFront, add the country header to the cache policy; on Cloudflare, a custom cache key or the Cache Rules Vary setting, because Cloudflare ignores a plain Vary header by default), so each country gets its own copy, or keep /merch off the edge and work out the currency elsewhere, such as in the browser. Check the result by asking each edge for /merch from two countries. And next time, purge /merch, not everything."
   },
   "next": "Next, Napkin Math: a late-night taxi dispatcher, and back-of-envelope estimation: working out requests a second, storage and bandwidth before you build anything.",
   "sources": [
@@ -1048,6 +1063,10 @@
     {
       "title": "Amazon CloudFront Developer Guide: Standard log file fields (x-edge-result-type: Hit, RefreshHit, Miss and other values)",
       "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/standard-logs-reference.html"
+    },
+    {
+      "title": "Cloudflare Cache (CDN) docs: Origin Cache Control, page last updated 30 June 2026 (by default Cloudflare does not consider Vary values in caching decisions; they are respected with the Cache Rules Vary setting, with Vary for images, and for Vary: Accept-Encoding)",
+      "url": "https://developers.cloudflare.com/cache/concepts/cache-control/"
     }
   ]
 }

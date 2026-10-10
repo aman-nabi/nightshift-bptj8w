@@ -1,4 +1,4 @@
-/* sims/s2e13-v1.0.0.js  (published as sims/s2e13.js)
+/* sims/s2e13-v1.0.1.js  (published as sims/s2e13.js)
    Case s2e13 "The Queue Outside": the Mothlight, a club in two railway arches on Brindle Lane.
    Guests sign up on their phones at the door, and the club's web server sends each one a welcome
    email. The learner plays Fenna, who built the app: send the email inside the request (before
@@ -8,6 +8,9 @@
    dead-letter queue), a guest who mistypes the address, two skip buttons and reset.
 
    CHANGELOG
+   v1.0.1 (2026-10-10) Season 2 review fixes: the header names the oldest-ticket commenter
+     u/oldest_ticket_augustin, as the case now does. No change to the model or the numbers.
+     Points at case v1.0.1.
    v1.0.0 (2026-10-09) first version: Saturday night from 22:59:50. Slots of 0.1 s. 8 web server
      threads; saving a signup 0.1 s; one email 1.5 s. Sync: a signup holds a thread for 1.6 s (3.1 s
      when the first send fails). Queued: 0.1 s, then a ticket goes in the box and free workers take
@@ -17,7 +20,7 @@
      tickets in the dead-letter queue, tickets failed 3 or more times and still being tried.
      selfTest: 30 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e13-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e13-v1.0.1.json):
    - post: the door opens at 22:00 and a guest arrives every 10 seconds (slot n % 100 === 0), so
      tickets 1 to 359 went out before 22:59:50 and ticket 360 signs up at 22:59:50 (slot 0). The late
      train at 23:00: about 600 people sign up in a minute, 10 a second (one a slot, slots 100 to 699,
@@ -38,7 +41,7 @@
      the rate control). The provider's bad night in August: one email in five failed its first try
      with a 503 and went through on the second (OP's reply to u/backoff_briony; tickets whose number
      is a multiple of 5). An alarm on the oldest ticket's age at 10 minutes rings at about 23:11
-     (23:10:42.9 here, when ticket 790 has waited 600 s; u/oldest_ticket_saoirse).
+     (23:10:42.9 here, when ticket 790 has waited 600 s; u/oldest_ticket_augustin).
    - reply options: index 0 (sync): all 8 threads busy at 23:00:00.7, 296 waiting for a thread and
      a p95 of 30.4 s at 23:01:00, slowest answer 61.6 s, the line empty at 23:02:00.6; ticket 2035 is
      answered with an error after 3.1 s. Index 1 (six workers, forever): 399 waiting at 23:01:00,

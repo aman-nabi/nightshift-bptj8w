@@ -1,8 +1,11 @@
-/* sims/s2e02-v1.0.0.js  (published as sims/s2e02.js)
+/* sims/s2e02-v1.0.1.js  (published as sims/s2e02.js)
    Case s2e02 "The Doorman": a load-balancer sim for the Vesper Hotel's four small servers
    (room-11 to room-14) and the load balancer in front of them that Cas calls the Doorman.
 
    CHANGELOG
+   v1.0.1 (2026-10-10) Season 2 review fixes: selfTest step 7 drains room-11 and stops room-12 for
+     the 20-request comparison, matching Part 2 of the senior answer; the header points at case
+     v1.0.2, and the stale catalog note is gone (catalog v1.0.17 has both concept ids).
    v1.0.0 (2026-10-07) first version: guests send requests through the Doorman to four rooms.
      Controls: traffic (range, 0 to 100 requests a second), algorithm (round robin, weighted round
      robin, least connections), weights (1:1:1:1, 2:1:1:1, 5:5:5:1), the Wednesday backup on
@@ -16,7 +19,7 @@
      one is slow; weighted round robin gives the configured split; draining finishes the requests
      in progress with 0 failures, and stopping a room instead loses them.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e02-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e02-v1.0.2.json):
    - post: 48 requests a second at night, 12 to each of four rooms, each able to finish 20 (60%
      busy), round robin, no health checks, the 10-second timeout, p95 625 ms on the 02:15 line of
      Cas's dashboard, room-13 frozen at 01:47:12 (the sim clock starts at 01:47:00).
@@ -60,11 +63,6 @@
      "checks every 30 s, 5 in a row" (29 chars, 191px).
    - The group label "LUGGAGE ROOM: FOUR SERVERS" (26 chars, 172px) sits at y 213, above the room
      boxes' top edge at y 231. The fan-out edges carry no labels; the dots show where requests go.
-
-   Catalog note: the board cards health-check and connection-draining (and the same two ids in the
-   case's concepts) are not yet concept ids in content/catalog-v1.0.7.json, whose s2e02 entry lists
-   load-balancers, l4-vs-l7, round-robin and least-connections. Both ids need adding to the catalog
-   when this case is marked ready.
 */
 (function () {
   "use strict";
@@ -880,17 +878,17 @@
       t.expect(same(shares(), [40, 20, 20, 20]) && n("served") === 48 && n("failed") === 0,
         "weighted round robin with weights 2:1:1:1 sends 40% to room-11 and 20% to each of the others");
 
-      // 7. Drain room 12: nothing new goes there, and what it was doing finishes.
+      // 7. Drain room 11: nothing new goes there, and what it was doing finishes.
       t.click("reset");
-      t.set("room", "12");
+      t.set("room", "11");
       await t.run(1);
       t.click("drain");
-      t.expect(String(t.node("r12").text.meta).indexOf("draining, 8") === 0 && same(shares(), [33, 0, 33, 33]) && n("lost") === 0,
-        "draining room-12: the Doorman sends it nothing new while it finishes the 8 requests it is in the middle of");
+      t.expect(String(t.node("r11").text.meta).indexOf("draining, 8") === 0 && same(shares(), [0, 33, 33, 33]) && n("lost") === 0,
+        "draining room-11: the Doorman sends it nothing new while it finishes the 8 requests it is in the middle of");
       await t.run(1);
-      t.expect(t.node("r12").text.meta === "removed" && n("lost") === 0 && n("failed") === 0 && n("served") === 48,
-        "the drain finishes with 0 failures: room-12 is removed and the other three answer all 48 a second");
-      t.set("room", "11");
+      t.expect(t.node("r11").text.meta === "removed" && n("lost") === 0 && n("failed") === 0 && n("served") === 48,
+        "the drain finishes with 0 failures: room-11 is removed and the other three answer all 48 a second");
+      t.set("room", "12");
       t.click("kill");
       t.expect(n("lost") === 20,
         "stopping a room instead loses the 20 requests it was in the middle of (16 a second x 1.25 s)");

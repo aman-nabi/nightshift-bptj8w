@@ -1,4 +1,4 @@
-/* sims/s2e06-v1.0.0.js  (published as sims/s2e06.js)
+/* sims/s2e06-v1.0.1.js  (published as sims/s2e06.js)
    Case s2e06 "The Stampede at 6 AM": a cache stampede at Brackwater's, a department store whose
    tills, price boards and price checkers ask a price service for the 50 sale prices. The price
    service does cache-aside in front of a slow stockroom database. The learner opens the doors at
@@ -6,6 +6,11 @@
    with or without jitter, and turns coalescing and serve-stale on or off.
 
    CHANGELOG
+   v1.0.1 (2026-10-10) Season 2 review fixes: the summary line says "1 board was" and "1 rebuild"
+     when the count is 1 (it said "1 boards were" and "1 rebuilds" on the senior path), and the
+     selfTest's busiest() and darkest() patterns accept the singular; the doors label says "One door
+     every 10 s (the brass plate)" instead of "(Rule 7)", because nothing ties the plate to Rule 7
+     before the explanation. Points at case v1.0.1.
    v1.0.0 (2026-10-07) first version: the sale morning from 05:59:57. Each open door brings 100
      lookups a second, spread evenly over 50 prices. The stockroom works on 50 rebuilds at once at
      full speed, half a second each (100 a second), and past 50 shares its time between all of
@@ -17,7 +22,7 @@
      second, rebuilds per price, tills that gave up in the last second, seconds until the boards
      lit. selfTest: 21 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e06-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e06-v1.0.1.json):
    - post: 6 doors; each open door's crowd brings 100 lookups a second, all six 600; 50 sale
      prices in a cache, 10 minutes each; a miss asks the stockroom to rebuild the price; the
      stockroom works on 50 rebuilds at once, half a second each, 100 a second, and past that shares
@@ -160,7 +165,7 @@
 
   var DOOR_OPTS = [
     { value: "all", label: "All six at once" },
-    { value: "waves", label: "One door every 10 s (Rule 7)" }
+    { value: "waves", label: "One door every 10 s (the brass plate)" }
   ];
   var CACHE_OPTS = [
     { value: "cold", label: "Cold: empty after the refit" },
@@ -488,8 +493,9 @@
     if (!S.summarized && S.keysQueried === PRICES && S.inProg === 0 && S.lit === PRICES) {
       S.summarized = true;
       say(api, "Every price has been rebuilt since " + S.since + ": " + fmt(S.qTotal) + " rebuilds, " + rateText(S.qTotal / PRICES) +
-        " per price. " + fmt(S.errTotal) + " lookups gave up, at most " + S.peakDark + " boards were dark at once, and the stockroom's busiest moment was " +
-        fmt(S.peakProg) + " rebuilds in progress (it works on 50 at full speed).", S.errTotal ? "warn" : "ok");
+        " per price. " + fmt(S.errTotal) + " lookups gave up, at most " + S.peakDark + " " + (S.peakDark === 1 ? "board was" : "boards were") +
+        " dark at once, and the stockroom's busiest moment was " +
+        fmt(S.peakProg) + " " + (S.peakProg === 1 ? "rebuild" : "rebuilds") + " in progress (it works on 50 at full speed).", S.errTotal ? "warn" : "ok");
     }
   }
 
@@ -785,8 +791,8 @@
         while ((m = g.exec(text)) !== null) last = Number(m[1].replace(/,/g, ""));
         return last;
       }
-      function busiest() { return lastNum(/busiest moment was ([0-9,]+) rebuilds/); }
-      function darkest() { return lastNum(/at most ([0-9,]+) boards were dark/); }
+      function busiest() { return lastNum(/busiest moment was ([0-9,]+) rebuilds? in progress/); }
+      function darkest() { return lastNum(/at most ([0-9,]+) (?:boards were|board was) dark/); }
       var a, b;
 
       // 1. Monday: a cold cache and all six doors at once.

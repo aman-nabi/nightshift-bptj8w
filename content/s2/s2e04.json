@@ -1,5 +1,7 @@
 {
   "_changelog": [
+    "v1.0.3 (2026-10-10) QA: r4 drops the bare fragments shorter and minutes, which credited wrong answers",
+    "v1.0.2 (2026-10-10) Season 2 review fixes: Redis's noeviction default explained with and without maxmemory; tighter match fragments in r1, r4 and the cold case so wrong answers stop scoring; the full-catalog jar is 80 cards, almost seven times the jar; Facebook's pools given as examples, the expired_keys advice and Redis's eviction pool matched to the sources; the Jeff Dean keynote now links an archived copy, as the original answers HTTP 421",
     "v1.0.1 (2026-10-07) QA: the senior option shortened to the length of the others; recall and cold-case match fragments that repeated their own prompt replaced with paraphrases; 8 terms the case never uses removed",
     "v1.0.0 (2026-10-07) first version"
   ],
@@ -298,7 +300,7 @@
       },
       {
         "title": "Hit ratio: the number that pays for the jar.",
-        "text": "The hit ratio is hits divided by all lookups, and it sets both things you bought the cache for. The average wait: 0.8 times 1 ms plus 0.2 times 62 ms is 13.2 ms, against 60 ms with no jar. The database's load: only misses reach it, 20% of 20 a second, 4 instead of 20. A small cache gets a high hit ratio when traffic is skewed, when a few items get most of the requests. Eight loaves get 80% of Varga's lookups, so 12 cards out of 480, two and a half percent, answer 80%. The last 20% is spread thinly over the 72 other loaves we bake. Catching it takes a card for every one of them, about 100 cards, eight times the jar, to take the database from 4 lookups a second to almost none. Near the top, small gains matter: going from 80% to 90% halves the database's load. So measure it. Redis counts hits and misses, and ElastiCache reports the ratio as CacheHitRate."
+        "text": "The hit ratio is hits divided by all lookups, and it sets both things you bought the cache for. The average wait: 0.8 times 1 ms plus 0.2 times 62 ms is 13.2 ms, against 60 ms with no jar. The database's load: only misses reach it, 20% of 20 a second, 4 instead of 20. A small cache gets a high hit ratio when traffic is skewed, when a few items get most of the requests. Eight loaves get 80% of Varga's lookups, so 12 cards out of 480, two and a half percent, answer 80%. The last 20% is spread thinly over the 72 other loaves we bake. Catching it takes a card for every loaf we bake, 80 cards, almost seven times the jar, to take the database from 4 lookups a second to almost none. Near the top, small gains matter: going from 80% to 90% halves the database's load. So measure it. Redis counts hits and misses, and ElastiCache reports the ratio as CacheHitRate."
       },
       {
         "title": "TTL: how long the jar may be wrong.",
@@ -480,7 +482,7 @@
       },
       {
         "title": "Pools, expiry and warming up at Facebook",
-        "text": "The same paper says workloads sharing one cache can interfere and lower each other's hit rates, so Facebook splits a cluster's memcached servers into pools: a default pool called wildcard, a small pool for keys that are accessed frequently but cheap to miss, and a large pool for rarely accessed keys whose misses are prohibitively expensive. When a memcached server runs out of memory, it evicts the least recently used item in that item's size class. Expired items linger until someone asks for them or they reach the end of the LRU, so Facebook began removing short-lived keys as soon as they expire: for one heavily used family of keys, its share of the pool fell from 6% to 0.3% without affecting the hit rate. And a memcached server can reach 90% of its peak hit rate within a few hours, so upgrading a set of them can take over 12 hours while the extra database load is managed carefully.",
+        "text": "The same paper says workloads sharing one cache can interfere and lower each other's hit rates, so Facebook splits a cluster's memcached servers into pools: a default pool called wildcard, plus separate pools for keys that don't fit it, for example a small pool for keys that are accessed frequently but cheap to miss, and a large pool for rarely accessed keys whose misses are prohibitively expensive. When a memcached server runs out of memory, it evicts the least recently used item in that item's size class. Expired items linger until someone asks for them or they reach the end of the LRU, so Facebook began removing short-lived keys as soon as they expire: for one heavily used family of keys, its share of the pool fell from 6% to 0.3% without affecting the hit rate. And a memcached server can reach 90% of its peak hit rate within a few hours, so upgrading a set of them can take over 12 hours while the extra database load is managed carefully.",
         "source": 0
       },
       {
@@ -490,7 +492,7 @@
       },
       {
         "title": "Redis's eviction policies",
-        "text": "When Redis reaches its maxmemory limit, it evicts keys by the policy you choose: noeviction, which refuses new data, allkeys-lru, allkeys-lfu, allkeys-random, volatile versions of LRU, LFU and random that only consider keys with an expiry, volatile-ttl, and, from Redis 8.6, least recently modified policies. Its rule of thumb: use allkeys-lru when you expect a subset of keys to be accessed far more often than the rest, which it calls a very common case, citing the Pareto principle, and allkeys-random when keys are accessed about equally, as when an app reads items in a repeating cycle. The volatile policies behave like noeviction when no keys have an expiry. Redis's LRU is approximate: it samples a few keys, as many as maxmemory-samples says, and evicts the one unused for longest, and in Redis's simulations with a power-law access pattern the difference from true LRU was minimal or non-existent.",
+        "text": "When Redis reaches its maxmemory limit, it evicts keys by the policy you choose: noeviction, which refuses new data, allkeys-lru, allkeys-lfu, allkeys-random, volatile versions of LRU, LFU and random that only consider keys with an expiry, volatile-ttl, and, from Redis 8.6, least recently modified policies. Its rule of thumb: use allkeys-lru when you expect a subset of keys to be accessed far more often than the rest, which it calls a very common case, citing the Pareto principle, and allkeys-random when keys are accessed about equally, as when an app reads items in a repeating cycle. The volatile policies behave like noeviction when no keys have an expiry. Redis's LRU is approximate: it samples a few keys, as many as maxmemory-samples says, and evicts the one unused for longest, keeping a pool of good candidates between evictions since Redis 3.0, and in Redis's simulations with a power-law access pattern the difference from true LRU was minimal or non-existent.",
         "source": 2
       },
       {
@@ -500,7 +502,7 @@
       },
       {
         "title": "Measuring the hit ratio in Redis",
-        "text": "Redis's INFO command reports keyspace_hits and keyspace_misses, and its documentation gives the hit percentage as hits divided by hits plus misses, times 100. Its example: if a small hot subset of data should account for about 75% of accesses, expect about 75% hits. If the number is lower, check evicted_keys, where a high count suggests the wrong keys are being evicted, and expired_keys, where a high count suggests the TTL is too low.",
+        "text": "Redis's INFO command reports keyspace_hits and keyspace_misses, and its documentation gives the hit percentage as hits divided by hits plus misses, times 100. Its example: if a small hot subset of data should account for about 75% of accesses, expect about 75% hits. If the number is lower, check evicted_keys, where a high count suggests the wrong keys are being evicted, and, if evictions are low and your keys expire, expired_keys, where a high count suggests a TTL that is too low or the wrong keys being given one.",
         "source": 2
       },
       {
@@ -515,7 +517,7 @@
       },
       {
         "title": "Redis's own defaults",
-        "text": "The redis.conf file that ships with Redis 7.4.0 sets maxmemory-policy to noeviction by default, so a plain Redis refuses new writes when it's full unless you choose a policy. It sets maxmemory-samples to 5, with the comment that the default of 5 produces good enough results, and that 10 approximates true LRU very closely but costs more CPU.",
+        "text": "The redis.conf file that ships with Redis 7.4.0 notes that the default policy is noeviction. Combined with a maxmemory limit, that means Redis refuses new writes once it reaches the limit, unless you choose a policy. With no maxmemory, the default on 64-bit systems, Redis never evicts and keeps growing until the machine runs out of memory. It sets maxmemory-samples to 5, with the comment that the default of 5 produces good enough results, that 10 approximates true LRU very closely but costs more CPU, and that 3 is faster but not very accurate.",
         "source": 9
       },
       {
@@ -949,10 +951,11 @@
             "hit ratio",
             "hit rate",
             "skew",
-            "hot",
-            "popular",
+            "hot set",
+            "hot keys",
             "small cache",
-            "600",
+            "600 a second",
+            "600 reads",
             "few products",
             "most of the reads",
             "takes load off",
@@ -978,15 +981,12 @@
             "evict",
             "lru",
             "lfu",
-            "size",
-            "monitor",
-            "cloudwatch",
+            "size it",
+            "size the cache",
+            "cache size",
             "cachehitrate",
-            "metric",
-            "alarm",
-            "dashboard",
-            "track",
-            "graph"
+            "watch the hit",
+            "hit ratio"
           ]
         }
       ],
@@ -1056,11 +1056,10 @@
         {
           "idea": "Set the TTL from how long a price may be wrong; for hot keys it costs only a few extra misses",
           "match": [
-            "shorter",
-            "lower",
-            "minutes",
-            "5 min",
-            "1 min",
+            "lower ttl",
+            "shorter ttl",
+            "5 minutes",
+            "a minute",
             "how long",
             "may be wrong",
             "tolerate",
@@ -1109,9 +1108,8 @@
           "don't fit",
           "not enough cards",
           "more cards",
-          "38",
+          "38 loaves",
           "40 loaves",
-          "size",
           "too few",
           "cannot hold",
           "can't hold",
@@ -1140,17 +1138,17 @@
       {
         "idea": "Make the jar bigger and watch the hit ratio and evictions; switching it off would send all 60 a second to the database",
         "match": [
-          "bigger",
-          "more memory",
-          "resize",
-          "64",
+          "bigger jar",
+          "jar bigger",
+          "more cards",
+          "resize the jar",
+          "64 cards",
           "evictions",
           "cachehitrate",
           "hit ratio",
           "don't switch",
           "not switch",
-          "keep the jar",
-          "60 a second"
+          "keep the jar"
         ]
       }
     ],
@@ -1187,8 +1185,8 @@
       "url": "https://dev.mysql.com/doc/refman/8.4/en/innodb-performance-midpoint_insertion.html"
     },
     {
-      "title": "Designs, Lessons and Advice from Building Large Distributed Systems (Jeff Dean, LADIS 2009 keynote), slide \"Numbers Everyone Should Know\" (main memory reference 100 ns; round trip within the same datacenter 500,000 ns; disk seek 10,000,000 ns)",
-      "url": "https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf"
+      "title": "Designs, Lessons and Advice from Building Large Distributed Systems (Jeff Dean, LADIS 2009 keynote), slide \"Numbers Everyone Should Know\" (main memory reference 100 ns; round trip within the same datacenter 500,000 ns; disk seek 10,000,000 ns) (archived copy, 25 Sep 2026)",
+      "url": "https://web.archive.org/web/20260925231916/https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf"
     },
     {
       "title": "AWS: What is Caching and How it Works (in-memory reads are sub-millisecond; memory is orders of magnitude faster than disk; a single cache instance can provide hundreds of thousands of IOPS; common keys in a cache mitigate the need to overprovision)",

@@ -1,4 +1,4 @@
-/* sims/s2e05-v1.0.0.js  (published as sims/s2e05.js)
+/* sims/s2e05-v1.0.2.js  (published as sims/s2e05.js)
    Case s2e05 "Stale Milk": a cache invalidation sim for Round 6 of Kettlewell Dairy. Forty houses'
    orders live in a slow order database; the order service reads them cache-aside through "the
    sheet", a cache with one card per house. The learner picks what the depot office's changes do
@@ -6,6 +6,15 @@
    reader race, sends more office changes, kills the cache node, and skips ahead to 7 October.
 
    CHANGELOG
+   v1.0.2 (2026-10-10) QA: the last three places that still blamed Graham's phone now name the order
+     service (the log with the race off, the replay message) and the phones box starts at "0 old orders
+     shown", matching the meta it shows once the sim runs.
+   v1.0.1 (2026-10-10) Season 2 review fixes: the slow reader race is the order service's read for
+     Graham, slow on the line to the database, not his phone's signal (both race log lines, the
+     toggle label "Slow reader race (Graham's read, 13:59)", and selfTest 4's expected log text);
+     a "Pause the clock" toggle after the race toggle sets api.speed to 0, so a learner can send
+     five office changes and kill the cache node between 16:00 and 17:00; the phones box counts
+     old orders shown, not phones; the header points at case v1.0.1.
    v1.0.0 (2026-10-07) first version: one slot is one minute from 00:00 on 14 March, when the sheet
      was switched on, empty. Readers: 39 houses' apps (hourly checks) and the route app (one stop a
      minute from 04:30). Writers: the office, scripted at 13:59 (No. 14's account note) and 14:00
@@ -20,7 +29,7 @@
      changes), write-back losing the 5 changes made after the 16:00 flush, and a restart clearing
      TTL-only's stale card.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e05-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e05-v1.0.1.json):
    - post: Round 6 is forty houses on Mallow Street, one stop a minute from 04:30, so No. k is read
      at 04:30 + (k - 1) minutes and No. 14 at 04:43. Thirty-nine houses have the app, which checks
      the order every hour (the sim puts No. k's check at k - 1 minutes past each hour); No. 14 has
@@ -209,7 +218,7 @@
     h: 400,
     aria: "Cache sim for Round 6 of Kettlewell Dairy. Thirty-nine houses' phones check their orders every hour and the route app reads one house a minute from 04:30, all through the order service, which looks in the sheet, a cache with one card per house, first, and asks the order database only on a miss. The depot office sends order changes to the order service, which updates the database and the sheet according to the chosen strategy. Under write-back the sheet flushes its changes to the database every hour.",
     nodes: [
-      { id: "phones", label: "Houses' phones", sub: "39 apps, check hourly", meta: "0 saw an old order", x: 125, y: 50, w: 220, h: 62, shape: "box", tone: "" },
+      { id: "phones", label: "Houses' phones", sub: "39 apps, check hourly", meta: "0 old orders shown", x: 125, y: 50, w: 220, h: 62, shape: "box", tone: "" },
       { id: "route", label: "Route app", sub: "Round 6, 14 March", meta: "round at 04:30", x: 370, y: 50, w: 220, h: 62, shape: "box", tone: "" },
       { id: "office", label: "Depot office", sub: "phone changes", meta: "0 changes: database only", x: 615, y: 50, w: 220, h: 62, shape: "box", tone: "" },
       { id: "service", label: "Order service", sub: "TTL only (as now)", meta: "writes: database only", x: 370, y: 175, w: 320, h: 62, shape: "box", tone: "" },
@@ -358,11 +367,11 @@
     var r = read(S, NO14, m, !S.race);
     if (!S.skipping) S.recent.push({ who: "app", hit: false, stale: false });
     if (!S.race) {
-      api.log(head + "The sheet has no card for No. 14 right now, so his phone reads the database, " + pintsText(r.v) + ", and leaves a copy in the sheet.", "");
+      api.log(head + "The sheet has no card for No. 14 right now, so the order service reads the database for him, " + pintsText(r.v) + ", and leaves a copy in the sheet.", "");
       return;
     }
     S.pending = { p: r.v };
-    api.log(head + "The sheet has no card for No. 14 right now, so his phone reads the database: " + pintsText(r.v) + ". Then his signal drops to one bar, and the answer waits.", "warn");
+    api.log(head + "The sheet has no card for No. 14 right now, so the order service reads the database for him: " + pintsText(r.v) + ". The answer is slow coming back along the line, and waits.", "warn");
   }
 
   // With the race on, Graham's copy lands two seconds after the cancellation.
@@ -371,7 +380,7 @@
     var p = S.pending.p;
     S.pending = null;
     S.cards[NO14] = { p: p, filled: m, dirty: false };
-    api.log("14:00:02 Graham's phone finally gets its answer and puts its copy, " + pintsText(p) + ", into the sheet, after the " +
+    api.log("14:00:02 The database's answer for Graham's read finally reaches the order service, which puts its copy, " + pintsText(p) + ", into the sheet, after the " +
       (S.strategy === "delete" ? "delete" : "cancellation") + ". No. 14's card says " + pintsText(p) +
       " again, and no change is coming to delete it. " + (S.ttl === 0 ? "It never expires." : "It lasts " + ttlText(S.ttl) + "."), "bad");
   }
@@ -498,7 +507,7 @@
 
   function setRace(api, on) {
     api.state.race = !!on;
-    replay(api, on ? "Slow reader race on: Graham's phone will be slow at 13:59." : "Slow reader race off.");
+    replay(api, on ? "Slow reader race on: the order service's read for Graham will be slow at 13:59." : "Slow reader race off.");
   }
 
   function officeChange(api) {
@@ -598,7 +607,7 @@
     var day = Math.floor(Math.max(r.M, 0) / DAY);
 
     var ph = api.node("phones");
-    ph.text("meta", fmt(S.staleApp) + " saw an old order");
+    ph.text("meta", fmt(S.staleApp) + (S.staleApp === 1 ? " old order shown" : " old orders shown"));
     ph.set(S.staleApp ? "warn" : "");
 
     var ro = api.node("route");
@@ -746,7 +755,8 @@
       S.ctl = {};
       S.ctl.strategy = api.control.select("strategy", "When the office changes an order", STRATEGIES, "ttl", function (v) { setStrategy(api, v); });
       S.ctl.ttl = api.control.select("ttl", "Cards last (TTL)", TTLS, 0, function (v) { setTtl(api, v); });
-      S.ctl.race = api.control.toggle("race", "Slow reader race (Graham's phone, 13:59)", false, function (on) { setRace(api, on); });
+      S.ctl.race = api.control.toggle("race", "Slow reader race (Graham's read, 13:59)", false, function (on) { setRace(api, on); });
+      S.ctl.pause = api.control.toggle("pause", "Pause the clock", false, function (on) { api.speed = on ? 0 : SPEED; });
       S.ctl.change = api.control.button("change", "The office changes an order", function () { officeChange(api); });
       S.ctl.die = api.control.button("die", "Cache node dies", function () { nodeDies(api); }, { tone: "danger" });
       S.ctl.day = api.control.button("day", "Skip ahead 24 hours", function () { skipDay(api); });
@@ -816,7 +826,7 @@
       t.click("day");
       await t.run(6);
       t.expect(n("stale") === 1 && n("db") === 3 && t.node("sheet").text.meta === "1 stale card" &&
-        t.logText().indexOf("14:00:02 Graham's phone finally gets its answer") >= 0,
+        t.logText().indexOf("14:00:02 The database's answer for Graham's read finally reaches the order service") >= 0,
         "Race: Graham's slow copy lands after the delete, and the float leaves 2 pints on 15 March");
       t.click("oct");
       t.expect(n("stale") === 207, "Race with cards that never expire: 207 stale deliveries by 7 October, as if nothing had changed");

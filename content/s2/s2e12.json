@@ -1,5 +1,7 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-10) QA: tryThis and the trade-off row count 57 checks, not 57 own changes, matching the sim; r1's fragment lags (which matched flags) replaced with it lags and lags behind",
+    "v1.0.1 (2026-10-10) Season 2 review fixes: promoting a copy now loses only what never reached it and first replays its backlog (u/not_a_backup_ruslan, explain step 4); tryThis, option B's part 2 and the tradeoff count 26 patrons in 41 checks; ReplicaLag's 0 and -1 scoped to MySQL and MariaDB, with a new MariaDB term; the Multi-AZ standby is a DB instance standby; recovery_min_apply_delay and the delayed copy keep a standby at least a set time behind; PostgreSQL source links pinned to version 18; two MCQ answers moved off index 1; option A reworded; recall fragments tightened",
     "v1.0.0 (2026-10-10) first version"
   ],
   "id": "s2e12",
@@ -281,14 +283,14 @@
       "author": "u/not_a_backup_ruslan",
       "points": 40,
       "age": "2h",
-      "text": "Whatever Teodor picks, don't let anyone call the back room a backup. A copy applies a mistaken delete as faithfully as a return, a second later. And if the primary dies, he can promote a copy to take the writes, but whatever it hadn't applied is gone. Lag is also how much you'd lose."
+      "text": "Whatever Teodor picks, don't let anyone call the back room a backup. A copy applies a mistaken delete as faithfully as a return, a second later. And if the primary dies, he can promote a copy to take the writes, but whatever hadn't reached it is gone, and it has to apply everything it had received before it can take over. Lag tells you both how long that takes and how much is at risk."
     }
   ],
   "reply": {
     "prompt": "Thursday's overdue run starts at 19:00 again, and Mrs Penhallow will be at the front desk. What should Teodor change before then? Part 2 follows your advice.",
     "options": [
       {
-        "text": "Slow the overdue run to 200 changes a second, send a patron's own reads to the primary for 5 s after they write, and alert on lag over 5 s.",
+        "text": "Slow the overdue run to 200 changes a second, send a patron's own reads to the primary for 5 s after they write, and alert past 5 s of lag.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "Teodor slowed the overdue run to 200 changes a second, so it took 4 minutes 54 seconds instead of one. He changed the catalogue service so that for 5 seconds after a patron borrows or returns a book, their own reads go to the primary, and set an alert for any copy more than 5 seconds behind. On Thursday the primary was 22% busy during the run and the copies 97%, but every change reached them within a second. Mrs Penhallow returned this week's book at 19:00:40, four days overdue again. Her phone asked the primary: returned. At 19:01:50 my screen asked copy 2, a second behind: returned. By 19:05 the copies had served 165 stale reads instead of 14,546, no patron had missed their own change, and the alert never fired. Teodor asked whether more copies would have let the run go faster. They wouldn't: every copy applies every change. At 19:15 there were no footsteps in the corridor. Mrs Penhallow says the sign was right all along: you ask the front desk, and you let the back room catch up.",
@@ -298,7 +300,7 @@
         "text": "Build two more copies in the back room, four in all, so the reading room's reads and the overdue run's changes are spread four ways.",
         "tone": "bad",
         "verdict": "More copies, the same lag",
-        "part2": "Teodor built copies 3 and 4 on Monday, and on Thursday the reads were spread four ways, 375 a second each. During the run the copies were 63% busy instead of 100%. But at 19:00 the primary was still 100% busy with the run's writes alone, and every copy still had all 58,800 changes to apply, 250 a second, one at a time. All four were 46 seconds behind when the run ended and 181 behind at worst, exactly as before. Mrs Penhallow returned this week's book at 19:00:40, four days overdue again. At 19:01:50 my screen asked copy 2: on loan to her, four days overdue, fine 1.40 unpaid. By 19:05, 41 patrons had missed their own change, the same as the week before, and the catalogue now costs 1,900 a month instead of 1,140. At 19:02:44 the footsteps went down the corridor again, and this time they came back.",
+        "part2": "Teodor built copies 3 and 4 on Monday, and on Thursday the reads were spread four ways, 375 a second each. During the run the copies were 63% busy instead of 100%. But at 19:00 the primary was still 100% busy with the run's writes alone, and every copy still had all 58,800 changes to apply, 250 a second, one at a time. All four were 46 seconds behind when the run ended and 181 behind at worst, exactly as before. Mrs Penhallow returned this week's book at 19:00:40, four days overdue again. At 19:01:50 my screen asked copy 2: on loan to her, four days overdue, fine 1.40 unpaid. By 19:05, 26 patrons had missed their own change, 41 times between their phones and my desk, the same as the week before, and the catalogue now costs 1,900 a month instead of 1,140. At 19:02:44 the footsteps went down the corridor again, and this time they came back.",
         "senior": "Copies scale reads, not writes. Every write lands on the primary and then on every copy, so more copies spread the reading room's reads thinner but leave each one the whole overdue run to apply, at the same 250 a second. The lag comes from changes arriving faster than one copy can apply them, and the number of copies doesn't change that. Each copy is also a whole copy of the catalogue at full price. Add copies when reads are the bottleneck; when writes are, pace them, make them smaller, or split the data."
       },
       {
@@ -321,7 +323,7 @@
     "module": "s2e12",
     "title": "Run the Merrow Library's catalogue",
     "lede": "You're Teodor, replaying Thursday evening from 18:59:00, a second at a time. The primary and each copy can do 1,000 queries a second, and a read or an applied change counts as one. The reading room and the app send 1,500 reads a second. The front desk and the app send 20 writes a second, all to the primary, and each copy applies them in order, up to 250 a second, once its normal lag has passed. A patron uses the front desk every 10 seconds, then checks their loans on their phone 2 seconds later and at the reading room desk 70 seconds later; the patron at 19:00:40 is Mrs Penhallow. The overdue run starts at 19:00. Pick where reads go: every read to the primary, to the copies in turn (as now), to the copies with a 5-second read-your-writes window, or to one sticky copy per patron. Stale reads served estimates the reads of a record with a change the copy hadn't applied yet. Own change missing counts patrons' checks that didn't show their own change, and went back in time counts patrons whose phone showed it and whose reading room check then didn't. Each second the primary commits its writes, the copies apply what has reached them, and then the reads are served, and the log describes each second as it was then. Changing where reads go, the lag, the overdue run or the number of copies replays from 18:59:00; the long report switch acts at once. Click any box to see what it does.",
-    "tryThis": "Try this: as now, skip 6 minutes. The copies fall 181 s behind, Mrs Penhallow's phone and the reading room both show her book on loan, and by 19:05:00, 41 patrons have missed their own change and 14,546 stale reads have been served. Send every read to the primary: 152% before the run, 250% at 19:00. Back to the copies, and add two: four copies at 63% busy during the run, the primary still 100% at 19:00, the lag the same, 1,900 a month. Remove them and pick the 5-second window: every phone check is right, but 15 reading room checks go back in time. Slow the run to 200 a second: the copies stay 1 s behind, 165 stale reads, nobody's own change missing. Turn the run off, set the lag to 3 s and skip 2 minutes, with and without the window. Last, set the lag back to 1 s and reads to the copies, in turn; skip a minute, let the long report hold copy 2 and skip 10 minutes: 57 own changes missing, 27 gone back in time. Then try it with sticky copies."
+    "tryThis": "Try this: as now, skip 6 minutes. The copies fall 181 s behind, Mrs Penhallow's phone and the reading room both show her book on loan, and by 19:05:00, 26 patrons have missed their own change, in 41 checks, and 14,546 stale reads have been served. Send every read to the primary: 152% before the run, 250% at 19:00. Back to the copies, and add two: four copies at 63% busy during the run, the primary still 100% at 19:00, the lag the same, 1,900 a month. Remove them and pick the 5-second window: every phone check is right, but 15 reading room checks go back in time. Slow the run to 200 a second: the copies stay 1 s behind, 165 stale reads, nobody's own change missing. Turn the run off, set the lag to 3 s and skip 2 minutes, with and without the window. Last, set the lag back to 1 s and reads to the copies, in turn; skip a minute, let the long report hold copy 2 and skip 10 minutes: 57 checks missing their own change, 27 gone back in time. Then try it with sticky copies."
   },
   "explain": {
     "oneLine": "Nothing walked the corridor. The reading room reads a copy of the catalogue, and a copy is always a little behind the primary. The overdue run left both copies 84 seconds behind just as Mrs Penhallow asked about the book she had returned 70 seconds earlier.",
@@ -340,7 +342,7 @@
       },
       {
         "title": "What copies don't do.",
-        "text": "Copies add no write capacity. Taking the reads away frees the primary for writes, but only up to one server's worth, and every change is applied on the primary and then on every copy, so four copies made each one less busy with reads, 63% instead of 100% during the run, but left the primary at 100% and every copy 181 seconds behind at worst. When writes are the problem, pace big batch jobs below what a copy can apply, make them smaller, or split the data across several primaries, which is sharding; Splitting the Archive, in Season 3, covers it. Copies aren't backups either: a mistaken delete reaches them a second later. And if the primary fails, a copy can be promoted to take the writes, but whatever it hadn't applied is lost. PostgreSQL's manual says the amount of data loss is proportional to the replication delay at the time of failover. The Copy That Lags, in Season 3, goes deeper. An RDS Multi-AZ standby is a different thing again: it gets changes synchronously, and unlike a read replica it can't serve reads."
+        "text": "Copies add no write capacity. Taking the reads away frees the primary for writes, but only up to one server's worth, and every change is applied on the primary and then on every copy, so four copies made each one less busy with reads, 63% instead of 100% during the run, but left the primary at 100% and every copy 181 seconds behind at worst. When writes are the problem, pace big batch jobs below what a copy can apply, make them smaller, or split the data across several primaries, which is sharding; Splitting the Archive, in Season 3, covers it. Copies aren't backups either: a mistaken delete reaches them a second later. And if the primary fails, a copy can be promoted to take the writes, but whatever hadn't reached it is lost, and it must first apply its backlog. PostgreSQL's manual says the amount of data loss is proportional to the replication delay at the time of failover. The Copy That Lags, in Season 3, goes deeper. An RDS Multi-AZ DB instance standby is a different thing again: it gets changes synchronously, and unlike a read replica it can't serve reads."
       },
       {
         "title": "Each copy is a whole copy, and needs watching.",
@@ -543,7 +545,7 @@
         [
           "To the copies, in turn (as now)",
           "The primary does only the writes, 2%. Two copies at 77% each.",
-          "Readers see the lag. Thursday: 14,546 stale reads and 41 own changes missing by 19:05. Tuesday's refreshes went back in time."
+          "Readers see the lag. Thursday: 14,546 stale reads and 41 checks missing their own change by 19:05. Tuesday's refreshes went back in time."
         ],
         [
           "Copies, with a 5-second window for your own reads",
@@ -553,7 +555,7 @@
         [
           "One sticky copy per patron",
           "Monotonic reads: nobody sees time run backwards. With copy 2 held for 10 minutes, none went back in time, against 27 with copies in turn.",
-          "Shows nobody their own change sooner: 57 own changes missing in the same test. A patron on a lagging copy stays on it."
+          "Shows nobody their own change sooner: 57 checks missing their own change in the same test. A patron on a lagging copy stays on it."
         ],
         [
           "Add copies",
@@ -591,12 +593,12 @@
       },
       {
         "title": "Amazon RDS: read replicas",
-        "text": "Amazon RDS describes a read replica as a read-only copy of a DB instance: route queries to it to reduce the load on your primary, and elastically scale out beyond the capacity constraints of a single DB instance for read-heavy database workloads. When you update the primary, RDS copies the changes asynchronously to the read replica. You must create read replicas manually; RDS doesn't add or remove them as read demand changes. They are billed as standard DB instances at the same rates as the DB instance class used for the replica. And RDS draws the line this case draws: a Multi-AZ standby receives updates synchronously, but unlike a read replica, a standby replica can't serve read traffic.",
+        "text": "Amazon RDS describes a read replica as a read-only copy of a DB instance: route queries to it to reduce the load on your primary, and elastically scale out beyond the capacity constraints of a single DB instance for read-heavy database workloads. When you update the primary, RDS copies the changes asynchronously to the read replica. You must create read replicas manually; RDS doesn't add or remove them as read demand changes. They are billed as standard DB instances at the same rates as the DB instance class used for the replica. And RDS draws the line this case draws: a Multi-AZ DB instance standby receives updates synchronously, but unlike a read replica, a standby replica can't serve read traffic.",
         "source": 5
       },
       {
         "title": "Amazon RDS: the ReplicaLag metric",
-        "text": "RDS publishes replication lag to CloudWatch as the ReplicaLag metric. When it reaches 0, the replica has caught up with the primary; if it returns -1, replication is not active. For PostgreSQL, RDS computes it with a query that subtracts pg_last_xact_replay_timestamp, the time of the last transaction the replica replayed, from the current time.",
+        "text": "RDS publishes replication lag to CloudWatch as the ReplicaLag metric. For MySQL and MariaDB, 0 means the replica has caught up and -1 that replication is not active. For PostgreSQL, RDS computes it with a query that subtracts pg_last_xact_replay_timestamp, the time of the last transaction the replica replayed, from the current time, so it also grows while the primary has nothing to send.",
         "source": 6
       },
       {
@@ -774,11 +776,11 @@
     },
     {
       "term": "recovery_min_apply_delay",
-      "def": "A PostgreSQL setting that keeps a standby a fixed time behind on purpose, so a mistake can be caught before it arrives. The default is zero."
+      "def": "A PostgreSQL setting that keeps a standby at least a set time behind on purpose, so a mistake can be caught before it arrives. The default is zero."
     },
     {
       "term": "Delayed copy",
-      "def": "A replica kept a fixed time behind on purpose, such as an hour, so a bad change can be stopped before it reaches it."
+      "def": "A replica kept at least a set time behind on purpose, such as an hour, so a bad change can be stopped before it reaches it."
     },
     {
       "term": "synchronous_commit = remote_apply",
@@ -806,7 +808,11 @@
     },
     {
       "term": "ReplicaLag",
-      "def": "The Amazon RDS CloudWatch metric for how far a read replica is behind its primary. 0 means caught up; -1 means replication isn't active."
+      "def": "The Amazon RDS CloudWatch metric for how far a read replica is behind its primary. For MySQL and MariaDB, 0 means caught up and -1 means replication isn't active."
+    },
+    {
+      "term": "MariaDB",
+      "def": "An open-source database built from MySQL's code, and still much like it. Amazon RDS runs both."
     },
     {
       "term": "Source (MySQL)",
@@ -910,7 +916,10 @@
         {
           "idea": "Replicas lag, so some reads will be stale, and a user's own fresh change must come from the primary or a replica that has applied it",
           "match": [
-            "lag",
+            "it lags",
+            "lags behind",
+            "lagging",
+            "replication lag",
             "behind",
             "stale",
             "out of date",
@@ -930,9 +939,9 @@
             "not writes",
             "full copy",
             "whole copy",
-            "cost",
-            "price",
-            "each replica"
+            "full price",
+            "costs as much",
+            "price"
           ]
         }
       ],
@@ -960,7 +969,9 @@
         {
           "idea": "Give read-your-writes: the user's reads go to the primary for a short window after the save, or only to a replica that has reached the save's position",
           "match": [
-            "primary",
+            "reads to the primary",
+            "read from the primary",
+            "go to the primary",
             "read-your-writes",
             "read your writes",
             "read your own",
@@ -981,8 +992,7 @@
             "pinned",
             "stick to",
             "back in time",
-            "backwards",
-            "alternat"
+            "backwards"
           ]
         }
       ],
@@ -994,11 +1004,11 @@
       "prompt": "During a nightly import, writes to a database rise from 50 to 900 a second, and its three read replicas fall minutes behind. A colleague suggests adding two more replicas. What happens to the lag?",
       "options": [
         "It roughly halves, because five replicas share the import's changes",
-        "It stays about the same, because every replica applies every change",
+        "It shrinks, because the replicas take some of the primary's writes",
         "It disappears, because the new replicas start from a current copy",
-        "It shrinks, because the replicas take some of the primary's writes"
+        "It stays about the same, because every replica applies every change"
       ],
-      "answer": 1,
+      "answer": 3,
       "why": "Replicas spread reads, not writes. Each replica applies the whole stream of changes from the primary, so a new replica has exactly as much to apply as the old ones, at the same rate, once it has caught up. Two more replicas add read capacity and cost, but the lag comes from changes arriving faster than one replica can apply them. Pace or shrink the import, or, if writes keep growing, split the data."
     },
     {
@@ -1019,13 +1029,13 @@
       "kind": "mcq",
       "prompt": "According to Amazon RDS's documentation, how does RDS send changes from a primary DB instance to a read replica, and where can you watch the gap?",
       "options": [
-        "Synchronously, so the gap is always zero and there's nothing to watch",
         "Asynchronously, and the ReplicaLag metric in CloudWatch shows the gap",
+        "Synchronously, so the gap is always zero and there's nothing to watch",
         "Synchronously, through the Multi-AZ standby, which also serves reads",
         "Asynchronously, once an hour, and the gap shows in the RDS event log"
       ],
-      "answer": 1,
-      "why": "RDS says that when you make updates to the primary DB instance, it copies them asynchronously to the read replica, and that you can monitor replication lag in CloudWatch with the ReplicaLag metric: 0 means the replica has caught up, -1 that replication isn't active. The Multi-AZ standby is the synchronous one, and unlike a read replica it can't serve read traffic."
+      "answer": 0,
+      "why": "RDS says that when you make updates to the primary DB instance, it copies them asynchronously to the read replica, and that you can monitor replication lag in CloudWatch with the ReplicaLag metric: for MySQL and MariaDB, 0 means the replica has caught up, -1 that replication isn't active. The Multi-AZ DB instance standby is the synchronous one, and unlike a read replica it can't serve read traffic."
     }
   ],
   "coldCase": {
@@ -1044,7 +1054,7 @@
           "applied the delete",
           "replicated the delete",
           "copied the delete",
-          "every change",
+          "applies every change",
           "delete too"
         ]
       },
@@ -1054,7 +1064,8 @@
           "point-in-time",
           "point in time",
           "pitr",
-          "restore",
+          "restore to",
+          "restore from a backup",
           "real backup",
           "proper backup",
           "separate backup",
@@ -1066,10 +1077,12 @@
       {
         "idea": "A delayed copy, kept behind on purpose with recovery_min_apply_delay, buys time to stop a mistake before it arrives",
         "match": [
-          "delay",
+          "delayed copy",
+          "delayed replica",
+          "apply delay",
           "recovery_min_apply",
           "min_apply",
-          "on purpose",
+          "behind on purpose",
           "hour behind",
           "hours behind",
           "time-delayed"
@@ -1082,30 +1095,30 @@
   "sources": [
     {
       "title": "PostgreSQL 18 Documentation, 26.4 Hot Standby (read-only queries on a standby; a measurable delay, so data on the standby is eventually consistent with the primary; conflicts with WAL replay, cancelled once max_standby_streaming_delay is exceeded; many hours or -1 for long queries, which keeps other sessions from seeing recent changes; waiting indefinitely leaves the standby increasingly far behind)",
-      "url": "https://www.postgresql.org/docs/current/hot-standby.html"
+      "url": "https://www.postgresql.org/docs/18/hot-standby.html"
     },
     {
       "title": "PostgreSQL 18 Documentation, 26.2 Log-Shipping Standby Servers (streaming replication asynchronous by default, typically under one second if the standby keeps up; data loss proportional to the replication delay at failover; synchronous_commit remote_apply allows load balancing with causal consistency)",
-      "url": "https://www.postgresql.org/docs/current/warm-standby.html"
+      "url": "https://www.postgresql.org/docs/18/warm-standby.html"
     },
     {
       "title": "PostgreSQL 18 Documentation, 19.6 Replication (max_standby_streaming_delay, default 30 seconds, -1 waits forever; recovery_min_apply_delay, a time-delayed copy to correct data loss errors, default zero)",
-      "url": "https://www.postgresql.org/docs/current/runtime-config-replication.html"
+      "url": "https://www.postgresql.org/docs/18/runtime-config-replication.html"
     },
     {
       "title": "PostgreSQL 18 Documentation, 27.2 The Cumulative Statistics System (pg_stat_replication, one row per standby; replay_lag approximates the delay before recent transactions become visible to queries)",
-      "url": "https://www.postgresql.org/docs/current/monitoring-stats.html"
+      "url": "https://www.postgresql.org/docs/18/monitoring-stats.html"
     },
     {
       "title": "PostgreSQL 18 Documentation, 9.28 System Administration Functions (pg_last_wal_replay_lsn, the last WAL location replayed, increasing monotonically during recovery)",
-      "url": "https://www.postgresql.org/docs/current/functions-admin.html"
+      "url": "https://www.postgresql.org/docs/18/functions-admin.html"
     },
     {
-      "title": "Amazon RDS User Guide: Working with DB instance read replicas (a read-only copy that scales out read-heavy workloads; updates copied asynchronously; created manually, no autoscaling; billed as standard DB instances at the same rates; a Multi-AZ standby is synchronous and can't serve read traffic)",
+      "title": "Amazon RDS User Guide: Working with DB instance read replicas (a read-only copy that scales out read-heavy workloads; updates copied asynchronously; created manually, no autoscaling; billed as standard DB instances at the same rates; a Multi-AZ DB instance standby is synchronous and can't serve read traffic)",
       "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html"
     },
     {
-      "title": "Amazon RDS User Guide: Monitoring read replication (the ReplicaLag metric in CloudWatch; 0 means caught up, -1 means replication is not active; for PostgreSQL, now minus pg_last_xact_replay_timestamp)",
+      "title": "Amazon RDS User Guide: Monitoring read replication (the ReplicaLag metric in CloudWatch; 0 and -1 for MySQL and MariaDB, caught up and replication not active; for PostgreSQL, now minus pg_last_xact_replay_timestamp)",
       "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.Monitoring.html"
     },
     {

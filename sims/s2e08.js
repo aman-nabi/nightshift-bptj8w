@@ -1,9 +1,21 @@
-/* sims/s2e08-v1.0.0.js  (published as sims/s2e08.js)
+/* sims/s2e08-v1.0.2.js  (published as sims/s2e08.js)
    Case s2e08 "Napkin Math": an estimation workbench built from Bronagh's New Year's Eve at
    Coldharbour Cars, a cab firm whose booking robot answers on rented phone lines and offers a
    ring-back when every line is busy.
 
    CHANGELOG
+   v1.0.2 (2026-10-10) QA: the "hour" mistake on traffic that comes in a single hour now says nothing
+     changes, as the log does, instead of "1 times too many".
+   v1.0.1 (2026-10-10) Season 2 review fixes: the log no longer says a plan that is 100% busy
+     "carries the peak": 180 lines log "is exactly full at the peak, with no room for a busier
+     minute", and a plan over 80% busy says it has less room than 80% leaves (new selfTest
+     assertion: plan 180 logs "exactly full"). The KiB mistake says how much bigger the real size
+     is than the label ("the real size is 9.95% more than the label says"), not "% short", and the
+     selfTest checks the new wording. The dispatcher mistake names the unit ("With 2 servers, 314.8
+     a second ..."). A mistake that changes nothing logs "Mistake: no change here." and shows "-" in
+     the off stat instead of 1. A plan with less than one server idle gives the spare capacity as a
+     percentage instead of fractional servers sitting idle. Points at case v1.0.1. selfTest: 15
+     assertions.
    v1.0.0 (2026-10-09) first version: a widget-style sim built inside api.root (no diagram, no
      step). Inputs: users a day, requests per user a day, reads for every write, hours the traffic
      comes in, peak factor, size of each write, retention years, copies, capacity per server (a
@@ -18,7 +30,7 @@
      run, turned away in the busiest hour (your plan), storage in total, bandwidth out at the peak,
      how far off. selfTest: 14 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e08-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e08-v1.0.2.json):
    - post: last year's bill and this year's dashboard, 14,400 calls between 8 PM and 4 AM (8 hours);
      the robot records the pickup address in the five seconds after the tone; each line holds one
      call at a time. Bronagh's napkin: 14,400 / 8 = 1,800 an hour, 0.5 a second; a call holds a
@@ -390,7 +402,8 @@
     } else if (pl.util > 100 - EPS) {
       s += "Exactly full on the hour's average: any minute busier than the average finds every one busy.";
     } else {
-      s += exact(pl.idle) + " sit idle at the busiest moment" + (pl.util > TARGET_PCT + EPS ? ", less room than 80% busy leaves." : ".");
+      s += (pl.idle < 1 ? "About " + about(pl.idle * 100 / pl.n) + "% of their capacity is spare at the busiest moment" :
+        exact(pl.idle) + " sit idle at the busiest moment") + (pl.util > TARGET_PCT + EPS ? ", less room than 80% busy leaves." : ".");
     }
     return s;
   }
@@ -405,7 +418,7 @@
       if (away < EPS) return s + "Here the peak factor is " + fmtNum(p.peak) + ", so the napkin holds at the peak, but with no room to spare.";
       return s + "The busiest hour brings " + exact(r.peak) + " a second, which keeps " + exact(r.busy) + " busy: the napkin is " +
         about(off) + " times short, and " + about(r.run / c.run) + " times once you leave headroom (" + fmtInt(r.run) + "). With " +
-        fmtInt(c.run) + ", " + exact(away) + " a second find every one busy: " + fmtInt(Math.round(away * HOUR)) +
+        fmtInt(c.run) + " " + plural(c.run, cap.one, cap.many) + ", " + exact(away) + " a second find every one busy: " + fmtInt(Math.round(away * HOUR)) +
         " in the busiest hour, while " + about(carry * HOUR) + " get through.";
     }
     if (m === "wholeday") {
@@ -415,6 +428,7 @@
         "the bandwidth and the servers fall with it: " + fmtInt(c.run) + " " + plural(c.run, cap.one, cap.many) + " instead of " + fmtInt(r.run) + ".";
     }
     if (m === "hour") {
+      if (p.hours === 1) return "This traffic comes in a single hour, so dividing by 3,600 is right and nothing changes. Try it on Coldharbour's night.";
       return "Dividing by 3,600 alone treats the " + p.hours + plural(p.hours, " hour", " hours") + " as one: " + exact(c.avg) +
         " a second instead of " + exact(r.avg) + ", " + about(off) + " times too many. It errs on the safe side, at a price: " +
         fmtInt(c.run) + " " + plural(c.run, cap.one, cap.many) + " instead of " + fmtInt(r.run) + ".";
@@ -426,7 +440,7 @@
     }
     if (m === "kib") {
       return "Storage counted in 1,024s but labelled in 1,000s: " + fmtBytes(r.storeTotal, false) + " shows as " +
-        fmtBytes(r.storeTotal, true) + ", " + about((off - 1) * 100) + "% short. The gap grows at every step: 2.4% at KB, " +
+        fmtBytes(r.storeTotal, true) + ": the real size is " + about((off - 1) * 100) + "% more than the label says. The gap grows at every step: 2.4% at KB, " +
         "about 4.9% at MB, 7.4% at GB and nearly 10% at TB.";
     }
     if (m === "copies") {
@@ -492,7 +506,7 @@
     S.stat.away(fmtInt(Math.round(pl.away * HOUR)));
     S.stat.store(fmtBytes(c.storeTotal, m === "kib"));
     S.stat.out(fmtBits(c.outBits));
-    S.stat.off(off === null ? "-" : about(off));
+    S.stat.off(off === null || Math.abs(off - 1) < EPS ? "-" : about(off));
   }
 
   /* ---------- narration ---------- */
@@ -502,8 +516,10 @@
     var s = PRESET_NAME[S.preset] + ": " + about(c.avg) + " a second on average, " + about(c.peak) + " at the peak; " +
       exact(c.busy) + " " + cap.many + " busy, " + fmtInt(c.run) + " to run" + (m === "dispatcher" ? " by the napkin" : "") +
       ". Your plan, " + fmtInt(pl.n) + ", ";
-    s += pl.away > 0 ? "leaves " + fmtInt(Math.round(pl.away * HOUR)) + " " + cap.away + " in the busiest hour." : "carries the peak.";
-    if (off !== null) s += " Mistake: off by " + about(off) + " times.";
+    s += pl.away > 0 ? "leaves " + fmtInt(Math.round(pl.away * HOUR)) + " " + cap.away + " in the busiest hour." :
+      pl.util > 100 - EPS ? "is exactly full at the peak, with no room for a busier minute." :
+      pl.util > TARGET_PCT + EPS ? "carries the peak, with less room than 80% busy leaves." : "carries the peak.";
+    if (off !== null) s += Math.abs(off - 1) < EPS ? " Mistake: no change here." : " Mistake: off by " + about(off) + " times.";
     return s;
   }
 
@@ -717,6 +733,14 @@
       t.expect(p225 && p120 && p180 && p500 && p60 && st().preset === "coldharbour",
         "plans: 225 lines run 80% busy with 45 spare; 120 leave 1,800 for ring-back; 180 are exactly full; 500 leave 320 idle; 60 leave 3,600");
 
+      // 6b. The log for 180 lines says exactly full, not that they carry the peak.
+      t.set("plan", PLANS.indexOf(180));
+      await t.run(1);
+      t.expect(has(t.logText(), "Your plan, 180, is exactly full at the peak, with no room for a busier minute.") &&
+        !has(t.logText(), "Your plan, 180, carries the peak."),
+        "plan 180: the log says the lines are exactly full at the peak, with no room for a busier minute");
+      t.set("plan", PLANS.indexOf(60));
+
       // 7. 100 million a day: 1,157.4 a second, shown as about 1,160.
       t.set("preset", "linkday");
       await t.run(1);
@@ -762,11 +786,11 @@
       t.set("mistake", "kib");
       var kib = t.stat("store") === "2.47 TB" && t.stat("off") === 1.1 && fmtBytes(c.storeTotal, true) === "2.47 TB" &&
         Math.pow(1024, 4) / Math.pow(1000, 4) === 1.099511627776 && Math.pow(1024, 3) / Math.pow(1000, 3) === 1.073741824 &&
-        has(mistakeText(st()), "2.71 TB shows as 2.47 TB, 9.95% short.");
+        has(mistakeText(st()), "2.71 TB shows as 2.47 TB: the real size is 9.95% more than the label says.");
       t.set("mistake", "copies");
       var cc = calc(PRESETS.linkday, "copies");
       t.expect(kib && t.stat("store") === "903 GB" && t.stat("off") === 3 && Math.abs(cc.storeTotal * 3 / c.storeTotal - 1) < 1e-12,
-        "a TB counted in 1,024s is 9.95% short (2.71 TB shows as 2.47); forgetting 3 copies stores a third, 903 GB");
+        "a TB counted in 1,024s shows 2.71 TB as 2.47, the real size 9.95% more than the label; forgetting 3 copies stores a third, 903 GB");
 
       // 12. The rounding rules, on purpose.
       t.expect(about(1157.4074074074074) === "1,160" && about(0.5) === "0.5" && about(2314.814814814815) === "2,310" &&

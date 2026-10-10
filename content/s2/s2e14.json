@@ -1,5 +1,7 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-10) QA: option D's senior take and the interview answer say UUID v7 keys sort roughly by time, as steps[4] now does",
+    "v1.0.1 (2026-10-10) Season 2 review fixes: UUID v7 sorts only roughly by time across machines, like Snowflake (explain step 5, the tradeoff row); the JavaScript limit adds that even exactly held tags print with the wrong last digits; option B trimmed to match the others; recall r4 and r5 answers shortened to the length of the other options, and r5's answer moved to index 3; recall and cold case fragments tightened",
     "v1.0.0 (2026-10-09) first version"
   ],
   "id": "s2e14",
@@ -244,7 +246,7 @@
         "senior": "One counter is simple, ordered and never repeats, but every number costs a trip to one place: its speed is one round trip at a time, and when it's down, nothing gets a number. A counter also tells anyone holding two numbers how many records came in between. Flickr splits the work across two counters, odd and even, so one can fail; Twitter left counters behind so each machine could make numbers alone."
       },
       {
-        "text": "Hand out machine numbers from one list at startup, so the cold-room printer gets 8. Count in UTC, make each machine wait out a backward step, and alert on refusals.",
+        "text": "Hand out machine numbers from one list at startup, so the cold-room printer gets 8. Count in UTC, wait out backward steps, alert on refusals.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "Ingeborg added a table of machine numbers to the Casebook: each machine claims a free number when it starts, and the table's unique key refuses a second claim. The desk printer kept 1, the scanner 7, and the cold-room printer got 8. On Saturday afternoon she switched all three to count in UTC, with a guard: each machine remembers the last millisecond it used and waits if its clock reads earlier. In summer UTC is an hour behind our clocks, so the switch was itself an hour's step back. The guard would have held any machine that had made a number in the last hour, but the scanner had stopped at 06:00, the cold-room printer was idle and the desk printer's last tag was two hours old, so nothing waited. At 02:00 on Sunday the clocks went back, and the numbers didn't notice. On Monday 9 November at 04:12, NTP stepped the scanner's clock back 250 ms. The guard held it for 249 ms, until its clock read the last millisecond it had used, and the next line got count 1 in that millisecond. Nothing was refused. The alert never fired, and Ingeborg read about the step in the guard's log the next morning.",
@@ -262,7 +264,7 @@
         "tone": "warn",
         "verdict": "Trade-off: unique, big and unordered",
         "part2": "Ingeborg switched every machine to UUID v4 on Saturday. No number has been refused since, and Sunday's clock change did nothing at all. But each tag now carries 36 characters instead of 18 digits, in a smaller font, and the Casebook stores 16 bytes per number instead of 8. Sorting the night book by number no longer puts it in time order: Saturday night's tags come out in random order, and so do the scanner's lines. Ingeborg is now adding a time column to every table so that anyone can find last night again.",
-        "senior": "Random UUIDs need no coordination at all: no machine numbers, no clock, and with 122 random bits a repeat among a billion is about a 1 in 10^19 chance. You pay in size, 16 bytes or 36 characters, and in order: they don't sort by time, and new keys land all over the index. UUID v7 keeps the independence, puts 48 bits of Unix milliseconds first so keys sort by time, and keeps 74 random bits."
+        "senior": "Random UUIDs need no coordination at all: no machine numbers, no clock, and with 122 random bits a repeat among a billion is about a 1 in 10^19 chance. You pay in size, 16 bytes or 36 characters, and in order: they don't sort by time, and new keys land all over the index. UUID v7 keeps the independence, puts 48 bits of Unix milliseconds first so keys sort roughly by time, and keeps 74 random bits."
       }
     ]
   },
@@ -293,7 +295,7 @@
       },
       {
         "title": "Choosing, and short codes.",
-        "text": "Ask four questions. Must IDs sort by time? Auto-increment and UUID v7 do, Snowflake roughly, because machines' clocks differ a little, and UUID v4 not at all. How big may they be? 8 bytes for a counter or a Snowflake number, 16 for a UUID. Who has to agree? A counter needs one place for every number; Snowflake needs unique machine numbers once, at startup, and clocks that never step back; UUIDs need nobody. And what do they tell strangers? Counters tell volume and can be guessed. Snowflake numbers tell when, and on which machine. None of them is a password, so check access on every lookup. Short codes are the same arithmetic in another alphabet. Base62 has 62 symbols, so L characters give 62^L codes: 62^5 = 916,132,832 is short of a billion, and 62^6 = 56,800,235,584 is enough. A billion codes need 6 characters and a trillion need 7. Codes made from a unique number never clash. Codes picked at random clash long before they run out: with 6 characters, a repeat is more likely than not by about 280,600 codes, so check each new one against those already issued. This season's 3 AM Interview, a URL shortener, starts here."
+        "text": "Ask four questions. Must IDs sort by time? Auto-increment does. UUID v7 and Snowflake do roughly: exactly to the millisecond within one machine, but machines' clocks differ a little. UUID v4 not at all. How big may they be? 8 bytes for a counter or a Snowflake number, 16 for a UUID. Who has to agree? A counter needs one place for every number; Snowflake needs unique machine numbers once, at startup, and clocks that never step back; UUIDs need nobody. And what do they tell strangers? Counters tell volume and can be guessed. Snowflake numbers tell when, and on which machine. None of them is a password, so check access on every lookup. Short codes are the same arithmetic in another alphabet. Base62 has 62 symbols, so L characters give 62^L codes: 62^5 = 916,132,832 is short of a billion, and 62^6 = 56,800,235,584 is enough. A billion codes need 6 characters and a trillion need 7. Codes made from a unique number never clash. Codes picked at random clash long before they run out: with 6 characters, a repeat is more likely than not by about 280,600 codes, so check each new one against those already issued. This season's 3 AM Interview, a URL shortener, starts here."
       }
     ],
     "diagram": {
@@ -412,7 +414,7 @@
     "limits": [
       "Handing out machine numbers at startup moves the coordination, it doesn't remove it. The table must be reachable when a machine starts, and a machine restored from a disk copy must claim again rather than trust the number it carries. Twitter's 2010 post says its worker numbers are chosen at startup through ZooKeeper, for the same reason.",
       "The guard waits as long as the step. That's 249 ms for a 250 ms NTP step, but a whole hour for a machine still counting local time when the clocks go back. Switching a busy machine from local time to UTC in summer is a one-hour step back too, so switch while it's idle or accept that it waits. And even with the guard, Snowflake numbers are only roughly in time order across machines. Each machine's clock is a little off, so a number made on one machine can sort before one made a few milliseconds earlier on another. Twitter promised 1 second and aimed for tens of milliseconds.",
-      "The numbers aren't secret. Each one carries the millisecond it was made and the machine that made it, so anyone holding a tag can read when it was printed, and nearby numbers can be tried. Never let knowing a number be enough to open a record; check access on every lookup. Nor do they last forever: forty-one bits from 1 January 2026 run out in September 2095. And these numbers are too big for JavaScript to hold exactly: above 2^53, 9,007,199,254,740,992, not every whole number fits, and at the size of these tags only multiples of 16 do, so a number with a count of 1 comes back as its neighbour. Send them to web pages as strings."
+      "The numbers aren't secret. Each one carries the millisecond it was made and the machine that made it, so anyone holding a tag can read when it was printed, and nearby numbers can be tried. Never let knowing a number be enough to open a record; check access on every lookup. Nor do they last forever: forty-one bits from 1 January 2026 run out in September 2095. And these numbers are too big for JavaScript to hold exactly: above 2^53, 9,007,199,254,740,992, not every whole number fits, and at the size of these tags only multiples of 16 do, so a number with a count of 1 comes back as its neighbour. Send them to web pages as strings. Even the ones it holds exactly print wrong: 106886353467215872 shows as 106886353467215870."
     ],
     "tradeoff": {
       "head": [
@@ -443,7 +445,7 @@
         [
           "UUID v7",
           "Nobody, but each machine reads its clock.",
-          "Yes, to the millisecond. 16 bytes.",
+          "Roughly, like Snowflake: to the millisecond within a machine. 16 bytes.",
           "IDs must be small or reveal nothing: they're 16 bytes and carry their creation time. After a clock step back, new IDs sort before older ones, though none repeats."
         ],
         [
@@ -498,7 +500,7 @@
         "UUID, Snowflake or auto-increment: which would you use, and when?",
         "How many characters do you need for a short URL code?"
       ],
-      "answer": "Start with the requirements: how many IDs a second, whether they must sort by time, how big they may be, whether they appear in URLs, and what happens if the generator is unreachable. Then the options. An auto-increment column in one database is simple, compact and ordered, but every ID is a trip to one place, it's a single point of failure, it leaks volume, and separate counters clash when shards are merged. Ticket servers, like Flickr's odd and even pair, keep counters but survive one failure. UUID v4 needs no coordination at all, at 16 bytes and with random index inserts; UUID v7 puts a 48-bit millisecond timestamp first, so keys sort by time. A Snowflake-style 64-bit ID packs 41 bits of milliseconds since a custom epoch, a 10-bit machine number and a 12-bit sequence: 4,096 IDs per millisecond per machine, about 69 years, no coordination per ID. Its two risks are two machines with the same machine number and a clock that steps back, so hand out machine numbers at startup from one place, count in UTC, run NTP so it slews, and refuse or wait when the clock reads earlier than the last timestamp. For short codes, do the arithmetic: base62 gives 62^L codes, 62^6 = 56,800,235,584, so 6 characters cover a billion and 7 cover 3.5 trillion. Encode a unique ID or counter rather than picking at random, or check every random code, because random codes collide after about the square root of the space."
+      "answer": "Start with the requirements: how many IDs a second, whether they must sort by time, how big they may be, whether they appear in URLs, and what happens if the generator is unreachable. Then the options. An auto-increment column in one database is simple, compact and ordered, but every ID is a trip to one place, it's a single point of failure, it leaks volume, and separate counters clash when shards are merged. Ticket servers, like Flickr's odd and even pair, keep counters but survive one failure. UUID v4 needs no coordination at all, at 16 bytes and with random index inserts; UUID v7 puts a 48-bit millisecond timestamp first, so keys sort roughly by time. A Snowflake-style 64-bit ID packs 41 bits of milliseconds since a custom epoch, a 10-bit machine number and a 12-bit sequence: 4,096 IDs per millisecond per machine, about 69 years, no coordination per ID. Its two risks are two machines with the same machine number and a clock that steps back, so hand out machine numbers at startup from one place, count in UTC, run NTP so it slews, and refuse or wait when the clock reads earlier than the last timestamp. For short codes, do the arithmetic: base62 gives 62^L codes, 62^6 = 56,800,235,584, so 6 characters cover a billion and 7 cover 3.5 trillion. Encode a unique ID or counter rather than picking at random, or check every random code, because random codes collide after about the square root of the space."
     }
   },
   "terms": [
@@ -803,8 +805,7 @@
             "how many orders",
             "guess",
             "enumerat",
-            "predictab",
-            "sequential"
+            "predictab"
           ]
         },
         {
@@ -836,8 +837,7 @@
             "ticket server",
             "offset",
             "odd and even",
-            "increment by",
-            "timestamp"
+            "increment by"
           ]
         },
         {
@@ -891,7 +891,7 @@
       "kind": "mcq",
       "prompt": "NTP steps the clock of a Snowflake-style generator back 250 ms while it's making one ID a millisecond. It has no clock guard. What happens?",
       "options": [
-        "It makes again the IDs it made in the last 250 ms, as its clock reads those milliseconds again",
+        "It repeats the IDs of the last 250 ms",
         "Nothing: the machine number keeps every one of its IDs unique",
         "It stops until someone restarts it",
         "Its IDs sort before older ones from then on, but none is a repeat"
@@ -905,11 +905,11 @@
       "prompt": "Why does RFC 9562 say UUID v4 keys can hurt a database index, and what does UUID v7 change?",
       "options": [
         "v4 is 16 bytes and v7 is 8, so v7 fits twice as many keys in each index page",
-        "v4 values land at random places in the index; v7 starts with a millisecond timestamp, so new keys land together",
+        "v4 repeats about once in a billion IDs, and v7's timestamp makes repeats impossible",
         "v4 needs a central server to hand values out, and v7 can be made on each machine",
-        "v4 repeats about once in a billion IDs, and v7's timestamp makes repeats impossible"
+        "v4 lands at random in the index; v7 starts with time, so new keys land together"
       ],
-      "answer": 1,
+      "answer": 3,
       "why": "Both versions are 128 bits and need no coordination. The RFC says versions that aren't time ordered, such as v4, have poor database-index locality: new values need inserts at random locations, and the effects on B-trees can be dramatic. v7 puts 48 bits of Unix milliseconds first, so values made in succession sit next to each other in the index."
     }
   ],
@@ -922,7 +922,8 @@
         "match": [
           "birthday",
           "square root",
-          "280,",
+          "280,600",
+          "about 280",
           "280k",
           "280 thousand",
           "collide",
@@ -943,13 +944,13 @@
           "unique constraint",
           "check if",
           "check whether",
-          "check that",
+          "check that the code",
           "already exists",
           "already taken",
           "already in use",
           "pick again",
           "try again",
-          "retry",
+          "pick a new code",
           "regenerate",
           "from a counter",
           "snowflake",
@@ -961,14 +962,15 @@
       {
         "idea": "Find the codes given out twice and restore the older links; a longer code makes clashes rarer but doesn't remove them",
         "match": [
-          "find the",
+          "find the codes",
+          "find every code",
           "audit",
           "restore",
           "repair",
           "reissue",
           "re-issue",
           "existing links",
-          "affected",
+          "affected links",
           "older link",
           "old link",
           "7 characters",

@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.1 (2026-10-10) Season 2 review fixes: the Kubernetes probes source points at its new URL; explain step 2 says there was no limit in January; the post and sim.lede say the coast phones are about 20 ms from the Porter; prerequisites add s2e07 (Cloudflare); recall fragments tightened",
     "v1.0.0 (2026-10-09) first version"
   ],
   "id": "s2e09",
@@ -16,6 +17,7 @@
     "service-discovery"
   ],
   "prerequisites": [
+    "s2e07",
     "s2e06",
     "s2e03",
     "s2e02",
@@ -45,7 +47,7 @@
       },
       {
         "t": "p",
-        "text": "At night about 24 requests a second come in: 12 for doors, and 6 each for bookings and dining, which have three servers each. The doors had door-1 and door-2 in the basement and door-3 in the Seaward Wing's old linen room. The wing closed for rewiring in September, so on the 14th Sigrun set up door-4 in the basement to replace door-3, and meant to swap them in the file one quiet night."
+        "text": "At night about 24 requests a second come in: 12 for doors, and 6 each for bookings and dining, which have three servers each. Phones on the coast reach the Porter in about 20 ms. The doors had door-1 and door-2 in the basement and door-3 in the Seaward Wing's old linen room. The wing closed for rewiring in September, so on the 14th Sigrun set up door-4 in the basement to replace door-3, and meant to swap them in the file one quiet night."
       },
       {
         "t": "p",
@@ -299,7 +301,7 @@
   "sim": {
     "module": "s2e09",
     "title": "Run the front desk at the Kittiwake",
-    "lede": "You're Sigrun, replaying Saturday night at the Kittiwake from 01:11:50. Phones on the coast send the Porter 24 requests a second: 12 for /doors, handed to the door servers on its list in turn, and 6 each for /bookings and /dining, three servers each. Each server answers up to 20 a second; past that it falls behind, and every request to it fails. At 01:12:00 the electricians cut the Seaward Wing's power until 02:40:00, and door-3 goes dark: a request sent to it waits 10 seconds and gets a 504. door-4 has been up in the basement since 14 September. With discovery on, the Porter reads a registry that every server signed itself into, door-4 included; door-3 loses its power, so it never signs out. With health checks on, every server on the list is asked every 5 seconds, on the clock's :00, :05 and so on, and is out after 2 misses in a row and back after 2 answers. The checks only ask whether a server answers, so a busy one still passes. Phones in the hills send the Lodge 12 a second with the same mix, about 20 ms away; the Porter here is about 30 ms from them. DNS checks each Porter every 30 seconds, on the minute and the half-minute, and stops handing out the Lodge's address after three misses in a row. Phones that asked before that keep it for up to the TTL, and the sim moves them over at an even pace across the TTL. The stuck tablet is one phone on the coast, sending 300 a second to /bookings. Errors and latency count guests' requests, and latency only the answered ones. Changing a setting replays the night; the Lodge, the tablet and the clock speed don't. Click any box to see what it does.",
+    "lede": "You're Sigrun, replaying Saturday night at the Kittiwake from 01:11:50. Phones on the coast, about 20 ms away, send the Porter 24 requests a second: 12 for /doors, handed to the door servers on its list in turn, and 6 each for /bookings and /dining, three servers each. Each server answers up to 20 a second; past that it falls behind, and every request to it fails. At 01:12:00 the electricians cut the Seaward Wing's power until 02:40:00, and door-3 goes dark: a request sent to it waits 10 seconds and gets a 504. door-4 has been up in the basement since 14 September. With discovery on, the Porter reads a registry that every server signed itself into, door-4 included; door-3 loses its power, so it never signs out. With health checks on, every server on the list is asked every 5 seconds, on the clock's :00, :05 and so on, and is out after 2 misses in a row and back after 2 answers. The checks only ask whether a server answers, so a busy one still passes. Phones in the hills send the Lodge 12 a second with the same mix, about 20 ms away; the Porter here is about 30 ms from them. DNS checks each Porter every 30 seconds, on the minute and the half-minute, and stops handing out the Lodge's address after three misses in a row. Phones that asked before that keep it for up to the TTL, and the sim moves them over at an even pace across the TTL. The stuck tablet is one phone on the coast, sending 300 a second to /bookings. Errors and latency count guests' requests, and latency only the answered ones. Changing a setting replays the night; the Lodge, the tablet and the clock speed don't. Click any box to see what it does.",
     "tryThis": "Try this: press nothing and watch 01:12:00: door-3 goes dark and still gets 4 requests a second, while door-4 isn't listed. Skip to 02:39:50 and watch the count reach 21,120 at 02:40:00. Turn on health checks: door-3 is out at 01:12:05 after 20, and door-4 still gets nothing. Turn them off and turn on discovery: door-4 takes its share, and door-3 keeps getting 3 a second, 15,840 by 02:40. Turn both on: 15, then three servers at 4 a second. Now skip to 02:39:50, wait for 02:40:00, press The Lodge goes dark and set the clock to 10 minutes a second: with the 1-hour TTL the failover takes about 61 minutes. Replay with a 60-second TTL and do the same: about 2. Last, switch on the stuck tablet, with the rate limit on and then off."
   },
   "explain": {
@@ -311,7 +313,7 @@
       },
       {
         "title": "A load balancer, a reverse proxy and an API gateway.",
-        "text": "The three overlap, and one machine is often all three. A load balancer, like the Vesper Hotel's Doorman in this season's second case, spreads requests over copies of the same server and stops sending to copies that fail. A reverse proxy is any front door that forwards requests to servers it hides. It may balance load, but it can also send different paths to different services, as the Porter sends /doors, /bookings and /dining to three different sets of servers. An API gateway is a reverse proxy that does an API's chores on the way through. It authenticates the caller: the Porter checks the guest pass. It limits each caller: 10 requests a second per phone, and a 429 for the rest. It routes by path or by version, /v1 to the old servers and /v2 to the new. And it gives every request an ID and a log line, so one request can be followed through every service. In January the limit was the difference between one stuck tablet and /bookings falling over for every guest: 300 a second, against three servers that answer 20 each. The cost of a gateway is one more hop, and one more place where every request can fail."
+        "text": "The three overlap, and one machine is often all three. A load balancer, like the Vesper Hotel's Doorman in this season's second case, spreads requests over copies of the same server and stops sending to copies that fail. A reverse proxy is any front door that forwards requests to servers it hides. It may balance load, but it can also send different paths to different services, as the Porter sends /doors, /bookings and /dining to three different sets of servers. An API gateway is a reverse proxy that does an API's chores on the way through. It authenticates the caller: the Porter checks the guest pass. It limits each caller: 10 requests a second per phone, and a 429 for the rest. It routes by path or by version, /v1 to the old servers and /v2 to the new. And it gives every request an ID and a log line, so one request can be followed through every service. In January there was no limit, and one stuck tablet sending 300 a second, against three servers that answer 20 each, took /bookings down for every guest. Now the Porter turns 290 of those away. The cost of a gateway is one more hop, and one more place where every request can fail."
       },
       {
         "title": "Service discovery: who tells the front door?",
@@ -1100,9 +1102,11 @@
             "target group",
             "cloud map",
             "consul",
-            "resolve",
+            "re-resolve",
+            "resolve parameter",
             "dns name",
-            "load balancer"
+            "load balancer's target group",
+            "registers itself"
           ]
         }
       ],
@@ -1146,10 +1150,11 @@
             "hides",
             "hide",
             "one address",
-            "forward",
+            "forwards to servers it hides",
             "terminat",
             "ends tls",
-            "header",
+            "rewrites headers",
+            "x-forwarded-for",
             "by path"
           ]
         },
@@ -1164,7 +1169,8 @@
             "throttl",
             "quota",
             "request id",
-            "version"
+            "by version",
+            "/v1"
           ]
         }
       ],
@@ -1206,8 +1212,9 @@
         "match": [
           "single point",
           "spof",
-          "depend",
-          "shared",
+          "everything depends",
+          "depends on the registry",
+          "shared registry",
           "same registry",
           "one registry",
           "critical"
@@ -1236,14 +1243,14 @@
         "match": [
           "cluster",
           "replica",
-          "several",
+          "several machines",
           "more than one",
-          "three",
+          "three registry",
           "one at a time",
           "rolling",
           "redundan",
           "quorum",
-          "copies"
+          "registry copies"
         ]
       }
     ],
@@ -1309,7 +1316,7 @@
     },
     {
       "title": "Kubernetes documentation: Liveness, Readiness, and Startup Probes (readiness probes decide when a container is ready to accept traffic; on failure the EndpointSlice controller removes the pod's IP address from matching Services' EndpointSlices; probes run for the container's whole lifecycle)",
-      "url": "https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/"
+      "url": "https://kubernetes.io/docs/concepts/workloads/pods/probes/"
     }
   ]
 }

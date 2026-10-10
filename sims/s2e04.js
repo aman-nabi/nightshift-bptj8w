@@ -1,10 +1,13 @@
-/* sims/s2e04-v1.0.0.js  (published as sims/s2e04.js)
+/* sims/s2e04-v1.0.1.js  (published as sims/s2e04.js)
    Case s2e04 "The Jar on the Counter": a cache sim for Varga's, an all-night bakery whose website
    keeps cards for the most-asked-for loaves in "the jar", a cache-aside cache in front of a slow
    stock database. The learner sets the jar's size, eviction rule and TTL, runs the 3:58 archive
    reader (a one-off scan of 400 old loaves) and puts in the 4:00 list (every price changes).
 
    CHANGELOG
+   v1.0.1 (2026-10-10) Season 2 review fixes: selfTest 6 puts in the new list at 04:00, as the
+     story does, and checks the story's 1,920 stale reads (16 a second until the regulars' cards
+     run out at 04:02:00) instead of 4,320 from a 03:57:30 list; the header points at case v1.0.2.
    v1.0.0 (2026-10-07) first version: customers send 20 lookups a second (8 regular loaves twice a
      second each, 4 a second for the other 72 loaves in turn). Controls: the jar on or off, jar size
      (12, 24, 100 or 480 cards), eviction rule (LRU or LFU), TTL (24 h, 1 h, 5 min, 1 min, 10 s,
@@ -15,7 +18,7 @@
      a bigger jar, the new list under 24 h, 5 min and 1 s TTLs, a jar that holds every loaf, and
      no jar at all.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e04-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e04-v1.0.2.json):
    - post: 480 loaves on the website, 80 baked now, 400 in the archive; 20 lookups a second at
      night; the stock database takes 60 ms a lookup and manages about 25 a second; the jar is a
      cache about 1 ms away, holding 12 cards, each lasting 24 hours, pushing out the card asked
@@ -729,13 +732,13 @@
       // 6. A 5-minute TTL caps it.
       t.click("reset");
       t.set("ttl", 300);
-      await t.run(3);
+      await t.run(18);
       t.click("list");
-      await t.run(26.9);
+      await t.run(11.9);
       a = n("stale");
       await t.run(0.3);
-      t.expect(a === 4304 && n("stale") === 4320 && t.node("jar").text.meta === "8 of 8 regulars in",
-        "5 min TTL: the regulars' cards, fetched at 03:57:00, run out at 04:02:00: 4,320 stale reads, then none");
+      t.expect(a === 1904 && n("stale") === 1920 && t.node("jar").text.meta === "8 of 8 regulars in",
+        "5 min TTL: the new list at 04:00, the regulars' cards fetched at 03:57:00 run out at 04:02:00: 1,920 stale reads, then none");
       t.expect(n("hit") === 76,
         "5 min TTL: the eight regular cards expire together, 8 extra misses, so the last 10 s show 76%");
 

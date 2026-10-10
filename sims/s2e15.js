@@ -1,11 +1,14 @@
-/* sims/s2e15-v1.0.0.js  (published as sims/s2e15.js)
+/* sims/s2e15-v1.0.1.js  (published as sims/s2e15.js)
    Case s2e15 "Field Report: The Cache in Every Zone": Hushwell, a sleep-stories app, reads every
    listener's session from a cache in front of a listener database. The learner picks the cache (one
-   cluster in zone A, as Teodor built it; nine nodes spread three to a zone by consistent hashing; or
+   cluster in zone A, as Corentin built it; nine nodes spread three to a zone by consistent hashing; or
    a full copy in every zone, as in Figure 3 of Netflix's 2013 EVCache post), switches zone A's power
    off and on, restarts zone B's cache nodes empty, and turns zone fallback on or off.
 
    CHANGELOG
+   v1.0.1 (2026-10-10) Season 2 review fixes: the header and cache A's info text name the engineer
+     who built the cluster Corentin, as the case now does. No change to the model or the numbers.
+     Points at case v1.0.1.
    v1.0.0 (2026-10-10) first version: a night at Hushwell from 03:11:50, every cache warm. 7,200
      sessions, 3,600 check-ins a second spread evenly over the zones that are up, 240 place saves a
      second, a listener database that answers 1,000 reads a second. Controls: the cache (one cluster,
@@ -14,7 +17,7 @@
      check-ins failed a second, cache reads and copies crossing a zone a second, copies per save.
      selfTest: 21 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e15-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e15-v1.0.1.json):
    - post: about 7,200 people listening between two and four; each app checks in every 2 seconds:
      7,200 / 2 = 3,600 check-ins a second, over app servers in three availability zones, 1,200 to
      each; one memcached cluster of nine nodes, all in zone A; the listener database answers about
@@ -653,7 +656,7 @@
     if (!S.up[z]) return s + "Zone " + nm + " is dark: its cache nodes have no power and hold nothing. When the power returns they start empty.";
     if (S.mode === "one") {
       if (z !== 0) return s + "There is no cache cluster in zone " + nm + " in this setup. Zone " + nm + "'s check-ins cross into zone A to read cache A.";
-      return s + "Teodor's cluster: nine memcached nodes, all in zone A, the only copy of every session. Every zone's check-ins read from it, so two thirds of them cross a zone. Right now it holds " +
+      return s + "Corentin's cluster: nine memcached nodes, all in zone A, the only copy of every session. Every zone's check-ins read from it, so two thirds of them cross a zone. Right now it holds " +
         fmt(S.count[0]) + " of 7,200 sessions.";
     }
     if (S.mode === "spread") {

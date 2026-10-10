@@ -1,5 +1,7 @@
 {
   "_changelog": [
+    "v1.0.4 (2026-10-10) QA: the Valkey durability note no longer uses the removed term cluster and says what Valkey is; Application-based stickiness names the AWSALBAPP-0 cookie",
+    "v1.0.3 (2026-10-10) Season 2 review fixes: tighter match fragments in r1, r3 and the cold case so wrong answers stop scoring; shorter option C so length no longer gives the answer away; the signing-key sentence covers public-key signatures; AWSALBAPP-0 fragment naming, the Valkey durability exception and OWASP's JWT caution matched to the sources; RFC links point at the .html pages; unused terms Cluster, Framework and Distributed cache removed",
     "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.1 (2026-10-07) QA: removed the \"30/s\" label on the phones-to-load-balancer edge in the fix diagram, which overlapped the phones box (the box already says 30 req/s)",
     "v1.0.0 (2026-10-07) first version"
@@ -276,7 +278,7 @@
         "senior": "One server does remember everyone, which is why the bug only appeared with three. But it brings back everything from the first case of this season: a ceiling, a price, and a single point of failure. And a restart still wipes every session in its memory."
       },
       {
-        "text": "Make the servers stateless: keep every session in a shared store, such as Redis, with a standby copy in another zone. Give each session an expiry and delete it on sign-out. Then turn off sticky sessions, so any server can answer any guest.",
+        "text": "Make the servers stateless: keep sessions in a shared store such as Redis, with a standby copy in another zone and an expiry on each, then turn sticky sessions off.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "Ansel rented a managed Redis store with a standby copy in a second zone and moved the sessions there. Each page got about a millisecond slower, and nobody noticed. On New Year's Eve 600 guests signed in, and the load balancer spread their 30 requests a second evenly, 10 to each server. At 1 AM he updated maud, ellis and vera one at a time, and nobody was logged out. At 1:40 ellis crashed: its requests went to the other two, and it came back 30 seconds later to its share of the work. At 2:14 the store's main copy failed, and the standby took over within seconds. Nobody was logged out then either. When a woman reported her phone stolen at 2:30, Ansel deleted her session, and the thief got the sign-in screen. At 3:15 he removed two servers for the quiet hours. At 3:20, after I'd locked up, the store still held one session, for hook 1, where a grey coat has hung since 1962. Ansel checked. It was his own test account from October. He'd named it Maud.",
@@ -314,7 +316,7 @@
       },
       {
         "title": "A signed token: the guest carries the coat's description.",
-        "text": "The other way to make servers stateless keeps nothing on the server side at all. At sign-in the server writes the session's facts, called claims, such as who you are, your hook number and when the token expires, signs them with a key every server shares, and hands the result to the phone, usually in a cookie. On each request any server checks the signature: no lookup, no store, almost no added wait. A JWT, JSON Web Token, is the common format. It has four costs. Size: the token rides on every request, about 700 bytes at the Mirabel against a few dozen bytes for a session ID, and browsers only promise to keep 4,096 bytes per cookie. Revocation: a valid token works until it expires, and cancelling one sooner means every server checks a list of cancelled tokens, which lives in a shared store again. Secrecy: signed isn't encrypted, the claims are only encoded, so anyone holding the token can read them. Keys: every server needs the same signing key, kept secret and replaced from time to time, or a token signed on one server fails on another."
+        "text": "The other way to make servers stateless keeps nothing on the server side at all. At sign-in the server writes the session's facts, called claims, such as who you are, your hook number and when the token expires, signs them with a key every server shares, and hands the result to the phone, usually in a cookie. On each request any server checks the signature: no lookup, no store, almost no added wait. A JWT, JSON Web Token, is the common format. It has four costs. Size: the token rides on every request, about 700 bytes at the Mirabel against a few dozen bytes for a session ID, and browsers only promise to keep 4,096 bytes per cookie. Revocation: a valid token works until it expires, and cancelling one sooner means every server checks a list of cancelled tokens, which lives in a shared store again. Secrecy: signed isn't encrypted, the claims are only encoded, so anyone holding the token can read them. Keys: every server needs the key that checks the signature, either the same shared secret or, with a public-key signature, only the public half. The secret part must be kept safe and replaced from time to time, or a token signed with one key fails on a server holding another."
       },
       {
         "title": "Stateless servers are what the rest of this season stands on.",
@@ -521,7 +523,7 @@
     "realWorld": [
       {
         "title": "Sticky sessions on an AWS Application Load Balancer",
-        "text": "AWS's Application Load Balancer routes each request on its own by default, and offers sticky sessions, which it also calls session affinity, per target group. With stickiness on, the routing algorithm picks the first target, and later requests from the same client go to the same target, bypassing the algorithm. Duration-based stickiness uses a cookie the load balancer makes itself, AWSALB; application-based stickiness follows a cookie your application sets and adds the load balancer's own AWSALBAPP cookie. The load balancer encrypts its cookies with a rotating key, resets their expiry after every request, and gives them their own expiry of 7 days, which you can't change. If the cookie points to a target that was deregistered or is unhealthy, it picks a new target. The weighted random algorithm can't be used with sticky sessions. And the guide warns that when the number of targets increases considerably, stickiness can leave the load unequally distributed, and suggests rebalancing by expiring the application's cookie or setting a very short stickiness duration, such as 1 second.",
+        "text": "AWS's Application Load Balancer routes each request on its own by default, and offers sticky sessions, which it also calls session affinity, per target group. With stickiness on, the routing algorithm picks the first target, and later requests from the same client go to the same target, bypassing the algorithm. Duration-based stickiness uses a cookie the load balancer makes itself, AWSALB; application-based stickiness follows a cookie your application sets and adds the load balancer's own AWSALBAPP-0 cookie (AWSALBAPP plus a fragment number). The load balancer encrypts its cookies with a rotating key, resets their expiry after every request, and gives them their own expiry of 7 days, which you can't change. If the cookie points to a target that was deregistered or is unhealthy, it picks a new target. The weighted random algorithm can't be used with sticky sessions. And the guide warns that when the number of targets increases considerably, stickiness can leave the load unequally distributed, and suggests rebalancing by expiring the application's cookie or setting a very short stickiness duration, such as 1 second.",
         "source": 0
       },
       {
@@ -546,7 +548,7 @@
       },
       {
         "title": "Keeping the store up: ElastiCache Multi-AZ",
-        "text": "For its Redis-compatible engines, Amazon ElastiCache recommends Multi-AZ for high availability: replicas sit in other availability zones, and if the primary node fails, the replica with the least replication lag is promoted automatically, and writes can resume within seconds. Without Multi-AZ, a failed primary is replaced, and if there are no replicas the new primary starts empty and the data is lost unless you restore it from a snapshot. Replication is asynchronous, so when a primary fails over, a small amount of data might be lost to replication lag.",
+        "text": "For its Redis-compatible engines, Amazon ElastiCache recommends Multi-AZ for high availability: replicas sit in other availability zones, and if the primary node fails, the replica with the least replication lag is promoted automatically, and writes can resume within seconds. Without Multi-AZ, a failed primary is replaced, and if there are no replicas the new primary starts empty and the data is lost unless you restore it from a snapshot. Replication is asynchronous, so when a primary fails over, a small amount of data might be lost to replication lag, unless durability is turned on, a newer option in Valkey, the open-source copy of Redis, that keeps committed writes in a log copied across zones.",
         "source": 5
       },
       {
@@ -561,7 +563,7 @@
       },
       {
         "title": "JWTs as sessions: OWASP's caution",
-        "text": "OWASP's JSON Web Token Cheat Sheet notes that JWTs are often suggested for stateless user sessions, and that if you use them that way you need a way to invalidate sessions, such as a deny list of revoked tokens, after which the sessions won't be completely stateless any more, which might defeat the point. It also warns that a signed JWT gives integrity and authenticity but not confidentiality: the claims are only base64url encoded, so anyone who obtains the token can read every one. Its advice is to keep sensitive data on the server side, behind a reference that means nothing by itself.",
+        "text": "OWASP's JSON Web Token Cheat Sheet notes that JWTs are often suggested for stateless user sessions, and that this use is frowned upon. If you use them that way, you need a way to invalidate sessions, such as a deny list of revoked tokens, after which the sessions won't be completely stateless any more, which might defeat the point. It also warns that a signed JWT gives integrity and authenticity but not confidentiality: the claims are only base64url encoded, so anyone who obtains the token can read every one. Its advice is to keep sensitive data on the server side, behind a reference that means nothing by itself.",
         "source": 8
       },
       {
@@ -654,7 +656,7 @@
     },
     {
       "term": "Application-based stickiness",
-      "def": "Stickiness that follows a session cookie your own application sets. An AWS Application Load Balancer adds its own AWSALBAPP cookie alongside it."
+      "def": "Stickiness that follows a session cookie your own application sets. An AWS Application Load Balancer adds its own AWSALBAPP-0 cookie alongside it."
     },
     {
       "term": "AWSALB",
@@ -662,7 +664,7 @@
     },
     {
       "term": "AWSALBAPP",
-      "def": "The encrypted cookie an AWS Application Load Balancer makes for application-based stickiness, sent alongside the application's own cookie."
+      "def": "The encrypted cookie an AWS Application Load Balancer makes for application-based stickiness, sent alongside the application's own cookie. The client sees it as AWSALBAPP-0 (AWSALBAPP plus a fragment number)."
     },
     {
       "term": "Stickiness duration",
@@ -745,10 +747,6 @@
       "def": "A saved copy of a store's data at one moment, which can be restored later."
     },
     {
-      "term": "Cluster",
-      "def": "A group of machines that together run one service, such as an ElastiCache cluster with a primary and replicas."
-    },
-    {
       "term": "Node",
       "def": "One machine, or one running copy, in a group that works together, such as a web server in a web farm or a member of a cluster."
     },
@@ -829,10 +827,6 @@
       "def": "ASP.NET Core's name for data kept in a user's session between requests."
     },
     {
-      "term": "Framework",
-      "def": "Ready-made code a web app is built on, which handles common jobs such as sessions and sign-in."
-    },
-    {
       "term": "Library",
       "def": "Ready-made code a program uses for one job, such as express-session for sessions."
     },
@@ -855,10 +849,6 @@
     {
       "term": "Debugging",
       "def": "Finding and fixing what makes a program misbehave."
-    },
-    {
-      "term": "Distributed cache",
-      "def": "A cache several servers share over the network, such as Redis, instead of each keeping its own."
     },
     {
       "term": "SQL Server",
@@ -954,16 +944,20 @@
         {
           "idea": "Sessions live in each instance's memory, so the deploy's restarts wipe them and log those users out",
           "match": [
+            "deploy wipes",
+            "restarts wipe",
+            "wiped",
             "cleared",
             "erased",
-            "restart",
-            "wipe",
-            "lost",
             "in-memory",
-            "local",
+            "in its memory",
+            "memory go",
             "forget",
-            "signed out",
-            "logs out"
+            "sessions are lost",
+            "sessions go",
+            "logs them out",
+            "logs out",
+            "signed out"
           ]
         },
         {
@@ -979,7 +973,8 @@
             "imbalance",
             "unbalanced",
             "not spread",
-            "new instance",
+            "get few",
+            "gets few",
             "affinity",
             "rebalance"
           ]
@@ -1040,24 +1035,27 @@
             "every request",
             "single point",
             "spof",
-            "down",
-            "slow",
             "outage",
-            "one node"
+            "one node",
+            "if it's slow",
+            "if it is slow",
+            "goes down",
+            "is down",
+            "every page"
           ]
         },
         {
           "idea": "With no replica, a failure can lose every session and log everyone out",
           "match": [
-            "replica",
-            "lose",
-            "lost",
-            "empty",
-            "everyone",
-            "all users",
-            "log out",
-            "logged out",
-            "logs out"
+            "no replica",
+            "without a replica",
+            "come back empty",
+            "comes back empty",
+            "lose every session",
+            "lose all",
+            "all sessions",
+            "log everyone out",
+            "logs everyone out"
           ]
         },
         {
@@ -1082,7 +1080,6 @@
             "timeout",
             "monitor",
             "alert",
-            "memory",
             "latency",
             "fallback"
           ]
@@ -1128,12 +1125,11 @@
           "revocation",
           "take back",
           "taken back",
-          "can't take",
-          "cannot take",
+          "can't be cancelled",
+          "cannot be cancelled",
+          "can't cancel",
+          "cannot cancel",
           "until it expires",
-          "still valid",
-          "valid until",
-          "expiry",
           "deny",
           "blocklist",
           "block list",
@@ -1144,16 +1140,17 @@
         "idea": "Signed isn't encrypted: anyone holding the ticket can read it, so it must never hold secrets like the door code",
         "match": [
           "secret",
-          "read it",
+          "isn't secret",
+          "not secret",
           "readable",
+          "read it",
+          "anyone can read",
           "encrypt",
           "not encrypted",
           "base64",
-          "door code",
-          "private",
-          "visible",
           "decode",
-          "anyone can read"
+          "visible",
+          "private"
         ]
       },
       {
@@ -1216,11 +1213,11 @@
     },
     {
       "title": "RFC 7519: JSON Web Token (JWT), May 2015 (a compact, URL-safe means of representing claims to be transferred between two parties; claims can be signed, integrity protected and/or encrypted)",
-      "url": "https://www.rfc-editor.org/rfc/rfc7519"
+      "url": "https://www.rfc-editor.org/rfc/rfc7519.html"
     },
     {
       "title": "RFC 6265: HTTP State Management Mechanism, April 2011 (user agents should support at least 4096 bytes per cookie and at least 50 cookies per domain; servers SHOULD encrypt and sign the contents of cookies)",
-      "url": "https://www.rfc-editor.org/rfc/rfc6265"
+      "url": "https://www.rfc-editor.org/rfc/rfc6265.html"
     }
   ]
 }

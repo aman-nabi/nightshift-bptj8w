@@ -1,5 +1,7 @@
 {
   "_changelog": [
+    "v1.0.2 (2026-10-10) QA: the read-replica limit merged into the copies limit (the schema allows 3)",
+    "v1.0.1 (2026-10-10) Season 2 review fixes: the reason coalescing does nothing for hits is now that hits never wait on the database (sim.lede, option A's senior take, explain step 5, recall r3's why), not that a second lookup is rarely in flight; the edge-limit commenter is renamed u/velvet_rope_leopold, since s2e08 already has a character with the old name; option C trimmed to match the others; a limit on read replicas for the hot shard, with a new Read replica term; the fix diagram's aria gives both database reads; recall fragments tightened",
     "v1.0.0 (2026-10-09) first version"
   ],
   "id": "s2e11",
@@ -262,7 +264,7 @@
       "text": "Find hot keys with numbers before a node finds them for you. Count lookups per key, or sample one lookup in a hundred and count those, and keep a short list of the busiest: a top-k list, where k is how many you keep. Chart each node's load beside the others too, because one node far above the rest is skew you can alert on. Copies like Cosmin's are a real fix, but they cost you on every write: each copy is another place a change has to reach, so four copies means four deletes per booking. That multiplying of writes is called write amplification. Miss one copy and you get Wednesday."
     },
     {
-      "author": "u/velvet_rope_ignatius",
+      "author": "u/velvet_rope_leopold",
       "points": 41,
       "age": "3h",
       "text": "Different angle. Six thousand phones refreshing once a second for a table that can only be booked once is a queue, not a cache problem. Put a limit at the edge, the first part of your site a request reaches, such as the load balancer or a CDN: each phone may load Table 9's page once every few seconds, and anything quicker gets a page saying wait. Your nodes never see the flood. The catch: your fans see the table a few seconds late, and the limit is per phone, so the next documentary brings more phones.",
@@ -285,7 +287,7 @@
         "tone": "bad",
         "verdict": "Merges misses, not hits",
         "part2": "Cosmin took the copies out and turned coalescing on. On Friday at 21:00:00.0, and again when the booking deleted table:9 at 21:00:00.4, the misses reached the database as 6 reads, one per web server, instead of 270, and the database refused none. Then cache D fell over exactly as on Monday: 6,300 lookups a second against its 3,000, and 3,300 a second timing out, while A, B and C sat at 300. Table 9 wasn't missing. It was sitting in the cache, asked for 6,000 times a second. On the floor, Isidore lit the candle on Table 9 at nine, as he does every night, and nobody came to sit at it.",
-        "senior": "Coalescing merges lookups that are waiting on the same slow answer, which is what a hot key's misses are when a write deletes it, and that part worked: 6 reads instead of 270. It does nothing for hits. A cache answers in about a millisecond, so each web server rarely has two Table 9 lookups in flight to merge. To merge more you'd have to keep the answer for a while, and that's a local cache with a TTL."
+        "senior": "Coalescing merges lookups that are waiting on the same slow answer, which is what a hot key's misses are when a write deletes it, and that part worked: 6 reads instead of 270. It does nothing for hits: it merges only lookups waiting on the database, and Table 9's lookups were hits. To stop D seeing every hit you'd have to keep the answer for a while, and that's a local cache with a TTL."
       },
       {
         "text": "Keep the four copies, one on each node, and change the booking so it deletes all four of them, so no copy can still say free once the table is taken.",
@@ -295,7 +297,7 @@
         "senior": "Copies spread a hot key's reads over several nodes, and deleting every copy keeps them honest. The price is one write per copy on every change and one copy's worth of memory per copy, and the copies share their weak moments: deleted together or filled together, they miss together and stampede the database. Add coalescing so each emptied copy costs one read per web server, 24 here, and choose the number of copies from measured load with room to spare."
       },
       {
-        "text": "Go back to one key. Give each web server a local cache for the hottest keys with a 1-second TTL, and count each node's top keys so the next one is seen early.",
+        "text": "Go back to one key. Give each web server a 1-second local cache for its hottest keys, and count each node's top keys to spot the next one early.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "On Thursday Cosmin went back to one key and gave every web server a local cache for its hottest keys, with a 1-second TTL. On Friday at 21:00:00.0 each server fetched Table 9 from cache D once and answered its own fans from memory for a second. D got 306 lookups a second, A, B and C 300, and nothing timed out. The database got 6 reads at 21:00:00.0 and 6 at 21:00:01.0, one per server. The booking at 21:00:00.4 deleted table:9, one write, but the local copies didn't hear it: for 0.6 seconds they still said free, and the fans who pressed Book in that time were told it was taken, because a booking always checks the database. D's new top-key counter showed table:9 at only 6 lookups a second, so Cosmin added the same counter on the web servers, where it showed 6,000. At 9:01 the candle on Table 9 went out by itself, the way Isidore says it always has.",
@@ -313,7 +315,7 @@
   "sim": {
     "module": "s2e11",
     "title": "Run the cache at Ostler's",
-    "lede": "You're Cosmin, replaying a night at Ostler's from 20:59:55. Six web servers share a cache of four nodes, A to D, or eight, A to H. Each node answers 3,000 lookups a second; past that, the rest time out, and the sim lets the other pages' 1,200 lookups a second, spread evenly over the nodes and always hits, through first. The sim's hash is a toy: it adds up the character codes of the key's name, the numbers a computer stores for its letters (116 for t, 57 for 9), and the remainder after dividing by the number of nodes picks the node. table:9 adds up to 635, so it lives on D with four nodes or eight. At 21:00:00 bookings open and 6,000 fans each load Table 9's page once a second, 1,000 lookups a second per web server. The page isn't cached yet, so the first lookups miss. A miss reads the bookings database, which answers 50 reads a tenth of a second, 500 a second, and refuses the rest; a page it answers stays cached for 5 minutes. At 21:00:00.4 Table 9 is booked, and the booking deletes its key. With copies, each web server sends its lookups to the copies in turn; real clients usually pick one at random, which comes out about even. With a local cache, each web server fetches Table 9 once, its other lookups wait for that answer, and it answers from its own copy until the TTL runs out. Coalescing works on misses: one database read per missing key per web server, and the other misses wait for it. Hits aren't coalesced: a cache answers in about a millisecond, and each web server sees about one Table 9 lookup a millisecond, so there's rarely a second one to merge with. The edge limit lets each phone load the page once every 5 seconds. Changing a setting replays the night. The clock runs twice as fast as real life. Click any box to see what it does.",
+    "lede": "You're Cosmin, replaying a night at Ostler's from 20:59:55. Six web servers share a cache of four nodes, A to D, or eight, A to H. Each node answers 3,000 lookups a second; past that, the rest time out, and the sim lets the other pages' 1,200 lookups a second, spread evenly over the nodes and always hits, through first. The sim's hash is a toy: it adds up the character codes of the key's name, the numbers a computer stores for its letters (116 for t, 57 for 9), and the remainder after dividing by the number of nodes picks the node. table:9 adds up to 635, so it lives on D with four nodes or eight. At 21:00:00 bookings open and 6,000 fans each load Table 9's page once a second, 1,000 lookups a second per web server. The page isn't cached yet, so the first lookups miss. A miss reads the bookings database, which answers 50 reads a tenth of a second, 500 a second, and refuses the rest; a page it answers stays cached for 5 minutes. At 21:00:00.4 Table 9 is booked, and the booking deletes its key. With copies, each web server sends its lookups to the copies in turn; real clients usually pick one at random, which comes out about even. With a local cache, each web server fetches Table 9 once, its other lookups wait for that answer, and it answers from its own copy until the TTL runs out. Coalescing works on misses: one database read per missing key per web server, and the other misses wait for it. Hits never wait on the database, so coalescing never sees them. The edge limit lets each phone load the page once every 5 seconds. Changing a setting replays the night. The clock runs twice as fast as real life. Click any box to see what it does.",
     "tryThis": "Try this: press nothing and watch Monday: at 21:00 cache D jumps to 6,300 lookups a second and 3,300 time out, while A, B and C sit at 300, and the booking at 21:00:00.4 sends 270 reads to the database. Switch to eight nodes: table:9 stays on D. Pick Cosmin's quick fix: every node at 1,800 and nothing timed out, but watch how long the site says free after the booking, then skip to 21:04:55 and see it stop at 299.6 seconds. Now let the booking delete every copy: 4 writes and nothing free after the booking, but 600 reads at the database at 21:00:00.4; add coalescing and it's 24. Try 2 copies, then 8 copies on eight nodes. Back to one key, turn on coalescing alone and compare the database with cache D. Then try the local cache at 1 second and at 10 seconds, and last the edge limit."
   },
   "explain": {
@@ -337,14 +339,14 @@
       },
       {
         "title": "Coalesce the misses, cap the crowd, split what's really many things.",
-        "text": "Coalescing, from the stampede case, merges lookups that are waiting on the same slow answer. A hot key that changes makes exactly that: Facebook's memcache paper describes a key under heavy read and write activity, where each write sends many reads down the costly path. At Ostler's the booking's delete sent 270 reads to the database in a tenth of a second; with coalescing it sent 6, one per web server. Coalescing does nothing for hits. A cache answers in about a millisecond, so a web server rarely has two Table 9 lookups in flight to merge. A limit at the edge, such as one load per phone every 5 seconds, caps what the crowd can send, 1,200 lookups a second instead of 6,000, but fans see changes up to 5 seconds late and the load grows with the number of phones. And if a hot key is really many things under one name, such as a page holding all 28 nights, or a post with its like count and its comments, split it into keys that land on different nodes. Splitting can't help when everyone wants the very same value, like the one new night at 9:00."
+        "text": "Coalescing, from the stampede case, merges lookups that are waiting on the same slow answer. A hot key that changes makes exactly that: Facebook's memcache paper describes a key under heavy read and write activity, where each write sends many reads down the costly path. At Ostler's the booking's delete sent 270 reads to the database in a tenth of a second; with coalescing it sent 6, one per web server. Coalescing does nothing for hits: they never wait on the database, so it has nothing to merge. A limit at the edge, such as one load per phone every 5 seconds, caps what the crowd can send, 1,200 lookups a second instead of 6,000, but fans see changes up to 5 seconds late and the load grows with the number of phones. And if a hot key is really many things under one name, such as a page holding all 28 nights, or a post with its like count and its comments, split it into keys that land on different nodes. Splitting can't help when everyone wants the very same value, like the one new night at 9:00."
       }
     ],
     "diagram": {
       "type": "arch",
       "w": 740,
       "h": 420,
-      "aria": "The fix, drawn at 21:00:02 on Friday. Fans' phones send 6,000 lookups a second for Table 9 and other pages 1,200 a second to six web servers, each with a local cache that keeps Table 9 for 1 second and fetches it once a second. Cache D holds table:9 and gets 306 lookups a second of the 3,000 it answers; A, B and C get 300 each. The bookings database got 6 reads at 21:00:01.0. For 0.6 seconds after the booking, the local copies still said free.",
+      "aria": "The fix, drawn at 21:00:02 on Friday. Fans' phones send 6,000 lookups a second for Table 9 and other pages 1,200 a second to six web servers, each with a local cache that keeps Table 9 for 1 second and fetches it once a second. Cache D holds table:9 and gets 306 lookups a second of the 3,000 it answers; A, B and C get 300 each. The bookings database got 6 reads at 21:00:00.0 and 6 at 21:00:01.0, one per server. For 0.6 seconds after the booking, the local copies still said free.",
       "nodes": [
         {
           "id": "fans",
@@ -502,7 +504,7 @@
     },
     "limits": [
       "A local cache trades load for staleness and memory. Every server's copy can be up to the TTL out of date, and no delete reaches it unless you build a way to send one to every server, so use it for keys where a second or so of staleness is fine, and let decisions that can't be undone read the source of truth. Its load on the shared cache grows with the number of servers: 600 web servers with a 1-second TTL still send 600 lookups a second.",
-      "Copies multiply every write and every byte of memory, and the number of copies is a guess made in advance. With a real hash, two copies can land on the same node by chance, so check where they land. And any write path that forgets a copy, a script or an old admin screen, brings back Wednesday.",
+      "Copies multiply every write and every byte of memory, and the number of copies is a guess made in advance. With a real hash, two copies can land on the same node by chance, so check where they land. And any write path that forgets a copy, a script or an old admin screen, brings back Wednesday. On a managed cache you can instead add read replicas to the hot shard and read from them, which spreads its reads without new key names; the next case covers replicas and their lag.",
       "Counters find a hot key once it's hot. For hot keys you can see coming, like a 9:00 opening, a launch or a sale, set up the local cache or the copies before the day, and keep the edge limit for the crowd nobody predicted."
     ],
     "tradeoff": {
@@ -692,6 +694,10 @@
     {
       "term": "Replicating a hot key",
       "def": "Storing a hot key as several copies on different nodes and sending each read to one of them. Reads spread out; every write has to reach every copy."
+    },
+    {
+      "term": "Read replica",
+      "def": "A replica that answers reads, so a shard's reads spread over several nodes under the same key names. A managed cache such as ElastiCache lets you add them to a shard. They lag a little behind the primary."
     },
     {
       "term": "Write amplification",
@@ -904,10 +910,12 @@
             "one key",
             "single key",
             "same key",
-            "owns",
+            "owns the key",
+            "node that owns",
             "lives on",
             "one shard",
-            "hash"
+            "hash of",
+            "hashes to"
           ]
         },
         {
@@ -947,13 +955,15 @@
             "top keys",
             "sampl",
             "count lookups",
-            "counts",
+            "per-key count",
+            "count each key",
             "counter",
             "skew",
             "hotkeys",
             "contributor insights",
             "per key",
-            "alert"
+            "alert on",
+            "alert when"
           ]
         }
       ],
@@ -983,7 +993,7 @@
         "A limit at the edge of one load per phone every 5 seconds"
       ],
       "answer": 1,
-      "why": "Coalescing merges lookups waiting on the same slow answer, like misses waiting on the database. The key is in the cache and answers in about a millisecond, so there's rarely a second lookup in flight to merge with, and D still gets every one. The local cache, the copies and the edge limit each cut what D gets: to 306, 1,800 and 1,500 a second at Ostler's."
+      "why": "Coalescing on misses merges lookups waiting on the database. Table 9's key is in the cache, so its lookups are hits that never wait on the database, and D still gets every one. The local cache, the copies and the edge limit each cut what D gets: to 306, 1,800 and 1,500 a second at Ostler's."
     },
     {
       "id": "s2e11-r4",
@@ -997,8 +1007,10 @@
             "only one copy",
             "only the first",
             "only some",
-            "missed",
-            "forgot",
+            "missed a copy",
+            "missed copies",
+            "forgot to delete",
+            "forgot a copy",
             "didn't update",
             "did not update",
             "didn't delete",
@@ -1026,8 +1038,10 @@
         {
           "idea": "Bound the damage with a short TTL on the copies, and make the purchase check the database",
           "match": [
-            "ttl",
-            "expire",
+            "short ttl",
+            "shorter ttl",
+            "lower the ttl",
+            "ttl short",
             "source of truth",
             "check the database",
             "checks the database",
@@ -1070,8 +1084,9 @@
           "cannot be deleted",
           "not invalidated",
           "no invalidation",
-          "stale",
-          "out of date"
+          "stale for up to",
+          "stale for its whole",
+          "out of date for up to"
         ]
       },
       {
@@ -1095,7 +1110,8 @@
           "how stale",
           "short ttl",
           "shorter ttl",
-          "seconds",
+          "few seconds",
+          "ttl of seconds",
           "1 second",
           "source of truth",
           "check the database",

@@ -1,4 +1,4 @@
-/* sims/s2e11-v1.0.1.js  (published as sims/s2e11.js)
+/* sims/s2e11-v1.0.2.js  (published as sims/s2e11.js)
    Case s2e11 "Hot Key": a hot key at Ostler's, a small restaurant whose booking site runs on six
    web servers sharing a cache of four nodes (eight with the second setting) in front of the bookings
    database. Every night at 21:00, 6,000 fans load the page of one table, Table 9, once a second,
@@ -7,6 +7,15 @@
    copy), turns on coalescing for misses and puts a limit at the edge.
 
    CHANGELOG
+   v1.0.2 (2026-10-10) Season 2 review fixes: with a local cache and the booking deleting every
+     copy, book() no longer marks copies that were never cached as deleted, so the log says "Table 9
+     isn't cached yet" for them instead of blaming the booking. With a local cache and Cosmin's
+     quick fix, the booking line says "Copies #2 to #4 aren't cached yet" when they were never
+     filled. A node's box names a Table 9 key only when it holds one (cache A no longer shows
+     "table:9 0"). The web servers' box gives the real reason hits are never coalesced: they don't
+     wait on the database. The edge-limit commenter is now u/velvet_rope_leopold (s2e08 already
+     has a character with the old name).
+     Points at case v1.0.1.
    v1.0.1 (2026-10-09) QA: the log names the real reason for a burst of misses (the booking's delete, or
      a key not cached yet). The reason was read after the refill had already cleared it, so every
      burst said the page ran out after 5 minutes.
@@ -20,7 +29,7 @@
      reset. Stats: busiest node, failed lookups, database reads, seconds the site said "free" after
      the booking, cache writes per booking. selfTest: 18 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e11-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e11-v1.0.1.json):
    - post: six web servers; four cache nodes, A to D; each node answers 3,000 lookups a second and
      the database 500 reads; pages cached for 5 minutes; a booking deletes its table's key; 1,200
      lookups a second on a normal evening, 300 per node; from 21:00, about 6,000 fans refresh Table
@@ -30,7 +39,7 @@
      #1 only): 1,800/s per node, nothing timed out; until 21:05 one answer in four says booked.
    - comments: local cache with a very short TTL (u/near_cache_oksana); top-k counts and four
      deletes per booking for four copies (u/top_keys_tobiah); one load per phone every few seconds
-     at the edge (u/velvet_rope_ignatius).
+     at the edge (u/velvet_rope_leopold).
    - reply options: index 0 (coalescing alone): the database gets 6 reads instead of 270 at the
      booking, and D still gets 6,300 a second, 3,300 timing out. Index 1 (four copies, every one
      deleted): 1,800 a second per node, 4 writes per booking, 600 reads and 550 refused at
@@ -464,11 +473,11 @@
       S.keys[0].expires = 0;
       S.keys[0].gone = "deleted";
     } else {
-      for (k = 0; k < S.keys.length; k++) { S.keys[k].expires = 0; S.keys[k].gone = "deleted"; }
+      for (k = 0; k < S.keys.length; k++) { if (S.keys[k].gone === "new") continue; S.keys[k].expires = 0; S.keys[k].gone = "deleted"; }
     }
     var what;
     if (S.copies === "off") what = "table:9 (1 cache write).";
-    else if (S.copies === "quick") what = "table:9#1 only (1 cache write). Copies #2 to #4 still say free.";
+    else if (S.copies === "quick") { var held = 0; for (k = 1; k < S.keys.length; k++) if (S.keys[k].gone !== "new") held++; what = "table:9#1 only (1 cache write). " + (held ? "Copies #2 to #4 still say free." : "Copies #2 to #4 aren't cached yet."); }
     else what = "all " + S.keys.length + " copies (" + S.keys.length + " cache writes).";
     say(api, "21:00:00.4 Table 9 is booked: party of one, R. Marchbank. The booking writes the database, then deletes " + what +
       (localSlots(S) ? " The web servers' local copies don't hear about it." : ""), "warn");
@@ -754,7 +763,7 @@
     var meta = nodeMeta(S, i);
     return "<strong>Cache " + L + ".</strong> Answers up to 3,000 lookups a second; past that, the rest time out. It holds every key whose hash leaves " +
       i + " when divided by " + S.nodes + ". Its per-key counts for the last second: " +
-      (meta ? (S.copies === "off" ? "table:9" : meta) + " " + fmt(hot) + ", " : "") + "the other pages' keys " + fmt(load - hot) +
+      (meta !== "other keys" ? meta + " " + fmt(hot) + ", " : "") + "the other pages' keys " + fmt(load - hot) +
       " between them. Counting lookups per key on every node, and keeping the busiest few, is how you spot a hot key before it melts a node.";
   }
 
@@ -772,7 +781,7 @@
       if (localSlots(S)) s += "Local cache on: each server fetches Table 9 once, its other lookups wait for that answer, and then it answers from its own copy for " + (S.local === "1" ? "1 second" : "10 seconds") + ". Nothing tells that copy about a booking. ";
       if (S.copies !== "off") s += "Copies: Table 9 is stored as " + S.keys.length + " keys on different nodes, and each server sends its lookups to them in turn. ";
       s += S.coal ? "Coalescing is on: one database read per missing key per server, and the other misses wait for it." :
-        "Coalescing is off: every miss reads the database. Hits are never coalesced: a cache answers in about a millisecond, so there's rarely a second lookup in flight to merge with.";
+        "Coalescing is off: every miss reads the database. Hits are never coalesced: they don't wait on the database.";
       return s;
     },
     db: function (S) {

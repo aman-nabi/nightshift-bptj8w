@@ -1,4 +1,4 @@
-/* sims/s2e09-v1.0.0.js  (published as sims/s2e09.js)
+/* sims/s2e09-v1.0.1.js  (published as sims/s2e09.js)
    Case s2e09 "The Front Desk": a reverse proxy and API gateway that Sigrun calls the Porter, in
    the basement of the Kittiwake, a seaside hotel in Wrackmouth. Every request from the guests'
    phones goes through it: TLS ends there, it checks the guest pass, it limits each phone to 10
@@ -8,6 +8,10 @@
    each phone to the nearer one, and a TTL decides how long phones keep that answer.
 
    CHANGELOG
+   v1.0.1 (2026-10-10) Season 2 review fixes: the skip log says "door-4 has received N since
+     01:11:50", because door-3's count starts at 01:12:00 and door-4's at the replay start, so the
+     two numbers no longer read as if they shared a start. Points at case v1.0.1, which also says
+     in the post and sim.lede that the coast phones are about 20 ms from the Porter.
    v1.0.0 (2026-10-09) first version: Saturday night at the Kittiwake from 01:11:50, in slots of
      one sim second. Settings (changing one replays the night): service discovery (a registry
      instead of Sigrun's file), health checks (every 5 s, out after 2 misses, back after 2
@@ -18,7 +22,7 @@
      errors a second and latency for coast and hills phones, how long the Lodge's failover took,
      and requests turned away by the rate limit each second. selfTest: 15 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e09-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e09-v1.0.1.json):
    - post: the Porter holds the certificate, checks the guest pass, numbers and logs every request,
      and lets no phone through more than 10 times a second (since January, when a stuck tablet
      asked for its booking 300 times a second; each server answers about 20 a second). About 24
@@ -516,7 +520,7 @@
     api.clock = START_CLOCK + SKIP_TO;
     var d3 = S.doors[SEAWARD];
     say(api, "Skipped to 02:39:50. Since 01:12:00 the Porter has sent door-3 " + fmt(d3.lost) + " requests" +
-      (d3.lost > 0 ? ", and it has answered none." : ".") + " door-4 has received " + fmt(S.doors[NEWEST].recv) + ".", "");
+      (d3.lost > 0 ? ", and it has answered none." : ".") + " door-4 has received " + fmt(S.doors[NEWEST].recv) + " since 01:11:50.", "");
     draw(api);
   }
 
