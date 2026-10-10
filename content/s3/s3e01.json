@@ -1,0 +1,1160 @@
+{
+  "_changelog": [
+    "v1.0.2 (2026-10-11) follow-ups: systems librarian renamed Alaric Brockhurst (rule 15, the previous first name and surname were near-duplicates of names in s2e06 and a2e04)",
+    "v1.0.1 (2026-10-11) review fixes: systems librarian renamed Alaric Brockhurst and loans desk head renamed Euphemia Lindqvist (rule 15, the old first names were near-duplicates of names in a2e02 and a2e03); coldCase keyIdeas[3] match fragment '80%' removed",
+    "v1.0.0 (2026-10-11) first version"
+  ],
+  "id": "s3e01",
+  "season": 3,
+  "n": 1,
+  "title": "The Card Catalog",
+  "setting": "a university library at night",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "indexes",
+    "query-plans",
+    "why-queries-get-slow",
+    "connection-pooling"
+  ],
+  "prerequisites": [
+    "s2e01",
+    "s2e12",
+    "s2e13",
+    "s2e14",
+    "s2e03",
+    "s2e04",
+    "s2e05",
+    "s2e06",
+    "s1e01",
+    "s1e02",
+    "s1e04",
+    "s1e06",
+    "s1e07",
+    "s1e08",
+    "s1e09",
+    "s1e10",
+    "s1e12"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/carrel_lamp_isembard",
+    "flair": "Part 1",
+    "age": "5h",
+    "votes": 3118,
+    "title": "I'm the night assistant at a university library. At 02:00 every catalogue terminal freezes on the same search, for a borrower whose last book went out in 1962.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I work the night desk at the Thessaly Library, Ashcombe University, midnight to six. In exam season the reading room never closes: twelve catalogue terminals, six self-service kiosks for borrowing and returning, about 2 kiosk requests a second all night. Under it all, in the basement, is one server running PostgreSQL, which Alaric Brockhurst, our systems librarian, set up in 2019. It holds every loan since 1962: 4,180,000 of them."
+      },
+      {
+        "t": "p",
+        "text": "At 02:00:00 every terminal freezes mid-search, all twelve at once. Then the kiosks go grey and say *too many clients*. It lasts more than an hour. Alaric left me a screen that lists the database's connections, and at 02:00 it fills: a hundred of them, all the overdue-letters job, all the same kind of search. The oldest, at the top, is always the same one."
+      },
+      {
+        "t": "log",
+        "text": "02:00:00  letters job  9,600 letters tonight, up to 1,000 functions at once\n02:00:00  database     connections 100 of 100   max_connections 100\n02:00:00  letters job  lookup 1: lower(surname) = 'yarrow'   loan of 14 Nov 1962\n02:00:00  kiosk 4      too many clients\n02:00:41  letters job  lookup 1: 7 rows in 42 s, letter written\n03:07:11  letters job  9,600 letters written\n03:07:12  kiosks       working again, 8,064 requests refused"
+      },
+      {
+        "t": "beat",
+        "text": "Aldous Yarrow borrowed a book on 14 November 1962 and never brought it back. Every night at two, something in the basement goes looking for him."
+      },
+      {
+        "t": "p",
+        "text": "The job is older than the server. Miss Euphemia Lindqvist, who ran the loans desk until 1991, set it up on the old mainframe: every overdue loan gets a letter, oldest first. In 2019 Alaric moved it to cloud functions: small programs the cloud starts on demand, as many at once as there's work. Each letter gets its own function, and each function opens its own connection to the database. When the card catalogue was typed in, in 1987, the old surnames went in as capitals, so the job searches lower(surname) to catch YARROW and Yarrow alike. The loans table has an index on surname. Her card is still taped inside the catalogue cabinet:"
+      },
+      {
+        "t": "note",
+        "title": "OVERDUE NOTICES",
+        "items": [
+          "FIND THE NAME IN THE CATALOGUE. DO NOT WALK THE STACKS.",
+          "ONE DRAWER AT A TIME. THE READING ROOM COMES FIRST."
+        ],
+        "sig": "- H. Lindqvist, 1974"
+      },
+      {
+        "t": "p",
+        "text": "The letters still go out. Every month one comes back unopened, from an address that has been the university car park since 1971. Alaric says nobody else has the job's password, and he has never touched its schedule."
+      },
+      {
+        "t": "p",
+        "text": "What should Alaric change before tomorrow at 02:00?"
+      },
+      {
+        "t": "evidence",
+        "label": "connections_020041.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 400,
+          "aria": "Alaric's drawing of the database at 02:00:41 on Thursday. The letters job runs 1,000 functions: 100 hold connections and 900 wait to connect. The kiosks and terminals send 2 requests a second and are refused with too many clients. PostgreSQL in the basement has 100 of 100 connections in use, on a server with 8 GiB and max_connections 100. Every lookup is lower(surname) = 'yarrow' or another name: a Seq Scan that reads 4,180,000 rows to return 7, taking 42 seconds each with 100 running at once.",
+          "nodes": [
+            {
+              "id": "job",
+              "label": "Letters job",
+              "sub": "1,000 functions",
+              "meta": "900 waiting to connect",
+              "x": 140,
+              "y": 50,
+              "w": 240,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "kiosks",
+              "label": "Kiosks and terminals",
+              "sub": "2 requests a second",
+              "meta": "refused: too many clients",
+              "x": 600,
+              "y": 50,
+              "w": 240,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "db",
+              "label": "PostgreSQL in the basement",
+              "sub": "100 of 100 connections",
+              "meta": "8 GiB, max_connections 100",
+              "x": 370,
+              "y": 200,
+              "w": 300,
+              "h": 72,
+              "shape": "db",
+              "tone": "bad"
+            },
+            {
+              "id": "plan",
+              "label": "Lookup: lower(surname) = 'yarrow'",
+              "sub": "Seq Scan: 4,180,000 rows read",
+              "meta": "7 returned, 42 s each, 100 at once",
+              "x": 370,
+              "y": 335,
+              "w": 420,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            }
+          ],
+          "edges": [
+            {
+              "from": "job",
+              "to": "db",
+              "label": "100 connections"
+            },
+            {
+              "from": "kiosks",
+              "to": "db",
+              "label": "refused",
+              "dash": true,
+              "tone": "bad"
+            },
+            {
+              "from": "db",
+              "to": "plan"
+            }
+          ],
+          "notes": [
+            {
+              "x": 720,
+              "y": 390,
+              "text": "Thursday, 02:00:41",
+              "tone": "muted",
+              "anchor": "end"
+            }
+          ]
+        },
+        "caption": "Alaric's drawing of the database at 02:00:41, just as Aldous Yarrow's letter was written. The letters job has 1,000 functions: 100 hold all 100 connections and 900 wait to connect. Each connection is running a lookup on lower(surname), a Seq Scan that reads all 4,180,000 loans to return a few, and with 100 of them sharing the server each takes 42 seconds. The kiosks and terminals, 2 requests a second, find no connection left: too many clients."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 131,
+      "age": "4h",
+      "text": "Two things went wrong at 02:00, and they're worth pulling apart. For every query the database's planner makes a query plan: its choice of how to find the rows. EXPLAIN shows the plan; EXPLAIN ANALYZE runs the query and shows what actually happened, rows and time included. A Seq Scan reads every row of the table and keeps the ones that match; an Index Scan walks an index to the matches and reads only those. So: which column is your index on, and what does the job's lookup ask for? How many rows did it read to return seven? And how many connections did the job open, and how long did each one stay open?",
+      "replies": [
+        {
+          "author": "u/carrel_lamp_isembard",
+          "op": true,
+          "points": 38,
+          "age": "3h",
+          "text": "Alaric ran it at noon, on its own: Seq Scan on loans, Filter: (lower(surname) = 'yarrow'), Rows Removed by Filter: 4,179,993, 418 ms. The index is loans_surname_idx, on surname. Each function keeps its connection until its lookup is done, and at 02:00 the job starts up to 1,000 of them. He says 418 ms didn't look slow to him."
+        }
+      ]
+    },
+    {
+      "author": "u/bigger_iron_gunnar",
+      "points": 64,
+      "age": "3h",
+      "text": "Your whole library runs on one server with 8 GiB of memory. That's a desk lamp, not a database. Scale it up four times: four times the memory, pages fetched four times faster, so every lookup finishes sooner and hands its connection back sooner. We did exactly that at my last job when the night batch started fighting the daytime users, and the fighting stopped the same week. One resize, no code to change."
+    },
+    {
+      "author": "u/give_it_a_copy_lisandro",
+      "points": 51,
+      "age": "2h",
+      "text": "Rule I learned the hard way: never let a batch job near the database your users write to. Give the letters job a read replica of its own and point its lookups at the copy. The kiosks keep the primary to themselves, and if the copy is slow at two in the morning, nobody is awake to care."
+    },
+    {
+      "author": "u/one_line_fix_svetlana",
+      "points": 33,
+      "age": "1h",
+      "text": "Someone will tell you to put a pooler in front, such as PgBouncer: a program between the apps and the database that keeps a few real connections open and lends them to clients in turn. That's one more thing to keep running at 2 AM. max_connections, the most connections PostgreSQL will hold open at once, is one line in postgresql.conf, and 100 is only the default. Set it to 2,000 and every function and every kiosk gets a connection of its own.",
+      "replies": [
+        {
+          "author": "u/carrel_lamp_isembard",
+          "op": true,
+          "points": 12,
+          "age": "40m",
+          "text": "Alaric found Miss Lindqvist's notes for the mainframe version. It looked up one borrower at a time, through the catalogue, and the notes say it never once kept a reader waiting."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "Thursday's letters job starts at 02:00 again, and the reading room will be full. What should Alaric change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Move to a server 4 times the size, with 4 times the memory and page speed, and leave the job and its lookup as they are.",
+        "tone": "warn",
+        "verdict": "Trade-off: a shorter freeze, the same mistake",
+        "part2": "Alaric moved the database to a server four times the size on Wednesday: 32 GiB, and pages fetched four times as fast. max_connections stayed at 100, because it's a line in PostgreSQL's settings, not a size. At 02:00:00 the job started 1,000 functions. A hundred got connections, 900 waited, and the kiosks said too many clients. Each lookup still read all 4,180,000 rows, in 11 seconds instead of 42. Aldous Yarrow's letter was written at 02:00:10 and the last of the 9,600 at 02:17:35. The kiosks refused 2,112 requests instead of 8,064: a quarter of the freeze, on a server that costs roughly four times as much. At 02:17:36 the terminals woke, all twelve together, and every search box was empty.",
+        "senior": "A bigger server makes every page cheaper, so the same mistake costs less. It doesn't remove the mistake: the lookup still reads 4,180,000 rows to return 7, and 1,000 functions still queue for 100 connections, because max_connections is a setting, not a size. Scaling up is right when the work itself is needed. Here almost all of it is wasted: read the plan first, make the lookup cheap, and limit how many connections the job can take."
+      },
+      {
+        "text": "Give the letters job a read replica of its own, and point its lookups at the copy so the kiosks keep the primary.",
+        "tone": "bad",
+        "verdict": "A copy that reads every row just the same",
+        "part2": "Alaric built a read replica on Wednesday, a second server the same size, and pointed the job's lookups at it. But each function opens its connection to the primary as it starts, to record its letter, and holds it until the letter is done. At 02:00:00 the job started 1,000 functions. A hundred took the primary's 100 connections and ran their lookups on the copy, where every lookup read all 4,180,000 rows, 42 seconds each, a hundred at a time: the copy has the same table and the same index on surname. On the primary the kiosks found 100 of 100 connections in use, exactly as before. Yarrow's letter at 02:00:41, the last at 03:07:11, 8,064 kiosk requests refused, and now two servers at full price. At 02:00 the screen showed his search twice, once on each server.",
+        "senior": "A read replica holds the same rows and the same indexes as its primary, so a query that reads every row on one reads every row on the other. Copies spread reads that are already reasonable; they don't fix a lookup that reads 4,180,000 rows to find 7. And the connections the job holds on the primary are still connections: moving the reads didn't move them. Fix the plan first, then limit the job's connections where they're scarce."
+      },
+      {
+        "text": "Index lower(surname) and confirm it with EXPLAIN, then route the job through PgBouncer, capped at 10 functions.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "On Wednesday afternoon Alaric built the index with CREATE INDEX CONCURRENTLY, which doesn't block the kiosks' loans and returns while it builds, and ran EXPLAIN ANALYZE again: Index Scan using loans_lower_surname_idx, 7 rows examined, 7 returned, 10 pages, 3 of them the index, one per level. Then he put PgBouncer between every client and the database, with a pool of 10 connections for the job and 5 for the kiosks, and capped the job at 10 functions. At 02:00:00 the job started 10 functions. Aldous Yarrow's lookup took less than a millisecond, and his letter was written at 02:00:00. The database had 15 of 100 connections open all night. The job wrote 10 letters a second and finished at 02:15:59, and not one kiosk request was refused. At 02:00 I watched the screen show yarrow, then the next name, then the next. Nothing stayed at the top.",
+        "senior": "Two problems, two fixes. The lookup asked for lower(surname), which the index on surname can't serve, so every lookup read all 4,180,000 rows; an index on the expression the query uses turns that into 10 pages, and EXPLAIN is how you prove it. The connections were the other problem: each function opened its own, and a slow query held each one, so the job used up max_connections and the kiosks had none. A pooler lends a few real connections in turn, and a cap limits how many the job can ask for, so whatever the next slow query is, the kiosks keep theirs. The price is a job that takes 16 minutes instead of 96 seconds, a fine trade at 2 AM."
+      },
+      {
+        "text": "Raise max_connections from 100 to 2,000 so every function and kiosk connects, and restart PostgreSQL at 18:00.",
+        "tone": "bad",
+        "verdict": "The failure moves to memory",
+        "part2": "Alaric set max_connections to 2,000 on Wednesday. PostgreSQL only reads it at start, so he restarted the database at 18:00, and the kiosks went dark while it came back. At 02:00:00 the job started 1,000 functions and every one got a connection, and so did 2 kiosk requests: 1,002 connections. At about 9.5 MB each that's 9,550 MB, and the server has 8,590. It ran out of memory, and PostgreSQL restarted, dropping every connection. Ten seconds later the functions all connected again, and it fell over again. By 04:00 it had restarted 655 times, not one letter had gone out, and the kiosks had refused 14,400 requests, every one since 02:00. They didn't say too many clients any more. They said the database was starting up.",
+        "senior": "max_connections is a ceiling for a reason. PostgreSQL gives every connection its own process and sizes some of its memory by the setting, so raising it promises memory the server may not have. Here 1,000 functions each wanted a connection to hold through a slow lookup: at 100 that showed as too many clients, and at 2,000 as a server out of memory. More connections add no pages a second either; the lookups still share one server. Keep the ceiling, make each query cheap, and put a pooler and a cap between bursty clients and the database."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s3e01",
+    "title": "Read the plan, then run 02:00 at the Thessaly Library",
+    "lede": "You're Alaric, with two tools. The plan lab: pick a query form and which indexes exist, and see the plan PostgreSQL's planner would pick, the rows examined and returned, and the time. The loans table holds 4,180,000 loans, 80 to a page: 52,250 pages. The cost model: every page fetched costs 0.008 ms, so a Seq Scan alone takes 418 ms. Every index is a B-tree with 300 entries a page. A lookup reads one page per level on the way down, then one more index page for every 300 matches (at least one), then one table page per matching row, and the planner takes whichever plan reads fewer pages. Besides the job's lookup there are five more forms, including surname > 'B', which matches most of the table, and due_date < '1963-01-01'. The sim assumes the lower(surname) index can serve searches by the start of a name. The night: Thursday from 02:00:00 to 04:00:00, a second at a time. The letters job always runs the lower(surname) lookup, 9,600 letters, one function each, and a function holds its connection until its lookup is done, at least a second. The server fetches at most 125,000 pages a second, shared equally by the lookups running then. The kiosks send 2 requests a second; functions retry every second and take any free connection first. Each connection needs about 9.5 MB, the figure Amazon RDS divides memory by to set its default limit; if the open connections need more than the server has, PostgreSQL runs out of memory, restarts, drops every connection and refuses all of them for 10 seconds. With PgBouncer on, everything connects through it: it accepts 100 clients at once, its default, and keeps a pool for the job and 5 connections for the kiosks, opened at the start and counted as in use all night. Changing anything but the query form replays from 02:00:00.",
+    "tryThis": "Try this: as now, run to 04:00. At 02:00:00, 100 of 100 connections are in use and 900 functions wait; Aldous Yarrow's letter is written at 02:00:41, the last at 03:07:11, and 8,064 kiosk requests are refused. Add the index on lower(surname): Index Scan, 7 rows examined, 10 pages, 0.08 ms. Run again: the job ends at 02:01:35, but 192 kiosk requests are still refused. Turn PgBouncer on with a pool of 10 and cap the job at 10: 15 connections, 143 MB, nothing refused, the last letter at 02:15:59. Cap it at 50 instead and run a minute: 40 functions wait at the pooler while the kiosks carry on. Uncap it and run to 04:00: 1,902 refused at the pooler. In the plan lab, try lower(surname) LIKE '%row' with every index: still a Seq Scan. Try surname > 'B' with the index on surname: the planner skips it. Try due_date with the index on (surname, due_date). Then reset, set max_connections to 2,000 and run: out of memory at 02:00:00, 655 restarts, no letters. Try 500 and run: no crash, 7,942 refused. Last, reset and pick a server 4 times bigger: 2,112 refused, done at 02:17:35."
+  },
+  "explain": {
+    "oneLine": "Nobody is searching for Aldous Yarrow on purpose. His 1962 loan is simply the oldest overdue one, so his lookup always comes first, and every lookup read all 4,180,000 loans because the index was on surname and the job asked for lower(surname). A thousand functions each held a connection through that scan, and the kiosks had none left.",
+    "steps": [
+      {
+        "title": "An index is the card catalogue.",
+        "text": "Without an index, finding every loan by one surname means reading the whole table, 52,250 pages, and checking each row. An index is the card catalogue in the basement: the names in sorted order, each card pointing to where the book is, so you go straight to the right drawer instead of walking the stacks. PostgreSQL's usual index is a B-tree. Its pages hold sorted entries, 300 a page in the sim, its fan-out, and each page on one level points to pages on the level below. One level reaches 300 rows, two reach 90,000 and three reach 27,000,000, so 4,180,000 loans need three levels: one root page, 47 in the middle and 13,934 leaves. Finding the Yarrows means reading one page per level, then the 7 matching rows: 10 pages instead of 52,250. That's why an index lookup barely slows as a table grows: this one won't need a fourth level until the table passes 27 million rows."
+      },
+      {
+        "title": "The plan says which way the database chose.",
+        "text": "Before running a query, the planner estimates what each possible plan would cost and picks the cheapest. EXPLAIN shows that plan; EXPLAIN ANALYZE also runs the query and adds the real rows and time. PostgreSQL's manual says its cost units are traditionally disk page fetches, which is why the sim counts pages. Read the first plan line and its rows: Seq Scan on loans, Filter: (lower(surname) = 'yarrow'), Rows Removed by Filter: 4,179,993. Rows examined against rows returned is the tell: 4,180,000 read to return 7. With the right index, the same line reads Index Scan using loans_lower_surname_idx, with 7 rows examined. Run ANALYZE first, so the planner's statistics are current, and test on real data, because a small test table can make a scan look cheap. EXPLAIN ANALYZE really runs the statement, so run a write inside a transaction and roll it back."
+      },
+      {
+        "title": "Why a query can't use the index you have.",
+        "text": "The index on surname is sorted by surname as typed. lower(surname) is a different value, so that order is no help: a function on the column hides a plain index. PostgreSQL can index the expression itself, CREATE INDEX ON loans (lower(surname)), and a query that uses the same expression can then use it. The other usual reasons: a leading wildcard, LIKE '%row', can't use a B-tree, because names ending in row are scattered through the sort order, while LIKE 'yar%' can, in the C locale or with an index built with text_pattern_ops. An index on (surname, due_date) is sorted by surname first, so a query on due_date alone can't use it: its leftmost column comes first. And the planner skips an index when a query returns most of the table: surname > 'B' matches 3,929,200 loans, and fetching them one at a time through the index would read 3,942,300 pages against 52,250 for the table in order. Every index also costs work on every insert and on most updates, so add the ones your queries need, not every one you can."
+      },
+      {
+        "title": "A hundred doors, a thousand callers.",
+        "text": "PostgreSQL starts a separate process for every connection and sizes some of its shared memory by max_connections, which it reads only at start; the default is typically 100. A cloud function that opens its own connection holds it for as long as its work runs. At 02:00 the job started 1,000 functions. A hundred got connections and held them through lookups of 52,250 pages each, and with the server's page reads split a hundred ways, each lookup took 42 seconds instead of 418 ms. The 900 others retried every second and won every connection that came free, so the kiosks got none: 8,064 requests refused before the last letter at 03:07:11. More functions don't finish sooner when they share one server's page reads; they only hold more connections. Raising max_connections to 2,000 lets them all in, and in the sim 1,002 connections at about 9.5 MB each need 9,550 MB of a server with 8,590."
+      },
+      {
+        "title": "Pool the connections, cap the job.",
+        "text": "A pooler such as PgBouncer sits between the clients and the database. Clients connect to it cheaply, about 2 kB each, and it lends them a few real database connections in turn. It keeps a pool for each database user, so give the job 10 and the kiosks 5, and the job can never take the kiosks' connections. PgBouncer's default, session pooling, lends a connection for a client's whole visit; transaction pooling lends it for one transaction, so a few connections serve many clients, but it breaks session features such as SET. It also accepts only 100 clients by default, so the job needs a cap too: AWS Lambda's reserved concurrency sets the most copies of a function that run at once, and AWS suggests it for not overwhelming database connections. For an Amazon RDS database, RDS Proxy is the managed pooler. With both, the job waits its turn at 2 AM and the reading room never notices."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 380,
+      "aria": "The fix, drawn for Thursday. The letters job is capped at 10 functions, and each lookup is an Index Scan of 10 pages. The job and the kiosks both connect through PgBouncer, which accepts up to 100 client connections and keeps a pool of 10 for the job and 5 for the kiosks. PostgreSQL has 15 of 100 connections open and an index on lower(surname). A connection alert watches the database and fires above 80 of 100.",
+      "nodes": [
+        {
+          "id": "job",
+          "label": "Letters job",
+          "sub": "capped at 10 functions",
+          "meta": "lookup: Index Scan, 10 pages",
+          "x": 140,
+          "y": 50,
+          "w": 240,
+          "h": 62,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "kiosks",
+          "label": "Kiosks and terminals",
+          "sub": "2 requests a second",
+          "meta": "0 refused",
+          "x": 600,
+          "y": 50,
+          "w": 240,
+          "h": 62,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "bouncer",
+          "label": "PgBouncer",
+          "sub": "100 client connections",
+          "meta": "pools: job 10, kiosks 5",
+          "x": 370,
+          "y": 175,
+          "w": 280,
+          "h": 62,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "db",
+          "label": "PostgreSQL in the basement",
+          "sub": "15 of 100 connections",
+          "meta": "loans_lower_surname_idx",
+          "x": 370,
+          "y": 310,
+          "w": 300,
+          "h": 72,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "alert",
+          "label": "Connection alert",
+          "sub": "over 80 of 100",
+          "x": 640,
+          "y": 310,
+          "w": 170,
+          "h": 52,
+          "shape": "box",
+          "tone": "accent"
+        }
+      ],
+      "edges": [
+        {
+          "from": "job",
+          "to": "bouncer",
+          "label": "10 at a time"
+        },
+        {
+          "from": "kiosks",
+          "to": "bouncer"
+        },
+        {
+          "from": "bouncer",
+          "to": "db",
+          "label": "15 connections"
+        },
+        {
+          "from": "db",
+          "to": "alert",
+          "dash": true,
+          "tone": "muted"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for Thursday. The lookup has an index on the expression it asks for, lower(surname), so it reads 10 pages instead of 52,250. Every client connects through PgBouncer, which keeps a pool of 10 connections for the job and 5 for the kiosks, and the job is capped at 10 functions, so it can't fill the pooler's 100 client slots. The database has 15 of 100 connections open, and an alert fires if connections pass 80.",
+    "fix": {
+      "title": "The fix: index the expression, read the plan, then pool and cap",
+      "text": "Build the index with CREATE INDEX CONCURRENTLY loans_lower_surname_idx ON loans (lower(surname)), so loans and returns carry on while it builds, run ANALYZE, and check the job's lookup with EXPLAIN ANALYZE: Index Scan, 7 rows examined, 10 pages. Put PgBouncer in front of the database for every client, with a pool of 10 for the job and 5 for the kiosks, using transaction pooling where the code allows it, and cap the letters job at 10 functions so it can't fill the pooler's 100 client slots. In the sim: 15 of 100 connections open, nothing waiting, nothing refused, Yarrow's letter at 02:00:00 and the last at 02:15:59. Then add an alert for when connections in use pass about 80% of max_connections, and make EXPLAIN part of the review for any query that runs once per item in a job."
+    },
+    "limits": [
+      "The new index makes every insert and most updates on loans a little slower and takes space, and it only helps queries that ask for lower(surname) as a whole or by its start. A search on the middle or the end of a name still reads the whole table; that takes a different kind of index, which The Word Index covers later this season.",
+      "A pooler is one more thing to run, and transaction pooling breaks session features such as SET, LISTEN and session-level advisory locks, so code that relies on them needs session pooling or a pool of its own. RDS Proxy has the same catch: such state pins a client to one connection, which takes away the sharing.",
+      "The cap makes the job slower: 16 minutes instead of 96 seconds with the index alone. That's fine at 2 AM; a job with a deadline needs its cap and pool sized from its own numbers, and both need revisiting as the reading room and the job grow."
+    ],
+    "tradeoff": {
+      "head": [
+        "Choice",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "A server 4 times the size",
+          "Every page is cheaper: 11 s a lookup instead of 42, the freeze over by 02:17:35.",
+          "Still a Seq Scan and still 100 connections: 2,112 kiosk requests refused, at roughly four times the price."
+        ],
+        [
+          "A read replica for the job",
+          "Takes the job's page reads off the primary.",
+          "The copy reads every row just the same, and the functions still hold the primary's connections: 8,064 refused, as now, for a second server."
+        ],
+        [
+          "max_connections 2,000",
+          "No more too many clients.",
+          "1,002 connections need 9,550 MB of 8,590: out of memory at 02:00:00, 655 restarts by 04:00, no letters, 14,400 refused."
+        ],
+        [
+          "Index on lower(surname) alone",
+          "10 pages a lookup: every letter written by 02:01:35.",
+          "1,000 functions still take all 100 connections while it runs: 192 kiosk requests refused, and the next slow query does it again."
+        ],
+        [
+          "PgBouncer and a cap of 10 alone",
+          "Nothing refused: the kiosks keep their own pool.",
+          "Still 4,180,000 rows a lookup: the job runs until 03:19:59 and keeps the server busy all that time."
+        ],
+        [
+          "Index, PgBouncer and a cap of 10",
+          "15 connections, nothing refused, the last letter at 02:15:59.",
+          "Slower than the index alone, a pooler to run, and session features to check before transaction pooling."
+        ]
+      ]
+    },
+    "seniorTake": "When a query gets slow, read its plan before buying anything. The first plan line and the rows examined against the rows returned usually tell you whether the database is reading far more than it needs. Make the index match the query as written, including any function on the column, and check the plan again. Treat connections as scarce and shared: each one costs the database a process and memory, max_connections is a ceiling you size to the server, not a dial, and serverless functions will happily open one each. Put a pooler between bursty clients and the database, and cap the bursty clients, so one job's bad night can't take the connections everyone else needs.",
+    "realWorld": [
+      {
+        "title": "PostgreSQL 18: indexes on expressions",
+        "text": "PostgreSQL's manual says an index column need not be just a column of the table, but can be a function or scalar expression computed from one or more columns. Its example is this case's: a common way to do case-insensitive comparisons is the lower function, and SELECT * FROM test1 WHERE lower(col1) = 'value' can use an index if one has been defined on the result of lower(col1). It adds the cost: index expressions are relatively expensive to maintain, because the expression must be computed for each row insertion and non-HOT update, so indexes on expressions are useful when retrieval speed is more important than insertion and update speed.",
+        "source": 0
+      },
+      {
+        "title": "PostgreSQL 18: using EXPLAIN",
+        "text": "The manual says PostgreSQL devises a query plan for each query, a tree of plan nodes, with scan nodes such as sequential scans and index scans at the bottom. EXPLAIN prints one line for each node, with the planner's estimated costs, measured in arbitrary units that traditional practice sets in units of disk page fetches. With ANALYZE, EXPLAIN actually executes the query and shows the true row counts and run time, including lines such as Rows Removed by Filter. Because it really runs the query, any side-effects happen as usual, and the manual shows wrapping a data-modifying query in BEGIN and ROLLBACK.",
+        "source": 1
+      },
+      {
+        "title": "PostgreSQL 18: indexes on more than one column",
+        "text": "A multicolumn B-tree index can be used with conditions on any subset of its columns, the manual says, but it is most efficient when there are constraints on the leading (leftmost) columns: equality on the leading columns, plus any inequality on the first column without an equality, limit the part of the index that is scanned. It also warns that multicolumn indexes should be used sparingly, and that indexes with more than three columns are unlikely to be helpful unless the usage of the table is extremely stylized.",
+        "source": 2
+      },
+      {
+        "title": "PostgreSQL 18: what a B-tree can serve",
+        "text": "B-trees handle equality and range queries on data that can be sorted, through the operators <, <=, =, >= and >. The planner can also use a B-tree for LIKE if the pattern is a constant and is anchored to the beginning of the string, for example col LIKE 'foo%', but not col LIKE '%bar'. If the database does not use the C locale, the manual says, the index needs a special operator class to support pattern matching, such as text_pattern_ops.",
+        "source": 3
+      },
+      {
+        "title": "PostgreSQL 18: when the planner passes an index by",
+        "text": "In its chapter on examining index usage, the manual notes that selecting 1,000 out of 100,000 rows could be a candidate for an index, but selecting 1 out of 100 rows will hardly be, because those rows probably fit in a single disk page and no plan beats reading it in order. It says to always run ANALYZE first, because the planner needs statistics to estimate rows, and to use real data for experimentation: test data tells you what indexes you need for the test data, and it is especially fatal to use very small test data sets.",
+        "source": 4
+      },
+      {
+        "title": "PostgreSQL 18: how a B-tree is built",
+        "text": "PostgreSQL's B-tree indexes are multi-level tree structures. Leaf pages, on the lowest level, contain tuples that point to table rows, and each internal page contains tuples that point to the next level down. Typically, the manual says, over 99% of all pages are leaf pages, and a new level is added only when the root page can no longer fit another downlink: the reason lookups stay a few pages deep as a table grows.",
+        "source": 5
+      },
+      {
+        "title": "PostgreSQL 18: building an index without blocking writes",
+        "text": "With CONCURRENTLY, PostgreSQL builds the index without taking any locks that prevent concurrent inserts, updates or deletes on the table, whereas a standard index build locks out writes, but not reads, until it's done. The manual warns that it scans the table twice and waits for existing transactions, so it does more total work and takes significantly longer, but it is useful for adding new indexes in a production environment.",
+        "source": 6
+      },
+      {
+        "title": "PostgreSQL 18: max_connections",
+        "text": "max_connections determines the maximum number of concurrent connections to the database server. The default is typically 100, and it can only be set at server start. The manual adds that PostgreSQL sizes certain resources based directly on its value, so increasing it leads to higher allocation of those resources, including shared memory.",
+        "source": 7
+      },
+      {
+        "title": "PostgreSQL 18: a process for every connection",
+        "text": "PostgreSQL implements a process per user model: every client process connects to exactly one backend process, and a supervisor process spawns a new backend process every time a connection is requested. That is why each connection costs the server something whether or not it is busy.",
+        "source": 8
+      },
+      {
+        "title": "PgBouncer: pool modes",
+        "text": "PgBouncer lists three modes. Session pooling, the most polite: a server connection is assigned to a client for the whole duration it stays connected, and every PostgreSQL feature works. Transaction pooling: a server connection is assigned to a client only during a transaction, which breaks a few session-based features; its table marks SET/RESET, LISTEN, PREPARE and session-level advisory locks among those that never work in this mode. Statement pooling, the most aggressive, disallows multi-statement transactions. It needs about 2 kB per connection by default.",
+        "source": 9
+      },
+      {
+        "title": "PgBouncer: the defaults",
+        "text": "PgBouncer's max_client_conn, the maximum number of client connections allowed, defaults to 100. default_pool_size, the maximum number of server connections per user/database pair, defaults to 20. And pool_mode defaults to session, where a server connection goes back to the pool only after the client disconnects.",
+        "source": 10
+      },
+      {
+        "title": "Amazon RDS Proxy",
+        "text": "AWS describes RDS Proxy as letting applications pool and share database connections to improve their ability to scale. It establishes a connection pool and reuses connections, which avoids the memory and CPU overhead of opening a new connection each time, and lets you control how many database connections are created. It queues or throttles application connections that can't be served immediately from the pool, and if requests exceed the limits you set, it rejects connections: it sheds load.",
+        "source": 11
+      },
+      {
+        "title": "Amazon RDS Proxy: multiplexing and pinning",
+        "text": "By default, RDS Proxy can reuse a connection after each transaction in a session, which AWS calls multiplexing: many simultaneous connections to the proxy, a smaller number to the database, and less chance of too many connections errors. When it can't be sure a connection is safe to reuse, it keeps the session on the same connection until the session ends, which it calls pinning.",
+        "source": 12
+      },
+      {
+        "title": "AWS Lambda and Amazon RDS",
+        "text": "AWS's Lambda guide says direct connections are useful in simple scenarios, and proxies are recommended for production: a database proxy manages a pool of shared database connections which enables your function to reach high concurrency levels without exhausting database connections. It recommends RDS Proxy for functions that make frequent short database connections, or open and close large numbers of them.",
+        "source": 13
+      },
+      {
+        "title": "AWS Lambda: reserved concurrency",
+        "text": "Reserved concurrency sets both the maximum and minimum number of concurrent instances allocated to a function, and AWS notes it can be used for limiting concurrency to prevent overwhelming downstream resources, like database connections. It adds that while Lambda functions scale seamlessly with load, the things they depend on might not have the same throughput, and that configuring reserved concurrency incurs no additional charges.",
+        "source": 14
+      },
+      {
+        "title": "Amazon RDS: the memory behind max_connections",
+        "text": "RDS sets a PostgreSQL DB instance's default max_connections to LEAST({DBInstanceClassMemory/9531392}, 5000): roughly one connection for every 9.5 MB of memory, which is the per-connection figure the sim uses. Its quotas page says database connections consume memory, and setting the parameter too high can cause a low memory condition that might put a DB instance in the incompatible-parameters status. For applications that open and close connections often or keep many long-lived ones open, it recommends RDS Proxy.",
+        "source": 15
+      }
+    ],
+    "interview": {
+      "asked": [
+        "This query got slow. How do you find out why?",
+        "What index would you add?",
+        "Our serverless functions exhausted the database's connections. What do you do?"
+      ],
+      "answer": "For a slow query, start with the plan: EXPLAIN ANALYZE on a real, representative input, after ANALYZE has refreshed the statistics. Read the top plan line and compare rows examined with rows returned. A Seq Scan reading millions of rows to return a handful means no usable index; then ask why. Common causes: no index on the filtered column, a function on the column such as lower(email) that hides a plain index, a leading wildcard like LIKE '%x' that a B-tree can't serve, a two-column index whose leftmost column the query doesn't constrain, or a query that returns so much of the table that the planner rightly prefers a scan. For the index, match the query as written: an expression index on lower(email), or a two-column index with the equality column first and the range column second, built concurrently on a live table, then EXPLAIN again to prove it's used. Mention the cost: every index slows writes and takes space. For connection exhaustion, explain that each PostgreSQL connection is a process with memory and max_connections is a hard ceiling, so raising it a lot moves the failure to memory. Functions that each open a connection, and hold it through a slow query, use the ceiling up. Fix the slow query first, then put a pooler in front, PgBouncer or RDS Proxy, with transaction pooling where the code allows it and separate pools for batch jobs and users, cap the functions with reserved concurrency, and alert on connections in use as a share of max_connections."
+    }
+  },
+  "terms": [
+    {
+      "term": "Loan (library)",
+      "def": "One record of a book lent to a borrower: who, which book, when it went out and when it's due back. The Thessaly Library's loans table holds every loan since 1962, 4,180,000 rows."
+    },
+    {
+      "term": "Letters job",
+      "def": "The Thessaly Library's nightly program that writes a letter for every overdue loan, oldest first, from 02:00: 9,600 letters on Thursday, one cloud function each."
+    },
+    {
+      "term": "Card catalogue",
+      "def": "Drawers of cards, one per book or name, kept in sorted order so a librarian can go straight to the right card. The Thessaly's was typed into the database in 1987."
+    },
+    {
+      "term": "Carrel",
+      "def": "A small study desk in a library, often one that readers book in advance."
+    },
+    {
+      "term": "Catalogue terminal",
+      "def": "A screen in the reading room for searching the library's database."
+    },
+    {
+      "term": "Self-service kiosk",
+      "def": "A machine where readers borrow and return books themselves. Each request needs a database connection for a moment. The Thessaly's six send about 2 requests a second."
+    },
+    {
+      "term": "Mainframe",
+      "def": "A large central computer of the kind universities ran before ordinary servers. Miss Lindqvist's letters job first ran on one."
+    },
+    {
+      "term": "Cloud function",
+      "def": "A small program a cloud provider starts on demand, one copy per piece of work, as many at once as there is work, and stops when it's done. AWS Lambda is one."
+    },
+    {
+      "term": "AWS Lambda",
+      "def": "Amazon's cloud functions. You give it code, and it runs a copy for each event, up to the concurrency your account allows."
+    },
+    {
+      "term": "Concurrency (Lambda)",
+      "def": "How many copies of a function are running at the same moment. Each one that opens its own database connection holds one."
+    },
+    {
+      "term": "Reserved concurrency",
+      "def": "A Lambda setting that guarantees a function some concurrency and caps it there. AWS suggests it to stop a function overwhelming things like database connections."
+    },
+    {
+      "term": "lower()",
+      "def": "A SQL function that turns text into lower case, so lower(surname) = 'yarrow' matches Yarrow and YARROW alike."
+    },
+    {
+      "term": "Query plan",
+      "def": "The steps a database will follow to answer a query, such as reading the whole table or walking an index. EXPLAIN shows it."
+    },
+    {
+      "term": "Planner",
+      "def": "The part of the database that estimates what each possible plan for a query would cost and picks the cheapest."
+    },
+    {
+      "term": "EXPLAIN",
+      "def": "A SQL command that shows the plan the planner picked for a query, with its estimated costs, without running the query."
+    },
+    {
+      "term": "EXPLAIN ANALYZE",
+      "def": "EXPLAIN that really runs the query and adds what happened: actual rows, time and rows removed. It runs writes too, so wrap them in a transaction and roll back."
+    },
+    {
+      "term": "Seq Scan",
+      "def": "Sequential scan: PostgreSQL's plan for reading every row of a table in order and keeping the ones that match. The same thing as a full table scan."
+    },
+    {
+      "term": "Index Scan",
+      "def": "PostgreSQL's plan for walking an index to the matching entries and reading only those rows from the table."
+    },
+    {
+      "term": "Rows examined",
+      "def": "How many rows a query read to find its answer. Far more examined than returned usually means a missing or unusable index."
+    },
+    {
+      "term": "Rows returned",
+      "def": "How many rows are in a query's answer."
+    },
+    {
+      "term": "Filter (plan)",
+      "def": "The condition a plan checks against each row it reads, shown under the plan line in EXPLAIN output."
+    },
+    {
+      "term": "Rows Removed by Filter",
+      "def": "A line in EXPLAIN ANALYZE output: rows the plan read and threw away because they didn't match. 4,179,993 for the Yarrow lookup."
+    },
+    {
+      "term": "Index Cond",
+      "def": "The condition a plan answers from the index itself, shown under an Index Scan in EXPLAIN output."
+    },
+    {
+      "term": "Cost model",
+      "def": "The sim's rule for time: every page fetched costs 0.008 ms, so the server fetches at most 125,000 pages a second, shared by the queries running then."
+    },
+    {
+      "term": "Fan-out",
+      "def": "How many entries one index page holds, and so how many pages on the level below it can point to. The sim uses 300."
+    },
+    {
+      "term": "Depth (B-tree)",
+      "def": "How many levels a B-tree has, from the root page down to the leaves. 4,180,000 rows at 300 entries a page need 3."
+    },
+    {
+      "term": "Root page",
+      "def": "The single page at the top of a B-tree, where every lookup starts."
+    },
+    {
+      "term": "Leaf page",
+      "def": "A page on a B-tree's bottom level, holding entries that point to table rows. PostgreSQL's manual says over 99% of pages are typically leaves."
+    },
+    {
+      "term": "Expression index",
+      "def": "An index on the result of a function or expression, such as lower(surname), instead of on the column as stored. Queries that use the same expression can use it."
+    },
+    {
+      "term": "LIKE",
+      "def": "SQL's pattern match. % stands for any run of characters, so 'yar%' means starts with yar and '%row' means ends with row."
+    },
+    {
+      "term": "Leading wildcard",
+      "def": "A pattern that starts with %, such as '%row'. A B-tree can't serve it, because the matches are scattered through the sort order."
+    },
+    {
+      "term": "C locale",
+      "def": "PostgreSQL's simplest rules for sorting text, by character code. In it a plain B-tree can serve LIKE 'yar%'; other locales need text_pattern_ops."
+    },
+    {
+      "term": "text_pattern_ops",
+      "def": "An option for a PostgreSQL text index that lets pattern searches anchored at the start use it, whatever the database's locale."
+    },
+    {
+      "term": "Two-column index",
+      "def": "An index on two columns, sorted by the first and then by the second within it, such as (surname, due_date). PostgreSQL calls it a multicolumn index."
+    },
+    {
+      "term": "Leftmost column",
+      "def": "The first column of a multicolumn index. The index is most efficient when a query constrains it, and can't find a later column on its own."
+    },
+    {
+      "term": "ANALYZE",
+      "def": "A PostgreSQL command that gathers statistics on a table's values, so the planner can estimate how many rows each plan will touch."
+    },
+    {
+      "term": "CREATE INDEX CONCURRENTLY",
+      "def": "Building a PostgreSQL index without blocking inserts, updates and deletes. It takes longer and does more work than a normal build, which blocks writes."
+    },
+    {
+      "term": "max_connections",
+      "def": "The most connections PostgreSQL will hold open at once. Typically 100 by default, and read only at server start; past it, new connections are turned away."
+    },
+    {
+      "term": "postgresql.conf",
+      "def": "PostgreSQL's main settings file, where max_connections is set."
+    },
+    {
+      "term": "Backend process",
+      "def": "The process PostgreSQL starts for each connection, which runs that connection's queries."
+    },
+    {
+      "term": "Shared memory",
+      "def": "Memory all of PostgreSQL's processes use together, for things such as cached pages. Some of it is sized by max_connections."
+    },
+    {
+      "term": "Out of memory",
+      "def": "When programs ask a server for more memory than it has. In the sim, PostgreSQL then restarts and drops every connection."
+    },
+    {
+      "term": "Restart (database)",
+      "def": "Stopping and starting the database server. Every connection is dropped, and PostgreSQL reads settings such as max_connections again."
+    },
+    {
+      "term": "Connection memory",
+      "def": "The sim's figure for what open connections need: about 9.5 MB each (9,531,392 bytes), the amount Amazon RDS divides memory by to set its default limit."
+    },
+    {
+      "term": "Queries waiting",
+      "def": "The sim's count of letters-job functions that are running without a database connection, waiting for one."
+    },
+    {
+      "term": "Kiosk requests refused",
+      "def": "The sim's count of kiosk requests that found no connection: turned away by the database or the pooler, or during a restart."
+    },
+    {
+      "term": "Pooler",
+      "def": "A program between clients and a database that keeps a few real connections open and lends them to clients in turn, so many clients share them."
+    },
+    {
+      "term": "Connection pooling",
+      "def": "Sharing a few open database connections among many clients, instead of opening one for each client."
+    },
+    {
+      "term": "PgBouncer",
+      "def": "A small, widely used pooler for PostgreSQL. Each client connection costs it about 2 kB."
+    },
+    {
+      "term": "Pool (PgBouncer)",
+      "def": "The connections PgBouncer keeps for one database user and database. Its size caps how many that user can have at once; the default is 20."
+    },
+    {
+      "term": "Client connection",
+      "def": "A connection from an app to the pooler, as opposed to a server connection, from the pooler to the database. Many client connections share a few server connections."
+    },
+    {
+      "term": "max_client_conn",
+      "def": "PgBouncer's limit on client connections, 100 by default. Past it, new clients are refused."
+    },
+    {
+      "term": "Session pooling",
+      "def": "PgBouncer's default mode: a client keeps one server connection for as long as it stays connected."
+    },
+    {
+      "term": "Transaction pooling",
+      "def": "A PgBouncer mode that lends a server connection only for one transaction, so a few serve many clients. It breaks some session features, such as SET."
+    },
+    {
+      "term": "Statement pooling",
+      "def": "PgBouncer's most aggressive mode: transaction pooling that refuses transactions of more than one statement."
+    },
+    {
+      "term": "Session features",
+      "def": "Things PostgreSQL keeps for one connection between queries, such as settings changed with SET. A pooler that swaps connections between clients can lose them."
+    },
+    {
+      "term": "SET (PostgreSQL)",
+      "def": "A command that changes a setting for the current connection only, such as its time zone. RESET puts it back."
+    },
+    {
+      "term": "LISTEN",
+      "def": "A PostgreSQL command that subscribes a connection to notifications sent on a named channel."
+    },
+    {
+      "term": "Advisory lock",
+      "def": "A lock an app takes on a number of its own choosing, to coordinate with other connections. A session-level one lasts until it is released or the connection closes."
+    },
+    {
+      "term": "PREPARE",
+      "def": "A PostgreSQL command that saves a query's plan on the current connection, to run again later by name."
+    },
+    {
+      "term": "RDS Proxy",
+      "def": "Amazon's managed pooler for RDS databases. Apps connect to it, and it pools, queues and limits the connections to the database."
+    },
+    {
+      "term": "Multiplexing (RDS Proxy)",
+      "def": "RDS Proxy reusing a database connection for another client after each transaction, so many clients share few connections."
+    },
+    {
+      "term": "Pinning (RDS Proxy)",
+      "def": "RDS Proxy keeping a client on one database connection until its session ends, because it can't be sure sharing is safe. It takes away the sharing."
+    },
+    {
+      "term": "DBInstanceClassMemory",
+      "def": "The memory, in bytes, that Amazon RDS counts as available to a DB instance's database, after what the system keeps for itself."
+    },
+    {
+      "term": "incompatible-parameters",
+      "def": "An Amazon RDS status for a DB instance whose settings it can't run with, such as settings that need more memory than the instance has."
+    },
+    {
+      "term": "Plan node",
+      "def": "One step in a query plan, such as a scan of one table. A plan is a tree of them, and EXPLAIN prints a line for each."
+    },
+    {
+      "term": "Scalar expression",
+      "def": "An expression that gives one value for each row, such as lower(surname)."
+    },
+    {
+      "term": "Operator class",
+      "def": "The rules a PostgreSQL index uses to compare values. text_pattern_ops is one, for pattern searches anchored at the start."
+    },
+    {
+      "term": "Supervisor process",
+      "def": "PostgreSQL's parent process, which listens for new connections and starts a backend process for each one."
+    },
+    {
+      "term": "Tuple",
+      "def": "PostgreSQL's word for one entry stored on a page: a row in a table, or an entry in an index."
+    },
+    {
+      "term": "Downlink",
+      "def": "An entry in a B-tree's internal page that points to a page on the level below."
+    },
+    {
+      "term": "Non-HOT update",
+      "def": "In PostgreSQL, an update that has to add new entries to the table's indexes. HOT updates, which skip that work, only happen when no indexed column changes."
+    },
+    {
+      "term": "pg_stat_activity",
+      "def": "A PostgreSQL view with one row per connection: who, from where and what it's running. Counting its rows counts connections."
+    },
+    {
+      "term": "pg_hba.conf",
+      "def": "PostgreSQL's file of rules for who may connect, from which addresses, and how they sign in."
+    },
+    {
+      "term": "Connection alert",
+      "def": "An alert that fires when connections in use pass a set share of max_connections, such as 80%."
+    },
+    {
+      "term": "Nightwatch",
+      "def": "The uptime monitor you build across this course's Build Nights. Its N2 night stores check results and keeps uptime queries fast."
+    },
+    {
+      "term": "Check (Nightwatch)",
+      "def": "One test of one monitored site, such as an HTTP request every minute. Each result is a row with check_id, checked_at, status and latency."
+    },
+    {
+      "term": "LATENT",
+      "def": "This site's second course, on AI systems. Its retrieval cases search documents by meaning, beside a keyword index like the one in this case."
+    },
+    {
+      "term": "ISO/IEC 27001",
+      "def": "An international standard for managing information security, which companies can be certified against. Its Annex A lists controls, such as A.8.6, capacity management."
+    }
+  ],
+  "atWork": "Picture a common incident: a support tool's search page gets slower every month until one morning it times out, and EXPLAIN shows a Seq Scan on a table of millions, because the query asks for lower(email) and the only index is on email. Look for the same in your own systems. With read-only access, open pg_stat_statements on a PostgreSQL database you own and sort by total time; take the top query, run EXPLAIN (or EXPLAIN ANALYZE on a read-only query) with a real value, and compare rows examined with rows returned. Then count connections: SELECT count(*) FROM pg_stat_activity against SHOW max_connections, at your busiest hour, and find which clients hold them. Do any serverless functions connect directly, one connection each, with no pooler or reserved concurrency? Is anything alerting before the ceiling? This rehearses Nightwatch's N2 Build Night, where check results pile up by the million: the question the last 30 days of one check wants an index on (check_id, checked_at), check_id first because the query fixes it with =, then checked_at for the range. Load a million rows, run EXPLAIN ANALYZE before and after, and keep both plans in docs/decisions.md. An index like this is also the keyword half of what LATENT's retrieval cases build on. If your company is pursuing ISO/IEC 27001:2022, control A.8.6 (capacity management) expects the use of resources to be monitored and adjusted to current and expected capacity requirements; a written max_connections, pool sizes, job caps and a connection alert are the kind of evidence an auditor looks for.",
+  "board": {
+    "cards": [
+      {
+        "id": "indexes",
+        "title": "Indexes"
+      },
+      {
+        "id": "query-plans",
+        "title": "Query plans"
+      },
+      {
+        "id": "why-queries-get-slow",
+        "title": "Why queries get slow"
+      },
+      {
+        "id": "connection-pooling",
+        "title": "Connection pooling"
+      }
+    ],
+    "strings": [
+      {
+        "from": "indexes",
+        "to": "databases-101",
+        "label": "card catalogue"
+      },
+      {
+        "from": "indexes",
+        "to": "b-tree-vs-lsm-tree",
+        "label": "inside: a B-tree"
+      },
+      {
+        "from": "query-plans",
+        "to": "why-queries-get-slow",
+        "label": "read the plan"
+      },
+      {
+        "from": "why-queries-get-slow",
+        "to": "indexes",
+        "label": "match the query"
+      },
+      {
+        "from": "connection-pooling",
+        "to": "vertical-scaling",
+        "label": "not a bigger box"
+      },
+      {
+        "from": "connection-pooling",
+        "to": "read-replicas-for-read-heavy-traffic",
+        "label": "copies scan too"
+      },
+      {
+        "from": "connection-pooling",
+        "to": "offloading-slow-work-to-a-background-queue",
+        "label": "cap the workers"
+      },
+      {
+        "from": "connection-pooling",
+        "to": "capacity-planning",
+        "label": "a hard ceiling"
+      },
+      {
+        "from": "indexes",
+        "to": "inverted-indexes",
+        "label": "word indexes next"
+      },
+      {
+        "from": "indexes",
+        "to": "vector-databases",
+        "label": "the keyword half"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s3e01-r1",
+      "kind": "free",
+      "prompt": "A help desk's PostgreSQL table holds 20 million tickets. This query has crept from 5 ms to 9 seconds as the table grew: SELECT * FROM tickets WHERE lower(email) = $1. There is an index on email. How do you find out why it's slow, and what do you change?",
+      "keyIdeas": [
+        {
+          "idea": "Read the plan with EXPLAIN ANALYZE and compare rows examined with rows returned",
+          "match": [
+            "explain",
+            "query plan",
+            "the plan",
+            "rows examined",
+            "rows removed"
+          ]
+        },
+        {
+          "idea": "The function on the column hides the plain index, so the database reads every row",
+          "match": [
+            "seq scan",
+            "sequential scan",
+            "every row",
+            "whole table",
+            "full table scan",
+            "function on the column",
+            "hides the index",
+            "can't use the index",
+            "cannot use the index",
+            "doesn't use the index",
+            "does not use the index"
+          ]
+        },
+        {
+          "idea": "Add an index on the expression lower(email), built without blocking writes",
+          "match": [
+            "expression index",
+            "index on lower",
+            "index on the expression",
+            "(lower(email))",
+            "functional index",
+            "index lower(email)",
+            "index the expression"
+          ]
+        }
+      ],
+      "model": "Start with EXPLAIN ANALYZE on the query with a real email address, after running ANALYZE so the statistics are current. You'll very likely see Seq Scan on tickets, Filter: (lower(email) = ...), and millions of rows removed: millions of rows examined to return one or two. The index on email doesn't help, because it's sorted by email as stored and the query asks for lower(email): a function on the column hides a plain index, so the database reads every row. Add an expression index, CREATE INDEX CONCURRENTLY ON tickets (lower(email)), so writes carry on while it builds, and run EXPLAIN ANALYZE again: it should say Index Scan, with rows examined close to rows returned. If nothing else needs the old index on email, consider dropping it, since every index slows writes."
+    },
+    {
+      "id": "s3e01-r2",
+      "kind": "free",
+      "prompt": "An image service runs on AWS Lambda, and each function opens its own connection to a PostgreSQL database whose max_connections is 100. When a newsletter goes out, 800 functions start at once and the website's logins fail with too many connections. A teammate wants to raise max_connections to 1,000. What do you tell them, and what would you do instead?",
+      "keyIdeas": [
+        {
+          "idea": "Every connection costs the database a process and memory, so raising the ceiling a lot moves the failure to memory",
+          "match": [
+            "process per connection",
+            "its own process",
+            "a process for every",
+            "one process per",
+            "memory per connection",
+            "each connection costs",
+            "out of memory",
+            "shared memory",
+            "9.5 mb"
+          ]
+        },
+        {
+          "idea": "Put a pooler in front, so the functions share a few real connections",
+          "match": [
+            "pooler",
+            "pgbouncer",
+            "rds proxy",
+            "connection pool",
+            "pool of connections",
+            "pool the connections"
+          ]
+        },
+        {
+          "idea": "Cap how many functions run at once",
+          "match": [
+            "reserved concurrency",
+            "cap the",
+            "cap their",
+            "limit the functions",
+            "limit concurrency",
+            "limit their concurrency",
+            "concurrency limit",
+            "maximum concurrency",
+            "fewer functions"
+          ]
+        }
+      ],
+      "model": "Raising it moves the failure rather than fixing it. PostgreSQL starts a process for every connection and sizes some of its shared memory by max_connections, which only changes at a restart, so 1,000 connections can run the server out of memory, and they'd all still share the same CPU and disk. Put a pooler in front, PgBouncer, or RDS Proxy if it's an RDS database, so the functions share a few real connections, and give the image service its own pool so it can never take the logins' connections. Then cap the function with reserved concurrency, say at 20, so it can't swamp the pooler either. And check why each function holds its connection so long: EXPLAIN its query, because a slow query held by many functions is what uses the connections up."
+    },
+    {
+      "id": "s3e01-r3",
+      "kind": "mcq",
+      "prompt": "A loans table has 4,180,000 rows, and its B-tree index holds 300 entries a page. How many index pages does a lookup for one surname read on the way down to its first match?",
+      "options": [
+        "1: the root page holds every surname",
+        "13,934: every leaf page in turn",
+        "3: one page on each level of the tree",
+        "52,250: as many pages as the table"
+      ],
+      "answer": 2,
+      "why": "300 entries reach 300 rows on one level, 90,000 on two and 27,000,000 on three, so 4,180,000 rows need three levels: a root, 47 middle pages and 13,934 leaves. A lookup reads one page per level, then the table rows it matches. That's why PostgreSQL's manual can say over 99% of a B-tree's pages are typically leaf pages: the levels above are few and small, and a lookup stays a few pages deep as the table grows."
+    },
+    {
+      "id": "s3e01-r4",
+      "kind": "mcq",
+      "prompt": "A PostgreSQL table has a B-tree index on lower(surname), built so it can serve searches by the start of a name. Which of these queries can use it?",
+      "options": [
+        "WHERE lower(surname) LIKE '%row'",
+        "WHERE lower(surname) LIKE 'yar%'",
+        "WHERE surname = 'Yarrow'",
+        "WHERE upper(surname) = 'YARROW'"
+      ],
+      "answer": 1,
+      "why": "PostgreSQL's manual says the planner can use a B-tree for LIKE if the pattern is a constant anchored to the beginning of the string, col LIKE 'foo%', but not col LIKE '%bar'. The query must also use the same expression the index holds: surname on its own and upper(surname) are different values from lower(surname), so this index can't serve them."
+    },
+    {
+      "id": "s3e01-r5",
+      "kind": "mcq",
+      "prompt": "A monitoring tool's results table has an index on (check_id, checked_at). Which query can make the best use of it?",
+      "options": [
+        "WHERE checked_at > now() - interval '30 days'",
+        "WHERE status = 'down' AND checked_at > now() - interval '1 day'",
+        "WHERE latency_ms > 2000",
+        "WHERE check_id = 42 AND checked_at > now() - interval '30 days'"
+      ],
+      "answer": 3,
+      "why": "A multicolumn B-tree is most efficient with constraints on its leading, leftmost columns: PostgreSQL's manual says equality on the leading columns plus an inequality on the next one limit the part of the index that is scanned. check_id = 42 fixes the first column, and the 30-day range narrows the second. A query on checked_at alone, or on columns the index doesn't hold, can't use that order."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 3 months later. The index holds, PgBouncer runs, and the letters job hasn't troubled a kiosk since. Last Monday the student union's new carrel-booking app went live, also on cloud functions, and its developer pointed it straight at the database's address, not at PgBouncer: nobody had told him about it. At 09:00, when bookings opened, 400 functions started at once, and the kiosks said too many clients again. Alaric found it in five minutes. The first booking of the morning was for carrel 62, which hasn't existed since the 1960s refit.",
+    "prompt": "Reply to OP. What went wrong, and what should Alaric set up so it can't happen again?",
+    "keyIdeas": [
+      {
+        "idea": "The new app went around the pooler and opened its own connections, using up max_connections",
+        "match": [
+          "bypass",
+          "went around",
+          "straight to the database",
+          "not through the pooler",
+          "around the pooler",
+          "directly to the database",
+          "direct connections",
+          "their own connection",
+          "its own connection"
+        ]
+      },
+      {
+        "idea": "Send every client through the pooler, with a pool of its own for the new app",
+        "match": [
+          "through the pooler",
+          "through pgbouncer",
+          "via pgbouncer",
+          "via the pooler",
+          "behind the pooler",
+          "its own pool",
+          "a separate pool",
+          "own pool"
+        ]
+      },
+      {
+        "idea": "Cap the app's concurrency and let only the pooler connect to the database",
+        "match": [
+          "reserved concurrency",
+          "cap its",
+          "cap the",
+          "limit its",
+          "concurrency limit",
+          "connection limit",
+          "only the pooler",
+          "pg_hba",
+          "security group"
+        ]
+      },
+      {
+        "idea": "Alert on connections in use before they reach the ceiling",
+        "match": [
+          "alert",
+          "alarm",
+          "monitor",
+          "pg_stat_activity"
+        ]
+      }
+    ],
+    "model": "The booking app went around the pooler: its functions each opened their own connection straight to PostgreSQL, 400 at once against a ceiling of 100, and took every free one, so the kiosks had none. It's the letters job's failure again, from a new client. Send every client through PgBouncer, with a pool of its own for the booking app so it can never take the kiosks' connections, and cap its functions with reserved concurrency so they can't fill the pooler's client slots either. Then make the database refuse anyone but the pooler: allow connections only from the pooler's address, in pg_hba.conf or the security group, or set a connection limit on the app's database user. Last, alert from pg_stat_activity when connections pass about 80% of max_connections, so Alaric hears about it at 09:00:05, not from the kiosks."
+  },
+  "next": "Next, All or Nothing: a bank vault's night audit, and changing several rows as one, all or nothing.",
+  "sources": [
+    {
+      "title": "PostgreSQL 18 Documentation, 11.7 Indexes on Expressions (a function or scalar expression as an index column; the lower(col1) example for case-insensitive comparisons; relatively expensive to maintain; useful when retrieval speed matters more than insertion and update speed)",
+      "url": "https://www.postgresql.org/docs/18/indexes-expressional.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 14.1 Using EXPLAIN (a query plan for each query, a tree of plan nodes; costs in arbitrary units, traditionally disk page fetches; EXPLAIN ANALYZE actually executes the query; side-effects happen as usual, roll back a data-modifying query; Rows Removed by Filter)",
+      "url": "https://www.postgresql.org/docs/18/using-explain.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 11.3 Multicolumn Indexes (most efficient with constraints on the leading, leftmost columns; equality on leading columns plus an inequality on the next; use sparingly; more than three columns unlikely to help)",
+      "url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 11.2 Index Types (B-tree for equality and range queries; LIKE when the pattern is a constant anchored to the beginning, col LIKE 'foo%' but not col LIKE '%bar'; outside the C locale a special operator class is needed)",
+      "url": "https://www.postgresql.org/docs/18/indexes-types.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 11.12 Examining Index Usage (1 out of 100 rows will hardly be a candidate for an index; always run ANALYZE first; use real data; very small test data sets are especially fatal)",
+      "url": "https://www.postgresql.org/docs/18/indexes-examine.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 65.1 B-Tree Indexes (multi-level tree structures; leaf pages point to table rows, internal pages to the next level down; typically over 99% of pages are leaf pages; a root page split adds a level)",
+      "url": "https://www.postgresql.org/docs/18/btree.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, CREATE INDEX (CONCURRENTLY builds without locks that prevent inserts, updates or deletes; a standard build locks out writes but not reads; concurrent builds take significantly longer)",
+      "url": "https://www.postgresql.org/docs/18/sql-createindex.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 19.3 Connections and Authentication (max_connections: typically 100 by default, set only at server start; certain resources, including shared memory, sized directly by its value)",
+      "url": "https://www.postgresql.org/docs/18/runtime-config-connection.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, How Connections Are Established (a process per user model; a new backend process spawned for every connection requested)",
+      "url": "https://www.postgresql.org/docs/18/connect-estab.html"
+    },
+    {
+      "title": "PgBouncer: Features (session, transaction and statement pooling; features that never work in transaction pooling, such as SET/RESET, LISTEN, PREPARE and session-level advisory locks; about 2 kB per connection by default)",
+      "url": "https://www.pgbouncer.org/features.html"
+    },
+    {
+      "title": "PgBouncer: Configuration (max_client_conn, default 100; default_pool_size per user/database pair, default 20; pool_mode, default session)",
+      "url": "https://www.pgbouncer.org/config.html"
+    },
+    {
+      "title": "Amazon RDS User Guide: Amazon RDS Proxy (pool and share database connections; avoids the overhead of opening a new connection each time; queues or throttles connections it can't serve; rejects connections beyond your limits, shedding load)",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html"
+    },
+    {
+      "title": "Amazon RDS User Guide: RDS Proxy concepts and terminology (multiplexing, reuse after each transaction; fewer too many connections errors; pinning keeps a session on one connection)",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.howitworks.html"
+    },
+    {
+      "title": "AWS Lambda Developer Guide: Using AWS Lambda with Amazon RDS (direct connections for simple scenarios, proxies recommended for production; a shared pool lets functions reach high concurrency without exhausting database connections)",
+      "url": "https://docs.aws.amazon.com/lambda/latest/dg/services-rds.html"
+    },
+    {
+      "title": "AWS Lambda Developer Guide: Configuring reserved concurrency (a maximum and minimum for a function; limiting concurrency to prevent overwhelming downstream resources, like database connections; no additional charge)",
+      "url": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html"
+    },
+    {
+      "title": "Amazon RDS User Guide: Quotas and constraints, Maximum number of database connections (PostgreSQL default LEAST({DBInstanceClassMemory/9531392}, 5000); connections consume memory; too high a setting can cause a low memory condition and the incompatible-parameters status; RDS Proxy for many or short-lived connections)",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html"
+    }
+  ]
+}

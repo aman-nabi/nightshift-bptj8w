@@ -1,0 +1,858 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-11) first version"
+  ],
+  "id": "s3e03",
+  "season": 3,
+  "n": 3,
+  "title": "Phantoms in the Archive",
+  "setting": "a haunted records basement",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "isolation-levels",
+    "dirty",
+    "non-repeatable",
+    "phantom-reads"
+  ],
+  "prerequisites": [
+    "s3e02",
+    "s3e01",
+    "s2e05",
+    "s2e04",
+    "s1e09",
+    "s1e04",
+    "s1e02"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/basement_clerk_sabeline",
+    "flair": "Part 1",
+    "age": "5h",
+    "votes": 3187,
+    "title": "I work nights in a county records basement. One clerk must always be on call. Two of us checked the register, each saw the other on call, and at 03:00 it said nobody was.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm a night clerk at the Saltmarsh County Records Office, in the basement under the old courthouse: births, deaths, deeds, and 4,212 burial files in one series alone. There are two of us at night, Leofric Tessaro and me. The rule is typed on a card above the register terminal, older than both of us:"
+      },
+      {
+        "t": "note",
+        "title": "NIGHT RULE",
+        "items": [
+          "AT LEAST ONE CLERK ON CALL. ALWAYS.",
+          "BEFORE YOU SIGN OFF, SEE THAT ANOTHER CLERK IS ON."
+        ],
+        "sig": "- A. F., 1931"
+      },
+      {
+        "t": "p",
+        "text": "The register is a small app on the county's PostgreSQL database, written by a contractor. Press Sign me off and it runs one transaction: it reads tonight's register, and if another clerk is on call, it marks you off and commits. Last Thursday at 02:41 I pressed it. Two aisles away, so did Leofric. The app's log:"
+      },
+      {
+        "t": "log",
+        "text": "02:41:07  Sabeline     reads register: on call Sabeline, Leofric (2)\n02:41:19  Leofric      reads register: on call Sabeline, Leofric (2)\n02:41:26  Sabeline     UPDATE register: Sabeline off\n02:41:31  Sabeline     COMMIT\n02:41:38  Leofric      UPDATE register: Leofric off\n02:41:44  Leofric      COMMIT\n03:00:00  night check  on call: 0   RULE BROKEN"
+      },
+      {
+        "t": "beat",
+        "text": "Each of us saw the other on call. At 03:00 the register said nobody was."
+      },
+      {
+        "t": "p",
+        "text": "The night check paged the duty manager, who rang the basement phone. Leofric heard it and thought I'd answer. I heard it on the stairs and thought he would. It rang until it stopped."
+      },
+      {
+        "t": "p",
+        "text": "Same night, the burials report. It counts the series at the start and again at the end, in one transaction, as a check. At 02:50:00, top of the page: 4,212. At 02:58:40, bottom: 4,213. The extra file was filed at 02:52:10 by the scanning service's filing job, a register page from 1958: FERRAND, Aldwyn, night clerk of this office. The first count never saw him."
+      },
+      {
+        "t": "p",
+        "text": "A. F. typed that card. The contractor says the database did exactly what it was told. What should he change before Thursday?"
+      },
+      {
+        "t": "evidence",
+        "label": "register_log_0241.png",
+        "diagram": {
+          "type": "sequence",
+          "aria": "The on-call register's log for Thursday, drawn as a sequence. Sabeline reads the register at 02:41:07 and sees 2 on call. Leofric reads it at 02:41:19 and sees 2 on call. Sabeline signs herself off at 02:41:26 and commits at 02:41:31. Leofric signs himself off at 02:41:38 and commits at 02:41:44. At 03:00 the night check finds nobody on call.",
+          "lanes": [
+            "Sabeline",
+            "Register",
+            "Leofric"
+          ],
+          "steps": [
+            {
+              "from": 0,
+              "to": 1,
+              "label": "02:41:07 read: 2 on"
+            },
+            {
+              "from": 2,
+              "to": 1,
+              "label": "02:41:19 read: 2 on"
+            },
+            {
+              "from": 0,
+              "to": 1,
+              "label": "02:41:26 me off"
+            },
+            {
+              "from": 0,
+              "to": 1,
+              "label": "02:41:31 COMMIT"
+            },
+            {
+              "from": 2,
+              "to": 1,
+              "label": "02:41:38 me off"
+            },
+            {
+              "from": 2,
+              "to": 1,
+              "label": "02:41:44 COMMIT"
+            },
+            {
+              "outcome": 1,
+              "text": "03:00 on call: 0",
+              "tone": "bad"
+            }
+          ]
+        },
+        "caption": "The register's log for Thursday, drawn by the contractor. Both clerks read the register before either sign-off was committed, so both saw 2 on call. Each signed off only their own row, and both commits succeeded. At 03:00 the night check found nobody on call."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 141,
+      "age": "4h",
+      "text": "Before anyone picks a setting, name what you saw. Your two sign-offs ran at the same time, their steps taking turns, and a transaction's isolation level decides what it sees of other transactions running beside it. The SQL standard names three odd reads. A dirty read sees another transaction's change before it commits. A non-repeatable read reads the same row twice in one transaction and gets two values. A phantom read runs the same search twice and gets a different set of rows. People add a fourth shape, write skew: two transactions read the same rows, each decides from what it saw, and each writes a different row. Now your log. What did each of you read, and when did the other's change commit? Which row did each of you write, and had the other written that row too? And your report: which of its two counts ran after the new file was filed?",
+      "replies": [
+        {
+          "author": "u/basement_clerk_sabeline",
+          "op": true,
+          "points": 38,
+          "age": "3h",
+          "text": "The contractor says the register runs at Read Committed, PostgreSQL's default: each statement sees what was committed before it began. The manual lists two more he could switch to: Repeatable Read, and Serializable, where PostgreSQL can refuse a transaction with a serialization failure and the app has to run it again. He says more errors at three in the morning is the last thing we need. Aldwyn Ferrand was the night clerk here from 1931 to 1958. The old staff book says he was always on call."
+        }
+      ]
+    },
+    {
+      "author": "u/stable_view_ellery",
+      "points": 88,
+      "age": "3h",
+      "text": "Repeatable Read. It's in the name. The whole transaction reads one snapshot, a frozen view of the data taken at its first statement, so nothing changes under you halfway through. PostgreSQL's own table says no non-repeatable reads and no phantoms at that level. Your report would have printed 4,212 twice. It stops all the weird reads with one setting, without Serializable's errors, and it's one line of config."
+    },
+    {
+      "author": "u/check_twice_wistow",
+      "points": 46,
+      "age": "2h",
+      "text": "I wouldn't trust any isolation setting with a rule like that. Simplest: one global lock for the whole sign-off. Whoever presses first holds it, and everyone else waits their turn. Nobody needs to sign off fast at three in the morning."
+    }
+  ],
+  "reply": {
+    "prompt": "On Thursday night Sabeline and Leofric will both be on call again. What should the contractor change in the sign-off? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Switch the sign-off to Repeatable Read, so each clerk reads one steady snapshot",
+        "tone": "bad",
+        "verdict": "Wrong: a steady view, the same skew",
+        "part2": "The contractor moved the sign-off to Repeatable Read on Monday. On Thursday at 02:41:07 I read the register: Leofric and me. At 02:41:19 Leofric read it too, from a snapshot taken at that moment: Leofric and me. I signed off at 02:41:26 and committed at 02:41:31. Leofric's transaction still read from its 02:41:19 snapshot, so the app still counted two on call, and he signed himself off at 02:41:38 and committed at 02:41:44. No error: each of us had changed only our own row, and nobody else had touched it. At 03:00 the night check found nobody on call again. The burials report did print the same total at the top and the bottom, which cheered the contractor up for about a minute. When I came back down, the card above the terminal had come loose and was lying face down on the keyboard.",
+        "senior": "Repeatable Read gives each transaction one snapshot, and in PostgreSQL that hides phantoms as well as non-repeatable reads, so it really does fix the report. But write skew isn't a read going wrong. Each clerk read both rows correctly, decided from them, and wrote a different row from the other. Nothing changed inside either snapshot, and no row was written twice, so there was nothing for Repeatable Read to catch. PostgreSQL's manual says business rules enforced at this level are not likely to work correctly without careful use of explicit locks. A snapshot steadies what you see; it doesn't stop the data changing after you look."
+      },
+      {
+        "text": "Have the app check the register again just before it writes the sign-off",
+        "tone": "bad",
+        "verdict": "Wrong: the same race, a smaller window",
+        "part2": "The contractor added a second check: just before the UPDATE, the app reads the register again and refuses if you're alone. On Thursday it held, because Leofric's second check ran after my commit. On Saturday the night check's test page went off at 02:17 and we both pressed Sign me off within two seconds of each other. Both first checks saw two on call. Both second checks ran before either of us had committed, and saw two again. We both signed off, and at 03:00 nobody was on call. In the lab, any order where both checks run before either commit ends the same way. The contractor says the check is fine, it was just unlucky timing. The card says ALWAYS.",
+        "senior": "A check in the app is a read followed by a write, which is exactly what the sign-off already was. A second check shrinks the gap between reading and writing, but two sign-offs that overlap inside it still both pass, and after an alarm, two clerks pressing within seconds is exactly what happens. The rule has to be one the database can see being broken: run the transactions at Serializable and retry, lock the rows the check reads, or put the rule in a constraint."
+      },
+      {
+        "text": "Take one global lock for every sign-off, so only one can run at a time",
+        "tone": "warn",
+        "verdict": "Trade-off: correct, but one at a time",
+        "part2": "The contractor made every sign-off start with LOCK TABLE register IN EXCLUSIVE MODE. On Thursday at 02:41:19 Leofric's sign-off waited for mine. I committed at 02:41:31, his read went on, found only himself on call, and the app refused him. One on call at 03:00. But the register holds every office in the county. At the 07:00 handover the day clerks' sign-ons queued behind each other one at a time, and on Friday a sign-off left open on a frozen laptop held the whole county's register until someone found it and closed it. Nobody was harmed. Everybody waited.",
+        "senior": "It's correct: if sign-offs run one at a time, each one sees the last one's result, and the rule holds. The lab shows it as one wait. The cost is that everything that writes the register queues behind one lock, including changes that could never conflict, such as a clerk in another office signing on, and one stuck transaction holds up the whole table. For a small, quiet table it's a fair stopgap. Locking just the rows the sign-off reads, or Serializable with a retry, protects the same rule and lets unrelated sign-offs run side by side."
+      },
+      {
+        "text": "Run the sign-off at Serializable, and retry it on a serialization failure",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "The contractor set the sign-off to Serializable and wrapped it in a retry loop: on a serialization failure, SQLSTATE 40001, run the whole sign-off again from the start, and give up with a clear message if the retries keep failing. On Thursday I read the register at 02:41:07 and Leofric at 02:41:19: two on call, both times. I signed off and committed at 02:41:31. Leofric's UPDATE went in at 02:41:38, and at 02:41:44 his COMMIT failed: could not serialize access due to read/write dependencies among transactions. The app retried at 02:41:49, read the register, saw only Leofric on call, and told him he was the last clerk on call. At 03:00 the night check found Leofric on call. The contractor also wrote down the other fix, in case the register ever has to leave Serializable: read the on-call rows with SELECT ... FOR UPDATE, so the second sign-off waits for the first and then reads the result. At 03:14 the basement phone rang once anyway. Leofric picked up. The line was quiet, then it clicked off, as if someone had only been checking.",
+        "senior": "Write skew happens because each transaction decides from rows the other is about to change. Serializable makes PostgreSQL watch for exactly that: when two transactions each read what the other wrote, the second to commit fails, and its retry starts from a fresh snapshot that includes the first one's change. The rule then holds without the app knowing who else might be signing off. The price is that any transaction can fail with 40001, so every one needs a retry loop, and a busy table may see more failures. Locked reads with SELECT ... FOR UPDATE do the same job by making the second sign-off wait; they're explicit and predictable, but every path that changes the rule's rows has to remember to take the lock."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s3e03",
+    "title": "Interleave the sign-offs",
+    "lede": "You're the contractor, replaying Thursday night one step at a time. Two transactions, A and B, run their steps in the order shown: as it happened, A first, B first, or an order you build yourself with A's next step and B's next step. The sign-off reads tonight's register, signs you off only if 2 or more are on call, and commits. In the story Sabeline (A) read at 02:41:07 and Leofric (B) at 02:41:19; she wrote at 02:41:26 and committed at 02:41:31; he wrote at 02:41:38 and committed at 02:41:44. Each step takes the next of those times, and a step that waits for a lock goes on the moment the other transaction finishes. Three more scenarios show the other reads: the burials report counting 4,212 at 02:50:00 and 4,213 at 02:58:40, with the filing job committing at 02:52:11 and the report at 02:58:41; deed 1187 read twice from 03:10:00 to 03:10:21 while the scanning job changes it from on the shelf to out for scanning; and, from 03:20:00 to 03:20:10, that change rolled back before it was ever committed. The rules are PostgreSQL's documented ones. Read Uncommitted behaves as Read Committed. At Read Committed each statement sees what was committed when it began. At Repeatable Read and Serializable every statement sees the snapshot taken at the transaction's first statement. Locked reads use SELECT ... FOR UPDATE and wait while the other transaction holds the row. The one global lock covers sign-offs only. A serialization failure rolls a transaction back, and the app retries it once from the start; steps after the story's last time come 5 seconds apart. The sim reports Serializable's failure at COMMIT, where PostgreSQL may raise it a step earlier, at the write. The night check runs at 03:00.",
+    "tryThis": "Try this: as now, at Read Committed, both clerks read 2 on call and both sign off, and the night check finds 0 on call: write skew. Switch to Repeatable Read: the same, with no error. Switch to Serializable: Leofric's COMMIT fails with a serialization failure, the retry at 02:41:49 reads 1 on call, and Leofric stays on. Back to Read Committed, and turn on locked reads: Leofric waits for Sabeline's commit and reads 1 on call. Try locked reads at Repeatable Read too, then the global lock. Now pick the burials report at Read Committed and at Repeatable Read, with locked reads on and off: which setting stops the phantom? Last, start an empty order and build one that breaks the rule at Read Committed with A going first."
+  },
+  "explain": {
+    "oneLine": "Nothing walked the aisles. Two sign-offs ran at once, each read the register before the other's change was committed, each saw someone else on call, and each signed off a different row: write skew, which Read Committed and Repeatable Read both allow.",
+    "steps": [
+      {
+        "title": "Two transactions at once: their steps interleave.",
+        "text": "A database runs many transactions at the same time, and their statements take turns: one from this transaction, then one from that. That's concurrency, and the order the turns actually fall in is the interleaving. Each transaction is still all or nothing, but what it sees of the others while it runs is a separate promise, set by its isolation level. Thursday's interleaving: Sabeline read at 02:41:07, Leofric read at 02:41:19, Sabeline wrote at 02:41:26 and committed at 02:41:31, Leofric wrote at 02:41:38 and committed at 02:41:44. Run one after the other, the second sign-off would have read one clerk on call and been refused. Interleaved, both read two. Neither app did anything wrong on its own; the trouble is only in the combination, which is why it's so hard to find in testing."
+      },
+      {
+        "title": "Three odd reads, as the SQL standard names them.",
+        "text": "The SQL standard defines its isolation levels by which odd reads, which it calls phenomena, each level must prevent. A dirty read sees another transaction's change before it commits: if the scanning job sets deed 1187 to out for scanning and then rolls back, a dirty read would have shown a change that never happened. A non-repeatable read reads the same row twice in one transaction and gets two values: Leofric reads deed 1187 as on the shelf, the scanning job commits out for scanning, and his second read in the same transaction says out for scanning. A phantom read runs the same search twice and gets a different set of rows: the burials report counted 4,212 at 02:50:00, the filing job filed Aldwyn Ferrand's page at 02:52:10 and committed, and the second count at 02:58:40 found 4,213. In 1995 Berenson and colleagues showed that these three don't capture every way concurrent transactions can go wrong, and named the ones they miss."
+      },
+      {
+        "title": "Write skew: read the same rows, write different ones.",
+        "text": "Each clerk read both rows, decided from them that someone else was on call, and changed only their own row. No row was written twice, so there was no lost update and no row lock to wait for, and each read was correct when it ran. The rule broke only in the combination. Berenson's paper calls this write skew, with a bank whose customers' accounts may go negative as long as their combined balance doesn't. Martin Kleppmann's Designing Data-Intensive Applications explains it with a hospital where at least one doctor must stay on call, and two doctors each check that the other is on before going off. PostgreSQL's general name is a serialization anomaly: committing the transactions gives a result that no one-at-a-time order could give. Two bookings that each check a room is free, or two orders that each see one item left, have the same shape."
+      },
+      {
+        "title": "The four levels, in PostgreSQL and elsewhere.",
+        "text": "Read Uncommitted: the standard allows dirty reads, but PostgreSQL's behaves like Read Committed and never shows one. Read Committed, PostgreSQL's default: each statement sees what was committed before it began, so non-repeatable reads, phantoms and write skew all happen. Repeatable Read: every statement sees the snapshot taken at the transaction's first statement, so no non-repeatable reads, and in PostgreSQL no phantoms either, which the standard allows but doesn't require. Write skew still happens, because each clerk's snapshot really did show two on call. Updating or locking a row that another transaction changed after your snapshot fails with could not serialize access due to concurrent update. Serializable: PostgreSQL's serializable snapshot isolation, Repeatable Read plus a watch on read/write dependencies. When committing would give a result no one-at-a-time order could, one transaction fails with a serialization failure, SQLSTATE 40001, and must be retried. MySQL's InnoDB differs: its default is Repeatable Read, plain reads use a snapshot from the first read, locking reads lock ranges with gap or next-key locks, and its Serializable turns plain SELECTs into SELECT ... FOR SHARE when autocommit is off. The names match across databases; the behaviour behind them often doesn't, so read your own database's table."
+      },
+      {
+        "title": "Three ways to stop write skew, each with a cost.",
+        "text": "Serializable with a retry loop: the database spots the conflict and fails one transaction, the app runs it again from the start, and the retry sees the first one's change. The cost: any transaction can fail, so every one needs the loop, and busy tables see more retries. Locked reads: read the rows the rule depends on with SELECT ... FOR UPDATE, so the second sign-off waits until the first commits. At Read Committed it then gets the newest rows and is refused; at Repeatable Read it fails with a serialization failure and retries. The cost: waiting, every path that changes those rows must take the lock, and nothing can lock a row that hasn't been inserted yet. A constraint the database enforces: keep a counter row for the night, clerks on call, with a CHECK constraint that it stays at 1 or more, and have each sign-off subtract 1 from it in the same transaction. Two sign-offs now write the same row, its row lock makes them take turns, and the second breaks the check and fails. The cost: a counter to keep in step with the register, and one hot row that every sign-off updates."
+      }
+    ],
+    "diagram": {
+      "type": "sequence",
+      "aria": "The fix, replayed for Thursday at Serializable. Sabeline reads 2 on call at 02:41:07, Leofric reads 2 on call at 02:41:19. Sabeline signs off at 02:41:26 and commits at 02:41:31. Leofric signs off at 02:41:38, and his COMMIT at 02:41:44 fails with a serialization failure, SQLSTATE 40001. The app retries at 02:41:49: Leofric reads 1 on call and is refused, because he is the last clerk on call. At 03:00 Leofric is on call.",
+      "lanes": [
+        "Sabeline",
+        "Register",
+        "Leofric"
+      ],
+      "steps": [
+        {
+          "from": 0,
+          "to": 1,
+          "label": "02:41:07 read: 2 on"
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "02:41:19 read: 2 on"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "02:41:26 me off"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "02:41:31 COMMIT"
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "02:41:38 me off"
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "02:41:44 COMMIT",
+          "tone": "bad"
+        },
+        {
+          "note": 2,
+          "text": "rolled back",
+          "sub": "SQLSTATE 40001",
+          "tone": "bad"
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "02:41:49 retry: 1 on"
+        },
+        {
+          "note": 2,
+          "text": "refused",
+          "sub": "last on call",
+          "tone": "ok"
+        },
+        {
+          "outcome": 1,
+          "text": "03:00 on call: Leofric",
+          "tone": "ok"
+        }
+      ]
+    },
+    "caption": "The fix, replayed for Thursday at Serializable. Both clerks still read 2 on call, and Sabeline's sign-off commits at 02:41:31. Leofric's COMMIT at 02:41:44 fails with a serialization failure, because each transaction read a row the other wrote without seeing the change. The app retries at 02:41:49, reads 1 on call, and refuses: Leofric is the last clerk on call.",
+    "fix": {
+      "title": "The fix: Serializable with a retry loop, or locked reads",
+      "text": "Run the sign-off at Serializable, and wrap it in a retry loop that catches SQLSTATE 40001, runs the whole transaction again from its first statement, ignores anything the failed try read, and gives up with a clear message after a few tries. On Thursday's timings Leofric's COMMIT fails at 02:41:44, the retry at 02:41:49 reads 1 on call, and the app refuses him. Make Serializable the default for the register's database role with default_transaction_isolation, so a new screen can't quietly run at Read Committed. The other fix, if the register ever has to stay at Read Committed: read tonight's on-call rows with SELECT ... FOR UPDATE, so the second sign-off waits for the first and then reads 1 on call. Pick one as the rule for every path that changes the register, and write it down beside the card."
+    },
+    "limits": [
+      "Serializable protects only transactions that run at Serializable. A script or an old screen that changes the register at Read Committed is outside the watch, so set it as the default for that database role and check for other levels, as PostgreSQL's manual suggests.",
+      "Retries cost time and can fail again. The app must be able to repeat the whole transaction, ignore what the failed try read, and stop after a few tries. PostgreSQL also notes that a sequential scan makes this watch cover the whole table, which can raise the failure rate, so the register's queries should use an index.",
+      "Locked reads lock only rows that exist. A rule about rows that are about to be inserted, such as no two bookings for one room, needs Serializable, a constraint, or a row that stands for the thing being booked, which you lock instead."
+    ],
+    "tradeoff": {
+      "head": [
+        "Choice",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "Read Committed (as now)",
+          "Fast; a read never waits and nothing fails with 40001.",
+          "Thursday: 0 on call at 03:00, and the report printed 4,212 and 4,213."
+        ],
+        [
+          "Repeatable Read",
+          "One snapshot per transaction: the report prints 4,212 twice.",
+          "Write skew: 0 on call at 03:00, with no error at all."
+        ],
+        [
+          "Serializable with a retry loop",
+          "Leofric's COMMIT fails, the retry at 02:41:49 reads 1 on call and keeps him on. No locks to remember.",
+          "Any transaction can fail with 40001, so every one needs a retry loop."
+        ],
+        [
+          "Locked reads (SELECT ... FOR UPDATE)",
+          "Leofric waits for Sabeline's commit and reads 1 on call. Explicit and predictable.",
+          "Waiting; every path must take the lock; it can't lock rows not yet inserted."
+        ],
+        [
+          "One global lock",
+          "Correct: sign-offs run one at a time, and Leofric waits once.",
+          "Everything that writes the register queues behind one lock, related or not."
+        ],
+        [
+          "A CHECK constraint on a counter row",
+          "The database refuses the second sign-off whatever the app does.",
+          "A counter to keep in step with the register, and one hot row."
+        ]
+      ]
+    },
+    "seniorTake": "Isolation levels are names for how much a transaction may see of others running beside it, and the names don't mean the same thing in every database, so learn your database's own table rather than the standard's. Most databases default to a level that allows some anomalies, usually for speed, and most of the time that's fine. The danger is a rule that spans rows: at least one on call, a room booked once, a total that must stay above zero. Find those rules and protect each one on purpose: Serializable with a retry loop when many paths touch the data, locked reads when one well-known path does, or a constraint when the rule fits in a row the database checks. And treat serialization failures as normal traffic: retry them, count them, and alert when they climb.",
+    "realWorld": [
+      {
+        "title": "PostgreSQL 18: the phenomena, and its table of levels",
+        "text": "PostgreSQL's manual defines the phenomena: a dirty read, where a transaction reads data written by a concurrent uncommitted transaction; a nonrepeatable read, where a transaction re-reads data it has previously read and finds that data has been modified by another transaction (that committed since the initial read); and a phantom read, where a transaction re-executes a query returning a set of rows that satisfy a search condition and finds that the set has changed due to another recently-committed transaction. It adds the serialization anomaly: the result of successfully committing a group of transactions is inconsistent with all possible orderings of running those transactions one at a time. Its table marks dirty reads at Read Uncommitted and phantoms at Repeatable Read as allowed, but not in PG, because PostgreSQL's Read Uncommitted mode behaves like Read Committed, and its Repeatable Read implementation does not allow phantom reads. Serialization anomalies are possible at every level below Serializable. Read Committed is the default isolation level in PostgreSQL.",
+        "source": 0
+      },
+      {
+        "title": "PostgreSQL 18: Repeatable Read and business rules",
+        "text": "A query in a repeatable read transaction sees a snapshot as of the start of the first non-transaction-control statement in the transaction. If it tries to update a row that another transaction updated and committed after that, it is rolled back with ERROR: could not serialize access due to concurrent update, and the manual says the application should abort the current transaction and retry the whole transaction from the beginning. It is also plain about the limit this case hit: attempts to enforce business rules by transactions running at this isolation level are not likely to work correctly without careful use of explicit locks to block conflicting transactions.",
+        "source": 0
+      },
+      {
+        "title": "PostgreSQL 18: Serializable and SQLSTATE 40001",
+        "text": "Serializable, the manual says, works exactly the same as Repeatable Read except that it also monitors for conditions which could make a set of serializable transactions behave in a manner inconsistent with all possible serial executions. Applications using this level must be prepared to retry transactions due to serialization failures, which always return with an SQLSTATE value of '40001'. Its example has two transactions that each sum one class of rows and insert the total as a row of the other class: at Repeatable Read both would be allowed to commit, but at Serializable one commits and the other is rolled back with ERROR: could not serialize access due to read/write dependencies among transactions. The manual also notes that a sequential scan makes the monitoring cover the whole table, which can increase the rate of serialization failures.",
+        "source": 0
+      },
+      {
+        "title": "PostgreSQL 18: retries, and explicit locks",
+        "text": "The manual's section on consistency checks says that if the Serializable isolation level is used for all writes and for all reads which need a consistent view of the data, no other effort is required to ensure consistency, and that a framework which automatically retries transactions rolled back with a serialization failure avoids creating an unnecessary burden for application programmers. It says it may be a good idea to set default_transaction_isolation to serializable. When non-serializable writes are possible, it says to use SELECT FOR UPDATE, SELECT FOR SHARE, or an appropriate LOCK TABLE statement. And it warns that comparing the results of two successive SELECT sum(...) commands will not work reliably in Read Committed mode, since the second query will likely include the results of transactions not counted by the first. That was the burials report.",
+        "source": 1
+      },
+      {
+        "title": "PostgreSQL 18: what FOR UPDATE does",
+        "text": "FOR UPDATE causes the rows retrieved by the SELECT statement to be locked as though for update, and other transactions that try to update or lock those rows are blocked until the current transaction ends. A SELECT FOR UPDATE that has to wait will then lock and return the updated row (or no row, if the row was deleted). Within a REPEATABLE READ or SERIALIZABLE transaction, however, an error will be thrown if a row to be locked has changed since the transaction started. The lab follows both rules: at Read Committed Leofric's locked read waits and then sees 1 on call; at Repeatable Read it fails and is retried.",
+        "source": 2
+      },
+      {
+        "title": "PostgreSQL wiki: write skew, and first committer wins",
+        "text": "The PostgreSQL wiki's page on Serializable Snapshot Isolation says: when two concurrent transactions each determine what they are writing based on reading a data set which overlaps what the other is writing, you can get a state which could not occur if either had run before the other. This is known as write skew, and is the simplest form of serialization anomaly against which SSI protects you. When there is write skew in SSI, both transactions proceed until one transaction commits. The first committer wins and the other transaction is rolled back. Its overdraft protection example is a bank that lets depositors withdraw up to the total of what they have in all accounts, where two simultaneous withdrawals could work at Repeatable Read, but at Serializable one is rejected.",
+        "source": 3
+      },
+      {
+        "title": "MySQL 8.4: InnoDB's levels",
+        "text": "MySQL's manual says the default isolation level for InnoDB is REPEATABLE READ. Consistent reads within the same transaction read the snapshot established by the first read. For locking reads (SELECT with FOR UPDATE or FOR SHARE), UPDATE and DELETE with a range-type search condition, InnoDB locks the index range scanned, using gap locks or next-key locks to block insertions by other sessions into the gaps covered by the range. At READ UNCOMMITTED a possible earlier version of a row might be used, which is also called a dirty read. SERIALIZABLE is like REPEATABLE READ, but InnoDB implicitly converts all plain SELECT statements to SELECT ... FOR SHARE if autocommit is disabled. Same names as PostgreSQL, different machinery.",
+        "source": 4
+      },
+      {
+        "title": "Berenson et al., 1995: the standard's levels, criticised",
+        "text": "Hal Berenson, Phil Bernstein, Jim Gray, Jim Melton, Elizabeth O'Neil and Patrick O'Neil's paper starts from the standard: ANSI SQL-92 defines Isolation Levels in terms of phenomena: Dirty Reads, Non-Repeatable Reads, and Phantoms. It shows that these phenomena and the ANSI SQL definitions fail to characterize several popular isolation levels, introduces new phenomena that better characterize isolation types, and defines an important multiversion isolation type, Snapshot Isolation.",
+        "source": 5
+      },
+      {
+        "title": "Berenson et al., 1995: write skew defined",
+        "text": "The paper's A5B, Write Skew: suppose T1 reads x and y, which are consistent with a constraint, and then a T2 reads x and y, writes x, and commits. Then T1 writes y. If there were a constraint between x and y, it might be violated. Its example is a bank where account balances are allowed to go negative as long as the sum of commonly held balances remains non-negative. And it says Write Skew obviously can occur in a Snapshot Isolation history, so Snapshot Isolation admits history anomalies that REPEATABLE READ, as the paper defines it with locks, does not. PostgreSQL's Repeatable Read is a snapshot, which is why the clerks' write skew got through it.",
+        "source": 6
+      },
+      {
+        "title": "Kleppmann: the on-call doctors",
+        "text": "Martin Kleppmann's Designing Data-Intensive Applications (O'Reilly, released March 2017) covers isolation in chapter 7, Transactions, whose contents list a section called Write Skew and Phantoms. There, in our words, he explains write skew with doctors on call at a hospital: at least one must stay on call, two who are on call each ask to go off at about the same time, each request checks that another doctor is still on, and both go off. The Saltmarsh register is the same shape. The publisher's page we fetched shows the title, date and contents only, so the example is described here, not quoted.",
+        "source": 7
+      }
+    ],
+    "interview": {
+      "asked": [
+        "Explain the SQL isolation levels.",
+        "What is write skew, and how do you prevent it?",
+        "Why does my transaction fail with a serialization error, and what should the app do?"
+      ],
+      "answer": "Start with why levels exist: transactions run at the same time and their steps interleave, and the isolation level decides what one sees of the others. The standard names three read phenomena: a dirty read sees uncommitted changes, a non-repeatable read gets two values for one row, a phantom read gets a different set of rows for one search. Read Uncommitted allows all three, Read Committed stops dirty reads, Repeatable Read stops non-repeatable reads, and Serializable promises the result of some one-at-a-time order. Then say that databases differ: PostgreSQL's Read Uncommitted acts as Read Committed, its default is Read Committed, and its Repeatable Read is a snapshot that hides phantoms too; MySQL InnoDB defaults to Repeatable Read with gap and next-key locks for locking reads. Write skew is the anomaly the three phenomena miss: two transactions read the same rows, each decides from them, and each writes a different row, such as two doctors each checking that the other is on call before going off. Snapshots allow it. Prevent it with Serializable and a retry loop, with SELECT ... FOR UPDATE on the rows the rule reads, or with a constraint the database enforces, such as a counter row with a CHECK. A serialization failure, SQLSTATE 40001, is the database refusing to commit a transaction that would break serializability. It's expected at that level: retry the whole transaction from the start, ignore what the failed try read, cap the tries with backoff, and watch the failure rate."
+    }
+  },
+  "terms": [
+    {
+      "term": "Night rule",
+      "def": "The records office's rule, typed on a card in 1931: at least one night clerk is on call at all times, and you check that another clerk is on before you sign off."
+    },
+    {
+      "term": "On-call register",
+      "def": "The county's app and PostgreSQL table that says which clerks are on call. Each clerk has one row a night, with on_call true or false."
+    },
+    {
+      "term": "Sign-off",
+      "def": "The register app's transaction: read tonight's register; if 2 or more are on call, set your own on_call to false; commit. Otherwise the app refuses."
+    },
+    {
+      "term": "Night check",
+      "def": "The county's job that counts the clerks on call at 03:00 and pages the duty manager if the count is 0."
+    },
+    {
+      "term": "Burials report",
+      "def": "A night report that counts the burial files at its start and again at its end, in one transaction, as a check. On Thursday: 4,212, then 4,213."
+    },
+    {
+      "term": "Filing job",
+      "def": "The scanning service's job that adds scanned pages to the files table. On Thursday it filed a 1958 page at 02:52:10."
+    },
+    {
+      "term": "Deed 1187 (sim)",
+      "def": "A deed in the files table, normally on the shelf. The scanning job sets it to out for scanning while it scans it. The sim reads it twice to show the other reads."
+    },
+    {
+      "term": "Concurrency",
+      "def": "Several things running at the same time and sharing data, such as two transactions on one database."
+    },
+    {
+      "term": "Interleaving",
+      "def": "The order in which the steps of transactions running at the same time actually happen: a step from one, then a step from the other."
+    },
+    {
+      "term": "Isolation level",
+      "def": "A setting that decides what a transaction can see of other transactions running at the same time, and so which anomalies can happen. The SQL standard names four."
+    },
+    {
+      "term": "Anomaly",
+      "def": "A result that couldn't happen if the transactions had run one at a time. The SQL standard calls the read anomalies phenomena."
+    },
+    {
+      "term": "Dirty read",
+      "def": "Reading another transaction's change before it commits. If that transaction rolls back, you saw a change that never happened."
+    },
+    {
+      "term": "Non-repeatable read",
+      "def": "Reading the same row twice in one transaction and getting two values, because another transaction changed it and committed in between."
+    },
+    {
+      "term": "Phantom read",
+      "def": "Running the same search twice in one transaction and getting a different set of rows, because another transaction added or removed matching rows and committed."
+    },
+    {
+      "term": "Write skew",
+      "def": "Two transactions read the same rows, each decides from what it read, and each writes a different row. Each is fine alone; together they break a rule that spans rows."
+    },
+    {
+      "term": "Serialization anomaly",
+      "def": "PostgreSQL's general name: committing a group of transactions gives a result that no order of running them one at a time could give. Write skew is one."
+    },
+    {
+      "term": "Read Uncommitted",
+      "def": "The lowest SQL isolation level. The standard allows dirty reads there; PostgreSQL's behaves like Read Committed and never shows one."
+    },
+    {
+      "term": "Read Committed",
+      "def": "Each statement sees what was committed before it began. PostgreSQL's default. Two statements in one transaction can see different data."
+    },
+    {
+      "term": "Repeatable Read",
+      "def": "Every statement in a transaction sees one snapshot, taken at its first statement. In PostgreSQL it hides phantoms too, but write skew still happens. MySQL InnoDB's default."
+    },
+    {
+      "term": "Serializable",
+      "def": "The strictest level: committed transactions have the same effect as some one-at-a-time order. PostgreSQL enforces it by failing a transaction that would break it."
+    },
+    {
+      "term": "Snapshot (of a transaction)",
+      "def": "A frozen view of the committed data at one moment. At Repeatable Read and Serializable, PostgreSQL gives each transaction one, taken at its first statement."
+    },
+    {
+      "term": "Snapshot isolation",
+      "def": "Giving each transaction one snapshot of the data. Berenson and colleagues defined it in 1995 and showed it allows write skew. PostgreSQL's Repeatable Read works this way."
+    },
+    {
+      "term": "Serializable snapshot isolation (SSI)",
+      "def": "Snapshot isolation plus a watch for read/write dependencies that no one-at-a-time order could produce. It's how PostgreSQL implements Serializable."
+    },
+    {
+      "term": "Read/write dependency",
+      "def": "One transaction reads data that another writes, without seeing that write. Two of them in a circle between transactions is what Serializable watches for."
+    },
+    {
+      "term": "Serialization failure",
+      "def": "PostgreSQL rolling a transaction back because letting it commit could give a result no one-at-a-time order could. Always SQLSTATE 40001. The app should retry it."
+    },
+    {
+      "term": "SQLSTATE",
+      "def": "A standard five-character error code a SQL database returns with an error. 40001 is a serialization failure, so an app can recognise it without reading the message."
+    },
+    {
+      "term": "Retry loop",
+      "def": "Code that runs a whole transaction again from its first statement when it fails with a serialization failure, a few times at most, ignoring what the failed try read."
+    },
+    {
+      "term": "First committer wins",
+      "def": "The SSI rule PostgreSQL's wiki describes: when two transactions conflict, the one that commits first succeeds and the other is rolled back."
+    },
+    {
+      "term": "Roll back",
+      "def": "Undo every change a transaction made, as if it never ran. The opposite of commit."
+    },
+    {
+      "term": "Lost update",
+      "def": "Two transactions read a value and both write a new one, so the second write overwrites the first and one change is lost."
+    },
+    {
+      "term": "Row lock",
+      "def": "A lock a database takes on one row, so another transaction that wants to change or lock that row waits until the first one commits or rolls back."
+    },
+    {
+      "term": "Explicit lock",
+      "def": "A lock your code asks for, such as SELECT ... FOR UPDATE or LOCK TABLE, rather than one the database takes by itself."
+    },
+    {
+      "term": "SELECT ... FOR UPDATE",
+      "def": "A read that also locks the rows it returns, so other transactions that try to update or lock them wait until this transaction ends. Also called a locked read."
+    },
+    {
+      "term": "SELECT ... FOR SHARE",
+      "def": "A read that takes a shared lock on the rows it returns: others can still read and share-lock them, but can't update them until this transaction ends."
+    },
+    {
+      "term": "Global lock",
+      "def": "One lock that every sign-off must take first, so only one runs at a time, whether or not two sign-offs could ever conflict."
+    },
+    {
+      "term": "LOCK TABLE",
+      "def": "A PostgreSQL statement that locks a whole table in a chosen mode. In EXCLUSIVE mode plain reads still go through, but every writer waits."
+    },
+    {
+      "term": "CHECK constraint",
+      "def": "A constraint that refuses any write that would make a condition false for a row, such as on_call_count >= 1."
+    },
+    {
+      "term": "Counter row",
+      "def": "One row that holds a running total, such as clerks on call tonight, updated in the same transaction as the rows it counts."
+    },
+    {
+      "term": "Hot row",
+      "def": "A single row that many transactions must update, so they queue on its row lock."
+    },
+    {
+      "term": "default_transaction_isolation",
+      "def": "A PostgreSQL setting for the isolation level new transactions get unless they ask for another. It can be set for a whole database role."
+    },
+    {
+      "term": "Database role",
+      "def": "PostgreSQL's name for a user or group that connects to the database. Settings such as the default isolation level can be attached to it."
+    },
+    {
+      "term": "Sequential scan",
+      "def": "Reading a whole table row by row instead of finding rows through an index."
+    },
+    {
+      "term": "Consistent read (InnoDB)",
+      "def": "InnoDB's plain SELECT, which reads a snapshot instead of taking locks. At Repeatable Read the snapshot comes from the transaction's first read."
+    },
+    {
+      "term": "Gap lock and next-key lock",
+      "def": "InnoDB locks on the space between index entries, or on an entry plus the gap before it, so others can't insert into a range a locking read has scanned."
+    },
+    {
+      "term": "Autocommit",
+      "def": "A mode where each statement is its own transaction and commits as soon as it finishes."
+    },
+    {
+      "term": "Designing Data-Intensive Applications",
+      "def": "Martin Kleppmann's 2017 book from O'Reilly on how databases and distributed systems work. Chapter 7 covers transactions and isolation."
+    },
+    {
+      "term": "AICPA",
+      "def": "The American Institute of Certified Public Accountants, the US accountants' body that publishes the Trust Services Criteria used for SOC 2 reports."
+    },
+    {
+      "term": "SOC 2",
+      "def": "An audit report on a company's controls under the AICPA's Trust Services Criteria. Processing integrity, one optional part, covers processing that's complete, valid and accurate."
+    }
+  ],
+  "atWork": "Pick one rule in your systems that spans more than one row, and find the code that enforces it. Three common ones: a meeting room booked once per slot, where two people each see the room free and both book it; a balance that must stay above zero across two accounts that share it, where two withdrawals each see enough in the total, the bank example Berenson's paper uses; and stock that must never go negative, where two orders each see one item left. If the code reads, decides, then writes, check the isolation level it runs at (in PostgreSQL, SHOW transaction_isolation from the same connection the app uses), and ask what happens if two requests do it in the same second. Then check the error handling: does anything catch SQLSTATE 40001 and retry the whole transaction, or would a serialization failure reach the user as an error? With read-only access, search the logs for could not serialize access to see how often it already happens. Standards note: if your company is pursuing SOC 2 with processing integrity in scope, criterion PI1.3 of the AICPA's 2017 Trust Services Criteria says the entity implements policies and procedures over system processing to result in products, services, and reporting to meet the entity's objectives. A rule the database enforces, with a tested retry path, is far easier to show an auditor than a check in the app.",
+  "board": {
+    "cards": [
+      {
+        "id": "isolation-levels",
+        "title": "Isolation levels"
+      },
+      {
+        "id": "dirty",
+        "title": "Dirty reads"
+      },
+      {
+        "id": "non-repeatable",
+        "title": "Non-repeatable reads"
+      },
+      {
+        "id": "phantom-reads",
+        "title": "Phantom reads"
+      }
+    ],
+    "strings": [
+      {
+        "from": "isolation-levels",
+        "to": "transactions",
+        "label": "what others see"
+      },
+      {
+        "from": "isolation-levels",
+        "to": "acid",
+        "label": "the I in ACID"
+      },
+      {
+        "from": "isolation-levels",
+        "to": "optimistic-vs-pessimistic-locking",
+        "label": "lock or retry"
+      },
+      {
+        "from": "isolation-levels",
+        "to": "race-conditions",
+        "label": "write skew"
+      },
+      {
+        "from": "isolation-levels",
+        "to": "locks",
+        "label": "FOR UPDATE"
+      },
+      {
+        "from": "isolation-levels",
+        "to": "retry-storms",
+        "label": "40001 retries"
+      },
+      {
+        "from": "phantom-reads",
+        "to": "indexes",
+        "label": "scans widen locks"
+      },
+      {
+        "from": "isolation-levels",
+        "to": "write-ahead-logs",
+        "label": "next: durability"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s3e03-r1",
+      "kind": "free",
+      "prompt": "A meeting-room app runs one transaction at Read Committed: check that room 4 has no booking from 10:00 to 11:00, then insert the booking. Two people book room 4 for 10:00 in the same second, and both bookings are saved. A teammate says to switch to Repeatable Read. What happened, and what would you do?",
+      "keyIdeas": [
+        {
+          "idea": "Both checked before either committed, so each saw the room free and both inserted: write skew, with the conflicting row not yet there",
+          "match": [
+            "write skew",
+            "both read",
+            "both checked",
+            "before either",
+            "neither saw",
+            "saw it free",
+            "saw the room free"
+          ]
+        },
+        {
+          "idea": "Repeatable Read won't help: each snapshot really did show the room free, and the two inserts are different rows",
+          "match": [
+            "won't help",
+            "doesn't help",
+            "does not help",
+            "wouldn't help",
+            "would not help",
+            "not enough",
+            "still allows",
+            "still lets"
+          ]
+        },
+        {
+          "idea": "Use Serializable with a retry on 40001, or have the database enforce it: lock a row that stands for the room, or a constraint",
+          "match": [
+            "serializable",
+            "sqlstate 40001",
+            "serialization failure",
+            "lock the room",
+            "room row",
+            "constraint"
+          ]
+        }
+      ],
+      "model": "Both transactions checked before either had committed, so both saw room 4 free at 10:00 and both inserted. That's write skew, with a phantom twist: the booking that would have warned the second one didn't exist yet when it looked. Repeatable Read won't help: each transaction's snapshot really did show the room free, and the two inserts are different rows, so nothing conflicts. Run the booking at Serializable and retry on a serialization failure, SQLSTATE 40001, so PostgreSQL fails the second booking and its retry sees the first. Or make the database enforce it: lock a row that stands for room 4 with SELECT ... FOR UPDATE before checking, since you can't lock a booking that doesn't exist yet, or add a unique constraint on room and start time if bookings come in fixed slots."
+    },
+    {
+      "id": "s3e03-r2",
+      "kind": "free",
+      "prompt": "Your service runs PostgreSQL at Serializable. After a busy launch the logs fill with ERROR: could not serialize access due to read/write dependencies among transactions, and users see 500 errors. A colleague wants to drop to Read Committed to make the errors go away. What do you tell them?",
+      "keyIdeas": [
+        {
+          "idea": "The error is expected: PostgreSQL rolled one transaction back to prevent an anomaly, and the app should retry it",
+          "match": [
+            "retry",
+            "run it again",
+            "try again",
+            "re-run",
+            "rerun"
+          ]
+        },
+        {
+          "idea": "Retry the whole transaction from the start, ignoring what the failed try read, a few times at most with backoff",
+          "match": [
+            "from the start",
+            "from the beginning",
+            "whole transaction",
+            "backoff",
+            "back off",
+            "jitter",
+            "few times",
+            "few tries"
+          ]
+        },
+        {
+          "idea": "Dropping to Read Committed hides the errors by letting anomalies such as write skew through silently",
+          "match": [
+            "write skew",
+            "anomal",
+            "silently",
+            "wrong data",
+            "break the rule",
+            "breaks the rule",
+            "corrupt"
+          ]
+        }
+      ],
+      "model": "Don't drop the level. A serialization failure is PostgreSQL doing its job: two transactions conflicted in a way no one-at-a-time order allows, so it rolled one back, with SQLSTATE 40001, instead of letting both commit. The app is supposed to retry: catch 40001, run the whole transaction again from the start, ignore anything the failed attempt read, and stop after a few tries, with exponential backoff and jitter between them. The 500s mean nobody wrote that retry loop. Dropping to Read Committed would make the errors disappear by letting the anomalies through silently, such as write skew, so a rule like a minimum stock level could break with no error at all. Then measure the failure rate; if it stays high, keep transactions short and make sure their queries use indexes, so fewer of them overlap."
+    },
+    {
+      "id": "s3e03-r3",
+      "kind": "mcq",
+      "prompt": "A PostgreSQL report counts the rows matching a condition twice in one transaction at Read Committed, and another transaction inserts a matching row and commits between the two counts. What does the report see?",
+      "options": [
+        "Two different counts: a phantom read",
+        "The same count twice, because the transaction holds one snapshot",
+        "Two different counts: a dirty read",
+        "An error: could not serialize access due to concurrent update"
+      ],
+      "answer": 0,
+      "why": "At Read Committed each statement sees what was committed before it began, so the second count includes the new row: the set of rows matching the search changed, which is a phantom read. It isn't a dirty read, because the insert had committed. One snapshot for the whole transaction is Repeatable Read, where PostgreSQL would print the same count twice. That was the burials report: 4,212, then 4,213."
+    },
+    {
+      "id": "s3e03-r4",
+      "kind": "mcq",
+      "prompt": "Two sign-offs run at Repeatable Read in PostgreSQL. Each reads both clerks' rows, sees 2 on call, and updates only its own row. What happens?",
+      "options": [
+        "The second UPDATE fails with a concurrent update error",
+        "The second COMMIT is refused and its transaction undone",
+        "Both commit, and nobody is left on call",
+        "The second read waits until the first transaction commits"
+      ],
+      "answer": 2,
+      "why": "Each transaction reads its own snapshot, and each snapshot really shows two on call. Neither updates a row the other changed, so there's no concurrent update error, and Repeatable Read doesn't watch read/write dependencies, so nothing fails at COMMIT: that's Serializable. Plain reads don't wait for writers. Both commit, and the rule breaks: write skew."
+    },
+    {
+      "id": "s3e03-r5",
+      "kind": "mcq",
+      "prompt": "According to MySQL's manual, which is true of InnoDB?",
+      "options": [
+        "Its default isolation level is Read Committed, as in PostgreSQL",
+        "Its default is Repeatable Read, and locking reads over a range use gap or next-key locks",
+        "Its strictest level never takes locks and relies only on snapshots",
+        "Its Read Uncommitted behaves exactly like Read Committed"
+      ],
+      "answer": 1,
+      "why": "MySQL's manual says the default isolation level for InnoDB is REPEATABLE READ, and that for locking reads with a range-type search condition InnoDB locks the index range scanned, using gap locks or next-key locks to block insertions. Its SERIALIZABLE turns plain SELECTs into SELECT ... FOR SHARE when autocommit is off. It's PostgreSQL whose Read Uncommitted behaves like Read Committed; InnoDB's may read an earlier version of a row, a dirty read."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. Serializable has kept someone on call every night since. Last week the county added a second rule: no more than 3 clerks may take leave on the same night, across all its offices. A leave request reads how many are already on leave that night and inserts a new leave row if it's fewer than 3. The contractor's screens do it at Serializable, but the new leave screen was written by someone else, at the database's default level, with no retry. On the night of 14 March, 4 clerks were on leave. The card above the terminal has a second line now, in the same typewriter.",
+    "prompt": "Reply to OP. What went wrong, and how should the leave rule be protected?",
+    "keyIdeas": [
+      {
+        "idea": "Serializable only protects transactions that run at Serializable; the new screen ran at a lower level, so the conflict was never seen",
+        "match": [
+          "only protects",
+          "only works if",
+          "only works when",
+          "every path",
+          "every transaction",
+          "all transactions",
+          "default_transaction_isolation",
+          "lower level"
+        ]
+      },
+      {
+        "idea": "The conflicting rows are inserts, phantoms: FOR UPDATE can't lock rows that don't exist yet, so lock a row for the night or use a counter row with a CHECK",
+        "match": [
+          "phantom",
+          "doesn't exist",
+          "don't exist",
+          "not exist yet",
+          "row for the night",
+          "counter row",
+          "check constraint"
+        ]
+      },
+      {
+        "idea": "Every path needs a retry loop for SQLSTATE 40001",
+        "match": [
+          "sqlstate 40001",
+          "serialization failure",
+          "retry loop",
+          "try again",
+          "run it again"
+        ]
+      }
+    ],
+    "model": "It's write skew again, with a twist: each leave request reads the count and inserts a new row, so the rows that would conflict don't exist yet when the other request looks; they're phantoms. Serializable only protects transactions that all run at Serializable, and the new leave screen ran at Read Committed, so PostgreSQL never saw the conflict between it and the others. Make Serializable the default for the register's database role with default_transaction_isolation, check for screens that ask for a lower level, and give every path a retry loop for SQLSTATE 40001 serialization failures. Locking with FOR UPDATE alone won't do, because you can't lock leave rows that don't exist yet. If you'd rather lock, lock a row for the night itself before counting, or keep a counter row for the night with a CHECK constraint that it stays at 3 or below, so the database refuses the fourth leave whatever the screen does."
+  },
+  "next": "Next, The Logbook: a ship's engine room, and how a database writes each change to a log before making it, so a crash can't lose it.",
+  "sources": [
+    {
+      "title": "PostgreSQL 18 Documentation, 13.2 Transaction Isolation (dirty, nonrepeatable and phantom reads and the serialization anomaly; Table 13.1, allowed but not in PG; Read Uncommitted behaves like Read Committed; Read Committed the default; Repeatable Read's snapshot and business rules; Serializable, retries and SQLSTATE 40001; sequential scans and failure rates)",
+      "url": "https://www.postgresql.org/docs/18/transaction-iso.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 13.4 Data Consistency Checks at the Application Level (Serializable for all writes and consistent reads; automatic retries; default_transaction_isolation; SELECT FOR UPDATE, FOR SHARE or LOCK TABLE otherwise; two successive sums unreliable at Read Committed)",
+      "url": "https://www.postgresql.org/docs/18/applevel-consistency.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 13.3 Explicit Locking (FOR UPDATE locks the rows retrieved; a waiting FOR UPDATE locks and returns the updated row; an error at Repeatable Read or Serializable if a row to be locked has changed)",
+      "url": "https://www.postgresql.org/docs/18/explicit-locking.html"
+    },
+    {
+      "title": "PostgreSQL wiki: Serializable Snapshot Isolation (SSI) (simple write skew; first committer wins; overdraft protection example)",
+      "url": "https://wiki.postgresql.org/wiki/SSI"
+    },
+    {
+      "title": "MySQL 8.4 Reference Manual, 17.7.2.1 Transaction Isolation Levels (InnoDB's default REPEATABLE READ; consistent reads from the first read's snapshot; gap and next-key locks for range locking reads; dirty reads at READ UNCOMMITTED; SERIALIZABLE converts plain SELECT to FOR SHARE with autocommit off)",
+      "url": "https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html"
+    },
+    {
+      "title": "Microsoft Research: A Critique of ANSI SQL Isolation Levels, Berenson, Bernstein, Gray, Melton, O'Neil and O'Neil, MSR-TR-95-51, June 1995 (abstract: the phenomena fail to characterize several popular isolation levels; Snapshot Isolation defined)",
+      "url": "https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/"
+    },
+    {
+      "title": "arXiv cs/0701157: A Critique of ANSI SQL Isolation Levels, Proc. ACM SIGMOD 95 (full text: A5B Write Skew; the bank example; write skew can occur under Snapshot Isolation)",
+      "url": "https://arxiv.org/abs/cs/0701157"
+    },
+    {
+      "title": "O'Reilly: Designing Data-Intensive Applications, Martin Kleppmann, released March 2017 (publisher's page; chapter 7 Transactions, section Write Skew and Phantoms). Internet Archive copy of 6 September 2020, because the live page refused our fetch",
+      "url": "https://web.archive.org/web/20200906080118/https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/"
+    },
+    {
+      "title": "AICPA, TSP Section 100, 2017 Trust Services Criteria for Security, Availability, Processing Integrity, Confidentiality, and Privacy (PI1.3). Copy hosted by Arpio",
+      "url": "https://arpio.io/wp-content/uploads/2020/08/trust-services-criteria.pdf"
+    }
+  ]
+}

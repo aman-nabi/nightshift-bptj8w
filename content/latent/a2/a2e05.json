@@ -1,0 +1,1059 @@
+{
+  "_changelog": [
+    "v1.0.2 (2026-10-11) follow-ups: explain.diagram edge 'tool_result, same id' label moved above the line (dy 14 to -14) so it no longer overlaps the 'holds' label",
+    "v1.0.1 (2026-10-11) review fixes: coldCase keyIdeas[0] match 'risk' split into 'by risk', 'low-risk', 'high-risk'; keyIdeas[1] match 'twice' split into 'refund twice', 'paid twice', 'pays twice'; credit desk commenter renamed u/credit_desk_wilhelmina (rule 15, the old name matched a character in s3e02)",
+    "v1.0.0 (2026-10-11) first version"
+  ],
+  "id": "a2e05",
+  "season": 2,
+  "n": 5,
+  "title": "Hands It Can Use",
+  "setting": "a puppeteer's workshop",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "tool-calling",
+    "tool-schemas",
+    "tool-loop",
+    "errors"
+  ],
+  "prerequisites": [
+    "a1e01",
+    "a1e02",
+    "a1e03",
+    "a1e04",
+    "a1e05",
+    "a1e06",
+    "a1e07",
+    "a1e08",
+    "a1e09",
+    "a2e01",
+    "a2e02",
+    "a2e03",
+    "a2e04"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/workshop_lamp_ninian",
+    "flair": "Part 1",
+    "age": "7h",
+    "votes": 3871,
+    "title": "Our theatre's night assistant can release seats and refund them. On Friday a guest asked it to move hers. On Saturday the puppets played to three empty seats in the front row.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm a junior developer, and I keep the website for the Grisewood Marionette Theatre. I work in the workshop under the stage: one bench, one lamp, and forty marionettes hanging by their strings from a rail above my head. In the spring Mrs Tregear, who owns the theatre, asked for a night assistant that could answer guests and do the small jobs the box office does in the day."
+      },
+      {
+        "t": "p",
+        "text": "So it has tools: functions my code runs when the model asks. One looks up a booking. One releases a booking's seats and refunds them. One emails the guest on a booking. To move a seat, it releases the old booking and emails a link to choose a new one. That was Mrs Tregear's design, and it saves her a morning a week. My lookup matches booking IDs exactly, capitals and all, but it also takes the four digits alone, because the box office types them that way on the phone."
+      },
+      {
+        "t": "p",
+        "text": "On Friday at 23:52 Mrs Agatha Pilbeam wrote: booking bk-0417, the three of us, Saturday, front row, could we move further back? The strings are too close for the little ones. She typed the ID in lower case. Here is what the assistant did, pieced together this morning from the server's debug output."
+      },
+      {
+        "t": "log",
+        "text": "23:52  lookup_booking      bk-0417   booking not found\n23:52  lookup_booking      0416      BK-0416: row A, seat 5, $24 paid\n23:52  release_and_refund  BK-0416   released, $24 refunded\n23:52  send_email          BK-0416   ...refunded, as you requested\n23:52  lookup_booking      0418      BK-0418: row A, seat 9   (released, emailed)\n23:53  lookup_booking      0415      booking not found\n23:53  lookup_booking      0419      BK-0419: row A, seat 10  (released, emailed)\n23:53  reply   Done: your seats are released and refunded."
+      },
+      {
+        "t": "p",
+        "text": "It guessed. It tried the numbers either side of hers, and three of them were bookings in the front row on Saturday, one seat each. It took them for her three seats. It released and refunded all three, and emailed each guest: your seat has been released and $24 refunded, as you requested. Eleven tool calls for one message. Mrs Pilbeam was told to look for a link in her email. It never came."
+      },
+      {
+        "t": "p",
+        "text": "On Saturday at 19:30 the curtain went up and the puppets played to three empty seats in the front row: A5, A9 and A10. Mrs Pilbeam sat between them with her grandsons, in the seats she had asked to leave."
+      },
+      {
+        "t": "beat",
+        "text": "Nobody had asked. Each note said they had."
+      },
+      {
+        "t": "p",
+        "text": "Mrs Tregear has paid the three guests back their evening and wants the assistant on again next Friday. What happened, and what do I change?"
+      },
+      {
+        "t": "evidence",
+        "label": "trace_2352.png",
+        "diagram": {
+          "type": "sequence",
+          "aria": "Ninian's drawing of the 23:52 trace. The model asks Ninian's app to look up bk-0417; the app answers booking not found. The model asks for 0416, 0418, 0415 and 0419; the app finds three bookings in row A. The model asks to release and refund three times; the bookings lose seats A5, A9 and A10, $72. The model asks for three emails; three guests are told their seats were refunded as they requested. Outcome: 3 refunds nobody asked for, and 11 calls with no cap.",
+          "lanes": [
+            "Model",
+            "Ninian's app",
+            "Bookings",
+            "Guests' inboxes"
+          ],
+          "steps": [
+            {
+              "from": 0,
+              "to": 1,
+              "label": "lookup bk-0417"
+            },
+            {
+              "from": 1,
+              "to": 0,
+              "label": "booking not found",
+              "tone": "warn"
+            },
+            {
+              "from": 0,
+              "to": 1,
+              "label": "lookup 0416, 0418, 0415, 0419"
+            },
+            {
+              "from": 1,
+              "to": 0,
+              "label": "3 found in row A",
+              "tone": "bad"
+            },
+            {
+              "from": 0,
+              "to": 1,
+              "label": "release_and_refund, 3 times",
+              "tone": "bad"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "label": "A5, A9, A10: $72",
+              "tone": "bad"
+            },
+            {
+              "from": 0,
+              "to": 1,
+              "label": "send_email, 3 times"
+            },
+            {
+              "from": 1,
+              "to": 3,
+              "label": "as you requested",
+              "tone": "bad"
+            },
+            {
+              "outcome": 2,
+              "text": "3 refunds nobody asked for",
+              "tone": "bad"
+            },
+            {
+              "outcome": 1,
+              "text": "11 calls, no cap",
+              "tone": "warn"
+            }
+          ]
+        },
+        "caption": "Drawn this morning from the server's debug output for Friday at 23:52. One message, 11 tool calls: the lookup of bk-0417, four guessed lookups, three releases and three emails. Seats A5, A9 and A10 released, $24 each, $72 in all. Mrs Pilbeam's own booking, BK-0417, seats 6 to 8, was never touched."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/gradient_ghost",
+      "points": 166,
+      "age": "6h",
+      "text": "Nothing in the workshop pulled those strings but your own code. A few words for the log. Anthropic calls this tool use. When the model wants a tool, its reply stops with the stop reason tool_use and carries a tool_use block: an id, the tool's name and an input. The model never runs anything. Your code runs the tool and sends back a tool_result block with the same id, and the model carries on from whatever it reads there. A tool that changes something in the world, a seat or money or an inbox, has a side effect; a lookup has none. Two questions. At 23:52, what did your lookup's result tell the model about why bk-0417 failed? And of the 11 calls, how many had side effects, and did anything stand between the model asking for one and it happening?",
+      "replies": [
+        {
+          "author": "u/workshop_lamp_ninian",
+          "op": true,
+          "points": 74,
+          "age": "5h",
+          "text": "It said three words: booking not found. Nothing about capitals. It wasn't even marked as an error: a tool_result has a field for that, is_error, and my code never set it. Of the 11 calls, 6 had side effects: three releases and three emails. Each release ran the moment it was asked for."
+        }
+      ]
+    },
+    {
+      "author": "u/better_model_orlaith",
+      "points": 92,
+      "age": "5h",
+      "text": "This is a model problem, not a plumbing problem. Small models guess; the big ones ask. Anthropic's own docs say Claude Opus is much more likely to notice that something is missing and ask for it. Put the biggest model on it, add one line to the system prompt, never guess a booking ID, and you're done by lunch. Every guard you bolt around the tools is one more thing to break and maintain, and the theatre has one developer."
+    },
+    {
+      "author": "u/seat_a9_lucasta",
+      "points": 81,
+      "age": "4h",
+      "text": "I was A9. The email said I had asked, and I nearly wrote back to apologise for not remembering. We came anyway. The box office said my seat had been released at my request, so I watched from the standing room at the back. All evening the marionette on the sledge kept turning its head toward the empty seat. That's how they're strung, I suppose.",
+      "replies": [
+        {
+          "author": "u/workshop_lamp_ninian",
+          "op": true,
+          "points": 40,
+          "age": "3h",
+          "text": "Mrs Tregear has written to you. I'm sorry. It's the same marionette every night; I'll ask her about the sledge."
+        }
+      ]
+    },
+    {
+      "author": "u/credit_desk_wilhelmina",
+      "points": 58,
+      "age": "3h",
+      "text": "Same shape at work, no strings. Our support assistant had a tool to look up an order and a tool to issue store credit. A customer pasted an order number with a space in it, the lookup said not found, and the assistant tried the numbers next to it and credited two strangers. Nothing errored. Finance found it at month end, from the totals, not from anything the assistant logged."
+    }
+  ],
+  "reply": {
+    "prompt": "Mrs Tregear wants the assistant back next Friday night. What should Ninian change? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Move it to the largest model. The docs say the bigger models are much more likely to notice when something is missing and ask for it, and a model that asks rather than guesses never touches the wrong booking.",
+        "tone": "bad",
+        "verdict": "Helps the guessing, guards nothing",
+        "part2": "I replayed her message on the largest model, with the same three tools. It did better: it tried BK-0417 in capitals, found her booking, released it and sent her the link, as the design says. Then I replayed a guest from last month who typed BK-0461 for BK-0416, a digit out of place. The lookup gave the same two words, unmarked, and the model asked once, then tried the neighbours, and the release ran the moment it was asked. Nothing in the tools had changed. In the sim, the stand-in given the same tools and the same bare result makes the same 11 calls.",
+        "senior": "A stronger model helps: Anthropic's docs say Claude Opus is much more likely to ask for something missing, and also that this behavior is not guaranteed. A model's judgement is not a control. What each tool returns, and what it is allowed to do without a person, are."
+      },
+      {
+        "text": "Add one line to the system prompt: never guess or invent a booking ID, and if a lookup fails, ask the guest. It is the rule it broke, written down where the model reads it on every call, and it costs nothing.",
+        "tone": "bad",
+        "verdict": "A request, not a guard",
+        "part2": "I added the line and replayed her message ten times. Eight times it asked her to check her ticket. Twice it decided 0416 wasn't a guess but a likely typo, found it, and released it, $24 and the same polite note. The tools hadn't changed: a bare booking not found, a release that runs the moment it is asked for, and no limit on calls. In the sim nothing changes either, because the stand-in reads the tools and their results, and those are the same.",
+        "senior": "Keep the line; it helps. But a prompt asks and a control stops. OWASP's advice is to implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not."
+      },
+      {
+        "text": "Take the refund tool away. The assistant keeps the lookup and the email, and every refund, release or move waits for the box office in the morning. Nothing it does at night can cost a guest a seat again.",
+        "tone": "warn",
+        "verdict": "Trade-off: safe, and mostly idle",
+        "part2": "Friday's five messages again: the doors question and the lost tickets were answered, and the two refunds and Mrs Pilbeam's move went to the box office, 3 of 5 messages, with 2 tool calls all night. No wrong refunds, and no right ones until Saturday morning, when the box office did them by hand. Mrs Tregear asked what the assistant was now for.",
+        "senior": "Removing a tool is the strongest least privilege there is, and right for an action you can't make safe. Here it gives up most of the value. Keep the tool, and put a person in front of the money instead."
+      },
+      {
+        "text": "Make the lookup's errors say what a valid ID looks like and to ask the guest, add a pattern to the booking ID, have a person confirm releases and refunds, and cap and log the tool calls per message.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "The lookup now answers with is_error and a message: booking IDs are BK, a dash and four digits, in capitals; don't try other IDs, ask the guest. The ID has the pattern ^BK-[0-9]{4}$, so bk-0417 is turned away before the lookup even runs. A release or refund is held until the box office confirms it, and each message may make at most 6 tool calls, every one logged with its input. Replayed: the assistant asked Mrs Pilbeam to check her ticket, 1 call. 7 calls all night, at most 2 for a message. The two real refunds, $72, were approved on Saturday morning, and no one else got an email. She replied with BK-0417 and moved three rows back.",
+        "senior": "Tools are where a model touches the world, so the guards go on the tools. Results that say what to do next, inputs that can't be malformed, a person in front of anything with side effects, and a cap and a log on the loop, whatever model you run."
+      }
+    ]
+  },
+  "sim": {
+    "module": "a2e05",
+    "title": "Run Friday night's tool loop yourself",
+    "lede": "You're Ninian on Sunday morning with Friday night's debug output. Five messages came in: the doors question at 21:48, lost tickets for BK-0388 at 22:05, a refund for BK-0402 at 22:31, Mrs Pilbeam's bk-0417 at 23:52, and a refund for BK-0433 at 00:40. No real model runs here. The stand-in is a script, the same every time, and its next move follows stated rules from what it sees: the tools it has, their descriptions and schemas, the last tool result, and whether refunds wait for a person. It looks up the ID as the guest typed it. A booking found goes ahead. A bare result makes it guess numbers near the one typed and keep every booking in the row the guest gave, until it has her seats or three results in a row fail; Anthropic's docs say Claude retries 2 to 3 times before apologizing. An instructive error, marked is_error and saying what an ID looks like and to ask the guest, makes it stop and ask. The pattern is checked by your code before any tool runs. With confirmation on, each release waits for the box office next morning, who approve it only for the booking's own guest. The cap is the most tool calls one message may make; reaching it ends the loop and sends the message to a person. Tickets are $24 a seat. The trace shows every tool_use and its tool_result, tied by the same id.",
+    "tryThis": "Try this: you start on Friday night. Mrs Pilbeam's message makes 11 calls: bk-0417 not found, then guesses 0416, 0418, 0415 and 0419, three releases and three emails, as you requested. The night: 19 calls, 5 refunds, 3 of them wrong, $144 refunded. Switch the error result to instructive: her message makes 1 call and asks her to check her ticket; 9 calls, 2 refunds, $72. Back to bare, and set the pattern: bk-0417, 0416 and 0418 are turned away before any tool runs, three in a row, and the stand-in gives up. Free string again, confirmation on: 5 refunds held, the box office approves 2 and declines 3, none wrong. Confirmation off, cap 4: the loop ends after one wrong refund, $24, and that message goes to a person; cap 2 stops it before any release, but cuts the two honest refunds short too. No cap, refund tool removed: 3 of 5 messages to a person, 2 calls, $0. Now instructive, pattern, confirmation and cap 6 together: 7 calls, at most 2 a message, 2 refunds, none wrong."
+  },
+  "explain": {
+    "oneLine": "Nothing pulled the strings but the tools. The lookup answered a lower-case ID with an unmarked booking not found, so the model guessed nearby numbers; three of them were real front-row bookings, and the refund tool released each one the moment it was asked, with nothing to confirm it and nothing to stop the loop.",
+    "steps": [
+      {
+        "title": "To the model, a tool is a name, a description and a schema.",
+        "text": "Anthropic's overview: Tool use (also called function calling) lets Claude call functions that you define or that Anthropic provides. Claude determines when to call a tool based on the user's request and the tool's description. It then returns a structured call that your application executes (client tools) or that Anthropic executes (server tools). Ninian's three are client tools. Each tool definition, the term from case 3 of this season, has a name, which must match ^[a-zA-Z0-9_-]{1,128}$; a description, which Anthropic's define tools page asks to be a detailed plaintext description of what the tool does, when it should be used, and how it behaves; and an input_schema, a JSON Schema object defining the expected parameters for the tool. The page calls detailed descriptions by far the most important factor in tool performance, and lists what they should cover, including when it should be used (and when it shouldn't). Ninian's lookup said: Look up a booking. Its booking_id was any string. The model knows nothing else about a tool: the name, the description and the schema are the whole contract, and they ride in every request as input tokens, with a special system prompt the API adds when tools are present."
+      },
+      {
+        "title": "The loop: tool_use, your code, tool_result, and round again.",
+        "text": "One round trip, with Anthropic's field names. Your request carries tools and the conversation. The reply comes back with stop_reason tool_use and content holding perhaps a text block and a tool_use block: {\"type\": \"tool_use\", \"id\": \"toolu_...\", \"name\": \"lookup_booking\", \"input\": {\"booking_id\": \"bk-0417\"}}. The id is, in the docs' words, a unique identifier for this particular tool use block, used to match up the tool results later. Your code runs the tool, which the model never runs. The next request repeats the conversation, adds the assistant's reply as it came, and then a user message whose content starts with {\"type\": \"tool_result\", \"tool_use_id\": \"toolu_...\", \"content\": \"...\"}, plus \"is_error\": true if it failed. Tool result blocks must immediately follow their corresponding tool use blocks, and must come first in that message's content. The model reads the result and either asks for another tool or answers with end_turn. Mrs Pilbeam's message went round 11 times. Claude may also call several tools in one reply, parallel tool use: your code returns one tool_result for each tool_use block, all together in the next user message, and setting disable_parallel_tool_use inside tool_choice limits it to one per reply. OpenAI's Responses API has the same loop under other names: a function_call item with a call_id, a name and JSON-encoded arguments, answered by a function_call_output item with the same call_id."
+      },
+      {
+        "title": "What comes back steers what happens next.",
+        "text": "Ninian's lookup returned three words, unmarked, and the model filled the silence: the ID must be mistyped, so try the neighbours. Ninian's lookup accepting four digits alone did the rest. Anthropic's handle tool calls page says to return a failure with is_error set to true, and to write instructive error messages: instead of generic errors like failed, include what went wrong and what Claude should try next. This gives Claude the context it needs to recover or adapt without guessing. Here that is: no booking bk-0417; booking IDs are BK, a dash and four digits, in capitals; don't try other IDs, ask the guest. The same page says that if a tool request is invalid or missing parameters, Claude will retry 2-3 times with corrections before apologizing to the user, so a bare error invites retries. The overview adds that Claude Opus is much more likely to recognize that a parameter is missing and ask for it, while Claude Sonnet might also infer a reasonable value, and this behavior is not guaranteed. And results are input like any other: the page warns that tool results from outside sources may carry instructions, so treat them as untrusted, the prompt injection of case 2 of this season. Ninian also made the lookup accept either case, which fixes Mrs Pilbeam, not the next mistyped digit."
+      },
+      {
+        "title": "Tight schemas: a pattern, required fields, strict tool use, and descriptions that say when not to.",
+        "text": "Give booking_id the pattern ^BK-[0-9]{4}$ and make it required, with additionalProperties false. Then bk-0417 and the guessed 0416 are turned away before the lookup runs, as case 3 of this season did for the coroner's form. With strict: true on the tool, Anthropic's strict tool use page says it guarantees Claude's tool inputs match your JSON Schema by constraining the model's token sampling to schema-valid outputs, and the tool name is always valid. Its schema rules come from the structured outputs page: simple regex patterns work well, complex ones may return 400 errors, and minLength is not supported. Keep your own check in code as well: it holds even when strict is off, and the sim's check stands in for both. A pattern stops malformed IDs, not a wrong but well-formed one, so the error text still matters. Descriptions do the rest: the lookup is read-only and is used before acting on a booking; the release is for one booking the guest has named as theirs, never one found by searching. OpenAI's guide says the same in its words: Use enums and object structure to prevent invalid states, and Offload the burden from the model and use code where possible. Don't make the model fill arguments you already know: a signed-in guest's own booking can come from her account, not from what she typed."
+      },
+      {
+        "title": "Side effects need a person; the loop needs a cap and a log.",
+        "text": "Two of the three tools change things: release and refund moves seats and money, and email speaks for the theatre. OWASP's Top 10 for LLM Applications 2025 calls the risk LLM06, Excessive Agency, the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, with root causes of excessive functionality, excessive permissions and excessive autonomy. Its mitigations: limit the extensions an agent may call to only the minimum necessary; give them minimal permissions; Utilise human-in-the-loop control to require a human to approve high-impact actions before they are taken; and implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not. So the release tool holds each refund for the box office, which checks that the booking's guest is the one who wrote, and the email tool writes only to that guest. It adds that logging and rate-limiting will not prevent Excessive Agency, but can limit the level of damage caused: log every call with its inputs, and cap the calls per message, as the trace does. Safe retries of a refund also need idempotency keys, so a retried request pays out once, which Dead Letter's Season 4 builds. And run calls with side effects one at a time: Anthropic's parallel tool use page says tools with side effects, shared state, or ordering requirements might be better run sequentially."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 760,
+      "h": 340,
+      "aria": "The guarded tool loop. Top row: the guest's message goes to the model, which asks with a tool_use block and never runs a tool; your code checks the schema, counts calls against the cap and logs every call, then sends a tool_result with the same id back to the model. Bottom row: the lookup, read-only, with instructive errors; release and refund, which changes things and is held for a person; email, only to the guest who wrote, after approval. The model asks, your code decides.",
+      "nodes": [
+        {
+          "id": "guest",
+          "label": "Guest's message",
+          "sub": "bk-0417, move us",
+          "meta": "23:52",
+          "x": 120,
+          "y": 80,
+          "w": 190,
+          "h": 72,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "model",
+          "label": "The model",
+          "sub": "asks: tool_use",
+          "meta": "never runs a tool",
+          "x": 380,
+          "y": 80,
+          "w": 190,
+          "h": 72,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "code",
+          "label": "Your code",
+          "sub": "schema, call cap",
+          "meta": "logs every call",
+          "x": 640,
+          "y": 80,
+          "w": 190,
+          "h": 72,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "look",
+          "label": "lookup_booking",
+          "sub": "read-only",
+          "meta": "instructive errors",
+          "x": 120,
+          "y": 260,
+          "w": 190,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "rel",
+          "label": "release_and_refund",
+          "sub": "changes things",
+          "meta": "held for a person",
+          "x": 380,
+          "y": 260,
+          "w": 190,
+          "h": 72,
+          "shape": "box",
+          "tone": "warn"
+        },
+        {
+          "id": "mail",
+          "label": "send_email",
+          "sub": "only who wrote",
+          "meta": "after approval",
+          "x": 640,
+          "y": 260,
+          "w": 190,
+          "h": 72,
+          "shape": "box",
+          "tone": "warn"
+        }
+      ],
+      "edges": [
+        {
+          "from": "guest",
+          "to": "model",
+          "label": "message"
+        },
+        {
+          "from": "model",
+          "to": "code",
+          "label": "tool_use"
+        },
+        {
+          "from": "code",
+          "to": "model",
+          "label": "tool_result, same id",
+          "via": [
+            [
+              600,
+              185
+            ],
+            [
+              420,
+              185
+            ]
+          ],
+          "tone": "ok",
+          "dy": -14
+        },
+        {
+          "from": "code",
+          "to": "look",
+          "label": "runs",
+          "at": 0.75
+        },
+        {
+          "from": "code",
+          "to": "rel",
+          "label": "holds",
+          "at": 0.75
+        },
+        {
+          "from": "code",
+          "to": "mail",
+          "label": "sends"
+        }
+      ],
+      "notes": [
+        {
+          "x": 380,
+          "y": 22,
+          "text": "the model asks; your code decides",
+          "tone": "",
+          "anchor": "middle"
+        }
+      ]
+    },
+    "caption": "Read from the top left. The guest's message reaches the model, which can only ask: a tool_use block with an id, a name and an input. Your code checks the input against the schema, counts the call against the cap and logs it, runs the tool or holds it, and sends a tool_result with the same id back. The lookup changes nothing and answers failures with instructions. The release and refund waits for a person, and the email goes only to the guest who wrote.",
+    "fix": {
+      "title": "The fix: say what to do next, shape the input, confirm side effects, and bound the loop",
+      "text": "Return every failure as a tool_result with is_error true and a message that says what went wrong and what to do: what a valid booking ID looks like, and to ask the guest rather than try another. Give booking_id the pattern ^BK-[0-9]{4}$, required, with additionalProperties false, and check it in code before any tool runs, which holds whether or not strict tool use is on; with strict on, the model can only send IDs in that shape. Rewrite each description to say when to use the tool and when not to: the release is only for a booking the guest has named as theirs. Sort the tools by side effect: the lookup is read-only; the release and refund is held until a person at the box office confirms that the booking's guest is the one who wrote; the email writes only to that guest. Give each tool's credentials only what its job needs. Cap the tool calls per message, here at 6, sending the message to a person when the cap is reached, and log every call with its input and result. In the sim that is 7 calls on Friday night, at most 2 for a message, Mrs Pilbeam asked to check her ticket, 2 refunds approved and none wrong, against 19 calls, 11 for her message, and 3 wrong refunds of $24."
+    },
+    "limits": [
+      "Guards catch the shapes you thought of. A pattern stops bk-0417, not BK-0416 typed by a guest who misread her ticket; a confirmation is only as good as the person checking it at eight in the morning; and an instructive error helps only if the model follows it. Keep testing the loop with the mistakes guests really make.",
+      "Confirmation costs time and people. Every held refund waits for the box office, and a cap set too low cuts honest work short: in the sim, a cap of 2 stops Mrs Pilbeam's guesses before any release, but also sends the two real refunds to a person. Set the cap from what a normal message needs, and watch how often it fires.",
+      "The stand-in is a script, not a model: its guessing, its three failures in a row and its obedience to an instructive error are rules written for the case, and real models vary by model and by prompt. Standards readiness: who and what may act on bookings and money is access control. If the theatre's payment processor or a customer asks for ISO/IEC 27001 or a SOC 2 report, the tools' credentials fall under Annex A controls 5.15 and 8.2 and the CC6 criteria. Build it in now, not at audit time."
+    ],
+    "tradeoff": {
+      "head": [
+        "What matters",
+        "A stronger model or a prompt rule",
+        "No refund tool",
+        "Guarded tools"
+      ],
+      "rows": [
+        [
+          "Friday night, in the sim",
+          "The same tools and the same bare result: the stand-in makes the same 19 calls and the same 3 wrong refunds.",
+          "3 of 5 messages to a person, 2 calls, no refunds until morning.",
+          "7 calls, Mrs Pilbeam asked to check her ticket, 2 refunds approved, none wrong."
+        ],
+        [
+          "Good for",
+          "Fewer mistakes per call: worth having, never the only guard.",
+          "Actions too risky or too rare to automate at all.",
+          "Anything that moves money, seats or records."
+        ],
+        [
+          "What goes wrong",
+          "A judgement, not a control: the next unclear case still reaches the refund tool.",
+          "Gives up most of the value; the queue waits for the morning.",
+          "Someone must answer the holds, and a cap set too low cuts honest work short."
+        ]
+      ]
+    },
+    "seniorTake": "A model with tools can only ask; your code decides what happens. So the guards belong on the tools, not in the model's good sense. Make every result say what to do next, shape inputs so malformed ones never run, put a person in front of anything with side effects that is hard to undo, give each tool's credentials only what its job needs, and bound the loop with a cap and a log. Then a stronger model makes it better, rather than making it safe.",
+    "realWorld": [
+      {
+        "title": "Anthropic: what tool use is",
+        "text": "Anthropic's tool use overview: Tool use (also called function calling) lets Claude call functions that you define or that Anthropic provides. Claude determines when to call a tool based on the user's request and the tool's description. Client tools run in your application. Claude responds with stop_reason: \"tool_use\" and one or more tool_use blocks. Your code executes the operation and sends back a tool_result. Server tools, such as web search, run on Anthropic's infrastructure. On missing information, the page says Claude Opus is much more likely to recognize that a parameter is missing and ask for it, Claude Sonnet might ask, but it might also infer a reasonable value, and this behavior is not guaranteed, especially for more ambiguous prompts and for less capable models.",
+        "source": 0
+      },
+      {
+        "title": "Anthropic: defining a tool",
+        "text": "The define tools page: a user-defined tool has a name, which must match the regex ^[a-zA-Z0-9_-]{1,128}$; a description, a detailed plaintext description of what the tool does, when it should be used, and how it behaves; and an input_schema, a JSON Schema object defining the expected parameters for the tool. Its first best practice: Provide extremely detailed descriptions. This is by far the most important factor in tool performance. Descriptions should cover what the tool does, when it should be used (and when it shouldn't), and what each parameter means. It also advises designing tool responses to return only high-signal information. tool_choice can be auto (the default when tools are provided), any, tool or none.",
+        "source": 1
+      },
+      {
+        "title": "Anthropic: tool results and errors",
+        "text": "The handle tool calls page: a tool_use block has an id, a unique identifier for this particular tool use block, a name and an input. Your reply is a user message with a tool_result block holding tool_use_id, the id of the tool use request this is a result for, an optional content, and an optional is_error, set to true if the tool execution resulted in an error. Tool result blocks must immediately follow their tool use blocks, and must come first in the content array. Its tip: Write instructive error messages. Instead of generic errors like \"failed\", include what went wrong and what Claude should try next. This gives Claude the context it needs to recover or adapt without guessing. And: If a tool request is invalid or missing parameters, Claude will retry 2-3 times with corrections before apologizing to the user. It warns that tool results often carry content from sources outside your control, to be treated as untrusted.",
+        "source": 2
+      },
+      {
+        "title": "Anthropic: strict tool use",
+        "text": "The strict tool use page: Setting strict: true on a tool definition guarantees Claude's tool inputs match your JSON Schema by constraining the model's token sampling to schema-valid outputs (a technique called grammar-constrained sampling). Its guarantees: tool input strictly follows the input_schema, and the tool name is always valid. Without strict mode, it says, Claude might return incompatible types or omit required fields. The supported schema subset is on the structured outputs page: additionalProperties must be set to false for objects, simple regex patterns work well while complex patterns may result in 400 errors, and minLength and maxLength are not supported.",
+        "source": 3
+      },
+      {
+        "title": "Anthropic: parallel tool use",
+        "text": "The parallel tool use page: By default, Claude may call multiple tools in a single response. The API doesn't prescribe an execution order. Independent, read-only operations are usually safe to run in parallel for lower latency. Tools with side effects, shared state, or ordering requirements might be better run sequentially. Return one tool_result for each tool_use block, all together in the next user message. To turn it off, set disable_parallel_tool_use: true inside the tool_choice object; with auto, Claude then calls at most one tool per response.",
+        "source": 4
+      },
+      {
+        "title": "OpenAI: the same loop, other names",
+        "text": "OpenAI's function calling guide: Function calling (also known as tool calling) provides a powerful and flexible way for OpenAI models to interface with external systems and access data outside their training data. The tool calling flow has five high level steps: make a request with tools it could call, receive a tool call from the model, execute code on the application side, make a second request with the tool output, and receive a final response (or more tool calls). In the Responses API a call is a function_call with a call_id, name, and JSON-encoded arguments, and the result goes back as a function_call_output with the same call_id. Setting strict to true will ensure function calls reliably adhere to the function schema, instead of being best effort. Its best practices include Use enums and object structure to prevent invalid states, and Offload the burden from the model and use code where possible. Don't make the model fill arguments you already know. The model may choose to call multiple functions in a single turn; parallel_tool_calls set to false allows zero or one.",
+        "source": 6
+      },
+      {
+        "title": "OWASP: LLM06:2025 Excessive Agency",
+        "text": "OWASP's Top 10 for LLM Applications 2025: Excessive Agency is the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM, regardless of what is causing the LLM to malfunction. The root cause is typically one or more of: excessive functionality; excessive permissions; excessive autonomy. Its example of excessive autonomy is an extension that allows a user's documents to be deleted and performs deletions without any confirmation from the user. Mitigations include: Limit the extensions that LLM agents are allowed to call to only the minimum necessary; Utilise human-in-the-loop control to require a human to approve high-impact actions before they are taken; and Implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not. Logging and rate-limiting, it says, will not prevent Excessive Agency, but can limit the level of damage caused.",
+        "source": 7
+      }
+    ],
+    "interview": {
+      "asked": [
+        "Walk me through how tool calling works.",
+        "The model called the wrong tool with made-up arguments. What do you change?",
+        "Which tools need a human in the loop?"
+      ],
+      "answer": "A tool is a function my app offers the model, described by a name, a description and a JSON Schema for its input. They go in the request. When the model wants one, its reply stops with stop_reason tool_use and holds a tool_use block: an id, the tool's name and an input. The model runs nothing. My code checks the input, runs the tool, and sends a tool_result back with tool_use_id set to that id, content, and is_error true if it failed. The model reads it and either asks for another tool or answers with end_turn, so it is a loop, and I bound it with a cap on calls and log every call with its input. It can also ask for several tools in one reply; I return all the results together, and run anything with side effects one at a time. OpenAI's version is the same loop: function_call with a call_id, answered by function_call_output. If it called the wrong tool with made-up arguments, I look at what it saw, not just at the model. Descriptions first: Anthropic calls them by far the most important factor, so each says what the tool does, when to use it and when not to. Then the schema: enums and patterns for anything with a fixed shape, required fields, strict tool use so inputs always match, and my own check before running. Then the results: a bare not found invites guessing, so failures come back as instructive errors that say what a valid input looks like and when to ask the user. Arguments I already know, like the signed-in user's account, come from my code, not the model. A stronger model can help, but it isn't a control. A human goes in the loop for actions with side effects that are high impact or hard to undo: money, deletions, messages sent in the company's name, permissions. Read-only lookups don't need one. I'd add least privilege on each tool's credentials, authorization checked in the downstream system rather than by the model, and idempotency keys so a retried payment happens once."
+    }
+  },
+  "terms": [
+    {
+      "term": "Tool",
+      "def": "A function your app offers a model, described by a name, a description and a JSON Schema for its input. The model can only ask for it; your code runs it."
+    },
+    {
+      "term": "Tool use",
+      "def": "Anthropic's name for tool calling, also called function calling: a model asking your code to run a tool, then using what comes back."
+    },
+    {
+      "term": "Tool loop",
+      "def": "The cycle of tool calling: the model asks with a tool_use block, your code runs the tool and sends a tool_result, and the model asks again or answers."
+    },
+    {
+      "term": "tool_use block",
+      "def": "The part of a model's reply that asks for a tool: an id, the tool's name, and an input object. The reply stops with the stop reason tool_use."
+    },
+    {
+      "term": "tool_use (stop reason)",
+      "def": "The stop reason on a reply that ends by asking for one or more tools. Your code answers each request before the model carries on."
+    },
+    {
+      "term": "tool_result block",
+      "def": "What your code sends back in the next user message: tool_use_id, content holding the result, and is_error set to true if the tool failed."
+    },
+    {
+      "term": "tool_use_id",
+      "def": "The field in a tool_result naming which tool_use request it answers, by that request's id."
+    },
+    {
+      "term": "is_error",
+      "def": "A field on a tool_result. Set to true, it tells the model the tool failed, so it can recover or tell the user."
+    },
+    {
+      "term": "input_schema",
+      "def": "The field in a tool definition that holds the JSON Schema for the tool's input."
+    },
+    {
+      "term": "Client tool",
+      "def": "A tool your own application runs, such as Ninian's booking lookup."
+    },
+    {
+      "term": "Server tool",
+      "def": "A tool Anthropic runs on its own infrastructure, such as web search, so your code sees only the results."
+    },
+    {
+      "term": "Side effect",
+      "def": "A change a tool makes in the world: releasing a seat, moving money, sending an email. A read-only tool has none."
+    },
+    {
+      "term": "Read-only tool",
+      "def": "A tool that only looks things up and changes nothing, such as the booking lookup. Running it twice does no harm."
+    },
+    {
+      "term": "Bare error",
+      "def": "A failure with nothing to act on, such as booking not found, which leaves the model to guess why."
+    },
+    {
+      "term": "Instructive error",
+      "def": "A failure that says what went wrong and what to do next, such as what a valid ID looks like and to ask the guest."
+    },
+    {
+      "term": "Confirmation",
+      "def": "Here, a person checking a change before it happens, such as the box office approving a refund. Also called human approval."
+    },
+    {
+      "term": "Human in the loop",
+      "def": "A design where a person approves an action before a system takes it. OWASP recommends it for high-impact actions."
+    },
+    {
+      "term": "Call cap",
+      "def": "The most tool calls an app allows for one message or conversation. When it is reached, the loop ends and the message goes to a person."
+    },
+    {
+      "term": "Least privilege",
+      "def": "Giving each tool, and the credentials it runs with, only the access its job needs."
+    },
+    {
+      "term": "Excessive agency",
+      "def": "OWASP's name for an LLM application that can take damaging actions on unexpected or manipulated model output, through too much functionality, permission or autonomy."
+    },
+    {
+      "term": "Authorization",
+      "def": "Deciding whether someone, or something, is allowed to take an action."
+    },
+    {
+      "term": "Extension",
+      "def": "OWASP's word for a tool, skill or plugin an LLM application can call."
+    },
+    {
+      "term": "Idempotency key",
+      "def": "A unique key sent with a request so that, if the request is retried, the work is done only once. Dead Letter's Season 4 builds them."
+    },
+    {
+      "term": "Parallel tool use",
+      "def": "A model asking for several tools in one reply. Your code returns one tool_result for each, all together in the next user message."
+    },
+    {
+      "term": "tool_choice",
+      "def": "A request field saying whether the model may, must or must not call tools: auto, any, tool or none."
+    },
+    {
+      "term": "disable_parallel_tool_use",
+      "def": "A setting inside tool_choice. With auto, it limits the model to at most one tool call per reply."
+    },
+    {
+      "term": "additionalProperties",
+      "def": "A JSON Schema keyword. Set to false, it forbids fields the schema doesn't list. Strict tool use requires it."
+    },
+    {
+      "term": "Grammar-constrained sampling",
+      "def": "Anthropic's name for constrained decoding, from case 3 of this season: picking only tokens that keep the output valid under a schema."
+    },
+    {
+      "term": "Regex",
+      "def": "Short for regular expression, from case 3 of this season."
+    },
+    {
+      "term": "Function calling",
+      "def": "Another name for tool calling. OpenAI's guide uses it."
+    },
+    {
+      "term": "Responses API",
+      "def": "OpenAI's API for model calls. A tool request arrives as a function_call item, and its result goes back as a function_call_output item."
+    },
+    {
+      "term": "function_call",
+      "def": "In OpenAI's Responses API, an output item asking for a function: a call_id, a name and JSON-encoded arguments."
+    },
+    {
+      "term": "function_call_output",
+      "def": "In OpenAI's Responses API, the item that returns a function's result, with the same call_id and an output."
+    },
+    {
+      "term": "call_id",
+      "def": "OpenAI's field tying a function's result to its request, as tool_use_id does on Anthropic's API."
+    },
+    {
+      "term": "Arguments",
+      "def": "The input values a tool or function is called with."
+    },
+    {
+      "term": "Claude Opus, Claude Sonnet",
+      "def": "Two of Anthropic's Claude model families: Opus the larger, more capable models, Sonnet the faster, cheaper ones."
+    },
+    {
+      "term": "Stand-in",
+      "def": "The sim's script in place of a model: it follows stated rules from what it sees, the same way every time. It measures nothing."
+    },
+    {
+      "term": "Trace",
+      "def": "A record of every step in order: here, each tool request with its input and the result that came back."
+    },
+    {
+      "term": "Booking ID",
+      "def": "The reference on a ticket, such as BK-0417, that the theatre's system uses to find a booking."
+    },
+    {
+      "term": "Release",
+      "def": "Here, cancelling a booking's hold on its seats so they can be sold again."
+    },
+    {
+      "term": "Refund",
+      "def": "Money paid back to the guest's card."
+    },
+    {
+      "term": "Store credit",
+      "def": "Money a company owes a customer to spend later, added to their account instead of paid back."
+    },
+    {
+      "term": "Close a ticket",
+      "def": "Mark a support request as finished."
+    },
+    {
+      "term": "Month end",
+      "def": "When a finance team closes the month's books and checks the totals."
+    },
+    {
+      "term": "Access control",
+      "def": "Rules and checks on who and what may use which systems and data. ISO/IEC 27001:2022 Annex A control 5.15."
+    },
+    {
+      "term": "Privileged access rights",
+      "def": "Access that can change what others can't, such as issuing refunds. ISO/IEC 27001:2022 Annex A control 8.2 covers granting and limiting it."
+    },
+    {
+      "term": "Payment processor",
+      "def": "The company that takes card payments for a business and pays refunds back to cards."
+    },
+    {
+      "term": "Box office",
+      "def": "A theatre's ticket desk, open in the day."
+    },
+    {
+      "term": "Marionette",
+      "def": "A puppet worked from above by strings."
+    },
+    {
+      "term": "Puppeteer",
+      "def": "A person who works puppets."
+    },
+    {
+      "term": "Rail",
+      "def": "Here, a bar in the workshop where the marionettes hang when they are not on stage."
+    },
+    {
+      "term": "Standing room",
+      "def": "Space at the back of a theatre where people watch on their feet."
+    },
+    {
+      "term": "Sledge",
+      "def": "A small sled, here a stage prop pulled across the stage."
+    }
+  ],
+  "atWork": "Find an assistant or agent at work that can change something: close a ticket, issue a credit, refund an order, send an email, edit a record. List its tools and mark each one read-only or side effect. For each tool with side effects, ask four things. What does it return when the input is wrong: a bare not found, or an error marked as one that says what valid input looks like and to ask the user? Does its schema shape the input, with a pattern or an enum, required fields, and strict tool use where the provider offers it? Does a person, or the user, confirm it before it happens, at least above some amount? And what credentials does it run with: only what that tool needs, or a shared admin key that could do anything? Then look at the loop: is there a cap on calls per conversation, and is every call logged with its inputs, somewhere someone reads? Replay one real failed lookup through it and watch what the model does next. Standards-readiness note: if your company holds or is pursuing ISO/IEC 27001:2022, the credentials a tool runs with fall under Annex A control 5.15 (access control) and control 8.2 (privileged access rights), and for a SOC 2 report under the logical access criteria, CC6. An agent holding a key that can refund any order is exactly the kind of finding an auditor raises. Scope each tool's credentials now, rather than at audit time.",
+  "board": {
+    "cards": [
+      {
+        "id": "tool-calling",
+        "title": "Tool calling"
+      },
+      {
+        "id": "tool-schemas",
+        "title": "Tool schemas"
+      },
+      {
+        "id": "tool-loop",
+        "title": "Tool loop"
+      },
+      {
+        "id": "errors",
+        "title": "Errors"
+      }
+    ],
+    "strings": [
+      {
+        "from": "tool-calling",
+        "to": "tool-schemas",
+        "label": "name, description"
+      },
+      {
+        "from": "tool-calling",
+        "to": "tool-loop",
+        "label": "ask, run, return"
+      },
+      {
+        "from": "tool-loop",
+        "to": "errors",
+        "label": "results steer"
+      },
+      {
+        "from": "tool-schemas",
+        "to": "json-schemas",
+        "label": "a pattern on IDs"
+      },
+      {
+        "from": "tool-schemas",
+        "to": "structured-output",
+        "label": "strict tool use"
+      },
+      {
+        "from": "tool-loop",
+        "to": "context-engineering",
+        "label": "results join it"
+      },
+      {
+        "from": "tool-loop",
+        "to": "loops",
+        "label": "cap the calls"
+      },
+      {
+        "from": "tool-loop",
+        "to": "agents",
+        "label": "loops with goals"
+      },
+      {
+        "from": "errors",
+        "to": "tool-errors",
+        "label": "say what next"
+      },
+      {
+        "from": "tool-calling",
+        "to": "human-in-the-loop",
+        "label": "a person confirms"
+      },
+      {
+        "from": "tool-calling",
+        "to": "excessive-agency",
+        "label": "too much power"
+      },
+      {
+        "from": "tool-calling",
+        "to": "least-privilege-for-tools",
+        "label": "only what it needs"
+      },
+      {
+        "from": "errors",
+        "to": "prompt-injection",
+        "label": "results untrusted"
+      },
+      {
+        "from": "tool-calling",
+        "to": "mcp",
+        "label": "tools, shared"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "a2e05-r1",
+      "kind": "free",
+      "prompt": "Your company's support assistant has two tools, lookup_order and cancel_order. Last week a customer typed an order number with a digit missing. The lookup said not found, the assistant tried nearby numbers, and it cancelled two other customers' orders. Nothing errored. What do you change?",
+      "keyIdeas": [
+        {
+          "idea": "Return failures as errors that say what valid input looks like and to ask the customer, not a bare not found that invites guessing",
+          "match": [
+            "instructive",
+            "is_error",
+            "error message",
+            "helpful error",
+            "ask the customer",
+            "ask the user",
+            "what a valid",
+            "don't guess",
+            "do not guess",
+            "stop guessing"
+          ]
+        },
+        {
+          "idea": "Shape the input: a pattern or enum for the order number, required fields, strict tool use, checked before the tool runs",
+          "match": [
+            "pattern",
+            "regex",
+            "regular expression",
+            "enum",
+            "strict tool",
+            "strict: true",
+            "schema",
+            "validate the input",
+            "format check"
+          ]
+        },
+        {
+          "idea": "Side effects need confirmation: a cancellation waits for the customer or a person to approve it",
+          "match": [
+            "confirm",
+            "approv",
+            "human in the loop",
+            "human-in-the-loop",
+            "sign-off",
+            "sign off",
+            "read-only",
+            "side effect"
+          ]
+        },
+        {
+          "idea": "Bound and record the loop: a cap on calls per conversation, and every call logged with its inputs",
+          "match": [
+            "call cap",
+            "cap per",
+            "limit the number",
+            "limit how many",
+            "max calls",
+            "maximum number",
+            "rate limit",
+            "logging",
+            "log every",
+            "log each",
+            "audit log",
+            "audit trail"
+          ]
+        }
+      ],
+      "model": "The tools steered it there. A bare not found told the assistant nothing, so it guessed, and the cancel tool acted on each guess with nothing in between. First, return the failure as an error, marked is_error, with an instructive message: what a valid order number looks like, and to ask the customer rather than try another. Second, shape the input: give the order number a pattern in the schema, make it required, turn on strict tool use, and validate the input in code before any tool runs. Third, treat cancel_order as a side effect: hold each cancellation until the customer or a person confirms it; the lookup can stay read-only and automatic. Fourth, bound the loop: a call cap per conversation that hands the case to a person when reached, and logging of every call with its inputs, so someone sees the next guess before month end."
+    },
+    {
+      "id": "a2e05-r2",
+      "kind": "mcq",
+      "prompt": "Why did the night assistant release three front-row bookings at 23:52?",
+      "options": [
+        "The model ran the release tool on its own after the lookup timed out and it lost track",
+        "A bare not found sent it guessing nearby numbers, and the release ran on each with no one to confirm",
+        "The release tool had a bug that cancelled the seats either side of any booking it touched",
+        "Mrs Pilbeam's message held hidden instructions telling the model to clear the front row"
+      ],
+      "answer": 1,
+      "why": "The lookup answered bk-0417 with an unmarked booking not found, saying nothing about capitals or what to do. The model guessed 0416, 0418, 0415 and 0419, and the lookup's four-digit match found three real bookings in row A. The release ran the moment it was asked, three times, with no confirmation and no cap: 11 calls. A model never runs a tool itself; Ninian's code ran every one."
+    },
+    {
+      "id": "a2e05-r3",
+      "kind": "free",
+      "prompt": "A teammate asks how tool calling works. Walk them through one round trip, in plain words.",
+      "keyIdeas": [
+        {
+          "idea": "You send the tools with the request: each a name, a description and a JSON Schema for its input",
+          "match": [
+            "input_schema",
+            "input schema",
+            "json schema",
+            "tool definition",
+            "name and description",
+            "name, a description",
+            "name, description"
+          ]
+        },
+        {
+          "idea": "The model doesn't run anything: it stops and asks, with a tool_use block holding an id, a name and an input",
+          "match": [
+            "tool_use",
+            "stop_reason",
+            "stop reason",
+            "never runs",
+            "doesn't run",
+            "does not run",
+            "asks your code",
+            "asks the app"
+          ]
+        },
+        {
+          "idea": "Your code runs it and sends a tool_result back, tied to the request by its id",
+          "match": [
+            "tool_result",
+            "tool_use_id",
+            "same id",
+            "matching id",
+            "call_id",
+            "result back"
+          ]
+        },
+        {
+          "idea": "It is a loop: the model reads the result and asks for another tool or gives its final answer",
+          "match": [
+            "loop",
+            "end_turn",
+            "final answer",
+            "another tool",
+            "more tool calls",
+            "carries on",
+            "continues"
+          ]
+        }
+      ],
+      "model": "You send the model your tools with the request. Each is a tool definition: a name, a description of what it does and when to use it, and a JSON Schema for its input. When the model wants one, it doesn't run anything itself: its reply stops with stop_reason tool_use and holds a tool_use block with an id, the tool's name and the input. Your code runs the tool and sends a tool_result back in the next message, with tool_use_id set to that same id, the content, and is_error if it failed. Then the model carries on: it reads the result and asks for another tool, or gives its final answer with end_turn. It is a loop, so your code should cap it and log each call."
+    },
+    {
+      "id": "a2e05-r4",
+      "kind": "mcq",
+      "prompt": "An internal assistant has four tools. Which one most needs a person to approve each call before it runs?",
+      "options": [
+        "search_docs, which searches the company handbook",
+        "issue_refund, which pays money back to a customer's card",
+        "get_order_status, which reads an order's delivery status",
+        "count_tickets, which counts open support tickets"
+      ],
+      "answer": 1,
+      "why": "The other three are read-only: they change nothing, so a wrong call costs a little time. A refund moves money and is hard to undo, the kind of high-impact action OWASP's LLM06 says a human should approve before it is taken. Even then, scope its credentials to refunds only, cap the calls, and log each one."
+    },
+    {
+      "id": "a2e05-r5",
+      "kind": "mcq",
+      "prompt": "Your tool's input has the field booking_id with the pattern ^BK-[0-9]{4}$. The model sends bk-0417. With your own schema check in code, what should happen?",
+      "options": [
+        "The tool runs anyway, because the shape of an ID is only a hint to the model",
+        "The input is rejected before the tool runs, with an error result saying what a valid ID looks like",
+        "Your code quietly picks the nearest valid ID and runs the tool with that",
+        "The API returns a 400 error and the conversation ends"
+      ],
+      "answer": 1,
+      "why": "A check in your code runs before the tool, so a malformed input never reaches the bookings. Send the failure back as a tool_result with is_error true and an instructive message, so the model can recover without guessing. With strict tool use on, Anthropic constrains the model's inputs to the schema, so a malformed ID shouldn't be sent at all; the check in code still holds when strict is off. Picking an ID for the model is the guess that caused Friday night."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. The assistant has run every night since, every refund held for the box office, and its limit on calls has fired on two nights. Now Mrs Tregear wants more. She'd like a new tool that moves a booking to another show in one go, and the box office says checking every held refund takes twenty minutes each morning, so she wants refunds under $30 to go through at night without anyone looking.",
+    "prompt": "Reply to OP. What would you tell Mrs Tregear, and how would you build the new tool?",
+    "keyIdeas": [
+      {
+        "idea": "Decide by risk: small refunds can skip approval only with limits on them, such as an amount, a count per night and a check that the guest who wrote owns the booking",
+        "match": [
+          "threshold",
+          "high-impact",
+          "high impact",
+          "irreversible",
+          "reversible",
+          "by risk",
+          "low-risk",
+          "high-risk",
+          "per night",
+          "per guest",
+          "owns the booking",
+          "own booking"
+        ]
+      },
+      {
+        "idea": "A refund that runs without a person must be safe to retry: an idempotency key so it pays out once",
+        "match": [
+          "idempoten",
+          "refund twice",
+          "paid twice",
+          "pays twice",
+          "duplicate",
+          "double refund",
+          "pays out once",
+          "only once",
+          "safe to retry"
+        ]
+      },
+      {
+        "idea": "Build the new tool tight: a pattern and enum in the schema, instructive errors, a description saying when not to use it, and credentials scoped to moving bookings only",
+        "match": [
+          "least privilege",
+          "pattern",
+          "enum",
+          "strict tool",
+          "schema",
+          "instructive",
+          "is_error",
+          "scoped",
+          "permission",
+          "credential",
+          "when not to"
+        ]
+      },
+      {
+        "idea": "Keep watching: log every call, keep the call cap, and review the log and alerts as the tools grow",
+        "match": [
+          "log every",
+          "log each",
+          "logging",
+          "audit",
+          "call cap",
+          "cap per",
+          "monitor",
+          "alert",
+          "review the log",
+          "replay"
+        ]
+      }
+    ],
+    "model": "Decide by risk, not by habit. Letting refunds under $30 through at night can be fine, but only with limits: an amount, a count per night and per guest, and a check in the refund tool itself that the guest who wrote owns the booking, so the model's say-so is never the authorization. Anything bigger, or a booking that isn't theirs, still waits for the box office. A refund that runs with no person in front of it must also be safe to retry, so send an idempotency key and it pays out only once. Build the move tool as tightly as the others: the booking ID with its pattern, the show as an enum of real shows, required fields, strict tool use, instructive errors, a description that says when to use it and when not to, and credentials scoped to moving bookings, nothing else. Keep logging every call with its inputs, keep the call cap, and set an alert on refunds per night, then review the log weekly and replay the mistakes guests really make."
+  },
+  "next": "Next, The Universal Socket: a hotel with one key for every door, and MCP: servers, tools, resources, transports and authorization.",
+  "sources": [
+    {
+      "title": "Anthropic, Tool use with Claude (Claude Platform docs, tool use overview), read 11 October 2026: Tool use (also called function calling) lets Claude call functions that you define or that Anthropic provides; Claude determines when to call a tool based on the user's request and the tool's description; client tools run in your application, Claude responds with stop_reason tool_use and one or more tool_use blocks, your code executes the operation and sends back a tool_result; server tools run on Anthropic's infrastructure; Claude Opus is much more likely to recognize that a parameter is missing and ask for it, Claude Sonnet might also infer a reasonable value, and this behavior is not guaranteed; the API includes a special system prompt that enables tool use, and tool definitions count as input tokens",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
+    },
+    {
+      "title": "Anthropic, Define tools (Claude Platform docs), read 11 October 2026: name must match ^[a-zA-Z0-9_-]{1,128}$; description, a detailed plaintext description of what the tool does, when it should be used, and how it behaves; input_schema, a JSON Schema object defining the expected parameters; provide extremely detailed descriptions, by far the most important factor in tool performance, including when it should be used (and when it shouldn't); design tool responses to return only high-signal information; tool_choice auto, any, tool or none",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools"
+    },
+    {
+      "title": "Anthropic, Handle tool calls (Claude Platform docs), read 11 October 2026: tool_use blocks carry id, name and input; tool_result blocks carry tool_use_id, optional content and optional is_error; tool result blocks must immediately follow their tool use blocks and come first in the content array; write instructive error messages, which give Claude the context it needs to recover or adapt without guessing; if a tool request is invalid or missing parameters, Claude will retry 2-3 times with corrections before apologizing to the user; treat content in tool results from outside sources as untrusted",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls"
+    },
+    {
+      "title": "Anthropic, Strict tool use (Claude Platform docs), read 11 October 2026: setting strict: true on a tool definition guarantees Claude's tool inputs match your JSON Schema by constraining the model's token sampling to schema-valid outputs (grammar-constrained sampling); tool input strictly follows the input_schema and the tool name is always valid; without strict mode, incompatible types or omitted required fields",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use"
+    },
+    {
+      "title": "Anthropic, Parallel tool use (Claude Platform docs), read 11 October 2026: by default, Claude may call multiple tools in a single response; the API doesn't prescribe an execution order; independent, read-only operations are usually safe to run in parallel, tools with side effects, shared state, or ordering requirements might be better run sequentially; return one tool_result for each tool_use block, all together in the next user message; disable_parallel_tool_use: true inside tool_choice, and with auto Claude calls at most one tool per response",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/parallel-tool-use"
+    },
+    {
+      "title": "Anthropic, Structured outputs (Claude Platform docs), JSON Schema limitations, read 11 October 2026: required and additionalProperties (must be set to false for objects); simple regex patterns work well, complex patterns may result in 400 errors; minLength and maxLength not supported",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs"
+    },
+    {
+      "title": "OpenAI, Function calling (API docs), read 11 October 2026: function calling (also known as tool calling); the tool calling flow has five high level steps; a function_call entry with a call_id, name, and JSON-encoded arguments, answered by a function_call_output with the call_id; setting strict to true will ensure function calls reliably adhere to the function schema, instead of being best effort; use enums and object structure to prevent invalid states; offload the burden from the model and use code where possible, and don't make the model fill arguments you already know; the model may choose to call multiple functions in a single turn, and parallel_tool_calls false allows zero or one",
+      "url": "https://developers.openai.com/api/docs/guides/function-calling"
+    },
+    {
+      "title": "OWASP GenAI Security Project, LLM06:2025 Excessive Agency, OWASP Top 10 for LLM Applications 2025, read 11 October 2026: the vulnerability that enables damaging actions to be performed in response to unexpected, ambiguous or manipulated outputs from an LLM; root causes excessive functionality, excessive permissions, excessive autonomy; limit extensions to the minimum necessary; minimize extension permissions; utilise human-in-the-loop control to require a human to approve high-impact actions before they are taken; implement authorization in downstream systems; logging and rate-limiting will not prevent Excessive Agency but can limit the level of damage caused",
+      "url": "https://genai.owasp.org/llmrisk/llm062025-excessive-agency/"
+    },
+    {
+      "title": "ISO/IEC 27001:2022, Information security, cybersecurity and privacy protection, Information security management systems, Requirements: Annex A includes control 5.15, access control, and control 8.2, privileged access rights",
+      "url": "https://www.iso.org/standard/27001"
+    },
+    {
+      "title": "AICPA, 2017 Trust Services Criteria (With Revised Points of Focus, 2022): the criteria used for SOC 2 reports, including the logical and physical access controls criteria, CC6",
+      "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+    }
+  ]
+}

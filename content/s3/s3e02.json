@@ -1,0 +1,913 @@
+{
+  "_changelog": [
+    "v1.0.1 (2026-10-11) follow-ups: cold case hardware shop owner renamed Ormsby (rule 15, the previous name was a near-duplicate of a name in a2e04 and s1e09)",
+    "v1.0.0 (2026-10-11) first version"
+  ],
+  "id": "s3e02",
+  "season": 3,
+  "n": 2,
+  "title": "All or Nothing",
+  "setting": "a bank vault's night audit",
+  "core": true,
+  "minutes": 14,
+  "concepts": [
+    "transactions",
+    "acid",
+    "optimistic-vs-pessimistic-locking"
+  ],
+  "prerequisites": [
+    "s3e01",
+    "s2e05",
+    "s2e13",
+    "s2e11",
+    "s1e01",
+    "s1e02",
+    "s1e03",
+    "s1e04",
+    "s1e06",
+    "s1e07",
+    "s1e09",
+    "s1e11"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/night_audit_iolanthe",
+    "flair": "Part 1",
+    "age": "5h",
+    "votes": 3187,
+    "title": "I'm the night auditor at a building society. Twice this month the vault and the ledger disagreed. Once the money came back by itself. Once it never did.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I do the night audit at the Quillon Building Society. When the doors are locked I check one thing: the vault total, every penny we hold, must equal the sum of every member's account. In nine years it always has. Bartholomew, our systems man, runs the standing orders at 01:14. A transfer is two statements: take the money out of one account, then put it into the other."
+      },
+      {
+        "t": "p",
+        "text": "On Tuesday my 01:17 count was short by exactly 250.00. I counted again at 01:23 and it balanced. Nobody had touched anything. Bartholomew's log:"
+      },
+      {
+        "t": "log",
+        "text": "01:14:00  job     T-58817  RUTHVEN 1001 -> 1002  250.00\n01:14:00  ledger  1001 SAVINGS  1,840.00 -> 1,590.00\n01:14:01  job     server restarted\n01:17:00  audit   vault 3,906,412.50  accounts 3,906,162.50  DIFF 250.00\n01:20:00  job     restarted, step file: T-58817 debit done, credit next\n01:20:00  ledger  1002 CURRENT  75.00 -> 325.00\n01:23:00  audit   DIFF 0.00"
+      },
+      {
+        "t": "beat",
+        "text": "For six minutes, Mr Ruthven's 250.00 was in neither account."
+      },
+      {
+        "t": "p",
+        "text": "Thursday was worse. At 15:58 Mrs Pellow paid 120.00 into their joint account at Ffion's window, while Mr Pellow paid in 80.00 at Kasimir's, one window along. Both got a receipt. Both piles of notes are in the vault."
+      },
+      {
+        "t": "log",
+        "text": "15:58:02  window 2  FFION    1003 PELLOW  opened  310.00\n15:58:04  window 3  KASIMIR  1003 PELLOW  opened  310.00\n15:58:07  window 3  DEPOSIT 80.00   balance 390.00  receipt\n15:58:09  window 2  DEPOSIT 120.00  balance 430.00  receipt\n23:40:00  audit     DIFF 80.00"
+      },
+      {
+        "t": "p",
+        "text": "Mr Pellow came back on Friday with his receipt. It says 390.00. The account says 430.00, and nothing in its history ever says 80.00. The old head cashier's card is still pinned inside the vault door:"
+      },
+      {
+        "t": "note",
+        "title": "THE BOOKS",
+        "items": [
+          "A SUM IS NOT MOVED UNTIL IT HAS ARRIVED.",
+          "NEVER TWO HANDS IN ONE LEDGER AT ONCE."
+        ],
+        "sig": "- H. Quayle, head cashier, 1958"
+      },
+      {
+        "t": "p",
+        "text": "Bartholomew wants a fix in before Tuesday's run. What should he change?"
+      },
+      {
+        "t": "evidence",
+        "label": "audit_tuesday_011700.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 280,
+          "aria": "Bartholomew's drawing of Tuesday at 01:17:00. The transfer job, T-58817 for 250.00, restarted at 01:14:01. It had debited 1001, Ruthven's savings, at 01:14:00, leaving 1,590.00. Its credit to 1002, Ruthven's current account, never ran, so 1002 still holds 75.00. The night audit at 01:17:00 compares the vault, 3,906,412.50, with the sum of accounts, 3,906,162.50: a difference of 250.00.",
+          "nodes": [
+            {
+              "id": "job",
+              "label": "Transfer job",
+              "sub": "T-58817, 250.00",
+              "meta": "restarted 01:14:01",
+              "x": 230,
+              "y": 50,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "a1001",
+              "label": "1001 savings",
+              "sub": "1,590.00",
+              "meta": "debited 01:14:00",
+              "x": 120,
+              "y": 190,
+              "w": 190,
+              "h": 72,
+              "shape": "db",
+              "tone": "warn"
+            },
+            {
+              "id": "a1002",
+              "label": "1002 current",
+              "sub": "75.00",
+              "meta": "credit never ran",
+              "x": 340,
+              "y": 190,
+              "w": 190,
+              "h": 72,
+              "shape": "db",
+              "tone": "bad"
+            },
+            {
+              "id": "audit",
+              "label": "Night audit, 01:17:00",
+              "sub": "vault 3,906,412.50",
+              "meta": "accounts 3,906,162.50",
+              "x": 600,
+              "y": 190,
+              "w": 220,
+              "h": 72,
+              "shape": "box",
+              "tone": "bad"
+            }
+          ],
+          "edges": [
+            {
+              "from": "job",
+              "to": "a1001",
+              "label": "debit"
+            },
+            {
+              "from": "job",
+              "to": "a1002",
+              "label": "credit",
+              "dash": true,
+              "tone": "bad"
+            },
+            {
+              "from": "a1002",
+              "to": "audit",
+              "dash": true,
+              "tone": "muted"
+            }
+          ],
+          "notes": [
+            {
+              "x": 600,
+              "y": 254,
+              "text": "DIFF 250.00",
+              "tone": "bad",
+              "anchor": "middle"
+            }
+          ]
+        },
+        "caption": "Bartholomew's drawing of 01:17:00 on Tuesday. The job took 250.00 out of 1001 at 01:14:00, and its server restarted at 01:14:01, before the credit to 1002. My audit compared the vault, 3,906,412.50, with the sum of accounts, 3,906,162.50."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 131,
+      "age": "4h",
+      "text": "Your books keep a promise between two numbers, and you have two nights where it broke in two different ways. A few words first. A transaction is a group of statements the database treats as one: you open it with BEGIN, make it count with COMMIT, or cancel everything since BEGIN with ROLLBACK. A statement sent without BEGIN is a transaction of its own, committed the moment it finishes. And when two people each read the same value, change their copy and write it back, the second write can wipe out the first, which is called a lost update. Now your logs. At 01:17:00 on Tuesday, which of the job's statements had committed? What did the step file know that the database didn't? On Thursday, what had each window's app read, when, and what exactly did it write? And before anyone fixes anything, ask what else touches Mr Ruthven's two accounts at 01:14.",
+      "replies": [
+        {
+          "author": "u/night_audit_iolanthe",
+          "op": true,
+          "points": 44,
+          "age": "3h",
+          "text": "Bartholomew says the job never says BEGIN: each statement commits as it runs, and the job writes a step file after each one, its own note of how far it got, so it can carry on after a crash. The teller app reads the balance when the account is opened and, when the teller presses Post, writes back that balance plus the deposit. And on Saturdays at 01:14, Mr Ruthven's round-up moves 40.00 from his current account back to savings, the opposite way."
+        }
+      ]
+    },
+    {
+      "author": "u/balanced_by_dawn_obadiah",
+      "points": 72,
+      "age": "3h",
+      "text": "Banks have balanced their books at night for centuries, and not by hoping nothing goes wrong in the day. You'll never stop every crash. Write a reconcile-and-repair script and run it at 03:00, after the job: for every transfer, count its debits and credits, and post whatever half is missing. That's what a night audit is for. It costs nothing at the windows, there's no locking to slow the tellers down, and Bartholomew doesn't have to touch a job that has run for years."
+    },
+    {
+      "author": "u/month_end_gisela",
+      "points": 58,
+      "age": "2h",
+      "text": "Locks come with a bill. At our credit union we tried two kinds. A row lock: SELECT ... FOR UPDATE reads a row and locks it, and anyone else who wants to change that row waits until you COMMIT or ROLLBACK. A version column: every row carries a number, an update says WHERE version = 7 and sets it to 8, and if it changes zero rows someone got there first, so you read again and retry. Then month-end came. Two transfers between the same two accounts, going opposite ways, each held one account and waited for the other: a deadlock. PostgreSQL killed one of them with 'deadlock detected'. We ended up locking the whole ledger table for every change. Slow, but we haven't had a deadlock since."
+    },
+    {
+      "author": "u/rerun_from_scratch_aurelia",
+      "points": 31,
+      "age": "1h",
+      "text": "Simplest fix is the one our payroll job has used for years: if anything fails, retry it from the start. And we never read a balance and write it back. We post every payment as one statement, UPDATE ... SET balance = balance + amount, so the database does the sum on whatever the row holds right then. People call that an atomic update. Nothing to lose, nothing to lock."
+    }
+  ],
+  "reply": {
+    "prompt": "The standing orders run again on Tuesday at 01:14, and the Pellows bank their shop takings every Thursday afternoon. What should Bartholomew change? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Make each transfer one transaction, guard each balance change with a row lock or a version check, and lock accounts in a fixed order.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Bartholomew put T-58817's two statements between BEGIN and COMMIT, so the job needs no step file now: if it fails, it starts again from BEGIN. He gave the teller app a version check, because a teller counts notes for several seconds and a row lock would hold the account all that time, and he made every transfer change the lower account number first. On Tuesday the job's server restarted at 01:14:01 again, between the debit and the credit. The database rolled the open transaction back, and 1001 was 1,840.00 again. My 01:17 count balanced to the penny. At 01:20:00 the job ran the whole transfer again, and 1001 and 1002 became 1,590.00 and 325.00 together. On Thursday the Pellows came in at 15:58 with 120.00 and 80.00. Kasimir's post at 15:58:07 took version 7 to 8. Ffion's at 15:58:09 changed 0 rows; her app read 390.00 again and wrote 510.00, version 9, and nobody at the window noticed the retry. On Saturday the standing order and the round-up started in the same second. Both wanted 1001 first, so the round-up waited 1 second instead of deadlocking, and 1001 and 1002 ended at 1,630.00 and 285.00. Every count balanced. Bartholomew has pinned his own card under the head cashier's: COMMIT, OR IT NEVER HAPPENED.",
+        "senior": "A transfer is one change that takes two statements, so it belongs in one transaction: both commit or the database rolls both back, and a retry after a failure is safe because the failed attempt left nothing behind. A transaction alone doesn't stop the lost update, though: at PostgreSQL's default isolation level two windows can still both read 310.00 and each write their own sum. For that, do the sum in the database with balance = balance + amount when the new value depends only on the old one, lock the row with SELECT ... FOR UPDATE so the second writer waits, or check a version so the second writer retries. Choose by contention and by how long a lock would be held. And once transactions hold more than one lock, take them in one fixed order everywhere, or the database will pick a victim for you."
+      },
+      {
+        "text": "Leave the job and the windows as they are, and add a 03:00 repair script that finds half-finished transfers and posts the missing half.",
+        "tone": "bad",
+        "verdict": "Finds some of it, after the fact",
+        "part2": "Bartholomew left the job and the windows as they were and added Obadiah's script at 03:00. On Tuesday the job's server restarted at 01:14:01, between the debit and the credit, just as before. My 01:17 count was 250.00 short again. At 01:20:00 the job carried on from its step file and credited 1002, and at 03:00 the script checked every transfer and found as many credits as debits: nothing to repair. The money had still spent six minutes in neither account, where anyone reading the ledger could see it missing. On Thursday the Pellows came in at 15:58 again. Kasimir's app wrote 390.00, Ffion's wrote 430.00 from the 310.00 it had read, and the 80.00 was gone again. My audit was 80.00 short. The script looks for transfers with a missing half, and a lost deposit leaves none: two receipts, one balance, nothing for it to find. Bartholomew has started writing a second script.",
+        "senior": "Reconciling is a good alarm, and banks do run one. But a repair script finds damage after it has happened and been seen, and only the kinds of damage it was written to look for. A half-finished transfer is visible to every reader until the repair runs, and a lost update leaves nothing behind for any script to find, because the overwritten value is simply gone. Make each change correct when it happens, with a transaction and safe updates, and keep the reconciliation as the check that tells you when that failed."
+      },
+      {
+        "text": "Keep the two statements but retry the whole transfer from the start if it fails, and post deposits as balance = balance + amount.",
+        "tone": "bad",
+        "verdict": "Right for deposits, a double debit for transfers",
+        "part2": "Bartholomew made the job retry T-58817 from the start whenever it fails, and changed the teller app to post deposits as balance = balance + amount. On Thursday that worked: Kasimir's 80.00 made 1003 390.00, Ffion's 120.00 made it 510.00, and both receipts were true. On Tuesday the job's server restarted at 01:14:01, between the debit and the credit. At 01:20:00 the job retried from the start: it debited 1001 again, 1,590.00 to 1,340.00, then credited 1002, 75.00 to 325.00. My 01:23 count was 250.00 short, and so was the 03:05 count. Nothing came back this time. Mr Ruthven's savings were 500.00 lighter and his current account 250.00 heavier, and the 250.00 between them is nowhere at all.",
+        "senior": "The atomic update is a real fix for the deposits: the database adds to whatever the row holds, so no deposit can overwrite another. The retry is the trap. Retrying is safe only when the failed attempt left nothing behind, and without a transaction the debit had already committed, so retrying the whole transfer debited the account twice. Put the transfer in one transaction first; then a failure rolls back both halves, and a retry from BEGIN is exactly right."
+      },
+      {
+        "text": "Run every change in a transaction that first locks the whole ledger table, so no two changes to any account can ever overlap.",
+        "tone": "warn",
+        "verdict": "Trade-off: correct, one change at a time",
+        "part2": "Bartholomew wrapped every change in a transaction that starts with LOCK TABLE, so only one change at a time can touch the ledger. On Tuesday the job's server restarted at 01:14:01; the database rolled the transaction back and my 01:17 count balanced. At 01:20:00 the job ran it again: 1,590.00 and 325.00. On Saturday the round-up waited 1 second for the standing order and nothing deadlocked. On Thursday at 15:58:02 Ffion took the ledger to open the Pellows' account, and Kasimir waited 5 seconds to open it after her: 510.00, both receipts true. But while Ffion counted Mrs Pellow's notes, nobody at any other window could post anything to anyone. In those twenty seconds 10 changes at the other windows and the cash machine waited, 49 seconds in all, the longest 8 seconds. On the first of the month, with the queue out of the door, every teller counting notes will hold the whole branch still.",
+        "senior": "It's correct: if only one change can touch the ledger at a time, no change can overwrite another and no two transfers can deadlock. But it serializes the branch. Every deposit, withdrawal and transfer waits for whichever change holds the table, including changes to accounts nobody else is touching, and a teller counting notes holds it for seconds. Row locks give the same safety for the rows that actually clash and leave everything else alone. Keep a table lock for rare jobs that really need the whole table to stand still."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s3e02",
+    "title": "Run the vault ledger at the Quillon",
+    "lede": "You're Bartholomew, replaying three nights a second at a time. Every replay starts from the same balances: 1001, Mr Ruthven's savings, 1,840.00; 1002, his current account, 75.00; 1003, the Pellows' joint account, 310.00 at version 7; every other account together 3,904,187.50, so the vault and the sum of accounts both start at 3,906,412.50. Tuesday: at 01:14:00 T-58817 debits 1001 by 250.00 and credits 1002 a second later; the job's server can restart between the two and comes back at 01:20:00. Audits run at 01:17:00, 01:23:00 and 03:05:00, and the repair script, if on, at 03:00:00. Thursday: Ffion opens 1003 at 15:58:02 and posts 120.00 at 15:58:09; Kasimir opens it at 15:58:04 and posts 80.00 at 15:58:07, or at 15:58:20 and 15:58:23 if not at the same moment. The other windows and the cash machine post a change a second to other accounts, moving money between members, so they never change the totals. Saturday: at 01:14:00 T-58817 and the round-up, 40.00 from 1002 to 1001, start in the same second. Statements take no time. An UPDATE inside a transaction locks its row until COMMIT or ROLLBACK, whatever the update style. Locking the whole ledger table makes every other change wait, but not reads. After a lock wait of 1 second, PostgreSQL's default, the database checks for a deadlock and aborts the transaction in the cycle that began waiting last, the round-up on a tie: that one, the victim, is rolled back and retries from BEGIN a second later. The update style changes how tellers post deposits; the table style also makes a transfer in a transaction lock the table first. Changing any setting replays the night, and Next event and Run to the end skip ahead. Click any box to see what it does.",
+    "tryThis": "Try this: run Tuesday to the end as now. 250.00 short at 01:17:00, balanced again at 01:20:00, 360 seconds out of balance. Make the job retry the whole transfer: 1001 ends at 1,340.00 and the books stay 250.00 short. Turn on the repair script: at 03:00:00 it credits 1002 again, to 575.00, and the books balance with 500.00 moved. Turn the script off and the transaction on: the crash rolls the debit back and every audit balances. On Thursday, read, add, write loses Kasimir's 80.00; the atomic update, the row lock (Kasimir waits 5 s) and the version column (one retry) each give 510.00. Locking the whole ledger gives 510.00 too, while 10 of the other windows' changes wait, up to 8 s. Back on read, add, write, turn off the same moment: 510.00, nothing lost. On Saturday, with the transaction on, story order deadlocks at 01:14:02 and the round-up is the victim; a fixed order means one wait of 1 s and no deadlock."
+  },
+  "explain": {
+    "oneLine": "Nothing in the vault moved. On Tuesday a transfer was two separate changes, and only the first had happened when the job's server restarted. On Thursday two windows each wrote back a balance they had read before the other's deposit.",
+    "steps": [
+      {
+        "title": "Two statements are not one change.",
+        "text": "Bartholomew's job sent its debit and its credit as two statements with no BEGIN, so each was a transaction of its own, committed the moment it ran. PostgreSQL's tutorial says that if you do not issue a BEGIN, each statement has an implicit BEGIN and, if successful, COMMIT wrapped around it. So at 01:14:00 the debit was permanent, at 01:14:01 the server restarted before the credit, and for six minutes the ledger held a state no transfer should ever show: 1001 down 250.00, 1002 unchanged. Anyone reading the ledger in that gap saw it, including the 01:17 audit. The step file let the job finish the credit at 01:20, but a step file is the job's memory, not the database's. Had it been lost, or written a moment too early, the 250.00 would have stayed missing or been moved twice."
+      },
+      {
+        "title": "A transaction is all or nothing.",
+        "text": "Put both statements between BEGIN and COMMIT and the database treats them as one change. Until COMMIT the debit is pending: other sessions still see 1,840.00, and if the connection drops, the open transaction is never committed and the database rolls it back. ROLLBACK does the same on purpose. That's the A in ACID, atomicity: all of it or none of it. C, consistency, means a transaction takes the data from one valid state to another; the database enforces the rules you declare, such as a constraint, and your code keeps the rest, such as every debit having its credit. I, isolation, means transactions running at the same time don't see each other's unfinished work; how strictly is set by the isolation level, which the next case covers. D, durability, means that once COMMIT is acknowledged, the change survives a crash. With the transfer in one transaction, the restart at 01:14:01 left nothing half done, so running it again from BEGIN at 01:20 was safe."
+      },
+      {
+        "title": "Thursday: read, change, write.",
+        "text": "The teller app read 1003 when the account opened, kept 310.00 while the teller counted, and on Post wrote back the number it had worked out. Kasimir's app wrote 310.00 plus 80.00, 390.00, at 15:58:07. Ffion's wrote 310.00 plus 120.00, 430.00, at 15:58:09, over the top of his. That's a lost update, and the receipts tell the story: each was right about the balance its window saw. A transaction around each teller's read and write wouldn't have stopped it. At PostgreSQL's default isolation level, Read Committed, both windows can still read 310.00 before either writes. Read, change, write is safe only when nobody else can write between your read and your write, and it goes wrong only when two arrive close together, which is why it passes every test with one tester."
+      },
+      {
+        "title": "Three fixes for the lost update.",
+        "text": "The simplest is to let the database do the sum. UPDATE accounts SET balance = balance + 80.00 WHERE acctnum = 1003 is one statement, and at Read Committed a second updater waits for the first to commit, then applies its own change to the updated row. That's an atomic update, and it fits whenever the new value depends only on the old one. When the app must look before it writes, for example to refuse a withdrawal that would take a balance below zero, lock the row: SELECT ... FOR UPDATE is pessimistic locking, and Kasimir waits until Ffion commits, 5 seconds in the sim, then reads 430.00. Or check a version, which is optimistic locking: read the balance and its version, 7, and write with WHERE version = 7, setting 8. If the update changes 0 rows, someone got there first: read again and retry, as Ffion's app did once. Choose by contention and hold time. A row lock is held until the transaction ends, so it suits short work on busy rows; a version check holds nothing while a person thinks, so it suits rare clashes, though retries pile up when clashes are common."
+      },
+      {
+        "title": "Locks bring deadlocks: take them in a fixed order.",
+        "text": "Once a transaction holds row locks until COMMIT, two transactions can each hold what the other wants. On Saturday the standing order locked 1001 and the round-up locked 1002, then each waited for the other. PostgreSQL waits deadlock_timeout, 1 second by default, then checks, finds the cycle and aborts one transaction, the victim; the sim picks the round-up, and PostgreSQL says which one it aborts is difficult to predict. The usual fix is to take locks in one order everywhere, such as the lower account number first: then the second transfer simply waits for the first. Retry the victim too, because a deadlock can still come from a path you didn't plan for. Locking the whole ledger table also avoids deadlocks, by making every change wait for every other."
+      }
+    ],
+    "diagram": {
+      "type": "sequence",
+      "aria": "Next Tuesday, with the transfer in one transaction. The job sends BEGIN and debits 1001, which is pending at 1,590.00. Its server restarts at 01:14:01, before the credit. The connection drops, and the database rolls the transaction back, so 1001 is 1,840.00 again. The night audit at 01:17:00 counts and finds a difference of 0.00. At 01:20:00 the job sends BEGIN, the debit and the credit again, then COMMIT, and 1001 and 1002 become 1,590.00 and 325.00 together. Every audit balances.",
+      "lanes": [
+        "Transfer job",
+        "Ledger database",
+        "Night audit"
+      ],
+      "steps": [
+        {
+          "from": 0,
+          "to": 1,
+          "label": "01:14:00 BEGIN; debit 1001"
+        },
+        {
+          "note": 1,
+          "text": "1001: 1,590.00 pending",
+          "sub": "others still see 1,840.00",
+          "tone": "warn"
+        },
+        {
+          "note": 0,
+          "text": "01:14:01 server restarts",
+          "sub": "before the credit",
+          "tone": "bad"
+        },
+        {
+          "note": 1,
+          "text": "connection dropped: ROLLBACK",
+          "sub": "1001 is 1,840.00 again",
+          "tone": "ok"
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "01:17:00 count"
+        },
+        {
+          "from": 1,
+          "to": 2,
+          "label": "difference 0.00",
+          "tone": "ok"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "01:20:00 BEGIN; debit; credit"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "COMMIT: 1,590.00 and 325.00",
+          "tone": "ok"
+        },
+        {
+          "outcome": 2,
+          "text": "every audit balances",
+          "tone": "ok"
+        }
+      ]
+    },
+    "caption": "Next Tuesday, with the transfer in one transaction. The server restarts at 01:14:01 again, but the debit was never committed, so the database rolls it back and the 01:17:00 count balances. At 01:20:00 the job runs the whole transfer again, and both changes commit together.",
+    "fix": {
+      "title": "The fix: one transaction per transfer, safe balance updates, one lock order",
+      "text": "Put each transfer's debit and credit between BEGIN and COMMIT, drop the step file, and on any failure run the whole transaction again from BEGIN: a failed attempt has been rolled back, so the retry moves the money once. For balance changes, use the atomic update, balance = balance + amount, wherever the new value depends only on the old one. Where the app must read before it writes, choose a version check for work that holds a row while a person thinks, like a teller counting notes, and SELECT ... FOR UPDATE for short work on rows that clash often. Make every transaction that touches several accounts lock them in one order, the lower account number first, and retry a transaction aborted as a deadlock victim. Keep the night audit as the alarm, not the repair."
+    },
+    "limits": [
+      "A transaction makes the database's part all or nothing, not the outside world's. If the job also sends a letter, an email or a payment to another bank, a rollback can't take those back; that needs an idempotency key, or a record written in the same transaction and sent afterwards, which Season 4 covers.",
+      "A version check turns a clash into a retry. When many writers hit one row, such as a shop's account at month-end, retries can pile up and the same work can keep losing. Cap the retries, and switch that row to a row lock or an atomic update.",
+      "Isolation is only as strong as the level you run at. Read Committed stops you seeing unfinished work, but not every odd result between two transactions running at once; the next case covers what stronger levels add."
+    ],
+    "tradeoff": {
+      "head": [
+        "Choice",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "Two statements, no transaction (as now)",
+          "Nothing to set up.",
+          "A crash between them leaves a half-finished transfer: 250.00 in neither account for 360 s, seen by the 01:17 audit."
+        ],
+        [
+          "One transaction per transfer",
+          "All or nothing: the crash rolls back, every audit balances, and a retry from BEGIN is safe.",
+          "On its own it doesn't stop the lost update at Read Committed."
+        ],
+        [
+          "03:00 repair script",
+          "A useful alarm after the fact.",
+          "The books were still out for 360 s, and a lost update leaves nothing to find. After a double debit it moved 500.00."
+        ],
+        [
+          "Retry the whole transfer, no transaction",
+          "Simple.",
+          "Debits twice once the first half has committed: 1001 at 1,340.00, the books 250.00 short."
+        ],
+        [
+          "Atomic update, balance = balance + amount",
+          "The simplest; no lock held while anyone thinks. 510.00, nothing lost.",
+          "Fits only when the new value depends on nothing but the old one."
+        ],
+        [
+          "Row lock, SELECT ... FOR UPDATE",
+          "The second writer waits and sees the first one's result: 510.00.",
+          "Kasimir waited 5 s. Held locks can deadlock unless taken in a fixed order."
+        ],
+        [
+          "Version column",
+          "Holds nothing while the teller counts: one retry, 510.00.",
+          "Under heavy contention retries pile up; needs a retry limit."
+        ],
+        [
+          "Lock the whole ledger table",
+          "Correct, and no deadlocks.",
+          "Serializes the branch: 10 other changes waited, 49 s in all, up to 8 s."
+        ]
+      ]
+    },
+    "seniorTake": "Ask what must happen together, and make that one transaction: a transfer's debit and credit, an order and its stock change. Then ask who else can write the same rows at the same moment, because a transaction alone, at the usual default isolation level, won't stop a lost update. Prefer letting the database do the arithmetic in one statement. When code must read before it writes, pick pessimistic locking for short work on rows that clash often and optimistic version checks for long think times and rare clashes, with a cap on retries. Keep transactions short, never open one while waiting for a person, and take locks in one order. Make retries safe before you add them: a retry is only harmless if the failed attempt left nothing behind. Reconciliation is still worth running, as the alarm that tells you all of this failed.",
+    "realWorld": [
+      {
+        "title": "PostgreSQL 18: the tutorial's bank transfer",
+        "text": "PostgreSQL's tutorial explains transactions with a bank: UPDATE accounts SET balance = balance - 100.00 WHERE name = 'Alice', then the same for Bob with + 100.00. Its officers, it says, will want to be assured that either all these updates happen, or none of them happen. It would certainly not do for a system failure to result in Bob receiving $100.00 that was not debited from Alice, nor would Alice long remain a happy customer if she was debited without Bob being credited. The essential point of a transaction is that it bundles multiple steps into a single, all-or-nothing operation; the intermediate states between the steps are not visible to other concurrent transactions. It adds that if you do not issue a BEGIN command, each individual statement has an implicit BEGIN and, if successful, COMMIT wrapped around it, which is how Bartholomew's job ran. And once a transaction is completed and acknowledged, it has indeed been permanently recorded and won't be lost even if a crash ensues shortly thereafter.",
+        "source": 0
+      },
+      {
+        "title": "PostgreSQL 18: row locks and SELECT ... FOR UPDATE",
+        "text": "FOR UPDATE, the manual says, causes the rows retrieved by the SELECT statement to be locked as though for update, which prevents them from being locked, modified or deleted by other transactions until the current transaction ends. Row-level locks do not affect data querying; they block only writers and lockers to the same row, so the night audit can still read while a teller holds a row. The same page warns that a transaction waiting for a lock will wait indefinitely while no deadlock is found, so it is a bad idea for applications to hold transactions open for long periods of time, for example while waiting for user input. A teller counting notes is user input.",
+        "source": 1
+      },
+      {
+        "title": "PostgreSQL 18: the deadlock example",
+        "text": "The manual's deadlock example is two transfers on an accounts table. One transaction updates acctnum 11111, the other updates 22222 and then waits for 11111; when the first then tries 22222, transaction one is blocked on transaction two, and transaction two is blocked on transaction one. PostgreSQL detects deadlock situations and resolves them by aborting one of the transactions involved, and exactly which transaction will be aborted is difficult to predict and should not be relied upon. The best defense against deadlocks, it says, is generally to avoid them by being certain that all applications using a database acquire locks on multiple objects in a consistent order; if both transactions had updated the rows in the same order, no deadlock would have occurred. Otherwise, deadlocks can be handled by retrying transactions that abort due to deadlocks.",
+        "source": 1
+      },
+      {
+        "title": "PostgreSQL 18: deadlock_timeout",
+        "text": "deadlock_timeout is the amount of time to wait on a lock before checking to see if there is a deadlock condition. The check is relatively expensive, so the server doesn't run it every time it waits for a lock. The default is one second, which the manual calls probably about the smallest value you would want in practice. That is why, in the sim, Saturday's deadlock is found a second after the two transfers start waiting.",
+        "source": 2
+      },
+      {
+        "title": "PostgreSQL 18: Read Committed and UPDATE",
+        "text": "Read Committed is the default isolation level in PostgreSQL. When an UPDATE finds a row that a concurrent transaction has already updated, the would-be updater will wait for the first updating transaction to commit or roll back, and if the first commits, it will attempt to apply its operation to the updated version of the row. The manual's example is a transfer, UPDATE accounts SET balance = balance + 100.00 WHERE acctnum = 12345 and balance - 100.00 for 7534, and it says that if another transaction changes 7534 at the same time, we clearly want the second statement to start with the updated version of the account's row. That is why balance = balance + amount is safe and writing back a number the app read earlier is not.",
+        "source": 3
+      },
+      {
+        "title": "Amazon DynamoDB: optimistic locking with a version number",
+        "text": "AWS's DynamoDB guide describes optimistic locking as a strategy to make sure that the client-side item that you are updating is the same as the item in DynamoDB. Each item has an attribute that acts as a version number; you can update the item, but only if the version number on the server side has not changed. If there is a version mismatch, someone else has modified the item before you did, the update attempt fails, and you try again by retrieving the item and then trying to update it. It also notes that DynamoDB global tables use last writer wins between concurrent updates, so the locking strategy does not work as expected there.",
+        "source": 4
+      },
+      {
+        "title": "Martin Fowler: Optimistic Offline Lock",
+        "text": "In Patterns of Enterprise Application Architecture, Martin Fowler's Optimistic Offline Lock prevents conflicts between concurrent business transactions by detecting a conflict and rolling back the transaction. It validates that the changes about to be committed by one session don't conflict with the changes of another: the same idea as Ffion's version check, for work that spans a person thinking.",
+        "source": 5
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How do you transfer money between two accounts safely?",
+        "Optimistic vs pessimistic locking: when would you use each?",
+        "What's a lost update?"
+      ],
+      "answer": "A transfer is a debit and a credit that must happen together, so I'd run both in one database transaction: BEGIN, both updates, COMMIT. If anything fails before COMMIT, the database rolls both back, so a retry from BEGIN moves the money once; without the transaction a crash between the two leaves money in neither account, and a retry debits twice. That's atomicity; with consistency, isolation and durability it makes ACID. Next, concurrency. A lost update is two writers who each read the same value, change their copy and write it back, so the second overwrites the first. A transaction alone doesn't prevent it at the usual default isolation level, read committed. I'd first try an atomic update, balance = balance - 100 WHERE id = ? AND balance >= 100, checking the row count. If the code must read before writing, pessimistic locking, SELECT ... FOR UPDATE, makes the second writer wait, which suits short transactions on rows that clash often. Optimistic locking, a version column and UPDATE ... WHERE version = n, holds nothing and retries when 0 rows change, which suits rare clashes and long think times; under heavy contention its retries pile up. Either way I'd lock several rows in a fixed order, such as by account id, so two transfers can't deadlock, and retry a deadlock victim. If an external system is involved too, I'd add an idempotency key, because a transaction only covers the database."
+    }
+  },
+  "terms": [
+    {
+      "term": "Building society",
+      "def": "A savings and lending organisation owned by its members, who keep their accounts there. The Quillon is a fictional one."
+    },
+    {
+      "term": "Night audit",
+      "def": "Iolanthe's check after closing: the vault total must equal the sum of every member's account, to the penny."
+    },
+    {
+      "term": "Vault total",
+      "def": "Every penny the society holds. Every account balance is a claim on part of it, so the sum of accounts must match it."
+    },
+    {
+      "term": "Ledger",
+      "def": "The record of every member's account and balance. Here it's a table in the society's database."
+    },
+    {
+      "term": "Debit and credit",
+      "def": "A debit takes money out of an account; a credit puts money into one. A transfer is a debit from one account and a credit to another."
+    },
+    {
+      "term": "Standing order",
+      "def": "An instruction to move a fixed sum from one account to another on a schedule. Mr Ruthven's moves 250.00 from savings to current."
+    },
+    {
+      "term": "Transfer job",
+      "def": "Bartholomew's program that runs the night's standing orders at 01:14. T-58817 is Mr Ruthven's transfer."
+    },
+    {
+      "term": "Step file",
+      "def": "The transfer job's own note of how far it got, written after each statement, so it can carry on after a crash."
+    },
+    {
+      "term": "Teller",
+      "def": "The person at a window who takes deposits and pays out cash. Ffion is at window 2, Kasimir at window 3."
+    },
+    {
+      "term": "Round-up",
+      "def": "Mr Ruthven's Saturday transfer at 01:14 that moves 40.00 from his current account back to savings, the opposite way to his standing order."
+    },
+    {
+      "term": "Reconcile-and-repair script",
+      "def": "A job that checks the records after the fact, such as each transfer's debits against its credits, and posts whatever it finds missing."
+    },
+    {
+      "term": "Credit union",
+      "def": "A member-owned savings and lending co-operative, much like a building society."
+    },
+    {
+      "term": "Transaction",
+      "def": "A group of database statements treated as one change: they all commit together, or none of them takes effect."
+    },
+    {
+      "term": "BEGIN, COMMIT, ROLLBACK",
+      "def": "BEGIN opens a transaction. COMMIT makes all its changes count at once. ROLLBACK cancels every change since BEGIN."
+    },
+    {
+      "term": "Implicit transaction",
+      "def": "A statement sent without BEGIN, run as a transaction of its own and committed as soon as it succeeds. Some tools call this autocommit."
+    },
+    {
+      "term": "Pending (change)",
+      "def": "A change made inside a transaction that hasn't committed yet. Other sessions don't see it, and a rollback throws it away."
+    },
+    {
+      "term": "Half-finished transfer",
+      "def": "A transfer whose debit has committed but whose credit hasn't, so the money is in neither account."
+    },
+    {
+      "term": "ACID",
+      "def": "Atomicity, consistency, isolation and durability: the four promises a database transaction makes."
+    },
+    {
+      "term": "Atomicity",
+      "def": "All of a transaction happens or none of it does. A crash before COMMIT rolls back every change in it."
+    },
+    {
+      "term": "Consistency (ACID)",
+      "def": "A transaction takes the data from one valid state to another. The database enforces declared rules; your code keeps the rest, like every debit having a credit."
+    },
+    {
+      "term": "Isolation",
+      "def": "Transactions running at the same time don't see each other's unfinished changes. How strictly depends on the isolation level."
+    },
+    {
+      "term": "Durability",
+      "def": "Once COMMIT is acknowledged, the change survives a crash or power cut."
+    },
+    {
+      "term": "Isolation level",
+      "def": "A setting for how much transactions running at once can affect what each other sees. The standard names four; the next case covers them."
+    },
+    {
+      "term": "Read Committed",
+      "def": "PostgreSQL's default isolation level: each statement sees only data committed before it began. It doesn't stop a lost update on its own."
+    },
+    {
+      "term": "Serialization error",
+      "def": "An error PostgreSQL raises at its stricter isolation levels when a transaction can't safely go on because another changed what it relied on. The usual answer is to retry."
+    },
+    {
+      "term": "Session",
+      "def": "One connection's conversation with the database. Each window's app, the job and the audit each have their own."
+    },
+    {
+      "term": "Lost update",
+      "def": "Two writers read the same value, each changes its own copy and writes it back, and the second write wipes out the first."
+    },
+    {
+      "term": "Read-modify-write",
+      "def": "Reading a value into the app, working out a new one, and writing that back. Unsafe if someone else can write in between."
+    },
+    {
+      "term": "Atomic update",
+      "def": "A change the database works out from the row's current value in one statement, such as SET balance = balance + 80.00."
+    },
+    {
+      "term": "Row lock",
+      "def": "A lock on one row: other transactions that want to change it wait until the holder commits or rolls back. Reads aren't blocked."
+    },
+    {
+      "term": "SELECT ... FOR UPDATE",
+      "def": "A read that also locks the rows it returns until the transaction ends, so nobody else can change them in between."
+    },
+    {
+      "term": "Pessimistic locking",
+      "def": "Locking a row before working on it, expecting a clash, so anyone else waits. SELECT ... FOR UPDATE is the usual way."
+    },
+    {
+      "term": "Optimistic locking",
+      "def": "Taking no lock, and checking at write time that nobody changed the row since you read it, usually with a version column; if they did, retry."
+    },
+    {
+      "term": "Version column",
+      "def": "A number on each row that goes up with every change. An update says WHERE version = 7 and sets 8; zero rows changed means someone got there first."
+    },
+    {
+      "term": "Optimistic retry",
+      "def": "What happens when a version check changes zero rows: read the row again and redo the update with the new version."
+    },
+    {
+      "term": "Contention",
+      "def": "How often different writers want the same row at the same time. High contention makes optimistic retries pile up."
+    },
+    {
+      "term": "Deadlock",
+      "def": "Two transactions each hold a lock the other wants, so neither can go on. The database breaks it by aborting one."
+    },
+    {
+      "term": "Deadlock victim",
+      "def": "The transaction the database aborts to break a deadlock. It is rolled back, so retrying it from BEGIN is safe."
+    },
+    {
+      "term": "deadlock_timeout",
+      "def": "How long PostgreSQL waits on a lock before checking for a deadlock. The default is one second."
+    },
+    {
+      "term": "Lock order",
+      "def": "The order a transaction takes its locks in. If every transaction locks accounts in the same order, such as lowest number first, they can't deadlock."
+    },
+    {
+      "term": "Table lock (LOCK TABLE)",
+      "def": "A lock on a whole table. In EXCLUSIVE mode it lets others read but makes every other change to the table wait until the transaction ends."
+    },
+    {
+      "term": "Serialize",
+      "def": "Make things happen strictly one after another. A whole-table lock serializes every change to the ledger."
+    },
+    {
+      "term": "Double debit",
+      "def": "Taking the same payment out of an account twice, as a retry does after the first debit has already committed."
+    },
+    {
+      "term": "acctnum",
+      "def": "The account-number column in the PostgreSQL manual's examples."
+    },
+    {
+      "term": "Item and attribute (DynamoDB)",
+      "def": "DynamoDB's names for a record and one of its fields, like a row and a column."
+    },
+    {
+      "term": "Global tables (DynamoDB)",
+      "def": "DynamoDB tables copied across several AWS regions, each taking writes; clashing updates are settled by last writer wins."
+    },
+    {
+      "term": "Last writer wins",
+      "def": "Settling two clashing updates by keeping whichever was written last and dropping the other."
+    },
+    {
+      "term": "Business transaction",
+      "def": "Martin Fowler's term for a piece of work a person does across several requests, such as editing a form, as against one database transaction."
+    },
+    {
+      "term": "SOC 2",
+      "def": "An audit report on a company's controls against the AICPA's Trust Services Criteria. Security is required; other categories are optional."
+    },
+    {
+      "term": "Processing integrity",
+      "def": "The SOC 2 category for system processing being complete, valid, accurate, timely and authorized."
+    },
+    {
+      "term": "AICPA",
+      "def": "The American Institute of Certified Public Accountants, which publishes the Trust Services Criteria SOC 2 reports use."
+    }
+  ],
+  "atWork": "Picture a payments team whose wallet balances sometimes went below zero, or an inventory team that shipped more of a hot item than it had. A common cause is read-modify-write: two requests read the same balance or stock count, each checks it, and each writes back its own result. The usual fix is one statement that checks and changes together, such as UPDATE stock SET count = count - 1 WHERE id = ? AND count > 0, treating zero rows changed as sold out, or a row lock or version check where the code must read first. Find this in your own systems. Pick one money or stock number and search the code for every place that writes it. For each, ask three things. Is the read and the write one statement, or a read in the app and a write later? Are changes that must happen together, like an order and its stock, in one transaction? And what does the code do on failure: retry, and if so, could the first attempt already have committed? Then look at your database's logs or metrics for deadlocks and lock waits, and check whether multi-row updates take their locks in a fixed order. If your company is pursuing a SOC 2 report that includes the processing integrity category, its criteria (PI1.3 in the AICPA's 2017 Trust Services Criteria) expect data to be processed completely, accurately and timely as authorized; transactions, safe concurrent updates and a reconciliation that alerts on differences are the kind of controls an auditor will ask you to show, so build them in now rather than at audit time.",
+  "board": {
+    "cards": [
+      {
+        "id": "transactions",
+        "title": "Transactions"
+      },
+      {
+        "id": "acid",
+        "title": "ACID"
+      },
+      {
+        "id": "optimistic-vs-pessimistic-locking",
+        "title": "Optimistic vs pessimistic"
+      }
+    ],
+    "strings": [
+      {
+        "from": "transactions",
+        "to": "acid",
+        "label": "all or nothing"
+      },
+      {
+        "from": "acid",
+        "to": "isolation-levels",
+        "label": "how isolated"
+      },
+      {
+        "from": "acid",
+        "to": "write-ahead-logs",
+        "label": "how D works"
+      },
+      {
+        "from": "optimistic-vs-pessimistic-locking",
+        "to": "race-conditions",
+        "label": "the lost update"
+      },
+      {
+        "from": "optimistic-vs-pessimistic-locking",
+        "to": "deadlocks",
+        "label": "opposite orders"
+      },
+      {
+        "from": "optimistic-vs-pessimistic-locking",
+        "to": "lock-ordering",
+        "label": "one fixed order"
+      },
+      {
+        "from": "transactions",
+        "to": "idempotency-keys",
+        "label": "outside the DB"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s3e02-r1",
+      "kind": "free",
+      "prompt": "After a flash sale, an online shop finds it sold 23 more kettles than it had, though its stock count never went below zero. The checkout code reads the stock, checks it is above zero, then writes the stock it read minus one. What happened, and how would you fix it?",
+      "keyIdeas": [
+        {
+          "idea": "Two checkouts read the same stock and each wrote back its own result: a lost update from read-modify-write",
+          "match": [
+            "lost update",
+            "read-modify-write",
+            "read modify write",
+            "read, modify",
+            "read, change",
+            "both read",
+            "same stock",
+            "same value",
+            "overwrit",
+            "at the same time",
+            "same moment"
+          ]
+        },
+        {
+          "idea": "Check and change in one atomic statement, such as stock = stock - 1 WHERE stock > 0, and treat zero rows as sold out",
+          "match": [
+            "stock = stock - 1",
+            "stock - 1 where",
+            "stock > 0",
+            "stock >= 1",
+            "atomic update",
+            "in one statement",
+            "single statement",
+            "conditional update"
+          ]
+        },
+        {
+          "idea": "Where the code must read first, lock the row (SELECT ... FOR UPDATE) or use a version column and retry",
+          "match": [
+            "for update",
+            "row lock",
+            "lock the row",
+            "version column",
+            "version number",
+            "optimistic",
+            "pessimistic"
+          ]
+        }
+      ],
+      "model": "Two checkouts read the same stock, say 1, both saw it above zero, and both wrote back 1 minus 1, so two kettles sold and the count only fell by one: a lost update from read-modify-write. Repeat that through a flash sale and you oversell without the count ever going negative. Fix it in the database: check and change in one statement, UPDATE products SET stock = stock - 1 WHERE id = ? AND stock > 0, an atomic update, and treat zero rows changed as sold out. If the code must look at more than the stock before deciding, lock the row with SELECT ... FOR UPDATE inside a transaction, which suits a hot item with many buyers, or use a version column and retry when the update changes zero rows, which suits rare clashes."
+    },
+    {
+      "id": "s3e02-r2",
+      "kind": "free",
+      "prompt": "Two nightly jobs move money between the same two accounts in opposite directions, each inside one transaction. About once a month one of them fails with 'deadlock detected'. What is happening, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "Each job locks the first account it updates and holds it, then waits for the account the other job holds: a cycle",
+          "match": [
+            "each holds",
+            "holds one",
+            "waits for the other",
+            "wait for each other",
+            "waiting for each other",
+            "circular",
+            "cycle",
+            "opposite order"
+          ]
+        },
+        {
+          "idea": "Take locks in one fixed order everywhere, such as the lower account id first",
+          "match": [
+            "same order",
+            "fixed order",
+            "consistent order",
+            "lower id",
+            "lower account",
+            "lowest id",
+            "sorted order",
+            "order by id",
+            "smaller id"
+          ]
+        },
+        {
+          "idea": "Retry the aborted transaction from the start; it was rolled back, so a retry is safe",
+          "match": [
+            "retry the aborted",
+            "retry the victim",
+            "retry the transaction",
+            "retries the transaction",
+            "rolled back",
+            "safe to retry",
+            "retry it"
+          ]
+        }
+      ],
+      "model": "Each job's first UPDATE locks the account it touches and holds that lock until COMMIT. Going in opposite directions, each holds one account and waits for the other, a cycle, so the database waits about a second, detects the deadlock and aborts one of them. Make every job take its locks in the same order, for example the lower account id first, whichever way the money goes; then the second job simply waits for the first. Keep a retry for the transaction the database aborts: it was rolled back, so running it again from BEGIN is safe, and it covers any deadlock from a path you didn't plan for."
+    },
+    {
+      "id": "s3e02-r3",
+      "kind": "mcq",
+      "prompt": "On Tuesday the job's server restarted between the debit and the credit. With both statements in one transaction, which ACID promise would have kept the 250.00 from going missing?",
+      "options": [
+        "Durability: a committed change survives a crash",
+        "Isolation: other sessions don't see unfinished work",
+        "Atomicity: all of the transaction happens or none of it",
+        "Consistency: every constraint is checked at each statement"
+      ],
+      "answer": 2,
+      "why": "Atomicity is the all-or-nothing promise: the debit was never committed, so when the connection dropped the database rolled it back and 1001 was 1,840.00 again. Durability protects changes that have committed, which the debit hadn't. Isolation keeps other sessions from seeing the pending debit while it's open, but it's atomicity that undid it."
+    },
+    {
+      "id": "s3e02-r4",
+      "kind": "mcq",
+      "prompt": "A form lets a user edit a customer's address for a few minutes before saving, and two users rarely edit the same customer. How should the save protect against a lost update?",
+      "options": [
+        "Hold a lock on the customer's row from opening the form until saving",
+        "Save with WHERE version = the version read, and re-read if 0 rows change",
+        "Lock the whole customers table while any form is open",
+        "Send the save twice, a second apart, so the later value wins"
+      ],
+      "answer": 1,
+      "why": "This is optimistic locking: clashes are rare and the user thinks for minutes, so holding nothing and checking a version at save time fits. A lock held while a person edits makes anyone else wait for minutes, and PostgreSQL's manual calls holding transactions open while waiting for user input a bad idea. Locking the whole table makes every other edit wait too."
+    },
+    {
+      "id": "s3e02-r5",
+      "kind": "mcq",
+      "prompt": "At PostgreSQL's default isolation level, transaction A has run UPDATE accounts SET balance = balance + 100.00 WHERE acctnum = 12345 and not yet committed. Transaction B runs the same statement. What happens to B?",
+      "options": [
+        "It waits for A to commit or roll back, then adds 100.00 to the row A left",
+        "It fails at once with a serialization error",
+        "It adds 100.00 to the balance A started from, losing A's change",
+        "It runs straight away, and both changes are kept as two versions"
+      ],
+      "answer": 0,
+      "why": "At Read Committed, PostgreSQL's manual says the would-be updater waits for the first updating transaction to commit or roll back, and if it commits, applies its operation to the updated version of the row. That's why balance = balance + amount never loses a deposit, while writing back a number the app read earlier can."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 3 months later. Every transfer is one transaction now, transfers lock the lower account first, and the windows use the version check. Every count has balanced. Then month-end. At 17:00 Bartholomew's interest job reads each account's balance and version, works out the month's interest and writes it back with the version check. Account 2240 belongs to Ormsby's hardware shop, which banks its takings at three windows all afternoon. The interest job's update to 2240 failed its version check 61 times before 17:30, when the job gave up, and Mr Ormsby's statement shows no interest at all. Bartholomew says the version check did exactly what it was told.",
+    "prompt": "Reply to OP. Why does the interest job keep losing on account 2240, and what should Bartholomew change?",
+    "keyIdeas": [
+      {
+        "idea": "2240 is written all the time, so with many writers on one row the optimistic check keeps failing: high contention",
+        "match": [
+          "contention",
+          "keeps losing",
+          "busy row",
+          "busy account",
+          "hot row",
+          "clashes are common",
+          "many writers",
+          "always changing"
+        ]
+      },
+      {
+        "idea": "For a busy row, use an atomic update or a row lock instead of a version check",
+        "match": [
+          "atomic update",
+          "for update",
+          "row lock",
+          "pessimistic",
+          "lock the row",
+          "in one statement"
+        ]
+      },
+      {
+        "idea": "Cap retries with a backoff and alert when work gives up, so a failure is seen",
+        "match": [
+          "cap the retries",
+          "retry limit",
+          "limit the retries",
+          "limit on retries",
+          "backoff",
+          "back off",
+          "alert"
+        ]
+      }
+    ],
+    "model": "Optimistic locking bets that clashes are rare, and on 2240 they aren't: three windows post to it all afternoon, so between the interest job's read and its write the version has almost always moved, and every retry loses again. That's high contention on one busy row. For interest the new balance depends only on the old one, so make it an atomic update in one statement, something like SET balance = balance + interest WHERE acctnum = 2240, or lock the row with SELECT ... FOR UPDATE for the instant it takes, so the job waits its turn instead of losing. Keep the version check for the windows, where clashes are rare. And give every retry loop a cap with a backoff, plus an alert when a job gives up, so a missing interest payment shows up that evening and not on Mr Ormsby's statement."
+  },
+  "next": "Next, Phantoms in the Archive: a haunted records basement, and isolation levels.",
+  "sources": [
+    {
+      "title": "PostgreSQL 18 Documentation, 3.4 Transactions (the bank transfer example; either all these updates happen, or none of them happen; a single, all-or-nothing operation; intermediate states not visible to other concurrent transactions; permanently recorded once acknowledged; an implicit BEGIN and COMMIT around each statement)",
+      "url": "https://www.postgresql.org/docs/18/tutorial-transactions.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 13.3 Explicit Locking (FOR UPDATE locks rows until the transaction ends; row-level locks block only writers and lockers; the deadlock example on acctnum 11111 and 22222; which transaction is aborted is difficult to predict; acquire locks in a consistent order; retry transactions aborted by deadlocks; don't hold transactions open while waiting for user input; EXCLUSIVE mode allows only reads alongside)",
+      "url": "https://www.postgresql.org/docs/18/explicit-locking.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 19.12 Lock Management (deadlock_timeout: time to wait on a lock before checking for a deadlock; default one second)",
+      "url": "https://www.postgresql.org/docs/18/runtime-config-locks.html"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 13.2 Transaction Isolation (Read Committed is the default; a second updater waits for the first and then applies its operation to the updated version of the row; the transfer example on acctnum 12345 and 7534)",
+      "url": "https://www.postgresql.org/docs/18/transaction-iso.html"
+    },
+    {
+      "title": "Amazon DynamoDB Developer Guide: DynamoDB and optimistic locking with version number (update only if the server-side version has not changed; on a mismatch, retrieve the item and try again; global tables use last writer wins)",
+      "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBMapper.OptimisticLocking.html"
+    },
+    {
+      "title": "Martin Fowler, Patterns of Enterprise Application Architecture catalog: Optimistic Offline Lock (prevents conflicts between concurrent business transactions by detecting a conflict and rolling back the transaction)",
+      "url": "https://martinfowler.com/eaaCatalog/optimisticOfflineLock.html"
+    },
+    {
+      "title": "AICPA & CIMA: 2017 Trust Services Criteria (With Revised Points of Focus, 2022) (the criteria for Security, Availability, Processing Integrity, Confidentiality and Privacy used in SOC 2 reports)",
+      "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+    },
+    {
+      "title": "Linford & Co: What is Processing Integrity and Who Needs it in their SOC 2? (quotes the AICPA: system processing is complete, valid, accurate, timely, and authorized; PI1.3, data is processed completely, accurately, and timely as authorized; processing integrity is optional, Security is required)",
+      "url": "https://linfordco.com/blog/processing-integrity"
+    }
+  ]
+}
