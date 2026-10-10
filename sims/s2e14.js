@@ -1,4 +1,4 @@
-/* sims/s2e14-v1.0.0.js  (published as sims/s2e14.js)
+/* sims/s2e14-v1.0.1.js  (published as sims/s2e14.js)
    Case s2e14 "Name Tags for a Billion Things": an ID-generation lab for the night shift at the city
    mortuary on Marrowgate. Three machines make numbers for the Casebook, the mortuary's records
    database, which refuses any number it already holds: the desk printer, the cold-room printer and
@@ -9,6 +9,9 @@
    with NTP; puts the clocks back an hour; and reads the base62 length for a number of codes.
 
    CHANGELOG
+   v1.0.1 (2026-10-11) spot-check follow-ups: UUID v7's sorts-by-time stat reads "roughly", as the
+     case's tradeoff table says (to the millisecond within a machine); selfTest 11 and its comment
+     match; the case is now content/s2/s2e14-v1.0.3.json.
    v1.0.0 (2026-10-09) first version: real time T is counted in whole milliseconds from 22:00:00.000
      local summer time on Thursday 22 October 2026; the clock runs a minute a second, and every
      millisecond is processed in order, in blocks, so results never depend on the frame rate.
@@ -21,7 +24,7 @@
      of the night, reset. Stats: duplicates, lines the scanner numbered, IDs a second per generator,
      sorts by time, size, years left on the timestamp, base62 characters. selfTest: 14 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s2/s2e14-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s2/s2e14-v1.0.3.json):
    - post: until July every number was a 25 ms trip to the town hall counter (TRIP); on Friday
      3 July it was down for four hours. Ingeborg's layout copies Twitter's README: 41 bits of
      milliseconds since midnight on 1 January 2026 by each machine's own clock, a 10-bit machine
@@ -194,7 +197,7 @@
     { value: 1000000000, label: "1 billion" },
     { value: 1000000000000, label: "1 trillion" }
   ];
-  var SORTS = { snowflake: "roughly", auto: "yes", ticket: "roughly", v4: "no", v7: "yes" };
+  var SORTS = { snowflake: "roughly", auto: "yes", ticket: "roughly", v4: "no", v7: "roughly" };
   var STRAT_NAME = { snowflake: "Snowflake-style numbering", auto: "The counter", ticket: "The ticket servers", v4: "UUID v4", v7: "UUID v7" };
 
   /* ---------- small helpers ---------- */
@@ -1167,12 +1170,12 @@
         /tag [0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}, saved/.test(t.logText()),
         "UUID v4: the copied disk no longer matters, nothing is refused, and the IDs don't sort by time");
 
-      // 11. UUID v7: sorts by time until 10889; a step back puts IDs out of order but never repeats one.
+      // 11. UUID v7: sorts roughly by time until 10889; a step back puts IDs out of order but never repeats one.
       t.set("strategy", "v7");
       t.click("hour");
       t.click("ntp");
       await t.run(1);
-      t.expect(t.stat("sort") === "yes" && n("years") === 8862.8 && n("dup") === 0 &&
+      t.expect(t.stat("sort") === "roughly" && n("years") === 8862.8 && n("dup") === 0 &&
         t.logText().indexOf("249 of the scanner's UUIDs sort before ones it made earlier") >= 0,
         "UUID v7: 8,862.8 years left on 48 bits; after a 250 ms step, 249 UUIDs sort early and none repeats");
     }

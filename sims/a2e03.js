@@ -1,8 +1,10 @@
-/* sims/a2e03-v1.0.0.js  (published as sims/a2e03.js)
+/* sims/a2e03-v1.0.1.js  (published as sims/a2e03.js)
    Case a2e03 "Only Answer in This Shape": a coroner's form lab built from Ysbrand's register program at the
    Saltmere County coroner's office, which turns each typed note into the death register's form.
 
    CHANGELOG
+   v1.0.1 (2026-10-11) LATENT Season 2 review fixes: renamed note 6 to Ambrose Thorne (NOTES and
+     BROKEN_6) and note 5 to Barnaby Quell (NOTES), so neither name collides with a2e04 or Dead Letter s2e10; points at case a2e03-v1.0.1.json. No count or rule changes.
    v1.0.0 (2026-10-07) first version: a widget-style sim built inside api.root (no diagram), drawn as one
      inline SVG grid, three tables and plain text blocks that use theme classes only. Sixteen notes from the
      night of the case each have recorded teaching outputs (written for this case, never from a model): a
@@ -19,7 +21,7 @@
      strategy under all four toggle combinations, the Sallow Road note both ways, the retry bound, nothing
      invalid passed on under strategies 3 and 4, determinism, every story number and the controls.
 
-   Where every number comes from (conventions rule 14; the case is content/latent/a2/a2e03-v1.0.0.json).
+   Where every number comes from (conventions rule 14; the case is content/latent/a2/a2e03-v1.0.1.json).
    All of them follow from NOTES, the outputs in PLAN, validate(), noteCheck() and runNote():
    - The form (the post's note block): six boxes, FIELDS, all required; age a whole number from AGE_MIN 0
      to AGE_MAX 120; found_at and time_of_death times like 05:10; cause one of natural, accident, exposure.
@@ -142,11 +144,11 @@
       text: "Dulcie Hargate, 81. Found 23:50 in her flat, 6 Gorse Court, by the warden. Last seen Sunday. Cause for the coroner.",
       facts: F("Dulcie Hargate", 81, "23:50", "6 Gorse Court", null, null) },
     { n: 5, label: "bus depot",
-      text: "Barnaby Pask, age not known. Found 00:20, collapsed at the bus depot. Died 00:41, per the paramedics. Natural causes.",
-      facts: F("Barnaby Pask", null, "00:20", "the bus depot", "00:41", "natural") },
+      text: "Barnaby Quell, age not known. Found 00:20, collapsed at the bus depot. Died 00:41, per the paramedics. Natural causes.",
+      facts: F("Barnaby Quell", null, "00:20", "the bus depot", "00:41", "natural") },
     { n: 6, label: "Ferry Lane",
-      text: "Emrys Thorne, 59. Found 00:55 at home, 2 Ferry Lane. Died 00:30. Accident (a fall at home).",
-      facts: F("Emrys Thorne", 59, "00:55", "2 Ferry Lane", "00:30", "accident") },
+      text: "Ambrose Thorne, 59. Found 00:55 at home, 2 Ferry Lane. Died 00:30. Accident (a fall at home).",
+      facts: F("Ambrose Thorne", 59, "00:55", "2 Ferry Lane", "00:30", "accident") },
     { n: 7, label: "Weir Cottages",
       text: "Ernest Vellacott, 67 (born 1958). Found 01:25, 4 Weir Cottages. Died 01:05. Natural causes.",
       facts: F("Ernest Vellacott", 67, "01:25", "4 Weir Cottages", "01:05", "natural") },
@@ -211,7 +213,7 @@
   function RAW(kind, text) { return { kind: kind, text: text }; }
 
   var PROSE_2 = RAW("prose", "Here is the completed form for Tobias Wrenfield: name Tobias Wrenfield, age 74, found 22:30 at Brackenhurst care home, died 22:10, cause natural.");
-  var BROKEN_6 = RAW("broken", '{"name": "Emrys Thorne", "age": 59, "found_at": "00:55", "place": "2 Ferry Lane", "time_of_death": "00:30", "cause": "accident",}');
+  var BROKEN_6 = RAW("broken", '{"name": "Ambrose Thorne", "age": 59, "found_at": "00:55", "place": "2 Ferry Lane", "time_of_death": "00:30", "cause": "accident",}');
   var BROKEN_11 = RAW("broken", '{"name": "Margery Tolland", "age": 84, "found_at": "03:40", "place": "31 Hollowm');
   var PROSE_13 = RAW("prose", "Certainly. Percival Oddie, 63, was found at 04:30 on the allotments off Brook Lane and died at 04:05 of exposure.");
   var PROSE_13B = RAW("prose", "I am sorry about that. Here is the form again: Percival Oddie, 63, found 04:30 on the allotments off Brook Lane, died 04:05, exposure.");

@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.1 (2026-10-11) LATENT Season 2 review fixes: tightened match lists (recall r1 and r3, coldCase key ideas 1 to 3), shortened the ok reply option, clarified the stop-reason refusal wording, added the self-set spend limit 400 and retry-after when given, glossed null in realWorld[0], renamed the teaching model name term to teaching-station-1, deleted the unused Temperature field term",
     "v1.0.0 (2026-10-07) first version. Season 2 opener. Board cards use the catalog's four a2e01 concept ids (llm-apis, messages, roles, system-prompts); strings reach back to tokens (a1e03), context-windows (a1e05), sampling (a1e06), instruction-tuning (a1e07) and statelessness (a1e09), and ahead to prompting (a2e02), tool-calling (a2e05), keys (a6e01), retries (a6e02) and rate-limits (a6e07). Honours a1e09's tease: First Contact, a radio operator calling a station that answers too fast, and the messages, roles and system prompts of an LLM API. Every number traces to sims/a2e01-v1.0.0.js"
   ],
   "id": "a2e01",
@@ -264,7 +265,7 @@
         "senior": "Revoking first was right, and a spend limit is a good backstop. But any API key you send to a browser will be read again, and a limit a stranger can reach switches you off along with them. The key has to stop leaving your own machines."
       },
       {
-        "text": "Revoke the API key now. Put a small server at the base between the page and the provider: it holds a new API key and the standing orders, keeps each shift's conversation, caps calls, and waits before retrying.",
+        "text": "Revoke the API key now. Put a small server between the page and the provider: it holds a new key and the standing orders, keeps each shift's conversation, caps calls, and waits before retrying.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "I revoked the key at noon, and the stranger's next calls came back 401, an authentication error. The old base laptop is now a small server in the cupboard. The page talks only to it. It adds the new API key, kept in a setting outside the code, the standing orders as the system prompt, and only this shift's turns for each tower, cleared at the handover. It caps each tower at six calls a minute, texts me if a night passes $1, and after a 429 waits 5 seconds, then 10, then 20. I raised max_tokens to 80, and any answer that still stops at max_tokens goes on air with the words answer cut. At 01:47 Marisol asked again: 65 tokens in, 33 out, end_turn. At the 02:00 roll call all twelve towers answered first time. At three I opened the usage page. Nothing on the hour.",
@@ -298,7 +299,7 @@
       },
       {
         "title": "The response says what it wrote, why it stopped, and what it cost.",
-        "text": "A successful response carries content, a list of blocks whose text is the answer; stop_reason; and usage, the input and output tokens you are billed for, case 3's arithmetic. Anthropic's stop-reason guide lists end_turn when the model finished its response naturally, max_tokens when the response reached your max_tokens limit, stop_sequence when it emitted one of your stop sequences, and a few more for tools, refusals and a full context window. The guide separates these from errors: a stop reason comes with a successful response, while a failed request comes back as an HTTP status code in the 4xx or 5xx range. max_tokens is a ceiling, not a target, and the reference says models may stop before reaching it. Teun's answer would have run to 49 tokens; his cap was 40, so the station stopped at Stay in the, and the page read it on air without looking at stop_reason. Anthropic's advice for a cut answer is to raise max_tokens or continue the response; at the least, say it was cut. At the teaching prices, $2 per million input tokens and $10 per million output, that call cost 910 millionths of a dollar."
+        "text": "A successful response carries content, a list of blocks whose text is the answer; stop_reason; and usage, the input and output tokens you are billed for, case 3's arithmetic. Anthropic's stop-reason guide lists end_turn when the model finished its response naturally, max_tokens when the response reached your max_tokens limit, stop_sequence when it emitted one of your stop sequences, and a few more: for tools, for when the model declines to answer, and for a full context window. The guide separates these from errors: a stop reason comes with a successful response, while a failed request comes back as an HTTP status code in the 4xx or 5xx range. max_tokens is a ceiling, not a target, and the reference says models may stop before reaching it. Teun's answer would have run to 49 tokens; his cap was 40, so the station stopped at Stay in the, and the page read it on air without looking at stop_reason. Anthropic's advice for a cut answer is to raise max_tokens or continue the response; at the least, say it was cut. At the teaching prices, $2 per million input tokens and $10 per million output, that call cost 910 millionths of a dollar."
       },
       {
         "title": "The API key is who pays, so it must never reach a browser.",
@@ -306,7 +307,7 @@
       },
       {
         "title": "Errors: retry the ones that pass, fix the ones that don't.",
-        "text": "Anthropic's errors page lists the status codes and error types you will meet. 400 invalid_request_error: something is wrong with the format or content of your request, such as a temperature the model no longer accepts; retrying won't help. 401 authentication_error: a problem with your API key, for example malformed, revoked or expired; it's what a stranger gets once the key is revoked. 429 rate_limit_error: your organization has hit a rate limit. 500 api_error: something unexpected broke inside the provider, and the page says to retry with exponential backoff. 529 overloaded_error: the API is temporarily overloaded, which can happen under high traffic across all users. The rate-limit page explains the 429: limits use the token bucket algorithm, so capacity refills continuously; a rate of 60 requests per minute might be enforced as 1 request per second, so short bursts can trip it; and the 429 carries a retry-after header, the number of seconds to wait, before which retries will fail. So for 429, 500 and 529, wait at least that long, then longer each time with a little jitter, and give up after a few tries. Anthropic's SDK does this for you, twice by default. Two catches. A 429 for a used-up monthly spend cap has no retry-after and keeps failing. And limits are set at the organization level, not per key, so anyone holding your key spends your limit, as the stranger's ten calls did at 02:00. Season 6 covers retries, timeouts and fallbacks in production."
+        "text": "Anthropic's errors page lists the status codes and error types you will meet. 400 invalid_request_error: something is wrong with the format or content of your request, such as a temperature the model no longer accepts; retrying won't help. 401 authentication_error: a problem with your API key, for example malformed, revoked or expired; it's what a stranger gets once the key is revoked. 429 rate_limit_error: your organization has hit a rate limit. 500 api_error: something unexpected broke inside the provider, and the page says to retry with exponential backoff. 529 overloaded_error: the API is temporarily overloaded, which can happen under high traffic across all users. The rate-limit page explains the 429: limits use the token bucket algorithm, so capacity refills continuously; a rate of 60 requests per minute might be enforced as 1 request per second, so short bursts can trip it; and the 429 carries a retry-after header, the number of seconds to wait, before which retries will fail. So for 429, 500 and 529, wait at least that long when a retry-after is given, then longer each time with a little jitter, and give up after a few tries. Anthropic's SDK does this for you, twice by default. Two catches. A 429 for a used-up monthly spend cap has no retry-after and keeps failing. A spend limit you set yourself, below that cap, comes back as a 400 invalid_request_error instead, and retrying won't help either. And limits are set at the organization level, not per key, so anyone holding your key spends your limit, as the stranger's ten calls did at 02:00. Season 6 covers retries, timeouts and fallbacks in production."
       }
     ],
     "diagram": {
@@ -433,7 +434,7 @@
     "caption": "Read left to right along the top. The wardens' page sends only the question, with no API key in it. The base server builds the request: the key from outside its code, the standing orders as the system prompt, and this shift's turns for that tower as messages, if the limits allow the call. The provider's stateless model answers. The response's stop_reason is checked before anything goes on air, and its usage is counted against the spend alert.",
     "fix": {
       "title": "The fix: revoke the key, then put a small server between the page and the provider",
-      "text": "Revoke the leaked API key first, because every copy works until you do; a new key is a minute's work. Then stop sending the key to browsers at all. A small server at the base receives each question from the wardens' page, which needs its own sign-in, and builds the request itself: the new key from an environment variable for now, or a secrets manager as the net grows; the standing orders as the system prompt; and the turns of this tower's current shift as messages, cleared at the handover, so nobody is ever answered as last week's warden. Size max_tokens for the longest good answer, check stop_reason on every response, and say on air when an answer was cut. Put limits where a stranger can't reach them: calls per tower, a spend alert that fires within the hour, and a spend limit as a backstop. On a 429, 500 or 529, wait at least retry-after, then longer each time, and give up after a few tries with a clear message instead of a storm of retries. With the stranger gone, the sim's roll call goes through twelve of twelve, first time, and Marisol's question costs 65 tokens in and 33 out."
+      "text": "Revoke the leaked API key first, because every copy works until you do; a new key is a minute's work. Then stop sending the key to browsers at all. A small server at the base receives each question from the wardens' page, which needs its own sign-in, and builds the request itself: the new key from an environment variable for now, or a secrets manager as the net grows; the standing orders as the system prompt; and the turns of this tower's current shift as messages, cleared at the handover, so nobody is ever answered as last week's warden. Size max_tokens for the longest good answer, check stop_reason on every response, and say on air when an answer was cut. Put limits where a stranger can't reach them: calls per tower, a spend alert that fires within the hour, and a spend limit as a backstop. On a 429, 500 or 529, wait at least retry-after when the response carries one, then longer each time, and give up after a few tries with a clear message instead of a storm of retries. With the stranger gone, the sim's roll call goes through twelve of twelve, first time, and Marisol's question costs 65 tokens in and 33 out."
     },
     "limits": [
       "The server is now the thing to guard. Anyone who can reach it can spend through it, so it needs a sign-in for the wardens, its own limits and a log of calls. An environment variable keeps the API key out of the code, but OWASP warns that environment variables are generally accessible to all processes and may be included in logs or system dumps; a secrets manager, with every read logged, is the stronger home.",
@@ -483,7 +484,7 @@
     "realWorld": [
       {
         "title": "Anthropic: the Messages API keeps no conversation",
-        "text": "Anthropic's guide to the Messages API says: the Messages API is stateless, which means that you always send the full conversational history to the API. Earlier conversational turns don't necessarily need to actually originate from Claude; you can use synthetic assistant messages. Its sample response shows what comes back: an id, the role assistant, a content list holding a text block, the model, a stop_reason of end_turn, a stop_sequence of null, and usage with input_tokens and output_tokens. Its example request sends three headers: x-api-key, anthropic-version set to 2023-06-01, and content-type set to application/json.",
+        "text": "Anthropic's guide to the Messages API says: the Messages API is stateless, which means that you always send the full conversational history to the API. Earlier conversational turns don't necessarily need to actually originate from Claude; you can use synthetic assistant messages. Its sample response shows what comes back: an id, the role assistant, a content list holding a text block, the model, a stop_reason of end_turn, a stop_sequence of null (empty, because no stop sequence fired), and usage with input_tokens and output_tokens. Its example request sends three headers: x-api-key, anthropic-version set to 2023-06-01, and content-type set to application/json.",
         "source": 0
       },
       {
@@ -656,10 +657,6 @@
       "def": "In a response, the count of that call's input and output tokens, which is what you are billed for (case 3)."
     },
     {
-      "term": "Temperature field",
-      "def": "The request field for case 6's temperature. Optional. Anthropic's reference now marks it deprecated: models released after Claude Opus 4.6 accept only 1.0."
-    },
-    {
       "term": "Claude Opus 4.6",
       "def": "A Claude model. Anthropic's reference says models released after it do not support setting temperature."
     },
@@ -816,8 +813,8 @@
       "def": "This case's made-up count: one token per word, number or punctuation mark. Real tokenizers count differently (case 3)."
     },
     {
-      "term": "Teaching model name",
-      "def": "teaching-station-1, the sim's made-up model name. Real model names come from the provider's documentation."
+      "term": "teaching-station-1",
+      "def": "The sim's made-up model name. Real model names come from the provider's documentation."
     },
     {
       "term": "Teaching rate limit",
@@ -935,7 +932,9 @@
             "backend",
             "back end",
             "proxy",
-            "server",
+            "own server",
+            "our server",
+            "server-side",
             "environment variable",
             "env var",
             "secrets manager",
@@ -981,11 +980,11 @@
           "idea": "One HTTP request to the provider's endpoint, with the API key in a header",
           "match": [
             "http",
-            "post",
+            "a post",
+            "post request",
             "header",
             "api key",
-            "endpoint",
-            "request"
+            "endpoint"
           ]
         },
         {
@@ -1005,11 +1004,13 @@
           "match": [
             "stateless",
             "whole conversation",
-            "every time",
-            "each time",
-            "history",
+            "full conversation",
+            "full history",
+            "entire history",
             "resend",
-            "all previous"
+            "send it all",
+            "all previous",
+            "earlier turns"
           ]
         },
         {
@@ -1080,11 +1081,11 @@
           "stateless",
           "history",
           "earlier turns",
-          "previous",
-          "follow-up",
-          "follow up",
+          "previous turns",
+          "resend",
           "roles",
-          "summar"
+          "summar",
+          "whole conversation"
         ]
       },
       {
@@ -1093,14 +1094,14 @@
           "backoff",
           "back off",
           "retry-after",
-          "retry after",
           "exponential",
           "jitter",
           "longer each",
           "wait longer",
           "give up",
           "max retries",
-          "few tries"
+          "few tries",
+          "cap the retries"
         ]
       },
       {
@@ -1108,11 +1109,11 @@
         "match": [
           "alert",
           "spend limit",
+          "spending limit",
           "budget",
           "revok",
           "rotat",
-          "monitor",
-          "usage"
+          "monitor"
         ]
       }
     ],
