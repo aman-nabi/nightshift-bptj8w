@@ -1,0 +1,667 @@
+{
+ "_changelog": [
+  "v1.0.2 (2026-10-11) rule 15: the handle ending is doorstep (chemist was also taken)",
+  "v1.0.1 (2026-10-11) rule 15: a commenter handle now ends in chemist",
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e06",
+ "season": 4,
+ "n": 6,
+ "title": "At Least Once",
+ "setting": "a courier that always knocks twice",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "delivery-semantics",
+  "at-most-once",
+  "at-least-once",
+  "exactly-once"
+ ],
+ "prerequisites": [
+  "s4e04",
+  "s4e03",
+  "s2e13",
+  "s2e03",
+  "s1e09",
+  "s1e06",
+  "s1e04",
+  "s1e02"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_dispatch_lisbeth",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 3874,
+  "title": "I dispatch a pharmacy's night deliveries. At 01:46 a text told an old woman her courier was at the door. He had driven off three minutes before.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm the night dispatcher at Thorncastle Pharmacy in Ebbsworth. From 22:00 to 06:00 our couriers take prescriptions to people who can't wait for morning, 40 of them last night. When a courier reaches the door, they tap \"arrived\" in the couriers' app. Dariusz, our developer, built what happens next. The tap puts a message on a queue, Amazon SQS. A program we call the notifier receives it, sends the customer a text message (an SMS), \"Your courier is at your door\", and then deletes the message. If the notifier dies halfway, he told me, the message comes back when its 6-minute visibility timeout ends, and it tries again. \"Nobody misses their notice.\""
+   },
+   {
+    "t": "beat",
+    "text": "Nobody missed one last night."
+   },
+   {
+    "t": "p",
+    "text": "At 01:40 Osgar reached Mrs Gwendolen Wenlock's door on Dovecote Lane with her heart tablets. She is 88 and takes the stairs slowly. The text reached her phone at 01:40:01. She came down at 01:42, signed, took the bag, and Osgar drove on to his next stop."
+   },
+   {
+    "t": "log",
+    "text": "01:40:00  app       arrived: delivery 19, Dovecote Lane\n01:40:00  notifier  received message 11345ac7\n01:40:01  notifier  sms sent: delivery 19\n01:40:01  notifier  exited\n01:40:21  notifier  started\n01:46:00  notifier  received message 11345ac7\n01:46:01  notifier  sms sent: delivery 19\n01:46:01  notifier  deleted message 11345ac7"
+   },
+   {
+    "t": "p",
+    "text": "At 01:46 her phone lit up again. Your courier is at your door. She put her coat back on and went down the stairs a second time. The doorway was empty, and so was the street. She stood on the step in the cold for a while, listening for an engine. Then she rang us and asked, very politely, who had knocked."
+   },
+   {
+    "t": "evidence",
+    "label": "delivery_19_0140.png",
+    "diagram": {
+     "type": "timeline",
+     "aria": "Delivery 19 from 01:40:00 to 01:47:00. Osgar is at the door until 01:43, then gone. The notifier sends the first text at 01:40:01, exits, and is back at 01:40:21. The message is hidden from 01:40:00 to 01:46:00, then received again, and the second text goes at 01:46:01. Mrs Wenlock is at the door from 01:42 to 01:43 with Osgar, and again from 01:46:30, alone.",
+     "start": "01:40:00",
+     "seconds": 420,
+     "ticksEvery": 60,
+     "rows": [
+      {
+       "label": "Osgar",
+       "segments": [[0, 180, "ok"]],
+       "gaps": [[180, 420, "gone"]]
+      },
+      {
+       "label": "notifier",
+       "segments": [[0, 1, "ok"], [21, 420, "ok"]],
+       "gaps": [[1, 21, "restart"]]
+      },
+      {
+       "label": "message",
+       "segments": [[360, 361, "bad"]],
+       "gaps": [[0, 360, "hidden 6 min"], [361, 420, "deleted"]]
+      },
+      {
+       "label": "Mrs Wenlock",
+       "segments": [[120, 180, "ok"], [390, 420, "bad"]],
+       "gaps": [[0, 120, "stairs"], [180, 390, "upstairs"]]
+      }
+     ],
+     "markers": [
+      { "t": 1, "label": "1st text" },
+      { "t": 361, "label": "2nd text" }
+     ]
+    },
+    "caption": "Dariusz's logs for delivery 19, redrawn. The notifier sent the text at 01:40:01 and exited before it deleted the message. The same message, same id, came back at 01:46:00, and the same text went out again at 01:46:01, three minutes after Osgar had gone."
+   },
+   {
+    "t": "p",
+    "text": "Dariusz went through the whole night. The notifier crashed five times. Three notices went out twice: at 00:20, 01:40 and 03:12. Two more went only once, six minutes late. He has four changes on the board. Which one do we make before tonight?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 137,
+   "age": "5h",
+   "text": "Two words first. At most once means a message is handled no more than once, and sometimes never. At least once means it's always handled, and sometimes more than once. A queue gives you one or the other depending on where the consumer's delete sits. Now the evidence. In what order does the notifier send and delete? Take the five crashes one at a time: did each come before the text left, or after it? And the message the notifier received at 01:46: was it a new one, or the 01:40 message back again? Look at the id.",
+   "replies": [
+    {
+     "author": "u/night_dispatch_lisbeth",
+     "op": true,
+     "points": 46,
+     "age": "4h",
+     "text": "Dariusz says send, then delete. At 23:05 and 04:30 it died before the text went; at 00:20, 01:40 and 03:12, after the text and before the delete. The 01:46 message had the same message id as the 01:40 one, 11345ac7. Same message, back again."
+    }
+   ]
+  },
+  {
+   "author": "u/fifo_fixes_it_mordaunt",
+   "points": 92,
+   "age": "4h",
+   "text": "You're on a standard queue, and AWS says plainly that standard queues deliver at least once. Duplicates are part of the deal. FIFO is the queue type built for this. Its docs say FIFO queues give exactly-once processing: a message is delivered once and remains unavailable until a consumer processes and deletes it, and duplicates aren't introduced into the queue. It even does deduplication for you, which means spotting a copy and dropping it: send the same message twice within 5 minutes and the second is dropped. Put every tap in one message group, FIFO's name for a line kept in order, and they come out in the order they went in, too. The queue says exactly-once, so use that one."
+  },
+  {
+   "author": "u/ravelston_doorstep",
+   "points": 41,
+   "age": "3h",
+   "text": "I drove nights for a chemist for years. We never texted anyone. You ring the bell, and if nobody comes you phone them from the step. Nobody on my rounds ever came down to an empty door."
+  }
+ ],
+ "reply": {
+  "prompt": "Dariusz can make one change before 22:00 tonight. Which should it be? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Delete each message before sending its text, so a notice can never go out twice.",
+    "tone": "bad",
+    "verdict": "Never twice, sometimes never",
+    "part2": "Dariusz moved the delete in front of the send and ran Tuesday's 40 deliveries and five crashes through it before putting it live. Nothing went twice. The crashes at 00:20, 01:40 and 03:12 came after the text, with nothing left to come back, and did no harm. But at 23:05 and 04:30 the notifier deleted the message and then died before the text went: 38 texts for 40 deliveries, and 2 notices lost, with no queue holding them and no record that they were ever due. It went live on Wednesday. That night one crash fell between a delete and a send, and a courier stood at a door on a dark street that nobody inside knew to open. He knocked, waited, and drove the bag back to the pharmacy.",
+    "senior": "Deleting first trades at least once for at most once: no copies, but every crash between the delete and the send loses its notice silently. For a pharmacy courier a lost notice is worse than a doubled one. Keep the delete after the work, and make the work notice when it has already been done."
+   },
+   {
+    "text": "Keep at-least-once; record each message id when its text goes, and skip ids seen.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Dariusz added a table of message ids already handled. It lives outside the notifier, so a crash can't wipe it, and each id is kept 4 days, the queue's retention period, longer than any message can come back. The notifier now checks the id, sends the text, records the id in the same moment, and deletes the message. Run against Tuesday's night: 40 texts for 40 deliveries. At 00:26, 01:46 and 03:18 the three messages came back with their old ids; each was already recorded, so the notifier skipped the text and deleted the message. The two crashes before the text still sent their notices 6 minutes late, at 23:11 and 04:36. It went live on Wednesday. On Thursday night Mrs Wenlock had another delivery, at about the same hour. One text. She rang us anyway, to say thank you, and to ask whether it would come again. It didn't.",
+    "senior": "Exactly once isn't something the queue can give you. It's at least once from the queue, plus a consumer that remembers what it has already done: check the message id, skip the work if it's recorded, and still delete the message. Keep the record somewhere a crash can't wipe, for longer than any redelivery. A small gap remains between the send and the record, and the limits below say how small."
+   },
+   {
+    "text": "Move the queue to FIFO, which promises exactly-once processing for every message.",
+    "tone": "bad",
+    "verdict": "Exactly once, inside the queue",
+    "part2": "Dariusz moved the arrivals to a FIFO queue, with every tap in one message group to keep them in order, and ran Tuesday's night through it: 43 texts, and the same three notices twice, at 00:26, 01:46 and 03:18. Those crashes came after the text. FIFO stops copies being sent into the queue; a message that isn't deleted still becomes visible again when its timeout ends, and the notifier sends it again. And while a crashed message was hidden, nothing behind it in its group could be received. The taps at 23:09, 00:23 and 01:43 waited until 23:11, 00:26 and 01:46: five notices late instead of two. At 01:46 Mrs Wenlock would have had her second text, and the customer tapped at 01:43 their first.",
+    "senior": "A FIFO queue's exactly-once processing is about the queue: a send retried within the 5-minute deduplication interval doesn't put a second copy in, and a received message stays out of sight until it's deleted or its visibility timeout ends. It knows nothing about a text the consumer sent before it crashed. One message group also makes every later message wait behind a hidden one. The repeat has to be caught where the side effect happens, in the consumer."
+   },
+   {
+    "text": "Have each courier phone the customer from the door, and stop sending texts at all.",
+    "tone": "warn",
+    "verdict": "Trade-off: no texts, a call at every door",
+    "part2": "Dariusz switched the texts off, and the couriers phone each customer from the step. Tuesday's night as calls: 40 calls, no texts, nothing twice. The notifier's crashes don't matter, because nothing goes through it. But every one of those calls is a courier standing on a step in the small hours, waiting for someone to wake, find a phone and answer, and then the next delivery starts late. A customer whose phone is on silent hears nothing at all. The day manager asked how long that can last when the rounds get busier.",
+    "senior": "Phoning removes the duplicate by removing the machine, and moves the cost to people: a courier's time at every door, every night. It's a fine fallback when the notice system is down. As the everyday answer it gives up what the queue was for, and the duplicate it avoids has a cheap fix in the consumer."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e06",
+  "title": "Run the Thorncastle night again",
+  "lede": "You're Lisbeth, replaying Tuesday night from 22:00 to 06:00. 40 deliveries; each tap puts one message on the arrivals queue, an SQS standard queue with a 6-minute visibility timeout. One notifier receives each message, sends the text a second later and deletes the message in that same second. The notifier crashes five times, each on a message's first receive: at 23:05 and 04:30 before the text goes out, and at 00:20, 01:40 and 03:12 after the text and before the delete. It is back 20 seconds later. The modes: at most once deletes first, then sends. At least once sends, then deletes. With dedup, the notifier checks a table of message ids already handled before it sends, and records the id in the same second as the text; the table lives outside the notifier, so a crash doesn't wipe it. FIFO puts every tap in one message group, with or without dedup. Or the couriers phone and no texts go. A notice is late when its first text goes more than a minute after the tap. Message ids are shortened to 8 characters. The clock runs 600 times faster than real life. Click any box to see what it does.",
+  "tryThis": "Try this: press Skip to 06:00 as it is: 43 texts, 3 notices twice, Mrs Wenlock's at 01:40:01 and 01:46:01. Switch to at most once: nothing twice, 2 notices lost. Now the dedup mode: 3 redeliveries skipped and nothing twice. Keep the ids for 5 minutes and watch the 01:46 redelivery outlive the record, then try a 2-minute timeout with them. Turn on the crash between the send and the record. Last, try FIFO, and count the notices held behind a hidden one."
+ },
+ "explain": {
+  "oneLine": "Nothing knocked twice. The notifier sent the text, then crashed before it deleted the message, so when the 6-minute visibility timeout ended the queue handed the same message, with the same message id, to the notifier again, and nothing told it the text had already gone.",
+  "steps": [
+   {
+    "title": "Where the delete sits decides what a crash costs.",
+    "text": "A consumer does two things with each message: the work, here a text, and the delete that tells the queue it's done. A crash can land between them. Delete first, then send, and a crash in between loses the notice: at most once. Send first, then delete, and a crash in between leaves the message to come back after the visibility timeout, so the text goes again: at least once. Tuesday's three crashes after the text, at 00:20, 01:40 and 03:12, became three doubles. The two before the text, at 23:05 and 04:30, became two notices six minutes late. Nothing at Thorncastle was lost, which is what at least once promises."
+   },
+   {
+    "title": "\"Exactly once\" is at least once plus a memory.",
+    "text": "No queue can know whether a text left the building before a crash. What you can build is a consumer that skips what it has already done. A redelivered SQS message carries the same message id, so record each id when its work is done, and check before doing it again. If the id is there, skip the text and delete the message anyway, or it will keep coming back. The record has to live outside the consumer, in a database table, because the thing that crashes is the consumer and anything in its memory goes with it."
+   },
+   {
+    "title": "Keep the ids longer than any redelivery.",
+    "text": "A record that expires before the copy arrives catches nothing. Keep ids for 5 minutes with a 6-minute visibility timeout and the 01:46 redelivery finds no record: all three doubles come back. A message can come back as long as the queue keeps it, so the safe length is the queue's retention period, 4 days by default in SQS, not the visibility timeout. Ids are small; keeping them for days is cheap."
+   },
+   {
+    "title": "What a queue's own exactly-once covers.",
+    "text": "SQS FIFO queues promise exactly-once processing, and what it covers is real: a send retried within the 5-minute deduplication interval doesn't add a second copy, and a received message stays hidden until it's deleted or its timeout ends. It doesn't cover a side effect the consumer caused before it crashed; the message comes back and the text goes again. With every tap in one message group it also holds every later notice behind the hidden one: three more late at Thorncastle. Kafka's exactly-once is the same shape: it covers reads and writes inside Kafka, and not the calls a program makes to the outside world."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 360,
+   "aria": "The fix, drawn for tonight. The couriers' app puts a message on the arrivals queue, an SQS standard queue with a 6-minute visibility timeout. The notifier receives it, checks the table of message ids already handled, sends the text through the SMS provider to the customer, records the id and deletes the message. The table keeps each id 4 days. At 01:46 the redelivered message's id is found, and the text is skipped.",
+   "nodes": [
+    { "id": "app", "label": "Couriers' app", "sub": "taps arrived", "x": 90, "y": 80, "w": 150, "h": 64, "shape": "box", "tone": "" },
+    { "id": "queue", "label": "Arrivals queue", "sub": "SQS standard", "meta": "visibility 6 min", "x": 330, "y": 80, "w": 180, "h": 72, "shape": "box", "tone": "" },
+    { "id": "notifier", "label": "Notifier", "sub": "check, send, record", "meta": "then delete", "x": 610, "y": 80, "w": 200, "h": 72, "shape": "box", "tone": "ok" },
+    { "id": "door", "label": "Customer", "sub": "one text each", "x": 90, "y": 260, "w": 150, "h": 64, "shape": "box", "tone": "ok" },
+    { "id": "sms", "label": "SMS provider", "sub": "40 texts", "x": 330, "y": 260, "w": 180, "h": 64, "shape": "cloud", "tone": "" },
+    { "id": "ids", "label": "Message ids handled", "sub": "kept 4 days", "meta": "a table, not memory", "x": 610, "y": 260, "w": 200, "h": 72, "shape": "db", "tone": "ok" }
+   ],
+   "edges": [
+    { "from": "app", "to": "queue", "label": "message" },
+    { "from": "queue", "to": "notifier", "label": "receive" },
+    { "from": "notifier", "to": "sms", "label": "send" },
+    { "from": "sms", "to": "door", "label": "text" },
+    { "from": "notifier", "to": "ids", "label": "check, record" }
+   ],
+   "notes": [
+    { "x": 470, "y": 335, "text": "01:46: id found, text skipped", "tone": "ok", "anchor": "middle" }
+   ]
+  },
+  "caption": "The fix, drawn for tonight. The queue still delivers at least once. The notifier checks each message id against a table that outlives any crash, sends the text, records the id and deletes the message. At 01:46 the redelivered message's id was already there, so no second text went.",
+  "fix": {
+   "title": "The fix: at least once from the queue, and a consumer that remembers",
+   "text": "Keep the queue as it is and keep deleting after the work. Add a table of message ids already handled, in a database rather than the notifier's memory. For each message the notifier receives: look its id up; if it's there, skip the text and delete the message; if not, send the text, write the id straight after, then delete the message. Keep each id at least as long as the queue's retention period, 4 days by default, so no redelivery can outlive its record. Leave the 6-minute visibility timeout alone, or shorten it a little to make the crashes before the text less late, but keep it well above the second the work takes."
+  },
+  "limits": [
+   "Recording the id after the send still leaves a window. A crash between the send and the record repeats that notice, and recording the id first, then crashing before the send, loses it instead. Dedup shrinks duplicates from every crash after the text to a crash in the milliseconds between those two writes; in the sim, one crash at 05:05 in that gap still sends 1 notice twice. The SMS provider's own request key, where one is offered, closes the rest; The Ticket Number, next, is about that.",
+   "Dedup by message id catches only the queue handing the same message back. A courier who taps arrived twice puts two messages on the queue, with two different ids, and both texts go.",
+   "It does nothing for crashes before the text. Those notices still go a visibility timeout late, at 23:11 and 04:36 on Tuesday. A shorter timeout makes them less late, as long as it stays longer than the work."
+  ],
+  "tradeoff": {
+   "head": [
+    "Change",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Send, then delete (as now)",
+     "Nothing lost.",
+     "43 texts for 40 deliveries: 3 notices twice, 2 six minutes late."
+    ],
+    [
+     "Delete, then send",
+     "Nothing twice.",
+     "38 texts: 2 notices lost, with no record that they were due."
+    ],
+    [
+     "Dedup by message id, kept 4 days",
+     "40 texts, nothing twice, 3 redeliveries skipped.",
+     "A table to run; 2 still late; a crash between send and record repeats one."
+    ],
+    [
+     "Dedup, ids kept 5 minutes",
+     "Cheaper to store.",
+     "The 6-minute redeliveries outlive the records: 3 twice again."
+    ],
+    [
+     "FIFO queue, one message group",
+     "No copies from a retried send within 5 minutes.",
+     "Still 3 twice; 3 more held behind a hidden message, 5 late."
+    ],
+    [
+     "Couriers phone instead",
+     "No texts, nothing twice: 40 calls.",
+     "A courier's time on every step, every night; silent phones hear nothing."
+    ]
+   ]
+  },
+  "seniorTake": "Choose what a crash should cost before it happens. Losing a pharmacy notice is worse than sending it twice, so take at least once from the queue and make the consumer safe to repeat: record what it has done, by message id, somewhere a crash can't touch, for longer than any redelivery, and check before acting. Read a vendor's exactly-once as a promise about its own boundary, and ask what happens to the side effect you caused before you crashed. The answer is almost always: your code handles it.",
+  "realWorld": [
+   {
+    "title": "SQS: design for the same message twice",
+    "text": "The SQS docs say a standard queue stores copies of each message on several servers, and on rare occasions a server holding a copy is unavailable when you receive or delete it, so you might get that copy again. Their advice: design your applications to be idempotent, so they are not affected adversely when processing the same message more than once.",
+    "source": 0
+   },
+   {
+    "title": "Crashes bring messages back, in both queue types",
+    "text": "The visibility timeout page says that if you don't process and delete a message before the timeout expires, due to application errors, crashes, or connectivity problems, the message becomes visible again in the queue. It describes the timeout in both standard and FIFO queues, and adds that because of the at-least-once delivery model, SQS doesn't guarantee a message won't be delivered more than once within the timeout.",
+    "source": 1
+   },
+   {
+    "title": "What FIFO's exactly-once promises",
+    "text": "The FIFO queues page names exactly-once processing as a key feature: a message is delivered once and remains unavailable until a consumer processes and deletes it, and duplicates aren't introduced into the queue.",
+    "source": 2
+   },
+   {
+    "title": "The 5-minute deduplication interval",
+    "text": "SQS's exactly-once processing page says that if you retry the SendMessage action within the 5-minute deduplication interval, SQS doesn't introduce any duplicates into the queue.",
+    "source": 3
+   },
+   {
+    "title": "After 5 minutes, a copy gets in",
+    "text": "The SendMessage reference says that if a message is sent successfully but the acknowledgement is lost and it is resent with the same MessageDeduplicationId after the deduplication interval, SQS can't detect duplicate messages.",
+    "source": 4
+   },
+   {
+    "title": "Deduplication is about sends",
+    "text": "The deduplication ID page calls MessageDeduplicationId a token used only in FIFO queues to prevent duplicate message delivery: within a 5-minute window only one message with the same ID is processed and delivered, and later sends with that ID are acknowledged but not delivered.",
+    "source": 5
+   },
+   {
+    "title": "One message group, one line",
+    "text": "SQS's page on FIFO delivery logic says that when a message is retrieved but not deleted, no additional messages from the same message group ID are returned until the first is deleted or becomes visible again. That is the wait the sim's FIFO mode shows at 23:09, 00:23 and 01:43.",
+    "source": 6
+   },
+   {
+    "title": "Kafka, 2017: exactly once inside Kafka",
+    "text": "Neha Narkhede and Guozhang Wang's post on Kafka's exactly-once semantics defines it as the ability to execute a read-process-write operation exactly one time, and notes that it is guaranteed within the scope of Kafka Streams' internal processing only: if the app makes an RPC call to update some remote stores, the resulting side effects would not be guaranteed exactly once.",
+    "source": 7
+   },
+   {
+    "title": "How long a message can come back",
+    "text": "SQS's message quotas say a message is retained for 4 days by default, and for up to 14 days if you set it. A dedup record kept at least that long outlives any redelivery.",
+    "source": 8
+   }
+  ],
+  "interview": {
+   "asked": [
+    "At least once or exactly once?",
+    "How do you stop duplicate notifications?",
+    "Is exactly-once delivery possible?"
+   ],
+   "answer": "Between two systems that can crash, a message is delivered at most once or at least once, depending on whether the consumer acknowledges before or after the work. For anything you can't afford to lose, like a notification or a payment, take at least once, and then make the processing exactly once yourself: give each message a stable id, record the id durably when the work is done, check it before doing the work, and still acknowledge a repeat so it stops coming back. Keep records at least as long as the broker can redeliver, which in SQS is the retention period. For duplicate notifications that's the whole answer: dedup at the consumer by message id. Then state the limits. There's a small window between doing the work and writing the record; a crash there repeats it, and recording first loses it instead, unless the downstream service can spot a repeat itself. And a broker's exactly-once, like an SQS FIFO queue's deduplication or Kafka's exactly-once, covers what happens inside the broker, not the side effect your consumer already caused. So exactly-once delivery across a crash isn't something a queue can promise; exactly-once processing is something you build."
+  }
+ },
+ "terms": [
+  {
+   "term": "Night dispatcher",
+   "def": "The person who runs a delivery service through the night: watches the couriers' rounds and takes customers' calls. At Thorncastle, Lisbeth."
+  },
+  {
+   "term": "Courier",
+   "def": "A driver who takes deliveries to customers' doors. Thorncastle's carry prescriptions at night; Osgar is one."
+  },
+  {
+   "term": "Couriers' app",
+   "def": "The phone app Thorncastle's couriers use on their rounds. Tapping arrived puts one message on the arrivals queue."
+  },
+  {
+   "term": "Arrived (tap)",
+   "def": "What a courier taps in the app on reaching a customer's door. Each tap becomes one message on the queue, with its own message id."
+  },
+  {
+   "term": "Arrivals queue",
+   "def": "Thorncastle's Amazon SQS standard queue of arrived taps, with a 6-minute visibility timeout. The notifier reads it."
+  },
+  {
+   "term": "Notifier",
+   "def": "Dariusz's program that receives each arrival message, sends the customer a text and deletes the message. One copy runs at night."
+  },
+  {
+   "term": "SMS (text message)",
+   "def": "Short Message Service: a short text sent to a mobile phone. Thorncastle's says \"Your courier is at your door\"."
+  },
+  {
+   "term": "SMS provider",
+   "def": "A service that delivers text messages to phones for you. Once it has a text, the sender can't take it back."
+  },
+  {
+   "term": "Delivery semantics",
+   "def": "What a messaging system promises about how many times each message is handled: at most once, at least once, or exactly once."
+  },
+  {
+   "term": "At most once",
+   "def": "Each message is handled no more than once, and sometimes never. You get it by deleting or acknowledging before the work, so a crash loses the message."
+  },
+  {
+   "term": "At least once",
+   "def": "Each message is handled, sometimes more than once. You get it by deleting or acknowledging after the work, so a crash makes the work run again."
+  },
+  {
+   "term": "Exactly once",
+   "def": "Each message's work takes effect once. Across crashes you build it: at least once from the queue, plus a consumer that skips what it has already done."
+  },
+  {
+   "term": "Exactly-once processing (SQS FIFO)",
+   "def": "SQS's name for a FIFO queue feature: a received message stays hidden until it is deleted or its visibility timeout ends, and sends retried within 5 minutes add no copies."
+  },
+  {
+   "term": "Request key (SMS provider)",
+   "def": "A unique value some SMS providers let you send with each request, so they can spot a repeat and send the text only once."
+  },
+  {
+   "term": "SendMessage",
+   "def": "The SQS action a producer calls to put a message on a queue."
+  },
+  {
+   "term": "RPC call",
+   "def": "Remote procedure call: one program asking another, over the network, to run something and answer."
+  },
+  {
+   "term": "Deduplication (dedup)",
+   "def": "Spotting a copy of something already handled and dropping it. Where it happens matters: in the queue, at a send, or in the consumer."
+  },
+  {
+   "term": "Dedup by message id",
+   "def": "A consumer recording each message id when its work is done and skipping any message whose id is already recorded."
+  },
+  {
+   "term": "Redelivery (after a timeout)",
+   "def": "The queue handing out a message again because it was received and not deleted before its visibility timeout ended. It keeps the same message id."
+  },
+  {
+   "term": "Message ids table",
+   "def": "The fix's database table of message ids the notifier has handled, each kept 4 days. It lives outside the notifier, so a crash doesn't wipe it."
+  },
+  {
+   "term": "MessageDeduplicationId",
+   "def": "A token a producer sends with a message to an SQS FIFO queue. Another send with the same token within 5 minutes is accepted but not delivered."
+  },
+  {
+   "term": "Deduplication interval",
+   "def": "The 5 minutes in which an SQS FIFO queue drops a send that repeats an earlier MessageDeduplicationId. After it, a repeat goes in as a new message."
+  },
+  {
+   "term": "Message group (FIFO)",
+   "def": "A label on messages in an SQS FIFO queue. Messages with the same group come out in order, and none is handed out while an earlier one is hidden."
+  },
+  {
+   "term": "Crash point",
+   "def": "Where in its work a program dies. Before the text and after it give different results, which is why the sim states each one."
+  },
+  {
+   "term": "Late notice",
+   "def": "In the sim, a notice whose first text goes out more than a minute after the courier's tap."
+  },
+  {
+   "term": "Kafka Streams",
+   "def": "A library for programs that read records from Kafka, process them and write results back to Kafka."
+  },
+  {
+   "term": "Read-process-write",
+   "def": "Reading records, working on them and writing the results. Kafka's exactly-once covers this when every read and write is inside Kafka."
+  },
+  {
+   "term": "Remote store",
+   "def": "A database or service outside Kafka that a program calls. Kafka's exactly-once doesn't cover changes made there."
+  },
+  {
+   "term": "Retention period (SQS)",
+   "def": "How long SQS keeps a message that hasn't been deleted: 4 days by default, up to 14. It is also the longest a message can keep coming back."
+  },
+  {
+   "term": "Build Night L5 and N3",
+   "def": "Two Build Nights. L5: a queue with a backlog, visibility timeout and dead-letter queue. N3: a scheduler, a queue, workers and alerts with no duplicates."
+  }
+ ],
+ "atWork": "Think of a worker you can read that sends something people see, like a billing reminder or a password-reset email. A common incident is a reminder sent twice to every customer in a batch after the workers were restarted mid-run: each worker sent, died before it acknowledged, and the queue handed the messages out again. Read-only access is enough. In the worker's code, find the send and the delete or acknowledgement: which comes first? Is there any check for a message already handled, and what is it keyed on: the message id, or something the producer made? Where does that record live: in the worker's memory, which a restart wipes, or in a table? How long is it kept, against the queue's retention period? If the team runs a FIFO queue, ask what its exactly-once is believed to cover. Build Night L5 builds the at-least-once queue that can process twice, and N3 the alerts that must fan out with no duplicates; this case is the check both need. In LATENT, Hands It Can Use (a2e05) and When It Goes in Circles (a4e08) ask the same of an agent's tool calls when they are retried. If your company is pursuing SOC 2 with processing integrity in scope, criterion PI1.3 covers system processing, and a written rule for duplicate messages, with the dedup table's retention and a test that redelivers a message, is evidence that processing is complete without being repeated.",
+ "board": {
+  "cards": [
+   { "id": "delivery-semantics", "title": "Delivery semantics" },
+   { "id": "at-most-once", "title": "At-most-once" },
+   { "id": "at-least-once", "title": "At-least-once" },
+   { "id": "exactly-once", "title": "\"exactly-once\"" }
+  ],
+  "strings": [
+   { "from": "delivery-semantics", "to": "message-queues", "label": "queue's promise" },
+   { "from": "delivery-semantics", "to": "at-most-once", "label": "delete first" },
+   { "from": "delivery-semantics", "to": "at-least-once", "label": "delete last" },
+   { "from": "at-least-once", "to": "visibility-timeouts", "label": "why it repeats" },
+   { "from": "at-least-once", "to": "exactly-once", "label": "plus a memory" },
+   { "from": "at-most-once", "to": "acknowledgements", "label": "ack before work" },
+   { "from": "exactly-once", "to": "log-based-streams", "label": "Kafka's own kind" },
+   { "from": "exactly-once", "to": "idempotency-keys", "label": "next case" }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e06-r1",
+   "kind": "free",
+   "prompt": "Your shop's order-confirmation emails are sent by workers reading an SQS standard queue: receive, send the email, delete. After a deploy restarted the workers in the middle of a busy hour, about forty customers got two identical confirmation emails a few minutes apart. Why did it happen, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "Workers died after sending and before deleting, so the messages became visible again after the visibility timeout and were sent a second time: at-least-once delivery",
+     "match": [
+      "visibility timeout",
+      "visible again",
+      "before deleting",
+      "before the delete",
+      "never deleted",
+      "not deleted",
+      "came back",
+      "redeliver",
+      "at least once",
+      "at-least-once"
+     ]
+    },
+    {
+     "idea": "Record each message id when its email is sent and skip any message whose id is already recorded",
+     "match": [
+      "message id",
+      "already sent",
+      "already recorded",
+      "already handled",
+      "record each",
+      "record the id",
+      "check the id",
+      "seen before",
+      "skip it"
+     ]
+    },
+    {
+     "idea": "Keep the record durably, outside the worker, for longer than any redelivery (the queue's retention period)",
+     "match": [
+      "retention",
+      "longer than",
+      "outside the worker",
+      "survives a",
+      "durabl",
+      "in a table",
+      "database table"
+     ]
+    }
+   ],
+   "model": "The workers sent the emails and were restarted before they deleted the messages. SQS had only hidden those messages, so when the visibility timeout ended they became visible again with the same message ids, and the next workers sent the same emails. That's at-least-once delivery doing what it promises. Keep deleting after the send, and make the worker remember: record each message id in a database table as soon as its email is sent, check that table before sending, and if the id is already recorded, skip the email and still delete the message. Keep the records outside the worker, so a restart can't wipe them, and for longer than any redelivery, at least the queue's retention period. A crash in the moment between the send and the record can still repeat one email."
+  },
+  {
+   "id": "s4e06-r2",
+   "kind": "mcq",
+   "prompt": "Which of these does an SQS FIFO queue's exactly-once processing prevent?",
+   "options": [
+    "A producer's SendMessage retried with the same MessageDeduplicationId within 5 minutes adding a second copy.",
+    "A consumer sending an SMS and crashing before it deletes the message, then sending it again.",
+    "A producer resending with the same MessageDeduplicationId 10 minutes later adding a second copy.",
+    "A courier tapping arrived twice, making two messages with two different ids."
+   ],
+   "answer": 0,
+   "why": "FIFO deduplication works on sends: a retry with the same MessageDeduplicationId within the 5-minute deduplication interval is accepted but not delivered. After the interval SQS can't detect the duplicate. A consumer that crashes after its side effect and before the delete gets the message back when the visibility timeout ends, FIFO or not, and two taps are two different messages."
+  },
+  {
+   "id": "s4e06-r3",
+   "kind": "free",
+   "prompt": "A teammate added dedup to a notification worker: it keeps the ids of messages it has handled in a set in its own memory, for 5 minutes. The queue's visibility timeout is 6 minutes. After every crash, customers still get the same notification twice. Why doesn't the dedup work, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The set lives in the worker's memory, so a crash wipes it along with the worker",
+     "match": [
+      "wipes",
+      "wiped",
+      "dies with",
+      "lost on",
+      "lost when",
+      "goes with it",
+      "memory is lost",
+      "restart clears"
+     ]
+    },
+    {
+     "idea": "The record expires before the redelivery arrives: 5 minutes is shorter than the 6-minute timeout",
+     "match": [
+      "shorter than",
+      "expires before",
+      "expired before",
+      "gone before",
+      "outlive",
+      "after the record"
+     ]
+    },
+    {
+     "idea": "Keep ids in a durable shared table for at least the queue's retention period",
+     "match": [
+      "retention",
+      "database",
+      "durabl",
+      "a table",
+      "shared store",
+      "for days"
+     ]
+    }
+   ],
+   "model": "Two reasons, and either alone would do it. The set lives in the worker's memory, and the worker is the thing that crashes, so the record of what it sent dies with it; the restarted worker starts with an empty set. And even without a crash wiping it, each id is kept for 5 minutes while the message comes back after 6, so the record has expired before the redelivery arrives. Move the ids into a database table that outlives the worker, and keep each one at least as long as the queue's retention period, so no redelivery can outlive its record. Check the table before sending, record straight after, and delete a message whose id is already there."
+  },
+  {
+   "id": "s4e06-r4",
+   "kind": "mcq",
+   "prompt": "A consumer receives a message, deletes it, then sends a text. It crashes between the delete and the send. What happened to that notice?",
+   "options": [
+    "The queue hands it out again later, and the text goes then.",
+    "It is lost: the message was deleted, so nothing brings it back. This order gives at most once.",
+    "It is sent twice, because the delete and the send both count as handling it.",
+    "SQS moves it to the dead-letter queue."
+   ],
+   "answer": 1,
+   "why": "Deleting first tells the queue the work is done before it is. A crash after the delete leaves nothing to come back, so the notice is lost: at most once. In the sim's at-most-once mode the crashes at 23:05 and 04:30 lose 2 notices, and nothing goes twice."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 3 months later. The ids table has held: no customer has had a notice twice since. But the day team, sure the doubles would come back, moved the arrivals queue to FIFO \"for safety\", with every tap in one message group to keep them in order, and kept the ids table too. Dariusz ran Tuesday's old night through it: nothing twice, but the taps at 23:09, 00:23 and 01:43 now wait behind a crashed notice until 23:11, 00:26 and 01:46, and 5 notices are late instead of 2. On a busy night last week, a courier stood on a step for minutes waiting for a text that sat behind someone else's.",
+  "prompt": "Reply to OP. Why are notices now late behind a crash, and what should the day team change?",
+  "keyIdeas": [
+   {
+    "idea": "One message group means nothing behind a hidden, undeleted message can be received until it is deleted or its timeout ends",
+    "match": [
+     "holds up",
+     "one group",
+     "same group",
+     "single group",
+     "held behind",
+     "blocked behind",
+     "stuck behind",
+     "waits behind"
+    ]
+   },
+   {
+    "idea": "Arrivals don't need one global order; go back to a standard queue, or give each delivery or customer its own group",
+    "match": [
+     "per customer",
+     "per delivery",
+     "own group",
+     "group per",
+     "different groups",
+     "standard queue",
+     "go back",
+     "move back",
+     "don't need order"
+    ]
+   },
+   {
+    "idea": "The FIFO queue never stopped the doubles; the ids table did, and it still has to stay",
+    "match": [
+     "stopped the doubles",
+     "the table",
+     "message id",
+     "keep the dedup",
+     "dedup is what",
+     "didn't stop",
+     "never stopped",
+     "doesn't stop"
+    ]
+   }
+  ],
+  "model": "FIFO kept the order it was asked to keep. With every tap in one message group, a message the notifier received and didn't delete, because it crashed, holds up everything behind it in that group until it's deleted or its timeout ends, so the taps at 23:09, 00:23 and 01:43 wait up to 6 minutes for a notice that has nothing to do with them. Arrivals at different doors don't need one order. Go back to the standard queue, or if the team wants FIFO, give each delivery its own message group so one crash holds up only its own messages. And say clearly what stopped the doubles: the ids table, checked before each text and kept for the retention period. FIFO's exactly-once covers sends into the queue, not a text sent before a crash, so the table stays either way."
+ },
+ "next": "Next, The Ticket Number: a cinema box office, and idempotency keys that make a retried request safe to send again.",
+ "sources": [
+  {
+   "title": "Amazon SQS Developer Guide: Amazon SQS at-least-once delivery (copies on multiple servers; a copy on an unavailable server isn't deleted and you might get it again; design your applications to be idempotent)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Amazon SQS visibility timeout (not deleted before the timeout, due to application errors, crashes, or connectivity problems, the message becomes visible again; standard and FIFO queues; no absolute guarantee against more than one delivery within the timeout)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Amazon SQS FIFO queues (exactly-once processing: a message is delivered once and remains unavailable until a consumer processes and deletes it; duplicates aren't introduced into the queue)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-fifo-queues.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Exactly-once processing in Amazon SQS (a SendMessage retried within the 5-minute deduplication interval introduces no duplicates; content-based deduplication or an explicit deduplication ID)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-exactly-once-processing.html"
+  },
+  {
+   "title": "Amazon SQS API Reference: SendMessage (MessageDeduplicationId; same ID accepted but not delivered during the 5-minute deduplication interval; resent after the interval, SQS can't detect duplicate messages)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Using the message deduplication ID in Amazon SQS (a token used only in FIFO queues; one message per deduplication ID within a 5-minute window; later sends acknowledged but not delivered)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Amazon SQS FIFO queue delivery logic (a message retrieved but not deleted stays invisible until the timeout; no additional messages from the same message group ID until it is deleted or visible again)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-understanding-logic.html"
+  },
+  {
+   "title": "Neha Narkhede, Guozhang Wang and Confluent Staff, Exactly-Once Semantics Are Possible: Here's How Kafka Does It, Confluent blog, 30 June 2017, updated March 2025 (read-process-write exactly one time; guaranteed within the scope of Kafka Streams' internal processing only; side effects of calls to remote stores not guaranteed exactly once)",
+   "url": "https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Amazon SQS message quotas (message retention 4 days by default, up to 14 days)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html"
+  }
+ ]
+}

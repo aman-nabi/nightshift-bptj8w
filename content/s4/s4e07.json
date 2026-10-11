@@ -1,0 +1,803 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-11) first version"
+  ],
+  "id": "s4e07",
+  "season": 4,
+  "n": 7,
+  "title": "The Ticket Number",
+  "setting": "a cinema box office",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "idempotency-keys"
+  ],
+  "prerequisites": [
+    "s4e06",
+    "s3e02",
+    "s4e03",
+    "s2e14",
+    "s2e13",
+    "s1e09",
+    "s1e06",
+    "s1e04",
+    "s1e03",
+    "s1e02"
+  ],
+  "rule": {
+    "n": 3
+  },
+  "post": {
+    "author": "u/orrery_esperanza",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 3842,
+    "title": "I run nights at a one-screen cinema. At our sold-out midnight show, 12 customers paid twice for seats we sold once. One of them paid twice in the same second.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm the night manager at the Orrery Picture House in Kilbarrow: one screen, two tills, and on Fridays one film, shown once, at midnight. Last Friday it sold out. From 23:00 to 23:58 the box office sold the last seats: 36 card sales, at £9.50 a seat."
+      },
+      {
+        "t": "p",
+        "text": "In the spring Rudyard, who looks after our computers, replaced the old till with a new box office system. Each till has a card terminal that sends the payment to Carrowpay, our payment service, and waits 10 seconds for an answer. If none comes, it sends the payment again, up to twice. \"A dropped answer shouldn't cost us a sale,\" he said."
+      },
+      {
+        "t": "beat",
+        "text": "Nothing cost us a sale on Friday."
+      },
+      {
+        "t": "p",
+        "text": "Until 23:40 Carrowpay answered in about 2 seconds. Then it slowed. Its status page said later that a check it makes once per card was slow that night: a card's first payment took between 9.4 and 12.8 seconds, and a repeat from the same card took 2. At 23:52:10 Mrs Bellwether bought seat F7, one seat, sale 0033. This is Carrowpay's log of it:"
+      },
+      {
+        "t": "log",
+        "text": "23:52:10.0  till-2     sale 0033  £9.50  card ..6402  try 1 sent\n23:52:20.0  till-2     sale 0033  no answer in 10 s, try 2 sent\n23:52:22.0  carrowpay  charge £9.50  card ..6402  approved (try 2)\n23:52:22.0  till-2     sale 0033  APPROVED\n23:52:22.1  carrowpay  charge £9.50  card ..6402  approved (try 1)"
+      },
+      {
+        "t": "p",
+        "text": "The terminal said APPROVED, the ticket printed, and she went in. Our seat plan says F7 was sold once. Her bank says she paid for it twice, both times in the same second. On Saturday Rudyard ran the night's report. Of the 14 sales after 23:40, 12 were charged twice: 24 seats, £228.00. Every first charge had gone through. Only 0023 and 0026, at 9.4 and 9.8 seconds, came back inside the 10."
+      },
+      {
+        "t": "evidence",
+        "label": "sale_0033_carrowpay.png",
+        "diagram": {
+          "type": "sequence",
+          "aria": "Sale 0033 for seat F7, redrawn from Carrowpay's log. At 23:52:10.0 till 2's terminal sends try 1 for 9.50 pounds. Carrowpay is still working on it 10 seconds later, so at 23:52:20.0 the terminal sends try 2. Carrowpay charges the card for try 2 at 23:52:22.0 and the terminal shows APPROVED. At 23:52:22.1 Carrowpay finishes try 1 and charges the card again. One seat, two charges.",
+          "lanes": [
+            "Till 2 terminal",
+            "Carrowpay",
+            "Card ..6402"
+          ],
+          "steps": [
+            {
+              "from": 0,
+              "to": 1,
+              "label": "try 1, £9.50, 23:52:10.0"
+            },
+            {
+              "span": 1,
+              "rows": 4,
+              "label": "try 1 still running",
+              "tone": "warn"
+            },
+            {
+              "note": 0,
+              "text": "no answer in 10 s",
+              "sub": "23:52:20.0",
+              "tone": "warn"
+            },
+            {
+              "from": 0,
+              "to": 1,
+              "label": "try 2, £9.50, 23:52:20.0",
+              "tone": "bad"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "label": "charge (try 2) 23:52:22.0",
+              "tone": "bad"
+            },
+            {
+              "from": 1,
+              "to": 0,
+              "label": "APPROVED 23:52:22.0"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "label": "charge (try 1) 23:52:22.1",
+              "tone": "bad"
+            },
+            {
+              "outcome": 2,
+              "text": "1 seat, 2 charges",
+              "tone": "bad"
+            }
+          ]
+        },
+        "caption": "Sale 0033, redrawn from Carrowpay's log. The terminal stopped waiting at 10 seconds; Carrowpay didn't. Try 2 was charged at 23:52:22.0 and try 1 a tenth of a second later. The same thing happened to 11 more sales between 23:41 and 23:57."
+      },
+      {
+        "t": "p",
+        "text": "The old till is still behind the counter, a brass thing with a crank nobody turns. It printed a ticket number for every sale before any money changed hands. Mr Pomeroy, who ran the Orrery before me, painted this on its side in 1994, the year the first card machine came:"
+      },
+      {
+        "t": "note",
+        "title": "PAINTED ON THE OLD TILL",
+        "items": [
+          "IF THE REGISTER ASKS YOU TO CHARGE A CUSTOMER AGAIN,",
+          "CHECK THE TICKET NUMBER FIRST."
+        ],
+        "sig": "- D. Pomeroy, 1994"
+      },
+      {
+        "t": "p",
+        "text": "The new system prints ticket numbers too, 0001 upward each day, but only after the payment says APPROVED. Rudyard has four ideas for next Friday. Which one?"
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 137,
+      "age": "5h",
+      "text": "A few words first. A timeout is the terminal giving up on waiting; it says nothing about whether Carrowpay finished. A retry is the same payment sent again. Now the evidence. At 23:52:20, when try 2 arrived, what did Carrowpay know about try 1? Was there anything in try 2 that said it belonged to sale 0033 and wasn't a new purchase? Carrowpay's docs have a page about an Idempotency-Key header: does Rudyard's system send one? And what did Mr Pomeroy's till have, before the card came out, that the new one only has afterwards?",
+      "replies": [
+        {
+          "author": "u/orrery_esperanza",
+          "op": true,
+          "points": 46,
+          "age": "4h",
+          "text": "Rudyard checked. Try 2 is the same as try 1 in every field: amount, card, till. No header. Carrowpay saw two payments and made two charges. As for the old till: the number. It came first, every time."
+        }
+      ]
+    },
+    {
+      "author": "u/never_twice_gundry",
+      "points": 92,
+      "age": "4h",
+      "text": "A payment you can't confirm should never be retried. That's the whole lesson here. If the terminal hears nothing, show FAILED and let the customer tap again: then a person decides to pay, not a machine. Machines resending money on their own is exactly how you got 12 double charges. Every till I'd trust has one rule: no answer, no retry."
+    },
+    {
+      "author": "u/chip_shop_faramond",
+      "points": 58,
+      "age": "3h",
+      "text": "Our chip shop's till does it the simple way. Before it charges a card, it looks for a charge of the same amount on the same card in the last minute, and if there is one, it treats it as the same sale. Two of the same in a minute is never a coincidence at a chip shop. No headers, nothing new for Rudyard to build."
+    }
+  ],
+  "reply": {
+    "prompt": "Rudyard can make one change before next Friday's midnight screening. Which should it be? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Give each sale its ticket number before the first try, and send that same number with every retry.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Rudyard moved the ticket number to the moment a sale is rung up, stored it with the sale, and the terminal now sends it to Carrowpay as the Idempotency-Key header on every try. Next Friday the queue came back to the second: the same sales, the same seats, except that at 23:47:20 a woman at till 2 paid for two seats with the card her sister had just used at till 1. At 23:40 Carrowpay slowed again. 11 sales got no answer in 10 seconds, and each terminal sent the same ticket number again. Carrowpay was still working on the first try, so it answered 409 Conflict at once; 3 seconds later the terminal asked again and got the stored result. Mrs Bellwether: try 1 at 23:52:10, a 409 at 23:52:20, one charge at 23:52:22.1, APPROVED at 23:52:23. The sister at till 2 had her own ticket number and was charged once, at 23:47:22. 36 sales, 36 charges, nobody twice. The longest wait at a terminal was 13 seconds.",
+        "senior": "The number belongs to the sale, not to the try. Made once, before the first attempt, and sent with every retry, it lets Carrowpay recognise a repeat and hand back the first result instead of charging again, and answer 409 while the first is still running. The terminal can then retry as often as it likes. The cost is small: Carrowpay has to keep each key and its result for a stated time, and the till has to keep the number with the sale."
+      },
+      {
+        "text": "Never retry a payment that gets no answer: show FAILED and ask the customer to pay again.",
+        "tone": "bad",
+        "verdict": "A person presses retry",
+        "part2": "Rudyard set the terminals to 0 retries. Next Friday the queue came back to the second, except that at 23:47:20 a woman at till 2 paid for two seats with the card her sister had just used at till 1, a card Carrowpay had just seen, so it went through in 2 seconds. From 23:40, 11 sales got no answer in 10 seconds and showed FAILED. Each customer was asked to pay again, tapped 15 seconds later and was charged in 2. By then the first charge had gone through as well. Mrs Bellwether: FAILED at 23:52:20, charged at 23:52:22.1 for the first try, charged again at 23:52:37. 11 customers charged twice, £209.00, and the longest wait at a terminal went from 12 seconds to 27.",
+        "senior": "Not retrying doesn't make an unanswered payment fail; it only stops the terminal finding out. The first charge still goes through, and asking the customer to pay again is a retry with a person pressing the button and no way for Carrowpay to know it's the same sale. Timeouts are unknown outcomes, not refusals. Make a repeat recognisable, and retrying becomes safe."
+      },
+      {
+        "text": "Before each charge, have Carrowpay look for one of the same amount on the same card in the last minute.",
+        "tone": "bad",
+        "verdict": "Wrong in both directions",
+        "part2": "Carrowpay switched on its similar-charge check for the Orrery. Next Friday the queue came back to the second, except at 23:47:20, when a woman at till 2 paid £19.00 for two seats with the card her sister had used at till 1. The sister's own sale, 0028, got no answer in 10 seconds, and try 2 at 23:47:10 found no similar charge, because try 1 didn't finish until 23:47:11.5. So she was charged twice. Then, at 23:47:20, Carrowpay found that charge for 0029, answered APPROVED and charged nothing: two seats handed over unpaid. 11 customers charged twice, £209.00, and 2 seats given away.",
+        "senior": "A similar-charge check guesses identity from the amount and the card, and it can only see charges that have finished. It misses the duplicate that matters, the one still in progress when the retry arrives, and it swallows an honest second purchase that happens to match. A repeat should be recognised by an identity the client gave it, not by a coincidence."
+      },
+      {
+        "text": "Leave the terminals as they are, and refund every double charge each morning from the bank's report.",
+        "tone": "warn",
+        "verdict": "Trade-off: right, a day late",
+        "part2": "Rudyard left the terminals alone and I took the report. Next Friday the queue came back to the second, except that at 23:47:20 a woman at till 2 paid for two seats with the card her sister had just used at till 1, which went through in 2 seconds. 11 customers were charged twice, £209.00. On Saturday morning I matched the bank's report against the seat plan and sent 11 refunds, each one a payment of its own, each with a note. Mrs Bellwether had already rung. By Sunday everyone had their money back, and on Friday it started again.",
+        "senior": "Reconciling against the bank's report is a control every business taking cards should have anyway, and here it does put the money back. But it repairs the same mistake every slow night, a day late, one refund at a time, and every customer sees two charges first. Use it as the safety net behind a fix, not as the fix."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s4e07",
+    "title": "Replay the Orrery's box office",
+    "lede": "You're Esperanza, replaying Friday's box office from 23:00 to 23:58. The queue is fixed: 36 card sales, ticket numbers 0001 to 0036, each with its time, till, seats at £9.50, and how long Carrowpay takes over that card's first payment of the night. Until 23:40 that's 1.5 to 2.6 seconds; from 23:40 it's 9.4 to 12.8. A repeat from a card Carrowpay has seen in the last 5 minutes takes 2.0 seconds. A request Carrowpay starts always finishes and charges, whether or not the terminal is still waiting. Each terminal waits a set time for each try; with no answer it sends again at once while it has retries left, and then shows FAILED, and the customer pays again 15 seconds later. With a key, Carrowpay stores each key it sees with its result and keeps it for 24 hours: a repeat key whose first request has finished gets the stored result and no new charge, and one whose first request is still running gets a 409 at once, after which the terminal waits 3 seconds and asks again. With the similar-charge check on, Carrowpay answers APPROVED with any finished charge of the same amount on the same card from the last 60 seconds, instead of charging. Every sale starts at its stated time; nobody's wait holds up the queue. Press Run the night to replay it; after that, changing a setting replays the night again.",
+    "tryThis": "Try this: press Run the night as built: 48 charges, 12 customers charged twice, £228.00, and sale 0033 (F7) charged at 23:52:22.0 and 23:52:22.1. Set the key to a new key on every try: nothing changes. Set it to one key per sale: 36 charges, 12 answers of 409, nobody twice, the longest wait 13.0 s. Go back to no key and try the other ideas: 0 retries (still 12 twice, and a 27.0 s wait), then 2 retries with the similar-charge check (still 12 twice). With the check on, turn on Two tills share a card and watch 0029's two seats go out unpaid. Last, with no key, set the timeout to 15 s, then 5 s."
+  },
+  "explain": {
+    "oneLine": "Nothing charged anyone twice on its own. The terminal stopped waiting at 10 seconds, but Carrowpay hadn't stopped working; the retry looked exactly like a new payment, so Carrowpay charged again, and the first charge finished a moment later. A timeout is not a no, and a retry needs a name.",
+    "steps": [
+      {
+        "title": "A timeout is not a no.",
+        "text": "When the terminal gave up at 10 seconds, try 1 was still running at Carrowpay, and it finished 0.6 to 2.8 seconds later with a charge. The terminal had no way to know. Any request that times out has one of three endings: it never arrived, it arrived and failed, or it arrived and worked and the answer was late. Tonight it was always the third. The 12 sales whose first payment took longer than 10 seconds were all charged twice: 24 seats, £228.00."
+      },
+      {
+        "title": "The retry looked like a new payment.",
+        "text": "Try 2 carried the same amount, card and till as try 1 and nothing else, so Carrowpay did what it should with a new payment: charged it. A new key on every try is no better: each try still looks new, and the sim stores 48 keys and still charges 12 customers twice. This isn't the lost update of All or Nothing (s3e02), where two writers race over one row inside one database and a transaction or a row lock settles it. Here no transaction spans the terminal, the network and Carrowpay, so the request itself has to carry its identity."
+      },
+      {
+        "title": "One number per sale, made before the first try. That's Rule 3.",
+        "text": "An idempotency key is a value the client makes once per operation, before the first attempt, and sends with every attempt. The Orrery already had one: the ticket number, if it's made when the sale is rung up and kept with the sale, as on Mr Pomeroy's till. Sent as the Idempotency-Key header, it lets Carrowpay look up the key before charging: new key, process it and store the result with it; a key it has seen, return the stored result and charge nothing. Paying again after FAILED keeps the same number. Never make a new one for a retry: that's the step that turns a repeat back into a new payment."
+      },
+      {
+        "title": "Two requests with one key at once, a key with different details, and how long keys live.",
+        "text": "Tonight the retry arrived while try 1 was still running, so Carrowpay had a key with no result yet. The IETF draft says to answer 409 Conflict, and the client waits and asks again with the same key: 12 sales got a 409 at 10 seconds and the stored result at 13. A key sent again with a different amount or card is refused rather than replayed (the draft suggests 422), because it's a mistake, not a retry. And keys don't live forever: Stripe keeps them at least 24 hours, so retries must finish inside the window and keys must not repeat within it."
+      },
+      {
+        "title": "Why a similar charge in the last minute isn't the same thing.",
+        "text": "The check guesses from the amount and the card, and it can only see finished charges. At 10 seconds try 1 hadn't finished, so the check found nothing and the retry charged again. And it can't tell a retry from a second honest sale: with 0029 paying on 0028's card, it hands over two seats unpaid. At Least Once used consumer-side deduplication, skipping a message whose ID the consumer has already handled; an idempotency key is the client naming its own request before the first try, so the server can return the first result."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 330,
+      "aria": "The fix, drawn for sale 0033. The till makes ticket number 0033 when the sale is rung up and sends it with every try. Carrowpay looks up the key before charging and stores the key with its result in a key store, kept 24 hours; T-0033 is charged at 23:52:22.1. The card is charged once, 9.50 pounds. Try 2 at 10 seconds gets a 409 while try 1 is still running, and try 3 at 13 seconds gets the stored result.",
+      "nodes": [
+        {
+          "id": "till",
+          "label": "Till 2",
+          "sub": "ticket 0033 first",
+          "meta": "same number every try",
+          "x": 110,
+          "y": 90,
+          "w": 180,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "carrowpay",
+          "label": "Carrowpay",
+          "sub": "looks up the key",
+          "x": 420,
+          "y": 90,
+          "w": 200,
+          "h": 60,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "card",
+          "label": "Card ..6402",
+          "sub": "1 charge, £9.50",
+          "x": 655,
+          "y": 90,
+          "w": 130,
+          "h": 60,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "store",
+          "label": "Key store",
+          "sub": "T-0033: charged 22.1",
+          "meta": "kept 24 hours",
+          "x": 420,
+          "y": 260,
+          "w": 200,
+          "h": 72,
+          "shape": "db",
+          "tone": "ok"
+        }
+      ],
+      "edges": [
+        {
+          "from": "till",
+          "to": "carrowpay",
+          "label": "T-0033, 3 tries"
+        },
+        {
+          "from": "carrowpay",
+          "to": "card",
+          "label": "charge"
+        },
+        {
+          "from": "carrowpay",
+          "to": "store",
+          "label": "key + result"
+        }
+      ],
+      "notes": [
+        {
+          "x": 110,
+          "y": 160,
+          "text": "try 2 at 10 s: 409",
+          "tone": "warn",
+          "anchor": "middle"
+        },
+        {
+          "x": 110,
+          "y": 180,
+          "text": "try 3 at 13 s: stored result",
+          "tone": "ok",
+          "anchor": "middle"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for sale 0033. The ticket number is made when the sale is rung up and goes with every try. Carrowpay looks it up before charging: try 2 at 10 seconds finds it still in progress and gets a 409, try 3 at 13 seconds gets the stored result, and the card is charged once.",
+    "fix": {
+      "title": "The fix: make the ticket number first, and send it with every try",
+      "text": "Ring up the sale and make its ticket number before the card is touched, and store the number with the sale, so a till restart doesn't lose it. Send it to Carrowpay as the Idempotency-Key header on every try, and on any payment taken again after FAILED. Make it unique well beyond a day: Carrowpay keeps keys for 24 hours, so a number like 0033 that starts again every day needs the date and the till in front of it, or use a UUID v4 made at ring-up. Teach the terminal that a 409 means wait a few seconds and ask again with the same key, and that a refusal for a reused key means a bug, not a decline. Keep the morning check of the bank's report against the seat plan, as a safety net. On Carrowpay's side, the key, the charge and the stored result must be saved together in one transaction."
+    },
+    "limits": [
+      "A key only protects what the server checks. If Carrowpay saved the charge and crashed before saving the key and result together, a retry would charge again; the key store and the charge belong in one transaction.",
+      "Keys expire. Stripe keeps them at least 24 hours and may then remove them, and reusing a key after that can run a new request. A terminal that keeps retrying past the window, or numbers that repeat within it, are back to guessing.",
+      "A number the till forgets is a new number. If it lives only in memory and the till restarts mid-sale, the next try goes out with a fresh key and is a fresh payment; write the number down with the sale before the first try."
+    ],
+    "tradeoff": {
+      "head": [
+        "Change",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "Nothing (as built)",
+          "No sale is lost to a dropped answer.",
+          "12 customers charged twice, £228.00, on one slow night."
+        ],
+        [
+          "A new key on every try",
+          "Looks like the fix.",
+          "Each try is still new: 48 keys, the same 12 charged twice."
+        ],
+        [
+          "Never retry, pay again",
+          "A person decides.",
+          "The first charge still lands: still 12 twice, and waits of 27 s."
+        ],
+        [
+          "Similar charge in the last minute",
+          "No terminal change.",
+          "Misses charges in progress (still 12 twice) and hands over a real second sale unpaid."
+        ],
+        [
+          "Refund each morning",
+          "The money goes back.",
+          "A day late, a refund each time, every slow night."
+        ],
+        [
+          "Wait 15 s instead of 10",
+          "Nobody twice tonight.",
+          "A night at 16 s doubles again, and every customer waits longer."
+        ],
+        [
+          "One ticket number per sale, made first (Rule 3)",
+          "36 charges for 36 sales; repeats get a 409 or the stored result.",
+          "Carrowpay must store keys; the longest wait is 13 s, not 12."
+        ]
+      ]
+    },
+    "seniorTake": "Every request that crosses a network has three endings, and a timeout can't tell you which one happened. So you will retry, and the only question is whether a retry can do harm. Make it harmless: the client names each operation once, before the first attempt, and sends that name with every attempt; the server stores the name with the result and returns that result to every repeat. Keep the names unique for longer than the server keeps them, refuse a name reused with different details, answer a name still in progress with a conflict, and reconcile anyway, because the safety net is cheap.",
+    "realWorld": [
+      {
+        "title": "Stripe: the first result, saved and replayed",
+        "text": "Stripe's API reference says that for API v1 it saves the status code and body of the first request made with a given idempotency key after endpoint execution begins, and that retries with the same key return the saved response, including 500 errors. API v2 works differently: retries don't repeat successful operations, and Stripe retries failed work to completion when it can.",
+        "source": 0
+      },
+      {
+        "title": "Stripe: the client makes the key",
+        "text": "The same page says a client generates an idempotency key, a unique key the server uses to recognize subsequent retries of the same request, suggests V4 UUIDs or another random string with enough entropy to avoid collisions, and allows up to 255 characters. It asks you not to use sensitive data, such as email addresses, as keys.",
+        "source": 0
+      },
+      {
+        "title": "Stripe: at least 24 hours, and different parameters are an error",
+        "text": "For API v1, keys can be removed after they're at least 24 hours old, and a key reused after it is pruned makes a new request. The idempotency layer compares incoming parameters to those of the original request and errors if they're not the same to prevent accidental misuse.",
+        "source": 0
+      },
+      {
+        "title": "Stripe: one at a time",
+        "text": "Stripe's error-handling guide says that if a 409 shows another request with the same key is still executing, you should wait and retry with that key and the same parameters, and warns that a new key can start a second operation. It also says to keep retrying within the first 24 hours, and to generate and persist a key for the operation and supply it to every attempt when retries cross process restarts.",
+        "source": 1
+      },
+      {
+        "title": "Stripe: telling a replay from a first answer",
+        "text": "The same guide says a response replayed from a saved result carries the header Idempotent-Replayed: true, and that a 500 is an unknown outcome: don't retry with a new key until you've found out what happened to the original.",
+        "source": 1
+      },
+      {
+        "title": "IETF: The Idempotency-Key HTTP Header Field",
+        "text": "An Internet-Draft by Jena and Dalal (version 07, October 2025, now expired, so still a work in progress) describes an Idempotency-Key request header to make non-idempotent methods such as POST or PATCH fault-tolerant. The key is generated by the client, MUST NOT be reused with a different request payload, and a UUID or similar random value is RECOMMENDED. A resource that expires keys SHOULD publish its expiry policy.",
+        "source": 2
+      },
+      {
+        "title": "IETF: 409 for a request still running, 422 for a reused key",
+        "text": "The draft says a retry after the original completed SHOULD get the result of that operation, success or error. A retry while the original is still being processed SHOULD get 409 Conflict, and an attempt to reuse a key with a different payload SHOULD get 422 Unprocessable Content. A server MAY also take a fingerprint of the payload, such as a checksum, to spot reuse.",
+        "source": 2
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How do you make a payment API safe to retry?",
+        "What is an idempotency key?",
+        "What happens if two requests with the same idempotency key arrive at once?"
+      ],
+      "answer": "A timeout doesn't mean the payment failed; the server may have finished and the answer been late. So clients will retry, and the API must make a retry harmless. The client makes an idempotency key once per operation, before the first attempt, typically a UUID v4 stored with the order, and sends it in an Idempotency-Key header on every attempt, never a new one per retry. The server looks the key up before doing anything: if it's new, it does the work and saves the key with the result in the same transaction; if it has a result, it returns that result without charging again. If the first request is still running, it answers 409 Conflict and the client waits and retries with the same key. A key reused with different parameters is refused, 422 in the IETF draft, because it's a bug. Keys are kept for a published window, at least 24 hours at Stripe, so retries must finish inside it and keys must be unique for longer. A check like 'same amount on the same card in the last minute' is not a substitute: it misses requests still in progress and blocks honest repeat purchases."
+    }
+  },
+  "terms": [
+    {
+      "term": "One-screen cinema",
+      "def": "A cinema with one auditorium and one film at a time. The Orrery Picture House in Kilbarrow is a fictional one."
+    },
+    {
+      "term": "Box office",
+      "def": "The counter where a cinema sells tickets on the night. The Orrery's has two tills."
+    },
+    {
+      "term": "Till",
+      "def": "The machine a cashier rings a sale up on. The Orrery's new tills run Rudyard's box office system; the old one is a brass register with a crank."
+    },
+    {
+      "term": "Card terminal",
+      "def": "The small machine a customer taps or inserts a card into. It sends the payment to the payment service and shows the answer: APPROVED or FAILED."
+    },
+    {
+      "term": "Payment service",
+      "def": "A company that takes a card payment request from a business and charges the card. Carrowpay is a fictional one."
+    },
+    {
+      "term": "Charge",
+      "def": "Money taken from a card for one payment. A charge stands whether or not anyone saw the answer."
+    },
+    {
+      "term": "Refund",
+      "def": "Money sent back to a card for a charge that shouldn't stand. It is a separate payment of its own and shows on the customer's statement."
+    },
+    {
+      "term": "Bank's report",
+      "def": "The list of charges the business's bank or payment service sends for a day, used to match payments against sales."
+    },
+    {
+      "term": "Seat plan",
+      "def": "The box office's map of the auditorium, showing which seats are sold."
+    },
+    {
+      "term": "Ticket number",
+      "def": "The number a till gives each sale. The new system counts from 0001 each day; the old till printed it before the money, the new one after."
+    },
+    {
+      "term": "Try",
+      "def": "One attempt to send the same payment. Try 1 is the first; each retry is another try."
+    },
+    {
+      "term": "FAILED",
+      "def": "What the terminal shows when it has run out of tries without an answer. It doesn't mean the card wasn't charged."
+    },
+    {
+      "term": "Idempotency-Key header",
+      "def": "An HTTP request header carrying an idempotency key, as Stripe uses and an IETF draft describes. The server looks it up before doing the work."
+    },
+    {
+      "term": "Stored result",
+      "def": "The answer a server saved with an idempotency key the first time, returned to every repeat of that key instead of doing the work again."
+    },
+    {
+      "term": "Key store",
+      "def": "Where a server keeps each idempotency key with its state (in progress or finished) and its result, for a stated time."
+    },
+    {
+      "term": "In progress (key)",
+      "def": "A key whose first request has started and not finished. A repeat of it gets a 409 Conflict, not a second run of the work."
+    },
+    {
+      "term": "422 Unprocessable Content",
+      "def": "An HTTP status code for a request the server understood but won't process. The IETF draft uses it for a key reused with a different payload."
+    },
+    {
+      "term": "Payload",
+      "def": "The data a request carries, here the amount, card and till. A key reused with a different payload is a mistake, not a retry."
+    },
+    {
+      "term": "Fingerprint (idempotency)",
+      "def": "A checksum or match of a request's payload that a server may store with a key, to spot the same key reused for a different request."
+    },
+    {
+      "term": "Idempotent-Replayed",
+      "def": "A response header Stripe adds, set to true, when the answer is a saved result replayed for a repeated key rather than a first answer."
+    },
+    {
+      "term": "Similar-charge check",
+      "def": "Treating a payment as a repeat if a charge of the same amount on the same card happened recently. It sees only finished charges and can't tell a retry from a real second sale."
+    },
+    {
+      "term": "Unknown outcome",
+      "def": "A request whose result you don't know, because the answer never came or was a server error. It may have worked. Stripe calls a 500 indeterminate."
+    },
+    {
+      "term": "API v1 (Stripe)",
+      "def": "Two generations of Stripe's API. The idempotency rules quoted here are v1's; v2 retries failed work itself and uses a 30-day window."
+    },
+    {
+      "term": "IETF",
+      "def": "The Internet Engineering Task Force, the body that writes many internet standards, such as HTTP, published as RFCs."
+    },
+    {
+      "term": "Internet-Draft",
+      "def": "A working document at the IETF, not yet a standard. Drafts expire after six months unless updated; the Idempotency-Key draft's version 07 has expired."
+    },
+    {
+      "term": "Consumer-side deduplication",
+      "def": "A consumer remembering the message IDs it has already handled and skipping repeats, as in At Least Once. The server's side of the same worry."
+    },
+    {
+      "term": "Reconciliation",
+      "def": "Matching two records of the same thing, such as the bank's report against the seat plan, and acting on the differences."
+    },
+    {
+      "term": "PI1.3",
+      "def": "A SOC 2 processing integrity criterion: data is processed completely, accurately, and timely as authorized."
+    },
+    {
+      "term": "500 (status code)",
+      "def": "Internal Server Error: the status code for a server that failed while handling a request. The work may or may not have happened."
+    },
+    {
+      "term": "Prune (a key)",
+      "def": "Remove an old idempotency key from the key store once its time is up. A repeat after that looks new."
+    },
+    {
+      "term": "Entropy",
+      "def": "How unpredictable a random value is. A key with enough entropy, such as a UUID v4, is very unlikely to match anyone else's."
+    },
+    {
+      "term": "Checksum",
+      "def": "A short value worked out from a block of data, which changes if the data changes. Used to spot that two requests differ."
+    },
+    {
+      "term": "Fault-tolerant",
+      "def": "Able to cope with something going wrong, such as a lost answer, without a wrong result."
+    },
+    {
+      "term": "Rule 3",
+      "def": "If the register asks you to charge a customer again, check the ticket number first. Name each sale once, before the first try, and let a repeat of that name return the first result."
+    }
+  ],
+  "atWork": "Think of a button in your product that spends money or creates something: a mobile app's place order button is the classic one. A common incident is an app that double-orders on a slow train connection, because the request timed out on the phone, the app retried, and the first order had already gone through. Read-only access is enough. In the client code, find where the request is built: is a key made once per order, before the first attempt, and kept if the app is closed and reopened, or is a new one made on every attempt, or none at all? On the server, is the key saved with the order in the same transaction, how long is it kept, what does a repeat get back, what happens to two at once, and what happens to the same key with a different basket? If you pay through a provider such as Stripe, check that your integration sends the key on every retry. Build Night N3 needs the same discipline: alerts that fan out without duplicates. In LATENT, Hands It Can Use and When It Goes in Circles meet it in an agent's tool calls: a tool call retried after a timeout should carry the same key. If your company is pursuing SOC 2 with processing integrity in scope, criterion PI1.3 expects data to be processed completely, accurately, and timely as authorized; idempotency keys on payment calls and a daily reconciliation against the provider's report are the kind of controls an auditor will ask to see.",
+  "board": {
+    "cards": [
+      {
+        "id": "idempotency-keys",
+        "title": "Idempotency keys"
+      }
+    ],
+    "strings": [
+      {
+        "from": "idempotency-keys",
+        "to": "retries",
+        "label": "makes retry safe"
+      },
+      {
+        "from": "idempotency-keys",
+        "to": "timeouts",
+        "label": "a timeout isn't no"
+      },
+      {
+        "from": "idempotency-keys",
+        "to": "exactly-once",
+        "label": "client-side half"
+      },
+      {
+        "from": "idempotency-keys",
+        "to": "at-least-once",
+        "label": "repeats will come"
+      },
+      {
+        "from": "idempotency-keys",
+        "to": "transactions",
+        "label": "saved with charge"
+      },
+      {
+        "from": "idempotency-keys",
+        "to": "unique-id-generation",
+        "label": "unique for long"
+      },
+      {
+        "from": "idempotency-keys",
+        "to": "dual-write-problem",
+        "label": "next case"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s4e07-r1",
+      "kind": "free",
+      "prompt": "Your food delivery app's checkout waits 8 seconds for the order API and then sends the order again. On a slow evening, support hears from dozens of customers who got two identical meals and two charges. What happened, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "The first request had worked; the app stopped waiting, but the server finished, so the resend made a second order",
+          "match": [
+            "first order went",
+            "first request worked",
+            "first one worked",
+            "already went through",
+            "already succeeded",
+            "still processing",
+            "didn't know it worked",
+            "answer was late",
+            "not a failure"
+          ]
+        },
+        {
+          "idea": "The app makes one idempotency key per order before the first attempt and sends the same key with every resend",
+          "match": [
+            "idempot",
+            "same key",
+            "one key per",
+            "key per order",
+            "before the first",
+            "uuid",
+            "same id on every"
+          ]
+        },
+        {
+          "idea": "The server stores the key with the result and returns that result to a repeat, or a 409 while the first is still running",
+          "match": [
+            "stored result",
+            "saved result",
+            "first result",
+            "same response",
+            "return the original",
+            "a 409",
+            "conflict"
+          ]
+        }
+      ],
+      "model": "The first request worked. The app gave up after 8 seconds, but the order API was only slow, so it finished, charged the card and created the order, and the resend looked like a brand new order and did it all again. Make the app create one idempotency key per order, a UUID v4, when the customer presses the button and before the first attempt, keep it with the basket, and send the same key in an Idempotency-Key header on every resend. On the server, look the key up first: new, create the order and save the key with the result in the same transaction; seen and finished, return the stored result; seen and still running, answer 409 Conflict so the app waits and asks again with the same key. Refund tonight's duplicates from the payment report."
+    },
+    {
+      "id": "s4e07-r2",
+      "kind": "mcq",
+      "prompt": "For Stripe's API v1, how long are idempotency keys kept, according to its API reference?",
+      "options": [
+        "Exactly 1 hour, then removed",
+        "At least 24 hours, after which they can be removed",
+        "30 days, for every version of the API",
+        "Forever: a key can never be used twice"
+      ],
+      "answer": 1,
+      "why": "Stripe's API reference says that for API v1 keys can be removed once they're at least 24 hours old, and a key reused after it's pruned makes a new request. Its error guide adds that API v2 uses a 30-day window. In the sim, Carrowpay keeps keys for 24 hours too."
+    },
+    {
+      "id": "s4e07-r3",
+      "kind": "mcq",
+      "prompt": "A terminal times out after 10 seconds and resends a payment with the same idempotency key while the server is still working on the first request. Which response does the IETF draft recommend for the resend?",
+      "options": [
+        "200 OK with a second, separate charge",
+        "422 Unprocessable Content, because the key is already used",
+        "409 Conflict; the client waits and retries with the same key",
+        "No response until the first finishes, then a second charge"
+      ],
+      "answer": 2,
+      "why": "The draft says a request retried while the original is still being processed SHOULD get 409 Conflict, and Stripe's guide says to wait and retry with that key and the same parameters. 422 is for a key reused with a different payload. In the sim, 12 sales get a 409 at 10 seconds and the stored result at 13."
+    },
+    {
+      "id": "s4e07-r4",
+      "kind": "mcq",
+      "prompt": "A till sends key T-0009 with an amount of 28.50, but the server already holds T-0009 from the night before with an amount of 9.50. What should the server do?",
+      "options": [
+        "Charge 28.50, since the key is the same customer",
+        "Replay the earlier 9.50 answer as if it were a retry",
+        "Refuse it as a key reused with different details",
+        "Delete the old key and store the new one"
+      ],
+      "answer": 2,
+      "why": "A retry carries the same details as the original. The same key with a different amount is a client bug, so the server refuses it: Stripe errors when the parameters differ, and the IETF draft suggests 422 Unprocessable Content. Replaying the 9.50 result would hand over seats unpaid; charging would make the key meaningless."
+    },
+    {
+      "id": "s4e07-r5",
+      "kind": "free",
+      "prompt": "A colleague proposes a cheaper fix for duplicate payments: before charging, look for a charge of the same amount on the same card in the past minute, and if there is one, treat this payment as a repeat. Why isn't that equivalent to an idempotency key?",
+      "keyIdeas": [
+        {
+          "idea": "It only sees finished charges, so a retry that arrives while the first is still running finds nothing and charges again",
+          "match": [
+            "still running",
+            "in progress",
+            "in flight",
+            "not finished",
+            "hasn't finished",
+            "only sees finished",
+            "only finished",
+            "not yet recorded"
+          ]
+        },
+        {
+          "idea": "It can't tell a retry from an honest second purchase that matches, so it blocks or swallows real sales",
+          "match": [
+            "second purchase",
+            "real second",
+            "honest second",
+            "legitimate second",
+            "two real",
+            "genuine",
+            "coincidence",
+            "unpaid"
+          ]
+        },
+        {
+          "idea": "A key names the operation itself, made by the client before the first attempt, so identity doesn't depend on guessing",
+          "match": [
+            "names the",
+            "identity",
+            "made by the client",
+            "client makes",
+            "before the first",
+            "per operation",
+            "intent"
+          ]
+        }
+      ],
+      "model": "It guesses identity from a coincidence. It can only see charges that have finished, and the duplicates that matter are retries sent while the first request is still running: at that moment there is nothing to find, so the retry charges again. And it can't tell a retry from an honest second purchase of the same amount on the same card, such as a friend paying for two more seats a moment later, so it gives seats away unpaid or refuses real sales. An idempotency key names the operation itself: the client makes it once, before the first attempt, and the server returns the first result to anything carrying it."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 3 months later. The ticket numbers work: two more slow Fridays and not one double charge, just a few 409s in Carrowpay's log. But on the Saturday after the first slow Friday, every card sale at the 14:00 matinee was refused. The terminals showed \"Idempotency key already used with different details\". Cash sales were fine. Rudyard says the box office system still counts ticket numbers from 0001 each day, and the matinee's 0001 was refused at 14:02, its 0002 at 14:05, and so on, every card, every amount. The evening show's card sales went through.",
+    "prompt": "Reply to OP. Why was every card sale refused on Saturday afternoon, and how should the ticket numbers be made?",
+    "keyIdeas": [
+      {
+        "idea": "Ticket numbers start again every day, but Carrowpay keeps keys for 24 hours, so Saturday's numbers matched Friday night's keys with different details and were refused",
+        "match": [
+          "restart",
+          "start again",
+          "starts again",
+          "friday's keys",
+          "friday night",
+          "collide",
+          "collision",
+          "reused"
+        ]
+      },
+      {
+        "idea": "Make keys unique for far longer than the server keeps them: add the date and till, or use a UUID v4 made at ring-up and stored with the sale",
+        "match": [
+          "uuid",
+          "the date",
+          "globally unique",
+          "unique across",
+          "never repeat",
+          "prefix",
+          "random"
+        ]
+      },
+      {
+        "idea": "The refusal was the server protecting the customers, not a fault to switch off; replaying Friday's result would have handed over seats unpaid",
+        "match": [
+          "protecting",
+          "doing its job",
+          "working as",
+          "correct to refuse",
+          "right to refuse",
+          "unpaid",
+          "free seats",
+          "as it should",
+          "nobody paid"
+        ]
+      }
+    ],
+    "model": "The keys collided. The box office system counts ticket numbers from 0001 each day, and Carrowpay keeps each key for 24 hours. Friday's card sales, 0001 to 0036, ran from 23:01 to 23:57, so when Saturday's matinee began at 14:00, its 0001 arrived while Friday night's 0001 was still stored, with a different card and amount. By the evening show the day's numbers had passed 0036, which is why those sales went through. Carrowpay saw the same key with different details and refused it, as it should: replaying Friday's result would have printed tickets nobody paid for, and charging would have made the key meaningless. Make keys unique for far longer than any server will keep them: put the date, the screening and the till in front of the ticket number, or generate a UUID v4 when the sale is rung up and store it with the sale, and keep sending that same key on every retry and every second payment."
+  },
+  "next": "Next, The Letter That Never Left: a law firm's outgoing mail, and saving a record and sending its message without losing one of the two, using an outbox and change data capture.",
+  "sources": [
+    {
+      "title": "Stripe API Reference: Idempotent requests (API v1 saves the status code and body of the first request after endpoint execution begins, including 500 errors; the client generates the key, V4 UUIDs suggested, up to 255 characters; keys can be removed after they're at least 24 hours old; parameters compared and an error if not the same; results not saved for a request that conflicts with one executing concurrently)",
+      "url": "https://docs.stripe.com/api/idempotent_requests"
+    },
+    {
+      "title": "Stripe Documentation: Low-level error handling (on a 409 for a key still executing, wait and retry with that key and the same parameters; a new key can start a second operation; retry within the first 24 hours; generate and persist a key and supply it to every attempt; Idempotent-Replayed: true; a 500 is indeterminate; API v2 uses a 30-day window)",
+      "url": "https://docs.stripe.com/error-low-level"
+    },
+    {
+      "title": "J. Jena and S. Dalal, The Idempotency-Key HTTP Header Field, IETF Internet-Draft draft-ietf-httpapi-idempotency-key-header-07, October 2025, expired April 2026 (key generated by the client; MUST NOT be reused with a different payload; UUID RECOMMENDED; expiry policy published; fingerprint; 409 for a concurrent request; 422 for a reused key)",
+      "url": "https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07"
+    },
+    {
+      "title": "Linford & Co: What is Processing Integrity and Who Needs it in their SOC 2? (lists the AICPA criteria, including PI1.3: data is processed completely, accurately, and timely as authorized)",
+      "url": "https://linfordco.com/blog/processing-integrity"
+    }
+  ]
+}

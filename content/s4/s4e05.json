@@ -1,0 +1,963 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e05",
+ "season": 4,
+ "n": 5,
+ "title": "Letters in a Dead Language",
+ "setting": "a monastery's copying room",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "serialization",
+  "schema-evolution",
+  "json-vs-protocol-buffers-vs-avro",
+  "backward"
+ ],
+ "prerequisites": [
+  "s4e04",
+  "s4e01",
+  "s3e16",
+  "s2e14",
+  "s2e13",
+  "s1e12",
+  "s1e06",
+  "s1e03"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/dunholt_lamp_seraphina",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 2874,
+  "title": "I catalogue manuscripts at night in an abbey's old copying room. Tonight the reading-room screen says our 14th-century psalter was written in the year 212.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm the lay archivist at Dunholt Abbey. The brothers keep the hours; I keep the catalogue. Most nights I sit in the old copying room under one lamp and go back over books first catalogued years ago, adding what nobody recorded then. Each entry I save goes out as a message on a Kafka topic, catalogue-entries. Downstairs, the screen in the reading room reads the topic from the start every morning at six and shows visitors what we hold."
+   },
+   {
+    "t": "p",
+    "text": "The messages are Protocol Buffers: small and binary, each value marked by a number from a shared schema instead of by its name. Cuthwin, who has kept the library for forty-one years, calls them letters in a dead language. You can only read them if you know the grammar."
+   },
+   {
+    "t": "p",
+    "text": "Two developers look after the app from the city. In spring Nkem took the year out of the schema, because a medieval book rarely has one year, and added a text line instead, like c. 1340. Since then the screen has said year unknown for anything I touch, and nobody minded. On Monday Yevgenia added a folio count, the number of leaves. Their schema registry, a service that checks every new schema before the app may use it, accepted both changes as compatible."
+   },
+   {
+    "t": "p",
+    "text": "Tonight, Tuesday, at 01:12 I re-catalogued MS 41, the Dunholt Psalter: Latin, the hand of about 1340, 212 folios. Then I went down to check the screen, as I always do."
+   },
+   {
+    "t": "log",
+    "text": "READING ROOM   MS 41   Psalter, Latin, written in the year 212"
+   },
+   {
+    "t": "beat",
+    "text": "Eleven centuries before anyone wrote it."
+   },
+   {
+    "t": "p",
+    "text": "I went back up and did two more. MS 7, a Book of Hours of about 1460, 154 folios: written in the year 154. MS 19, an English herbal of about 1420, 96 folios: written in the year 96. Each wrong year is a number I typed tonight, but never into a box marked year."
+   },
+   {
+    "t": "p",
+    "text": "Cuthwin opened the screen's debug page and copied the psalter's message out by hand, all 35 bytes, as if it were a charter:"
+   },
+   {
+    "t": "log",
+    "text": "0A 05 4D 53 20 34 31 12 07 50 73 61 6C 74 65 72 1A 05 4C 61 74 69 6E 20 D4 01 2A 07 63 2E 20 31 33 34 30"
+   },
+   {
+    "t": "p",
+    "text": "No error anywhere. The screen read every byte and believed it. Yevgenia says the app reads the same bytes back perfectly. Nkem says the screen should have been updated in spring. The brothers open the reading room at nine, and a school party comes at ten."
+   },
+   {
+    "t": "evidence",
+    "label": "catalogue_path_sketch.png",
+    "diagram": {
+     "type": "arch",
+     "w": 740,
+     "h": 300,
+     "aria": "Seraphina's sketch of the night. The cataloguing app, on Monday's schema where folio_count is number 4, writes MS 41 with 212 folios. The message, 35 bytes, goes onto the topic catalogue-entries and includes the bytes 20 D4 01. The reading-room screen, on the old schema where year is number 4, reads field 4 and shows the year 212. Below the app, the schema registry, set to BACKWARD, accepted both releases.",
+     "nodes": [
+      {
+       "id": "app",
+       "label": "Cataloguing app",
+       "sub": "folio_count = 4",
+       "meta": "MS 41: 212 folios",
+       "x": 110,
+       "y": 90,
+       "w": 190,
+       "h": 62,
+       "shape": "box",
+       "tone": ""
+      },
+      {
+       "id": "topic",
+       "label": "catalogue-entries",
+       "sub": "... 20 D4 01 ...",
+       "meta": "35 bytes",
+       "x": 370,
+       "y": 90,
+       "w": 170,
+       "h": 62,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "screen",
+       "label": "Reading-room screen",
+       "sub": "year = 4",
+       "meta": "written in the year 212",
+       "x": 625,
+       "y": 90,
+       "w": 190,
+       "h": 62,
+       "shape": "box",
+       "tone": "bad"
+      },
+      {
+       "id": "reg",
+       "label": "Schema registry",
+       "sub": "BACKWARD",
+       "meta": "both releases accepted",
+       "x": 110,
+       "y": 230,
+       "w": 190,
+       "h": 62,
+       "shape": "box",
+       "tone": ""
+      }
+     ],
+     "edges": [
+      {
+       "from": "app",
+       "to": "topic",
+       "label": "MS 41"
+      },
+      {
+       "from": "topic",
+       "to": "screen",
+       "label": "field 4",
+       "tone": "bad"
+      },
+      {
+       "from": "reg",
+       "to": "app",
+       "label": "compatible",
+       "dash": true,
+       "tone": "muted"
+      }
+     ]
+    },
+    "caption": "My sketch of tonight. The app's schema calls number 4 folio_count; the screen's still calls it year. The 35 bytes carry 20 D4 01, and the screen printed 212 as the year. The registry, on BACKWARD, said both releases were compatible."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 162,
+   "age": "5h",
+   "text": "Before anyone rewrites anything, read Cuthwin's copy the way the screen does. A few words first. A field number is the number a schema gives each field; Protocol Buffers sends it on the wire in place of the name. Every field starts with a tag, the field number and a wire type packed together; the wire type says how to read what follows. Type 0 is a varint, a whole number written seven bits to a byte, and type 2 is a length, then that many bytes. And a .proto file can list reserved numbers, which no field may take. Now the questions. What do the bytes 20 and D4 01 say? What does the screen's copy of the schema call that number, and what does Monday's? Which schema did the registry compare Monday's with, and in which direction? And why did nothing raise an error?",
+   "replies": [
+    {
+     "author": "u/dunholt_lamp_seraphina",
+     "op": true,
+     "points": 58,
+     "age": "4h",
+     "text": "Cuthwin worked it out in pencil before I had the laptop open: 20 is field 4, type 0, and D4 01 is 84 plus one 128, which is 212. The screen was built two years ago and still says int32 year = 4; Monday's schema says optional int32 folio_count = 4. Nkem says the registry's compatibility type is BACKWARD, the default: it checks each new schema against the last one, so that programs on the new schema can read old entries. Nothing else checks. The team that runs the abbey shop's website uses buf, a tool with a breaking-change check that compares a new schema with the last one released and refuses changes on its list. Ours never has."
+    }
+   ]
+  },
+  {
+   "author": "u/plain_text_fenwray",
+   "points": 97,
+   "age": "4h",
+   "text": "Binary formats are the problem; JSON can't do this. In JSON the year travels as \"year\": 1340 and the folio count as \"folio_count\": 212. A reader that wants a year looks for the word year and either finds it or doesn't; it can never take a folio count for a date. Sending numbers instead of names is a saving from the days of dial-up. You catalogue three books a night. Spend the bytes, put the names on the wire, and this whole class of bug is gone."
+  },
+  {
+   "author": "u/one_night_zuleika",
+   "points": 61,
+   "age": "3h",
+   "text": "The format isn't the bug. The bug is two versions live at once: Nkem changed the writer in spring and nobody touched the screen. Release the app and the screen together, on one night, from one schema file, and there's never an old reader to confuse. That's how we do it where I work."
+  }
+ ],
+ "reply": {
+  "prompt": "The brothers want the screen right before the school party, and the developers want to know what to change for good. What do you advise? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Move the topic to JSON, so every entry carries its own field names and no number can be read as the wrong field.",
+    "tone": "bad",
+    "verdict": "Blanks instead of lies, and no contract",
+    "part2": "Yevgenia moved catalogue-entries to JSON on Wednesday, and the screen was rebuilt to read JSON with the schema it had always used, year and all. That night I catalogued the same three books. No impossible years: the screen looked for a field called year, found none, and printed year unknown for the psalter, the Book of Hours and the herbal. The psalter's entry grew from 35 bytes to 94, and the three together from 110 to 287. Nobody noticed the blanks for a fortnight, because a blank looks like a book nobody has dated, and nothing anywhere checked that the app and the screen still agreed on a single field name. Cuthwin says a lie is at least something you can catch.",
+    "senior": "JSON does carry names, so the screen could never read 212 as a year; it showed a blank instead, which is safer but still wrong, and just as silent. The fault was a number reused after a delete, and JSON has the same failure with names: rename or reuse a name and a reader is misled or left blank. The move costs size, 94 bytes against 35 here, and plain JSON has no schema anyone enforces. Keep the binary format and fix the contract."
+   },
+   {
+    "text": "Release the cataloguing app and the reading-room screen together, on one night, so both always run the same schema.",
+    "tone": "bad",
+    "verdict": "Old letters, new grammar",
+    "part2": "The app and the screen were released together on Thursday night, both on Monday's schema. The screen rebuilds its list every morning at six by reading catalogue-entries from the start, and the topic keeps everything, back to entries written before spring with the year in field 4. On Friday morning the new screen read those years as folio counts: the psalter's old entry showed 1,340 folios until the screen reached its new one from Tuesday night, and every book I haven't re-catalogued yet kept a folio count equal to its year. The nightly copy for the university library, which nobody had remembered, still ran the old schema and read every new folio count as a year.",
+    "senior": "Releasing together lines up only the programs you remember, at one moment. A topic is a log that keeps old messages, so a new reader still meets data from old writers, and a reader you forgot still meets new data. Schemas have to be readable in both directions for as long as old messages and old programs exist. Number 4 meant year in one era and folio count in the next, and no release order fixes that."
+   },
+   {
+    "text": "Put new entries on a new topic with the new schema, and move the screen and every other reader across to it.",
+    "tone": "warn",
+    "verdict": "Right, and a move every time",
+    "part2": "Yevgenia made a new topic, catalogue-entries-2, for Monday's schema and moved the screen to it on the same schema. That night the psalter read c. 1340, 212 folios, and the Book of Hours and the herbal were right too. The old topic still held two years of entries with the year in field 4, so Nkem wrote a one-off job to copy them across with the year in the dated line, and the university's nightly copy was moved by hand. It took a week. The new schema still listed no reserved numbers, and in June Yevgenia asked whether the next deleted field would mean a third topic.",
+    "senior": "A new topic is a clean break: no reader meets a number with two meanings, because the new meaning lives somewhere new. It works, and it is how you handle a change that truly can't be compatible. But it costs a migration every time: every reader moved, old data copied or read from two places, and nothing stops the new schema freeing a number and reusing it. For one field coming and going it is a large tool for a small change."
+   },
+   {
+    "text": "Reserve tag 4, give folios a new tag, and run a breaking-change check that refuses deleting an unreserved field.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Yevgenia moved folio_count to 6 and wrote reserved 4 and reserved \"year\" at the top of the message. When she tried number 4 again in a test, protoc refused to compile it. Nkem put buf's breaking-change check in the release script, ahead of the registry, and ran it over spring's change: it refused it, field 4 deleted without its number reserved. The registry stayed on BACKWARD as the gate every schema publishes through. That night the old screen showed my three books as year unknown: blanks, not lies. The screen moved to the new schema on Friday, and the psalter read c. 1340, 212 folios. Entries from before spring, with the year in field 4, now show folios unknown until I re-catalogue them, never 1,340.",
+    "senior": "In Protocol Buffers the field numbers are the contract, so a number once used means that field forever. Reserving a deleted number makes protoc enforce it, and a breaking-change check in the release path stops the next person deleting a field without reserving it. Keep the registry as the publishing gate, but its BACKWARD check lists removing a field and adding one as compatible, so on its own it was never going to stop this. Old readers still show blanks until they're redeployed, and no check sees a change of meaning under the same number."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e05",
+  "title": "Encode and decode the Dunholt catalogue",
+  "lede": "You're Yevgenia at a copy of the abbey's setup, with the three books Seraphina catalogued tonight: MS 41 Psalter (about 1340, 212 folios), MS 7 Book of Hours (about 1460, 154 folios) and MS 19 Herbal (about 1420, 96 folios). The cataloguing app encodes each entry with the writer's schema into real Protocol Buffers bytes: for every field a tag (its field number and wire type), then a varint, or a length and the text. The reading-room screen decodes them with its own schema, the reader's schema. A field number it doesn't know is skipped, and a number with no bytes reads as 0, which the screen prints as year unknown or folios unknown. It opens before spring, with both on the old schema. Writer \"release 2\" means both releases: spring's, which deleted year = 4 without reserving 4, and Monday's, which gave folio_count number 4. Writer \"fresh\" is the same two releases with 4 reserved and folio_count on 6. You can also send JSON instead, set the registry's compatibility type to BACKWARD (the default) or NONE (checks off), and turn on a breaking-change check that runs before the registry: buf's WIRE rules, which look for changes that break the binary encoding.",
+  "tryThis": "Try this: set the writer to release 2. The psalter's 35 bytes carry 20 D4 01, field 4, value 212, and the old screen prints written in the year 212; the registry accepted both releases. Switch the format to JSON: no wrong years, three blanks, and 94 bytes instead of 35. Back on Protocol Buffers, set the writer to old and the screen to release 2, as when a new screen replays entries from before spring: 1,340 folios. Set the screen back to old, turn the check on with the writer on release 2, and watch release 1 refused. Then pick the fresh writer, and try the screen on old and on fresh."
+ },
+ "explain": {
+  "oneLine": "Nothing aged the books. Number 4 meant year to the screen and folio count to Monday's app, and Protocol Buffers sends numbers, not names, so 212 folios arrived as field 4 and the screen read it as the year 212, with no error.",
+  "steps": [
+   {
+    "title": "Protocol Buffers sends numbers, not names.",
+    "text": "The language guide says a field's number \"identifies the field in the message wire format\". Each field on the wire starts with a tag, which the encoding guide gives as (field_number << 3) | wire_type, and then the value. In the psalter's 35 bytes, 20 is (4 << 3) | 0: field 4, wire type 0, a varint. D4 01 is the varint: the first byte's low seven bits are 84 and its top bit says another byte follows; the second byte is 1, worth 128. 84 + 128 = 212. The words folio_count and year appear nowhere in the message."
+   },
+   {
+    "title": "The screen decoded clean bytes with an old grammar.",
+    "text": "The screen's schema says int32 year = 4; Monday's says optional int32 folio_count = 4. Both are int32, sent the same way, so there was nothing for the screen to object to: it put 212 in year. Field 5, the dated line, is a number the screen doesn't know, so it skipped it; old programs \"simply ignore the new field when parsing\", as the guide says. Skipping new fields is what makes adding fields safe. Reusing an old number is what breaks it: the guide says reuse \"makes decoding wire-format messages ambiguous\"."
+   },
+   {
+    "title": "Spring left number 4 free.",
+    "text": "When you delete a field, the guide says \"you must reserve the deleted field number\", because \"If you do not reserve the field number, it is possible for a developer to reuse that number in the future.\" A line like reserved 4; makes the compiler, protoc, refuse any later field that takes it. Nkem deleted year without reserving 4. Months later Yevgenia needed a number for folio_count and found 4 free."
+   },
+   {
+    "title": "The registry checked the other direction.",
+    "text": "Backward compatible means a new reader can read old data. Forward compatible means an old reader can read new data, which is what the screen needed on Monday. Confluent's BACKWARD, the registry's default, checks the first: \"consumers using new schema can read data written with old schema (add optional fields, remove fields)\", against the last schema registered. Spring removed a field and Monday added one, and both of those are on its list. A breaking-change check asks a different question: buf's rule FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED, in its WIRE category, flags a field deleted without its number reserved, which is exactly spring's change."
+   },
+   {
+    "title": "Three formats, three ways a reader finds a field.",
+    "text": "JSON is self-describing: names travel with every value, so the old screen looks for year, finds none, and shows a blank instead of 212, at 94 bytes against 35. Protocol Buffers sends numbers, so it is small, and safe as long as a number never changes meaning. Avro sends neither: its binary data \"does not include type information or field names\", and the reader resolves the writer's schema against its own by name, ignoring fields it lacks and filling missing ones from its defaults, or signalling an error. It needs the writer's schema to read anything, which is a job a schema registry often does."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 380,
+   "aria": "The fix. The cataloguing app's schema reserves number 4 and puts folio_count on number 6. Each new schema goes first through a breaking-change check, buf with its WIRE rules, which refuses a field deleted without its number reserved, then through the schema registry on BACKWARD, the gate it publishes through. Entries go to catalogue-entries; the psalter's ends 30 D4 01, field 6. The screen on the old schema skips field 6 and shows year unknown. The screen on the new schema reads folio_count and shows 212 folios.",
+   "nodes": [
+    {
+     "id": "app",
+     "label": "Cataloguing app",
+     "sub": "reserved 4",
+     "meta": "folio_count = 6",
+     "x": 95,
+     "y": 80,
+     "w": 150,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "check",
+     "label": "Breaking check",
+     "sub": "buf, WIRE rules",
+     "meta": "no unreserved delete",
+     "x": 330,
+     "y": 80,
+     "w": 170,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "reg",
+     "label": "Schema registry",
+     "sub": "BACKWARD",
+     "meta": "the publishing gate",
+     "x": 590,
+     "y": 80,
+     "w": 170,
+     "h": 62,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "topic",
+     "label": "catalogue-entries",
+     "sub": "MS 41 ends 30 D4 01",
+     "meta": "field 6 = 212",
+     "x": 590,
+     "y": 200,
+     "w": 190,
+     "h": 62,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "old",
+     "label": "Screen, old schema",
+     "sub": "field 6 skipped",
+     "meta": "MS 41: year unknown",
+     "x": 200,
+     "y": 320,
+     "w": 220,
+     "h": 62,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "new",
+     "label": "Screen, new schema",
+     "sub": "folio_count = 6",
+     "meta": "MS 41: 212 folios",
+     "x": 590,
+     "y": 320,
+     "w": 220,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "app",
+     "to": "check",
+     "label": "schema"
+    },
+    {
+     "from": "check",
+     "to": "reg",
+     "label": "passed",
+     "tone": "ok"
+    },
+    {
+     "from": "reg",
+     "to": "topic",
+     "label": "publish"
+    },
+    {
+     "from": "topic",
+     "to": "old",
+     "label": "old reader",
+     "tone": "warn"
+    },
+    {
+     "from": "topic",
+     "to": "new",
+     "label": "new reader",
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the next release. Number 4 is reserved and folio_count lives on 6. A breaking-change check runs first and refuses any field deleted without its number reserved; the registry stays the gate on BACKWARD. The old screen skips field 6 and shows a blank, never a wrong year; the new screen reads 212 folios.",
+  "fix": {
+   "title": "The fix: reserve what you delete, never reuse a number, and check every schema before it ships",
+   "text": "Move folio_count to a number that has never been used, 6, and add reserved 4; and reserved \"year\"; so protoc refuses any field that tries to take them. Put a breaking-change check in the release path, ahead of the registry: buf's WIRE rules include FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED, which refuses a delete like spring's, and if anyone reads the JSON form, the WIRE_JSON rules also refuse a renamed field. Keep the registry as the gate every schema publishes through, and know what its compatibility type promises: BACKWARD protects new readers of old data, not old readers of new data. Then move the screen to the new schema."
+  },
+  "limits": [
+   "Old readers still show blanks until they are redeployed. With folio_count on 6, the old screen said year unknown for every new entry: no wrong years, but nothing useful either. Reserving a number stops lies, not gaps.",
+   "A check sees only what passes through it and only what its rules describe. A schema copied by hand into another program skips it, and a change of meaning under the same number, such as counting pages instead of leaves in folio_count, passes every check.",
+   "Registry checks depend on the compatibility type and on what they compare with. BACKWARD compares with the last schema only; Confluent recommends BACKWARD_TRANSITIVE for Protocol Buffers, which compares with every earlier one."
+  ],
+  "tradeoff": {
+   "head": [
+    "Choice",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Protocol Buffers, number 4 reused (as built)",
+     "Small: 35 bytes for the psalter. Old programs skip fields they don't know.",
+     "An old reader takes the new field for the old one: the year 212, with no error."
+    ],
+    [
+     "Switch the topic to JSON",
+     "Names travel, so the screen can't take a folio count for a year.",
+     "A silent blank instead; 94 bytes against 35; nothing enforces the shape, and renames break readers."
+    ],
+    [
+     "Release app and screen together",
+     "One schema at a time among the programs you remember.",
+     "The topic keeps old messages: 1,340 folios on replay. Readers you forgot break."
+    ],
+    [
+     "A new topic for the new shape",
+     "A clean break: no number has two meanings.",
+     "A migration every time; old data copied; numbers can still be freed and reused."
+    ],
+    [
+     "Reserve 4, new number, breaking-change check (the fix)",
+     "No reader shows a wrong number; protoc and the check refuse reuse and unreserved deletes.",
+     "Old readers show blanks until redeployed; a change of meaning passes."
+    ],
+    [
+     "Avro with a registry",
+     "Fields matched by name, with defaults for missing ones; small binary.",
+     "A reader needs the writer's schema to read a single byte."
+    ]
+   ]
+  },
+  "seniorTake": "A message format is a contract between programs that are never released at the same moment, and in a log the old messages outlive the programs that wrote them. So pick a format by what it does when the two sides disagree. JSON fails to a silent blank, Protocol Buffers to whatever the number used to mean, Avro to a default or an error. Then make the contract hard to break by accident: never reuse a field number, reserve the ones you delete, run a breaking-change check on every change, and let the registry be the gate. Decide which direction you need, new readers of old data, old readers of new data, or both, because the compatibility type only promises what its name says.",
+  "realWorld": [
+   {
+    "title": "Protocol Buffers: the number is the field's identity",
+    "text": "The proto3 language guide says a field's number \"cannot be changed once your message type is in use because it identifies the field in the message wire format\", and plainly: \"Field numbers should never be reused.\"",
+    "source": 0
+   },
+   {
+    "title": "Protocol Buffers: reserve what you delete",
+    "text": "Under Deleting Fields the guide says \"you must reserve the deleted field number\", because \"If you do not reserve the field number, it is possible for a developer to reuse that number in the future.\" With numbers reserved, \"The protoc compiler will generate error messages if any future developers try to use these reserved field numbers.\" The example reads reserved 2, 15, 9 to 11;.",
+    "source": 0
+   },
+   {
+    "title": "Protocol Buffers: compatible types and unknown fields",
+    "text": "The guide lists \"int32, uint32, int64, uint64, and bool are all compatible\" on the wire, which is why year and folio_count decode into each other without complaint. Adding a field is safe because \"old binaries simply ignore the new field when parsing\". For a field with no bytes, \"For numeric types, the default value is zero.\"",
+    "source": 0
+   },
+   {
+    "title": "The wire format: tags and varints",
+    "text": "The encoding guide says a record's tag is \"a varint formed from the field number and the wire type via the formula (field_number << 3) | wire_type\". Wire type 0 is VARINT, used for int32 among others, and 2 is LEN, used for strings. In a varint \"The lower 7 bits are a payload\", in little-endian order. Its own example: field 1 set to 150 gives the three bytes 08 96 01.",
+    "source": 1
+   },
+   {
+    "title": "Avro: the writer's schema resolved against the reader's",
+    "text": "The Avro specification calls the schema used to write the data the writer's schema and the one the application expects the reader's schema. For records, \"fields are matched by name\"; a writer's field the reader lacks is ignored; a reader's field the writer lacks takes the reader's default, and \"if the reader's record schema has a field with no default value ... an error is signalled.\"",
+    "source": 2
+   },
+   {
+    "title": "Avro: binary with no names at all",
+    "text": "\"Binary encoded Avro data does not include type information or field names.\" The specification says the benefit is small data, but \"a schema must always be used in order to read Avro data correctly\", and readers \"are wholly reliant on the schema used when the data was encoded.\"",
+    "source": 2
+   },
+   {
+    "title": "Confluent Schema Registry: BACKWARD is the default",
+    "text": "Confluent's documentation says \"The Confluent Schema Registry default compatibility type is BACKWARD\", where BACKWARD means \"consumers using new schema can read data written with old schema (add optional fields, remove fields)\" and FORWARD means \"consumers using old schema can read data written with new schema\". NONE means \"schema compatibility checks are disabled.\"",
+    "source": 3
+   },
+   {
+    "title": "Confluent: BACKWARD_TRANSITIVE for Protocol Buffers",
+    "text": "The Protobuf page says \"In general, it's recommended to use BACKWARD_TRANSITIVE with Protobuf\", \"as adding new message types is not forward compatible\". The transitive types check against all earlier versions, not just the last one.",
+    "source": 4
+   },
+   {
+    "title": "buf: breaking-change rules by category",
+    "text": "buf's breaking-change rules come in categories. WIRE \"Detects changes that break wire (binary) encoding\"; WIRE_JSON \"Detects changes that break wire (binary) or JSON encoding\"; FILE is the default. FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED, in WIRE and WIRE_JSON, flags a field deleted without its number reserved. FIELD_SAME_NAME, in WIRE_JSON among others, \"checks that the field name for a given field number doesn't change\", because JSON uses field names.",
+    "source": 5
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you evolve an event schema without breaking consumers?",
+    "Protocol Buffers, Avro or JSON?",
+    "What is a schema registry?"
+   ],
+   "answer": "Start from who upgrades first. If consumers upgrade before producers you need backward compatibility, new readers of old data; if producers go first, forward compatibility; in a long-lived log, usually both. Then the rules: only add fields, as optional, with sensible defaults; never change a field's type or meaning; never reuse a field number, and reserve the number and name of anything you delete. For formats: JSON is self-describing and easy to inspect, but large, and nothing enforces it; Protocol Buffers is compact and identifies fields by number, so numbers are the contract; Avro carries no names or numbers and resolves the writer's schema against the reader's by name, so every reader needs the writer's schema. A schema registry stores every version of a topic's schemas and checks each new one against a compatibility type before it can be used; Confluent's default is BACKWARD, and it recommends BACKWARD_TRANSITIVE for Protocol Buffers. I'd put a breaking-change check, such as buf, in the release path as well, because a registry's compatibility rules and a rule like no unreserved deletes answer different questions."
+  }
+ },
+ "terms": [
+  {
+   "term": "Abbey",
+   "def": "A community of monks or nuns led by an abbot or abbess, and its buildings. Dunholt Abbey keeps a library of old manuscripts."
+  },
+  {
+   "term": "The brothers",
+   "def": "The monks of Dunholt Abbey."
+  },
+  {
+   "term": "The hours",
+   "def": "The fixed times of prayer that a monk keeps through the day and night."
+  },
+  {
+   "term": "Lay archivist",
+   "def": "Someone who is not a monk or nun, employed to look after and catalogue an archive. Seraphina is Dunholt's."
+  },
+  {
+   "term": "Copying room",
+   "def": "The room where monks once copied books by hand, also called a scriptorium. Seraphina catalogues there at night."
+  },
+  {
+   "term": "Manuscript",
+   "def": "A book written by hand. Dunholt's oldest are medieval."
+  },
+  {
+   "term": "Catalogue entry",
+   "def": "One record describing one book: shelfmark, title, language and when it was made. Each one travels as one message on catalogue-entries."
+  },
+  {
+   "term": "Re-catalogue",
+   "def": "Catalogue a book again with fuller details. Seraphina is going back over books first entered years ago, adding what nobody recorded then."
+  },
+  {
+   "term": "Shelfmark",
+   "def": "A library's code for a book and where it lives, like MS 41."
+  },
+  {
+   "term": "Psalter",
+   "def": "A book of the Psalms, used for prayer. MS 41, the Dunholt Psalter, is from about 1340."
+  },
+  {
+   "term": "Book of Hours",
+   "def": "A prayer book for lay people, arranged by the hours of the day. Dunholt's, MS 7, is from about 1460."
+  },
+  {
+   "term": "Herbal",
+   "def": "A book describing plants and their uses. Dunholt's, MS 19, is an English one from about 1420."
+  },
+  {
+   "term": "Folio",
+   "def": "One leaf of a manuscript, front and back. A folio count says how many leaves a book has: the psalter has 212."
+  },
+  {
+   "term": "Hand (writing)",
+   "def": "The style of a scribe's handwriting. Experts date manuscripts by it, as in the hand of about 1340."
+  },
+  {
+   "term": "Charter",
+   "def": "A formal medieval document, such as a grant of land, written out with great care."
+  },
+  {
+   "term": "Cataloguing app",
+   "def": "The program Seraphina types entries into. It is the producer: it encodes each entry with its schema and writes it to catalogue-entries."
+  },
+  {
+   "term": "catalogue-entries",
+   "def": "The Kafka topic the app writes entries to and the screen reads. It keeps every entry, so the screen rebuilds its list each morning by reading from the start."
+  },
+  {
+   "term": "Reading-room screen",
+   "def": "The display downstairs that shows visitors what the library holds. It is a consumer of catalogue-entries, still built on the old schema."
+  },
+  {
+   "term": "Debug page",
+   "def": "A hidden page in a program that shows its internals, here the raw bytes of the last message it read."
+  },
+  {
+   "term": "proto3",
+   "def": "A version of the Protocol Buffers language, declared by syntax = \"proto3\"; at the top of a .proto file. Dunholt's schemas use it."
+  },
+  {
+   "term": "University copy",
+   "def": "A copy of the catalogue the abbey sends a university library each night, made by another program that reads catalogue-entries."
+  },
+  {
+   "term": "Serialization",
+   "def": "Turning a program's data into bytes to send or store, and back again (deserialization). JSON, Protocol Buffers and Avro are serialization formats."
+  },
+  {
+   "term": "Encode and decode",
+   "def": "Encode: turn a program's values into bytes, using a schema. Decode: turn bytes back into values, using a schema, which may not be the same one."
+  },
+  {
+   "term": "Wire format",
+   "def": "What a message looks like as bytes on the network or on disk, as opposed to inside a program."
+  },
+  {
+   "term": "Schema (message)",
+   "def": "The agreed description of a message's fields: their names, types and, in Protocol Buffers, numbers. Both sides need it to agree."
+  },
+  {
+   "term": ".proto file",
+   "def": "A text file in Protocol Buffers' language declaring messages and fields, like int32 year = 4;. Each program's code is generated from it."
+  },
+  {
+   "term": "Field (message)",
+   "def": "One value in a message, with a name and a type, like title or year."
+  },
+  {
+   "term": "Field number",
+   "def": "The number a schema gives each field, like 4 in int32 year = 4;. Protocol Buffers sends it on the wire in place of the field's name."
+  },
+  {
+   "term": "Tag",
+   "def": "The start of each field on the wire: the field number and wire type packed as (field_number << 3) | wire_type. 20 is field 4, wire type 0."
+  },
+  {
+   "term": "Wire type",
+   "def": "The part of a tag that says how to read the value. 0 is a varint; 2 is a length, then that many bytes, used for text."
+  },
+  {
+   "term": "Varint",
+   "def": "A whole number written seven bits to a byte, lowest group first, with the top bit set on every byte but the last. 212 is D4 01."
+  },
+  {
+   "term": "int32",
+   "def": "A whole-number field type in Protocol Buffers, sent as a varint. year and folio_count are both int32, so their bytes look the same."
+  },
+  {
+   "term": "string (field type)",
+   "def": "A text field type in Protocol Buffers, sent as wire type 2: a length, then the characters. Title, language and dated are strings."
+  },
+  {
+   "term": "optional (proto3)",
+   "def": "A label on a proto3 field so a reader can tell unset from zero. Spring's dated and Monday's folio_count were added as optional."
+  },
+  {
+   "term": "Unknown field",
+   "def": "Bytes for a field number the reader's schema doesn't have. Protocol Buffers readers skip them, which is why old programs ignore new fields."
+  },
+  {
+   "term": "Default value",
+   "def": "What a field holds when its bytes are absent: zero for numbers in proto3. The old screen prints year unknown when year is 0."
+  },
+  {
+   "term": "Reserved",
+   "def": "A list in a .proto file of numbers and names no field may use, like reserved 4;. protoc refuses to compile a field that takes one."
+  },
+  {
+   "term": "protoc",
+   "def": "The Protocol Buffers compiler. It turns .proto files into code and reports errors, such as a field using a reserved number."
+  },
+  {
+   "term": "Writer's schema",
+   "def": "The schema the program that wrote a message used. Here, the cataloguing app's."
+  },
+  {
+   "term": "Reader's schema",
+   "def": "The schema the program reading a message expects. Here, the screen's. When it differs from the writer's, something has to reconcile them."
+  },
+  {
+   "term": "Self-describing",
+   "def": "A format whose data carries its own labels, like JSON's field names, so it can be read without a schema."
+  },
+  {
+   "term": "Avro",
+   "def": "Apache Avro, a binary serialization format whose data carries no field names or numbers; a reader needs the writer's schema to decode it."
+  },
+  {
+   "term": "Schema resolution (Avro)",
+   "def": "Avro's rules for reading data with a schema other than the writer's: match fields by name, ignore the writer's extras, take defaults for missing ones."
+  },
+  {
+   "term": "Backward compatibility",
+   "def": "A program on the new schema can read data written with an older one. New readers, old data."
+  },
+  {
+   "term": "Forward compatibility",
+   "def": "A program on an older schema can read data written with a newer one. Old readers, new data: what the screen needed."
+  },
+  {
+   "term": "Schema registry",
+   "def": "A service that stores every version of a topic's schemas and checks each new one against a compatibility rule before programs may use it."
+  },
+  {
+   "term": "Confluent Schema Registry",
+   "def": "Confluent's schema registry for Kafka. Confluent is a company whose products are built around Kafka."
+  },
+  {
+   "term": "Compatibility type",
+   "def": "A registry's rule for accepting a new schema. Confluent's are BACKWARD, FORWARD, FULL, their TRANSITIVE forms, and NONE."
+  },
+  {
+   "term": "BACKWARD",
+   "def": "Confluent's default compatibility type: consumers on the new schema can read data written with the old one. It checks against the last schema."
+  },
+  {
+   "term": "BACKWARD_TRANSITIVE",
+   "def": "Like BACKWARD, but checked against every earlier schema, not just the last. Confluent recommends it for Protocol Buffers."
+  },
+  {
+   "term": "NONE",
+   "def": "The compatibility type that turns the registry's checks off."
+  },
+  {
+   "term": "Breaking-change check",
+   "def": "A tool that compares a new schema with the last one released and refuses changes on its list of ones that would break readers or writers."
+  },
+  {
+   "term": "buf",
+   "def": "A tool for working with Protocol Buffers. Its breaking-change check groups its rules in categories: FILE (the default), PACKAGE, WIRE and WIRE_JSON."
+  },
+  {
+   "term": "WIRE and WIRE_JSON (buf)",
+   "def": "buf categories. WIRE: changes that break the binary encoding. WIRE_JSON: changes that break the binary or the JSON encoding, including renames."
+  },
+  {
+   "term": "FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED",
+   "def": "A buf breaking-change rule, in WIRE and WIRE_JSON: it flags a field deleted without its number reserved."
+  },
+  {
+   "term": "FIELD_SAME_NAME",
+   "def": "A buf breaking-change rule, in WIRE_JSON among others: the name for a field number must not change, because JSON uses field names."
+  },
+  {
+   "term": "Release script",
+   "def": "The steps that build, check and ship a new version of a program."
+  },
+  {
+   "term": "Dial-up",
+   "def": "Connecting to the internet over a phone line, slow by today's standards."
+  },
+  {
+   "term": "Wrong number (in the sim)",
+   "def": "A year or folio count the screen shows that is not the book's own, like the year 212 for the psalter."
+  },
+  {
+   "term": "Blank (in the sim)",
+   "def": "A year or folio count the screen can't find, shown as year unknown or folios unknown."
+  }
+ ],
+ "atWork": "Picture a common incident: a payments team renames a field in an event schema, a consumer still built on the old schema reads the field as missing, takes the default of zero as the amount, and pays nothing, with no error anywhere. Look for the same in your systems. List every schema your services exchange (.proto files, Avro schemas, JSON contracts) and every reader of each topic, including exports and analytics jobs nobody remembers. In each .proto, check that every deleted field left its number and name reserved. Check your registry's compatibility type for each topic: BACKWARD is Confluent's default, and Confluent recommends BACKWARD_TRANSITIVE for Protocol Buffers. Ask whether your readers upgrade before or after your writers, because BACKWARD only protects new readers of old data. Check whether a breaking-change check runs in your release path before the registry, and in which category: WIRE if only binary readers exist, WIRE_JSON if anyone reads the JSON form. If your company is pursuing ISO/IEC 27001:2022 certification, control A.8.32 (change management) expects changes to information systems to be planned, assessed, tested and documented; a schema check that runs on every change, with a record of what it refused, is the kind of evidence it asks for, so build it into the first schema rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "serialization",
+    "title": "Serialization"
+   },
+   {
+    "id": "schema-evolution",
+    "title": "Schema evolution"
+   },
+   {
+    "id": "json-vs-protocol-buffers-vs-avro",
+    "title": "JSON vs Protobuf vs Avro"
+   },
+   {
+    "id": "backward",
+    "title": "Backward"
+   }
+  ],
+  "strings": [
+   {
+    "from": "serialization",
+    "to": "json",
+    "label": "names on the wire"
+   },
+   {
+    "from": "json-vs-protocol-buffers-vs-avro",
+    "to": "serialization",
+    "label": "three formats"
+   },
+   {
+    "from": "serialization",
+    "to": "log-based-streams",
+    "label": "what it carries"
+   },
+   {
+    "from": "schema-evolution",
+    "to": "backward",
+    "label": "new reads old"
+   },
+   {
+    "from": "schema-evolution",
+    "to": "versioning",
+    "label": "within a version"
+   },
+   {
+    "from": "schema-evolution",
+    "to": "safe-schema-migrations",
+    "label": "same idea, a table"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e05-r1",
+   "kind": "free",
+   "prompt": "Your order service publishes OrderPlaced events as Protocol Buffers on a Kafka topic. Six months ago someone deleted the field discount_cents = 7 from the schema. Today a teammate adds gift_wrap_fee_cents, sees that 7 is free, and gives it 7. Three consumers haven't been redeployed since before the deletion. What will they do with the new events, and what do you tell the teammate?",
+   "keyIdeas": [
+    {
+     "idea": "The old consumers decode field 7 as the old discount: a wrong value, silently, with no error, because the bytes look the same",
+     "match": [
+      "as the discount",
+      "as a discount",
+      "old meaning",
+      "wrong value",
+      "wrong amount",
+      "misread",
+      "no error",
+      "silently",
+      "decode it as"
+     ]
+    },
+    {
+     "idea": "Never reuse a field number: reserve 7 and the old name, and give the new field a number never used",
+     "match": [
+      "reserve",
+      "never reuse",
+      "don't reuse",
+      "do not reuse",
+      "new number",
+      "fresh number",
+      "unused number",
+      "never been used"
+     ]
+    },
+    {
+     "idea": "Add a breaking-change check before the registry that refuses deleting a field without reserving its number",
+     "match": [
+      "breaking-change",
+      "breaking change check",
+      "buf breaking",
+      "release path",
+      "before it ships",
+      "before publishing",
+      "check every schema",
+      "unreserved"
+     ]
+    }
+   ],
+   "model": "The three old consumers still have discount_cents = 7 in their schema, and a gift-wrap fee is an integer sent the same way, so they will decode it as the discount: a wrong value, silently, with no error, on every order that has gift wrap. Tell the teammate never to reuse a field number. Give gift_wrap_fee_cents a new number that has never been used, and add reserved 7 and reserved \"discount_cents\" so protoc refuses the next attempt. Then add a breaking-change check, such as buf's FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED rule, to the release path before the registry, so a field can't be deleted without its number reserved in the first place."
+  },
+  {
+   "id": "s4e05-r2",
+   "kind": "mcq",
+   "prompt": "A Protocol Buffers message starts with the bytes 08 96 01. What do they say?",
+   "options": [
+    "Field 8, followed by a two-byte value",
+    "Field 1, wire type 0 (a varint), value 150",
+    "Field 1, wire type 0, value 22",
+    "Field 8, value 150"
+   ],
+   "answer": 1,
+   "why": "The tag is (field_number << 3) | wire_type, so 08 is field 1, wire type 0, a varint. In 96 01 the first byte's top bit says another byte follows and its low seven bits are 22; the second byte is 1, worth 128; 22 + 128 = 150. It is the encoding guide's own example. At Dunholt, 20 D4 01 was field 4, value 212."
+  },
+  {
+   "id": "s4e05-r3",
+   "kind": "free",
+   "prompt": "A colleague says: \"Our schema registry is set to BACKWARD, the default, so any change it accepts is safe for every consumer.\" On your team, consumers are usually redeployed weeks after producers. What is wrong with the claim?",
+   "keyIdeas": [
+    {
+     "idea": "BACKWARD means new readers can read old data; with consumers updated last, old readers meet new data, which needs forward compatibility",
+     "match": [
+      "forward",
+      "old readers",
+      "old consumers",
+      "older consumers",
+      "new data",
+      "new readers",
+      "other direction",
+      "wrong direction"
+     ]
+    },
+    {
+     "idea": "It compares only with the last schema version, not every earlier one; transitive types check all",
+     "match": [
+      "transitive",
+      "last version",
+      "latest version",
+      "only the last",
+      "previous version",
+      "all versions",
+      "every earlier",
+      "earlier versions"
+     ]
+    },
+    {
+     "idea": "Its list counts removing a field as compatible, so a number deleted without reserving can later be reused; reserve numbers and add a breaking-change check",
+     "match": [
+      "reserve",
+      "reused",
+      "reuse",
+      "same number",
+      "breaking-change",
+      "breaking change check",
+      "removing a field",
+      "deleted field"
+     ]
+    }
+   ],
+   "model": "BACKWARD means consumers on the new schema can read data written with the old one: new readers, old data. Your consumers are redeployed weeks after producers, so for those weeks old readers meet new data, and that needs forward compatibility, which BACKWARD doesn't promise. It also compares only with the last version, not every earlier one; the transitive types check all of them, and Confluent recommends BACKWARD_TRANSITIVE for Protocol Buffers. And its list counts removing a field as compatible, so a field number deleted without reserving it can be reused later with a new meaning. Reserve deleted numbers and add a breaking-change check in the release path; compatible to the registry is not the same as safe for every consumer."
+  },
+  {
+   "id": "s4e05-r4",
+   "kind": "mcq",
+   "prompt": "Avro data was written with a writer's schema that has a field year and no field folio_count. The reader's schema has folio_count with default 0, and no year. What does the reader get?",
+   "options": [
+    "folio_count holds the year's value, matched by position",
+    "folio_count is 0, and the writer's year is ignored",
+    "An error, because the two schemas are different",
+    "folio_count is empty, and year is kept as an unknown field"
+   ],
+   "answer": 1,
+   "why": "Avro resolves the writer's schema against the reader's, and for records \"fields are matched by name\". The writer's year has no match, so it is ignored; the reader's folio_count has no match in the writer's schema but has a default, so the reader uses 0. Only a reader's field with no default and no match signals an error. Avro could not have shown Dunholt's year 212."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. Reserved numbers held, and the screen has been right since spring. In March the university library asked for its nightly copy as JSON, so a small program now turns each entry into JSON with the schema's names. In June Yevgenia changed string language = 3; to string script_language = 3;. The breaking-change check passed it on buf's WIRE rules, the registry accepted it, and the reading-room screen never noticed. Since then every entry in the university's copy says language unknown.",
+  "prompt": "Reply to OP. Why did the university's copy lose the language when the screen didn't, and what should the check have been set to?",
+  "keyIdeas": [
+   {
+    "idea": "The binary wire carries only number 3, which didn't change, but JSON is keyed by name, so the JSON reader looks for language and finds nothing",
+    "match": [
+     "by name",
+     "json uses",
+     "names travel",
+     "keyed by",
+     "the old name",
+     "name changed",
+     "number didn't change",
+     "number stayed",
+     "only the number"
+    ]
+   },
+   {
+    "idea": "WIRE rules only protect the binary encoding; with a JSON reader the check should use WIRE_JSON, whose FIELD_SAME_NAME refuses the change",
+    "match": [
+     "wire_json",
+     "field_same_name",
+     "same_name",
+     "json category",
+     "json rules",
+     "json compatibility",
+     "json encoding"
+    ]
+   },
+   {
+    "idea": "Keep the old name, or add the new field beside it and move the university first before retiring the old one",
+    "match": [
+     "keep the old name",
+     "keep language",
+     "both names",
+     "expand and contract",
+     "move the university",
+     "tell the university",
+     "reserve the name",
+     "reserved name",
+     "beside it"
+    ]
+   }
+  ],
+  "model": "On the binary wire nothing changed: the field still travels as number 3, so the screen decodes it as before. But JSON is keyed by name, and the program that makes the university's copy writes script_language now; the university's reader looks for language, finds nothing and shows a blank. The name changed, and for a JSON reader the name is the contract. WIRE rules only protect the binary encoding, so the check passed it. With anyone reading JSON, run the check on WIRE_JSON, whose FIELD_SAME_NAME rule refuses a field number's name changing. To make the change safely, keep the old name, or add the new field beside it with expand and contract, move the university to it, and only then retire language and add it to the reserved names."
+ },
+ "next": "Next, At Least Once: a courier that always knocks twice, and what a system can promise about delivering a message: at most once, at least once, or \"exactly once\".",
+ "sources": [
+  {
+   "title": "Protocol Buffers Documentation, Language Guide (proto 3) (assigning field numbers: cannot be changed once in use, should never be reused; deleting fields: you must reserve the deleted field number; consequences of reusing field numbers; reserved syntax and protoc errors; updating a message type: int32, uint32, int64, uint64 and bool compatible, old binaries ignore new fields; default values)",
+   "url": "https://protobuf.dev/programming-guides/proto3/"
+  },
+  {
+   "title": "Protocol Buffers Documentation, Encoding (the tag as (field_number << 3) | wire_type; wire types VARINT 0 and LEN 2; varints with a continuation bit and 7-bit payloads in little-endian order; the example 150 as 08 96 01)",
+   "url": "https://protobuf.dev/programming-guides/encoding/"
+  },
+  {
+   "title": "Apache Avro 1.12.0 Specification (schema resolution: writer's and reader's schema, fields matched by name, defaults, error with no default; binary encoding includes no type information or field names)",
+   "url": "https://avro.apache.org/docs/1.12.0/specification/"
+  },
+  {
+   "title": "Confluent Documentation, Schema Evolution and Compatibility for Schema Registry (compatibility types BACKWARD, FORWARD, FULL, transitive and NONE; the default compatibility type is BACKWARD)",
+   "url": "https://docs.confluent.io/platform/current/schema-registry/fundamentals/schema-evolution.html"
+  },
+  {
+   "title": "Confluent Documentation, Protobuf Schema Serializer and Deserializer for Schema Registry (BACKWARD_TRANSITIVE recommended for Protobuf, as adding new message types is not forward compatible)",
+   "url": "https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/serdes-protobuf.html"
+  },
+  {
+   "title": "Buf Documentation, Breaking change rules and categories (FILE, PACKAGE, WIRE_JSON, WIRE; FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED; FIELD_SAME_NAME; FILE is the default)",
+   "url": "https://buf.build/docs/breaking/rules/"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.32 Change Management (changes to information systems are planned, assessed, authorised, tested, documented, and communicated)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-32-change-management-2022/"
+  }
+ ]
+}
