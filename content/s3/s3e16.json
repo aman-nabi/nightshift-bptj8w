@@ -1,0 +1,973 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-11) setting matches the catalog",
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s3e16",
+ "season": 3,
+ "n": 16,
+ "title": "The Migration That Ate Tuesday",
+ "setting": "a moving company",
+ "core": true,
+ "minutes": 13,
+ "concepts": [
+  "safe-schema-migrations",
+  "expand",
+  "contract",
+  "online-backfills"
+ ],
+ "prerequisites": [
+  "s3e01",
+  "s3e02",
+  "s2e03",
+  "s2e16",
+  "s2e02",
+  "s2e01",
+  "s2e04",
+  "s1e09",
+  "s1e08",
+  "s1e06",
+  "s1e04",
+  "s1e02"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_dispatch_dorrit",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 2874,
+  "title": "I'm the night dispatcher at a removals company. Twenty-nine customers hold confirmation emails for moves our schedule says were never booked. On Thursday one family waited on the pavement with their boxes, and no van came.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "Grisedale Removals runs on two apps and one database. The office app is ours: the schedule, the van sheets, the phones. The booking website is the customers'. Both read and write the same table of jobs. I take the night line and print the next day's van sheets at midnight."
+   },
+   {
+    "t": "p",
+    "text": "On Monday Hartigan, our developer, fixed something that had annoyed him for years. Move days were kept as text: 'Thu 14th', '14/11', once 'after lunch Friday'. He wanted a real date column. His note went up by the kettle:"
+   },
+   {
+    "t": "note",
+    "title": "move_day to move_date, this week",
+    "items": [
+     "Mon 18:00  add move_date, a real date",
+     "Mon evening  office app 4.3 reads and writes move_date only",
+     "Mon 23:00  copy every move_day into move_date",
+     "Wed 02:00  drop move_day (scheduled)"
+    ],
+    "sig": "- H."
+   },
+   {
+    "t": "p",
+    "text": "He skipped a step most guides put in: a stretch when the apps write both columns, called a dual write. He said the copy would cover everything."
+   },
+   {
+    "t": "p",
+    "text": "The copy ran from 23:00 to 23:40 on Monday. Tuesday was busy. At 02:00 on Wednesday the scheduled step ran, and at 02:04 the night line rang: a woman checking her booking on our website had an error page. Then another caller. The logs:"
+   },
+   {
+    "t": "log",
+    "text": "Wed 02:00:00  db           ALTER TABLE jobs DROP COLUMN move_day        ok\nWed 02:04:17  website 2.7  GET /booking/R-40977   ERROR: column \"move_day\" does not exist\nWed 02:04:17  website 2.7  500 Internal Server Error\nWed 06:55:02  website 2.7  POST /book             ERROR: column \"move_day\" does not exist"
+   },
+   {
+    "t": "p",
+    "text": "The website was fixed at 10:40. Then we counted. Between the copy's end on Monday night and the drop, the website took 29 bookings, all of them on Tuesday, and the office took 12. The 29 are still in the table: names, addresses, phone numbers, how many boxes. Their move_date is empty. Their move_day went with the column."
+   },
+   {
+    "t": "beat",
+    "text": "Twenty-nine people hold emails confirming a date that is no longer written anywhere we keep dates."
+   },
+   {
+    "t": "p",
+    "text": "The schedule reads move_date, so it never showed them: not on Tuesday, when the dates were still there to copy, and not since. All 29 were booked for Thursday or later. We spent Wednesday ringing the numbers in the confirmation emails and reached 26."
+   },
+   {
+    "t": "p",
+    "text": "At 08:00 on Thursday, as I handed over the line, Mrs Achterberg rang from the pavement outside her flat, boxes stacked at the kerb. Booking R-40981, made Tuesday at 10:17: three movers, Thursday, 08:00. The van sheet I printed at midnight had no Achterberg on it."
+   },
+   {
+    "t": "p",
+    "text": "Hartigan has to change pack_day, the packing day, the same way next month. What should we do?"
+   },
+   {
+    "t": "evidence",
+    "label": "jobs_table_wednesday_0201.png",
+    "diagram": {
+     "type": "arch",
+     "w": 740,
+     "h": 370,
+     "aria": "The jobs table just after the drop at 02:00 on Wednesday. The office app 4.3, redeployed on Monday at 19:30, reads and writes move_date and made 12 bookings on Tuesday. The booking website 2.7 was not redeployed; it reads and writes move_day and made 29 bookings on Tuesday. Of Tuesday's 41 rows, 29 have move_date empty. The drop of move_day at 02:00 on Wednesday took their only dates.",
+     "nodes": [
+      {
+       "id": "office",
+       "label": "Office app 4.3",
+       "sub": "reads, writes move_date",
+       "meta": "redeployed Mon 19:30",
+       "x": 140,
+       "y": 60,
+       "w": 240,
+       "h": 72,
+       "shape": "box",
+       "tone": "ok"
+      },
+      {
+       "id": "web",
+       "label": "Booking website 2.7",
+       "sub": "reads, writes move_day",
+       "meta": "not redeployed",
+       "x": 600,
+       "y": 60,
+       "w": 240,
+       "h": 72,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "jobs",
+       "label": "jobs table",
+       "sub": "Tuesday: 41 bookings",
+       "meta": "29 with move_date empty",
+       "x": 370,
+       "y": 200,
+       "w": 280,
+       "h": 76,
+       "shape": "db",
+       "tone": "warn"
+      },
+      {
+       "id": "drop",
+       "label": "Wed 02:00: DROP COLUMN move_day",
+       "sub": "29 dates gone with it",
+       "x": 370,
+       "y": 320,
+       "w": 360,
+       "h": 52,
+       "shape": "box",
+       "tone": "bad"
+      }
+     ],
+     "edges": [
+      {
+       "from": "office",
+       "to": "jobs",
+       "label": "12 bookings"
+      },
+      {
+       "from": "web",
+       "to": "jobs",
+       "label": "29 bookings"
+      },
+      {
+       "from": "drop",
+       "to": "jobs",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "The jobs table at 02:01 on Wednesday. Office app 4.3 wrote its 12 Tuesday bookings into move_date. The booking website, still on 2.7, wrote its 29 into move_day only, after the 23:40 copy had finished. The schedule reads move_date, so 12 of Tuesday's 41 bookings were on it. At 02:00 the drop removed move_day, and with it the only date the 29 had."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 142,
+   "age": "5h",
+   "text": "What Hartigan ran is a schema migration: a change to the design of a live database, here swapping one column for another. His 23:00 copy is a backfill: a job that fills a new column for the rows that already exist. And for every column, it helps to know its readers and writers: each program that reads it, and each that writes it. Now some questions, and answer them from your logs, not from memory. Which programs touch the jobs table? Which of them got a new version on Monday? On Tuesday, which column did each one write? The backfill ran once: which rows did it never see? At 02:00 on Wednesday, what was still using move_day, and once the drop ran, could anyone have undone it? And how many days lie between a booking and its move?",
+   "replies": [
+    {
+     "author": "u/night_dispatch_dorrit",
+     "op": true,
+     "points": 51,
+     "age": "4h",
+     "text": "The booking website is its own app. A contractor built it in 2019; Hartigan only looks after the office app, and his list of things to redeploy had one line on it. The website stayed on 2.7 all week and sends the confirmation emails itself, from what the customer typed. Our database backups run at 03:00 every night. Hartigan says rolling the office app back to 4.2 stopped being an option on Monday night: 4.2 can't see the dates 4.3 wrote."
+    }
+   ]
+  },
+  {
+   "author": "u/one_statement_lothar",
+   "points": 97,
+   "age": "4h",
+   "text": "Two columns were the mistake. The whole week happened because for two days half your dates lived in one column and half in the other. A rename has no such window. ALTER TABLE is the SQL command that changes a table's design, and ALTER TABLE jobs RENAME COLUMN move_day TO move_date is one statement: PostgreSQL changes the name and doesn't touch a single row, so it takes a moment. Every row has its date before and after. I've renamed columns on tables far bigger than yours and never lost a row."
+  },
+  {
+   "author": "u/restore_point_keswick",
+   "points": 64,
+   "age": "3h",
+   "text": "You have backups every night. That's what they're for. Restore Tuesday, get the dates back, and add a test for the booking form so a missing date can never get through again. People overthink migrations; a good backup and a test are the whole safety net."
+  }
+ ],
+ "reply": {
+  "prompt": "What should Grisedale do, now and before Hartigan's next change to the jobs table? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Close both apps for one whole night, change the column while nothing runs, and redeploy everything together at dawn.",
+    "tone": "warn",
+    "verdict": "Works, if the list is right",
+    "part2": "In November Hartigan moved pack_day to pack_date in one night, in a week shaped like the first. Both apps closed at 22:00 on Monday. With nothing running he added the column, copied all 95,999 rows and dropped the old one. At 06:00 on Tuesday office app 4.3 and website 2.8 opened together. Nothing was lost: Tuesday's 40 bookings were all on the schedule. The night cost three requests: bookings at 22:31 and 05:48 met a closed page, and so did a customer looking up her booking at 22:50. The 22:31 customer booked with another firm. It worked because Dorrit had made the list, and it had both apps on it. In the lab Hartigan ran the same night with the website left off the list: it reopened on 2.7 at 06:00, couldn't find its column, and failed 18 requests before a fix at 14:40.",
+    "senior": "A downtime window makes the change simple, because the table sits idle during it, and it is honest about its price: a night of closed doors, and a night is all the time you have to finish or put things back. It still depends on knowing all the programs that touch the table. Leave one off and it fails the moment it reopens. It suits rare changes on systems that can close; a booking site that sells at night pays every time."
+   },
+   {
+    "text": "Add the column, write both, backfill in batches, move and check every reader; drop the old once nothing uses it.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Before November, Dorrit and Hartigan wrote down every program that touches jobs: the office app and the booking website. Hartigan paid the contractor for a website release. On Monday at 18:00 he added pack_date. At 19:30 office app 4.3 and website 2.8 went live, both writing pack_day and pack_date. At 23:00 the backfill copied 96,000 old rows in 96 batches of 1,000, each holding its rows for 25 s, and finished at 23:40. On Tuesday, as busy as the first one, the website took 29 bookings and the office 12, and all 41 got both columns. At 12:00 on Tuesday and 01:30 on Wednesday a check compared every row's two columns: 0 differed. At 01:45 both apps stopped writing pack_day, and at 02:00 the drop found nothing using it. No request failed. Every step before the drop could be undone. It took two releases of each app instead of one.",
+    "senior": "Expand, migrate, contract. Add the new shape beside the old, have every writer keep both up to date, fill in the past in small restartable batches, move every reader and prove the two agree, and only then remove the old. Each step is small, deployable and reversible until the drop, which happens only when nothing uses the old column. The price is time and an extra release of every app; the list of apps is part of the change."
+   },
+   {
+    "text": "Use ALTER TABLE ... RENAME instead: one statement, instant, and never a window where the data sits in two columns.",
+    "tone": "bad",
+    "verdict": "Instant, and every old reader breaks",
+    "part2": "In November Hartigan ran ALTER TABLE jobs RENAME COLUMN pack_day TO pack_date at 18:00 on Monday and redeployed the office app with it. It took a moment, and no row lost its date. At 19:00 a customer looked up her booking on the website, still on 2.7, which asked for pack_day and got an error. Two lookups and three bookings, at 20:14, 21:47 and 22:31, failed before the contractor shipped a fix at 02:40. And pack_date was still text: 'Thu 14th' and 'after lunch Friday' under a new name. To make it a date Hartigan would need ALTER COLUMN TYPE, which rewrites the whole table while every query on jobs waits.",
+    "senior": "A rename changes no data, so it is fast, but it changes the name that all its readers and writers use, all at once. Any program not redeployed at that same instant fails, including servers still finishing a rolling deploy. It also changes only the name: a change of type still needs either a table rewrite under the strictest lock or a new column. There's no window where the data is split, but there is one where the apps are."
+   },
+   {
+    "text": "Restore Tuesday from the nightly backup now, and add a test for the booking form before the next column change.",
+    "tone": "bad",
+    "verdict": "The backup is older than the loss",
+    "part2": "Hartigan restored Tuesday's 03:00 backup into a spare database and searched it for the 29. It held move_day for none of them: the first of the 29 was booked at 05:48, nearly three hours after the backup. Restoring it over the live table would have undone 46 bookings made since 03:00, the office's 12 and 5 from Wednesday among them, so he didn't. Then he added a test for the booking form to the office app, the only app he looks after. In November he moved pack_day the same way as before. The test passed. The website, still on 2.7, kept writing pack_day only, and at 02:00 on Wednesday the drop took 29 packing days with it.",
+    "senior": "A backup lets you go back to a moment, and it holds only what existed then; it can't hold data written after it, and restoring it over a live table also undoes everything since. A test for one app's form says nothing about the other app that writes the same table. The loss came from the order of steps and the missing list of apps, so that is what has to change."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s3e16",
+  "title": "Replay Grisedale's migration week",
+  "lede": "You're Hartigan, replaying the week from Monday 17:59. The jobs table holds 95,984 old jobs plus Monday's bookings, each with move_day as text. Two apps use it: office app 4.2 and booking website 2.7, which read and write move_day. A new version (office 4.3, website 2.8) reads move_date and writes it, plus move_day while dual write is on. The steps run at stated times: add move_date Mon 18:00, redeploy Mon 19:30, backfill Mon 23:00 (and Wed 01:00 if you run it again), compare reads Tue 12:00 and Wed 01:30, stop writing move_day Wed 01:45, drop move_day Wed 02:00. The backfill copies move_day into move_date for rows that existed when it started and still have no move_date. In this sim's teaching model each batch takes 5 s plus 0.02 s per row and holds its rows locked that long. Bookings and website lookups arrive at the times in the story, 103 bookings from Monday to Thursday. A request fails if a column it needs is gone, or is turned away while its app is closed. An app that loses its column gets a fix 8 h 40 min later, as the website did on Wednesday. Try RENAME (one statement at Mon 18:00) or a downtime night (both apps closed Mon 22:00 to Tue 06:00). The schedule is what the office app reads. Changing a setting replays from Monday 17:59.",
+  "tryThis": "Try this: press Next step, then run to Wed 01:59: Tuesday shows 12 of 41 in the schedule and 29 rows with NULL move_date, nothing lost yet. Run to the end: the drop takes 29 dates and the website fails 8 requests until 10:40. Press Restore: the Tue 03:00 backup holds 0 of the 29. Run the backfill again at Wed 01:00: nothing lost, but the website still fails 8 times. Set the drop to only if nothing uses it: it's held. Pick the plan where both apps write both columns, the reads are compared and the drop waits until nothing uses move_day: 0 lost, 0 failed, and every step before the drop can be undone. Turn off the stop step: the drop breaks both writers. Try RENAME: 5 failed requests and a column still made of text. Try the downtime night, then leave the website off the list. Change the batch size and watch the longest lock."
+ },
+ "explain": {
+  "oneLine": "Nothing ate Tuesday. Two apps write the jobs table and only one was moved to move_date. The website kept writing its 29 Tuesday bookings into move_day only, after the backfill had finished, so their move_date stayed empty, and the scheduled drop at 02:00 on Wednesday took their only dates.",
+  "steps": [
+   {
+    "title": "Two apps, one table, a list with one app on it.",
+    "text": "The office app and the booking website are separate programs on the same database. A schema change is a change to every program that reads or writes the table, but Hartigan's list had only the office app. At 19:30 on Monday office app 4.3 went live, reading and writing move_date. The website stayed on 2.7, reading and writing move_day. Nothing failed, because both columns existed, so nothing warned anyone. The first job of any migration is the list: every app, script, report and scheduled job that touches the table, and which columns each uses."
+   },
+   {
+    "title": "A backfill covers the past, not the future.",
+    "text": "The 23:00 backfill copied move_day into move_date for the 96,000 rows that existed, and finished at 23:40. It can't copy rows written after it. With no dual write, every booking the old website made after 23:40 got a move_day and an empty move_date: 29 on Tuesday. The office app's 12 had move_date. The schedule reads move_date, so Tuesday showed 12 of 41, and nobody noticed, because the 29 moves were Thursday or later. Writing both columns first, then backfilling, means the backfill only has to cover rows from before the dual write, and nothing new slips past it."
+   },
+   {
+    "title": "The drop made it permanent, and loud.",
+    "text": "Until 02:00 on Wednesday the 29 dates were still in move_day; running the backfill once more would have saved them, which is why a backfill should be safe to rerun. The drop removed the column, and PostgreSQL's DROP COLUMN is quick, so nothing slowed down to warn anyone. Then the website asked for a column that wasn't there and failed loudly until 10:40. The failure arrived after the loss, not before. A drop is the one step with no undo short of a restore, and the 03:00 backup was taken before the first of the 29 was booked."
+   },
+   {
+    "title": "Expand and contract: each step deployable and reversible.",
+    "text": "Martin Fowler's site calls it parallel change. 1, expand: add move_date beside move_day. 2, write both: every writer, in every app, writes both columns. 3, backfill the old rows in batches: small, throttled so the live apps keep their speed, idempotent so a rerun is harmless, and restartable from where it stopped. 4, move every reader to move_date, and check, for example by reading both columns and comparing. 5, stop writing move_day. 6, contract: drop move_day only when nothing reads or writes it. Until step 6 any step can be undone. Stripe's version has the same shape in four steps."
+   },
+   {
+    "title": "What locks, and what breaks.",
+    "text": "In PostgreSQL, ALTER TABLE takes an ACCESS EXCLUSIVE lock unless the docs say otherwise, which blocks every query on the table while it runs, so the fast forms matter. ADD COLUMN with a constant default doesn't rewrite the table since PostgreSQL 11. RENAME COLUMN doesn't touch stored data, so on most systems it takes a moment, but every old reader breaks at that moment. Changing a column's type usually rewrites the whole table under that lock. CREATE INDEX CONCURRENTLY builds an index without blocking writes (s3e01). On MySQL, tools such as gh-ost or pt-online-schema-change copy the table in the background and swap it in."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 300,
+   "aria": "Expand and contract for move_day, in six steps. Top row: 1, add move_date, reversible. 2, both apps write both columns, reversible. 3, backfill the old rows in batches of 1,000, 96 batches from 23:00 to 23:40, reversible. Bottom row: 4, move every reader to move_date and compare the columns, 0 rows differ. 5, stop writing move_day, reversible until the drop. 6, drop move_day only when nothing uses it, the only step with no undo.",
+   "nodes": [
+    {
+     "id": "s1",
+     "label": "1. Add move_date",
+     "sub": "Mon 18:00",
+     "meta": "undo: drop it",
+     "x": 130,
+     "y": 70,
+     "w": 220,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "s2",
+     "label": "2. Both apps write both",
+     "sub": "Mon 19:30",
+     "meta": "undo: old version",
+     "x": 370,
+     "y": 70,
+     "w": 220,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "s3",
+     "label": "3. Backfill in batches",
+     "sub": "96 x 1,000 rows",
+     "meta": "23:00 to 23:40, rerunnable",
+     "x": 610,
+     "y": 70,
+     "w": 220,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "s4",
+     "label": "4. Move readers, compare",
+     "sub": "0 rows differ",
+     "meta": "undo: read move_day",
+     "x": 610,
+     "y": 220,
+     "w": 220,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "s5",
+     "label": "5. Stop writing move_day",
+     "sub": "Wed 01:45",
+     "meta": "undo: until the drop",
+     "x": 370,
+     "y": 220,
+     "w": 220,
+     "h": 72,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "s6",
+     "label": "6. Drop move_day",
+     "sub": "only when unused",
+     "meta": "no undo",
+     "x": 130,
+     "y": 220,
+     "w": 220,
+     "h": 72,
+     "shape": "box",
+     "tone": "bad"
+    }
+   ],
+   "edges": [
+    {
+     "from": "s1",
+     "to": "s2"
+    },
+    {
+     "from": "s2",
+     "to": "s3"
+    },
+    {
+     "from": "s3",
+     "to": "s4"
+    },
+    {
+     "from": "s4",
+     "to": "s5"
+    },
+    {
+     "from": "s5",
+     "to": "s6"
+    }
+   ]
+  },
+  "caption": "The fix, as Grisedale would run it for move_day. Steps 1 to 5 can each be deployed alone and undone. The backfill runs after both apps write both columns, so no new row slips past it. The drop comes last, and only when the compare finds 0 rows that differ and no app reads or writes move_day.",
+  "fix": {
+   "title": "The fix: list every app, then expand and contract",
+   "text": "Before touching the table, write down every program that reads or writes it: here the office app and the booking website, and any report or script. Add move_date. Release every app so it writes both columns. Backfill the old rows in small batches that can be rerun. Move every reader to move_date and compare the two columns until they agree. Stop writing move_day. Drop it only when the compare finds nothing and no app uses it. In the sim, the same week run this way loses 0 dates and fails 0 requests, Tuesday shows 41 of 41, and every step before the drop can be undone."
+  },
+  "limits": [
+   "It is slow and needs every app's team. Grisedale's way takes two releases of each app and two days instead of one evening, and a website built by a contractor has to be paid for twice.",
+   "The list can still be wrong. A report or script that runs once a month won't show up in a week of checks, so a drop is safer after a full business cycle, with a backup taken just before it.",
+   "Dual writes from app code can drift if one write succeeds and the other fails; within one database, writing both columns in the same statement avoids it, but across databases it needs more care."
+  ],
+  "tradeoff": {
+   "head": [
+    "Approach",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Add, switch one app, backfill, drop (as Hartigan did)",
+     "One evening, one release.",
+     "The website kept writing move_day: 29 dates lost at the drop, 12 of Tuesday's 41 on the schedule, 8 failed requests."
+    ],
+    [
+     "Same, backfill again before the drop",
+     "The 29 dates are copied in time: nothing lost.",
+     "The old website still breaks at the drop: 8 failed requests until 10:40."
+    ],
+    [
+     "Downtime night, every app listed",
+     "Simple: nothing runs during the change. Nothing lost.",
+     "A night of closed doors: 3 requests turned away. With the website off the list, 18 fail."
+    ],
+    [
+     "ALTER TABLE ... RENAME",
+     "Instant, and every row keeps its date.",
+     "Every app not redeployed at that moment fails: 5 requests. The column is still text."
+    ],
+    [
+     "Expand and contract, every app listed",
+     "0 lost, 0 failed, 41 of 41. Every step but the drop can be undone.",
+     "Two releases of each app, and days instead of an evening."
+    ]
+   ]
+  },
+  "seniorTake": "A live database has more users than the code you're changing, so treat a schema change as a change to every program that touches the table, and start with the list. Then never make a step that breaks the old version and the new one at the same moment: expand, let both run, migrate the data and the readers, prove they agree, and contract last. Prefer the forms that don't rewrite or lock the table for long, backfill in small batches you can rerun, and keep the drop for when nothing uses the old column, with a fresh backup. Fast and instant are about locks; safe is about readers.",
+  "realWorld": [
+   {
+    "title": "Stripe, 2017: four steps",
+    "text": "Jacqueline Xu's post \"Online migrations at scale\" lists the pattern Stripe uses: \"Dual writing to the existing and new tables to keep them in sync.\" \"Changing all read paths in our codebase to read from the new table.\" \"Changing all write paths in our codebase to only write to the new table.\" \"Removing old data that relies on the outdated data model.\" Their example moves subscriptions out of the Customers table into a new Subscriptions table.",
+    "source": 0
+   },
+   {
+    "title": "Stripe: backfill offline, compare reads",
+    "text": "For the backfill, Stripe made snapshots of their databases available to their Hadoop cluster and used MapReduce to process the data offline. To check readers, they used GitHub's Scientist to read from both the Subscriptions table and the Customers table, and if the results don't match, raise an error alerting engineers to the inconsistency. Xu adds that all the changes were incremental.",
+    "source": 0
+   },
+   {
+    "title": "Parallel change, 2014",
+    "text": "Danilo Sato, on Martin Fowler's site: \"Parallel change, also known as expand and contract, is a pattern to implement backward-incompatible changes to an interface in a safe manner\", working \"by breaking the change into three distinct phases: expand, migrate, and contract.\" He adds: \"Most database refactorings follow the parallel change pattern, where the migrate phase is the transition period between the original and the new schema, until all database access code has been updated to work with the new schema.\"",
+    "source": 1
+   },
+   {
+    "title": "PostgreSQL: ALTER TABLE's lock",
+    "text": "The ALTER TABLE page says an ACCESS EXCLUSIVE lock is acquired unless explicitly noted. The locking chapter says that mode guarantees that the holder is the only transaction accessing the table in any way, and that only an ACCESS EXCLUSIVE lock blocks a plain SELECT.",
+    "source": 3
+   },
+   {
+    "title": "PostgreSQL 11: ADD COLUMN with a default",
+    "text": "PostgreSQL 11's release notes: allow ALTER TABLE to add a column with a non-null default without doing a table rewrite; this is enabled when the default value is a constant. Today's docs explain the default is stored in the table's metadata, making the ALTER TABLE very fast even on large tables, while a volatile default such as clock_timestamp() will cause the entire table and its indexes to be rewritten.",
+    "source": 4
+   },
+   {
+    "title": "PostgreSQL: RENAME, DROP and type changes",
+    "text": "Of the RENAME forms, the docs say there is no effect on the stored data. DROP COLUMN does not physically remove the column, but simply makes it invisible to SQL operations, so dropping a column is quick. Changing the type of an existing column will normally cause the entire table and its indexes to be rewritten.",
+    "source": 3
+   },
+   {
+    "title": "PostgreSQL: CREATE INDEX CONCURRENTLY's lock",
+    "text": "The locking chapter lists CREATE INDEX CONCURRENTLY among the commands that take a SHARE UPDATE EXCLUSIVE lock, which, unlike ACCESS EXCLUSIVE, lets reads and writes to the table go on while the index builds.",
+    "source": 2
+   },
+   {
+    "title": "MySQL: gh-ost",
+    "text": "GitHub's README: gh-ost is a triggerless online schema migration solution for MySQL; it creates a ghost table in the likeness of your original table and uses the binary log stream to capture table changes, which it applies asynchronously onto the ghost table.",
+    "source": 5
+   },
+   {
+    "title": "MySQL: pt-online-schema-change",
+    "text": "Percona's documentation says pt-online-schema-change alters a table's structure without blocking reads or writes, and that it emulates the way that MySQL alters tables internally, but it works on a copy of the table you wish to alter.",
+    "source": 6
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How would you rename a column in a live database with no downtime?",
+    "What is expand and contract?",
+    "How do you backfill a billion rows safely?"
+   ],
+   "answer": "Don't rename in place: a rename is usually quick but breaks every reader still using the old name, including servers mid-deploy. First list every app, job and report that reads or writes the table. Then expand and contract: add the new column; release every writer to write both; backfill old rows; move every reader to the new column and verify, for example by reading both and comparing, or with a tool like Scientist; stop writing the old column; and drop it only when nothing uses it, with a backup taken just before. Every step before the drop is reversible. For a billion-row backfill: do it in small batches by primary key range, throttled and paused when replication lag or load rises, idempotent so it only touches rows still missing the value, and restartable from a saved position. Start it after dual writes are live, so new rows are already correct. Know your lock levels: in PostgreSQL many ALTER TABLE forms take ACCESS EXCLUSIVE, so prefer the ones that don't rewrite the table, such as ADD COLUMN with a constant default since version 11; build indexes with CREATE INDEX CONCURRENTLY; on MySQL use gh-ost or pt-online-schema-change."
+  }
+ },
+ "terms": [
+  {
+   "term": "Removals company",
+   "def": "A firm that moves people's homes: it books a date, sends packers and movers, and drives everything to the new address in vans. Grisedale Removals is one."
+  },
+  {
+   "term": "Night dispatcher",
+   "def": "The person who takes the phone line overnight and gets the next day's vans and crews ready. Dorrit is Grisedale's."
+  },
+  {
+   "term": "Van sheet",
+   "def": "The printed list of jobs each van does tomorrow, with addresses and times. Dorrit prints them from the schedule at midnight."
+  },
+  {
+   "term": "Schedule (at Grisedale)",
+   "def": "The office app's list of moves by date. It shows a job only if the column the office app reads holds a date for it: move_day before 4.3, move_date after."
+  },
+  {
+   "term": "Office app",
+   "def": "The program Grisedale's staff use for the schedule, van sheets and phone bookings. Version 4.2 used move_day; 4.3, live from Monday 19:30, uses move_date."
+  },
+  {
+   "term": "Booking website",
+   "def": "The program customers book and look up moves on. A contractor built it; it uses the same jobs table. It stayed on 2.7 all week, and 2.8 fixed it on Wednesday at 10:40."
+  },
+  {
+   "term": "Confirmation email",
+   "def": "The email the booking website sends a customer after a booking, with the date they typed. It's written from the request, not read back from the database."
+  },
+  {
+   "term": "jobs table",
+   "def": "Grisedale's table of moves: one row per booking, with name, address, boxes and the move day. It held 95,984 old jobs before the week began."
+  },
+  {
+   "term": "move_day and move_date",
+   "def": "move_day is the old column, the move day as free text such as 'Thu 14th'. move_date is the new one, a real date type the database can sort and check."
+  },
+  {
+   "term": "pack_day",
+   "def": "Another text column on the jobs table: the day the packers come. Hartigan plans to turn it into a real date next month."
+  },
+  {
+   "term": "Text column and date column",
+   "def": "A text column stores any characters, so '14/11' and 'after lunch Friday' both fit. A date column stores only valid dates, which the database can compare and sort."
+  },
+  {
+   "term": "Schema migration",
+   "def": "A change to the design of a live database, such as adding, renaming or dropping a column, usually run as a script alongside new versions of the apps."
+  },
+  {
+   "term": "Backfill",
+   "def": "A job that fills a new column for rows that already exist, such as copying every move_day into move_date. It can't cover rows written after it runs."
+  },
+  {
+   "term": "Batch (backfill)",
+   "def": "A slice of rows a backfill handles in one go, such as 1,000, then commits. Small batches hold their rows locked only briefly, so live requests barely wait."
+  },
+  {
+   "term": "Throttle",
+   "def": "Slowing a background job on purpose, for example pausing between batches or when the database gets busy, so live traffic keeps its speed."
+  },
+  {
+   "term": "Restartable",
+   "def": "A job that can stop at any point and carry on from where it got to, for example by remembering the last row id it finished."
+  },
+  {
+   "term": "Dual write",
+   "def": "Having the apps write the same value to both the old column and the new one during a migration, so either can be read and nothing new slips past the backfill."
+  },
+  {
+   "term": "Readers and writers (of a column)",
+   "def": "Every program that reads a column, and every program that writes it. A column can be removed safely only when it has neither."
+  },
+  {
+   "term": "Compare reads",
+   "def": "A check that reads a value from both the old and the new place and reports where they differ, before anything relies on the new one."
+  },
+  {
+   "term": "Expand and contract",
+   "def": "Changing a shape in safe stages: add the new one beside the old (expand), move every user over (migrate), then remove the old (contract). Also called parallel change."
+  },
+  {
+   "term": "Parallel change",
+   "def": "The name Martin Fowler's site uses for expand and contract, in Danilo Sato's 2014 article."
+  },
+  {
+   "term": "Backward-incompatible change",
+   "def": "A change that makes the old version of a program fail, like removing a column it reads. Expand and contract turns one into several compatible steps."
+  },
+  {
+   "term": "ALTER TABLE",
+   "def": "The SQL command that changes a table's design: adding, renaming or dropping columns, changing a column's type, and more."
+  },
+  {
+   "term": "ADD COLUMN",
+   "def": "The ALTER TABLE form that adds a column. Existing rows get NULL, or the default if one is given."
+  },
+  {
+   "term": "DROP COLUMN",
+   "def": "The ALTER TABLE form that removes a column and its values from every row. In PostgreSQL it's quick, and only a restore brings the values back."
+  },
+  {
+   "term": "RENAME COLUMN",
+   "def": "The ALTER TABLE form that gives a column a new name. Stored data isn't touched, so it's usually quick, but every program using the old name fails from that moment."
+  },
+  {
+   "term": "ALTER COLUMN TYPE",
+   "def": "The ALTER TABLE form that changes a column's type, such as text to date. In PostgreSQL it normally rewrites the whole table and its indexes."
+  },
+  {
+   "term": "Table rewrite",
+   "def": "When the database writes a fresh copy of every row of a table, as some ALTER TABLE forms do. On a big table that takes a long time, under a lock."
+  },
+  {
+   "term": "Default (column)",
+   "def": "The value a column gets when a row doesn't supply one. A constant default is a fixed value; a volatile one, like the current time, differs each time it's read."
+  },
+  {
+   "term": "Lock level",
+   "def": "How strong a lock is: which other operations must wait while it's held. PostgreSQL has eight table lock modes, from ACCESS SHARE to ACCESS EXCLUSIVE."
+  },
+  {
+   "term": "ACCESS EXCLUSIVE",
+   "def": "PostgreSQL's strongest table lock. The holder is the only transaction using the table, so even plain reads wait. Many ALTER TABLE forms take it."
+  },
+  {
+   "term": "SHARE UPDATE EXCLUSIVE",
+   "def": "A weaker PostgreSQL table lock that lets reads and writes go on. CREATE INDEX CONCURRENTLY is one command that takes it."
+  },
+  {
+   "term": "Old reader",
+   "def": "A program, or a server mid-deploy, still running a version that uses the old column name or shape."
+  },
+  {
+   "term": "Hotfix",
+   "def": "A small urgent release to fix something broken in production, like website 2.8 on Wednesday morning."
+  },
+  {
+   "term": "Downtime window",
+   "def": "A planned stretch when an app is closed to users so a change can be made with nothing running, here 22:00 Monday to 06:00 Tuesday in the sim."
+  },
+  {
+   "term": "Turned away",
+   "def": "In the sim, a request that arrives while its app is closed for a downtime window. It counts as a failed request."
+  },
+  {
+   "term": "Failed request",
+   "def": "In the sim, a booking or lookup that got an error because a column it needed was gone, or was turned away. Each app's are counted separately."
+  },
+  {
+   "term": "Restore",
+   "def": "Putting a database back to the state a backup holds. It brings back only what existed at the backup's moment, and over a live table undoes everything since."
+  },
+  {
+   "term": "Teaching model",
+   "def": "A simple rule a sim uses to stand in for real timings, here each backfill batch taking 5 s plus 0.02 s per row. Real speeds vary a lot."
+  },
+  {
+   "term": "Scientist",
+   "def": "An open-source library from GitHub that runs old and new code paths side by side, compares their results and reports differences."
+  },
+  {
+   "term": "Hadoop and MapReduce",
+   "def": "Hadoop is software for processing large data sets across many machines; MapReduce is its way of splitting a job into pieces that run in parallel."
+  },
+  {
+   "term": "gh-ost",
+   "def": "GitHub's open-source tool for changing a MySQL table online: it builds a ghost copy with the new design, keeps it up to date from the binary log, then swaps it in."
+  },
+  {
+   "term": "pt-online-schema-change",
+   "def": "Percona's open-source tool for changing a MySQL table without blocking reads or writes, by altering a copy and swapping it in."
+  },
+  {
+   "term": "Binary log",
+   "def": "MySQL's record of every change made to the data, in order. Replicas and tools like gh-ost read it to follow changes."
+  },
+  {
+   "term": "Ghost table",
+   "def": "gh-ost's copy of the table with the new design, filled and kept in step while the original stays live."
+  },
+  {
+   "term": "Primary key range",
+   "def": "A slice of rows by their primary key, such as ids 1 to 1,000. Backfills often walk a table this way, one range per batch."
+  },
+  {
+   "term": "Replication lag",
+   "def": "How far a copy of a database is behind the primary. A heavy backfill can raise it, which is one reason to throttle."
+  },
+  {
+   "term": "Business cycle",
+   "def": "The longest regular rhythm of the work, such as a month-end or a quarter, over which every job and report has run at least once."
+  },
+  {
+   "term": "Mobile app version",
+   "def": "A build of a phone app that users installed. Old versions stay on phones for months, so a server must keep answering them."
+  },
+  {
+   "term": "Embedding model",
+   "def": "In the LATENT course, a model that turns text into lists of numbers for searching by meaning. Changing it means re-computing every stored list."
+  },
+  {
+   "term": "A.8.32 (ISO/IEC 27001)",
+   "def": "The Annex A control on change management in ISO/IEC 27001:2022: changes to information systems should be planned, assessed, authorised, tested and documented."
+  },
+  {
+   "term": "CC8.1 (SOC 2)",
+   "def": "The SOC 2 common criterion on change management: changes to infrastructure, data and software are authorized, designed, tested, approved and put in place."
+  }
+ ],
+ "atWork": "Pick one table in your system that more than one program touches, and write down every reader and writer: services, the admin tool, scheduled jobs, data exports, the analytics pipeline, a contractor's site. That list is the first artefact of any schema change. Then look at how your team changes columns. If a migration script and an app release ship together and the old column is dropped in the same release, you are one forgotten program away from Grisedale's Tuesday. A common case is an API field renamed while an older mobile app version, still on users' phones for months, keeps sending and reading the old name; the fix is expand and contract across releases: accept and return both names, move the clients, watch traffic until the old name is unused, then remove it. Check your drops: is there a guard that refuses to drop a column something still reads, and a fresh backup just before? On PostgreSQL, check which ALTER TABLE forms you use and whether they rewrite the table. The same pattern is how a team changes embedding models in LATENT without downtime: store both models' lists of numbers, backfill, compare search results, switch readers, then drop the old. If your company is pursuing ISO/IEC 27001:2022 certification, control A.8.32 (change management) expects changes like this to be planned, assessed, tested and documented, and a SOC 2 report would look for the same under CC8.1; a written list of every app a change touches, and a recorded check before the drop, is the kind of evidence both ask for, so build it into the first migration rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "safe-schema-migrations",
+    "title": "Safe schema migrations"
+   },
+   {
+    "id": "expand",
+    "title": "Expand"
+   },
+   {
+    "id": "contract",
+    "title": "Contract"
+   },
+   {
+    "id": "online-backfills",
+    "title": "Online backfills"
+   }
+  ],
+  "strings": [
+   {
+    "from": "safe-schema-migrations",
+    "to": "expand",
+    "label": "add beside"
+   },
+   {
+    "from": "expand",
+    "to": "online-backfills",
+    "label": "fill the past"
+   },
+   {
+    "from": "online-backfills",
+    "to": "contract",
+    "label": "then remove"
+   },
+   {
+    "from": "safe-schema-migrations",
+    "to": "indexes",
+    "label": "CONCURRENTLY"
+   },
+   {
+    "from": "online-backfills",
+    "to": "transactions",
+    "label": "small batches"
+   },
+   {
+    "from": "safe-schema-migrations",
+    "to": "stateless-services",
+    "label": "old servers live"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s3e16-r1",
+   "kind": "free",
+   "prompt": "Your team must fill a new column on a live orders table with 1.2 billion rows, copied from an old column. A colleague plans one UPDATE over the whole table tonight. How would you do it safely instead, and why?",
+   "keyIdeas": [
+    {
+     "idea": "Work in small batches, such as by primary key range, so each holds its locks only briefly",
+     "match": [
+      "small batches",
+      "in batches",
+      "batch of",
+      "batches of",
+      "chunks",
+      "key range",
+      "id range",
+      "range of ids"
+     ]
+    },
+    {
+     "idea": "Throttle: pause between batches and back off when load or replication lag rises",
+     "match": [
+      "throttle",
+      "pause between",
+      "sleep between",
+      "back off",
+      "slow down",
+      "replication lag",
+      "watch the load",
+      "rate limit"
+     ]
+    },
+    {
+     "idea": "Make it idempotent and restartable: touch only rows still missing the value, and resume from a saved position",
+     "match": [
+      "idempotent",
+      "restartable",
+      "resume",
+      "safe to rerun",
+      "rerun",
+      "where it stopped",
+      "still null",
+      "only rows missing",
+      "is null"
+     ]
+    },
+    {
+     "idea": "Turn on writes to both columns first, so rows written during the backfill are already right",
+     "match": [
+      "dual write",
+      "write both",
+      "writes both",
+      "writing both",
+      "both columns first",
+      "new rows already"
+     ]
+    }
+   ],
+   "model": "One UPDATE over 1.2 billion rows holds locks on every row it touches until it commits, can run for hours, builds a huge transaction, and if it fails it starts over. First make every writer dual write, filling both columns, so rows written during the backfill are already right. Then backfill in small batches by key range, say 1,000 to 10,000 rows each, committing after each so locks are held only briefly. Throttle it: pause between batches and back off when load or replication lag rises. Make it idempotent and restartable: each batch touches only rows where the new column is still null, and the job saves its position so it can resume where it stopped after a crash or a pause."
+  },
+  {
+   "id": "s3e16-r2",
+   "kind": "mcq",
+   "prompt": "In PostgreSQL, ALTER TABLE ... RENAME COLUMN finishes almost instantly even on a huge table. What is the catch?",
+   "options": [
+    "It rewrites every row in the background for hours afterwards",
+    "Every program still using the old name fails from that moment",
+    "It silently changes the column's type to text",
+    "It can only be run while the table is empty"
+   ],
+   "answer": 1,
+   "why": "The docs say the RENAME forms have no effect on the stored data, which is why it's fast. But every reader and writer that still uses the old name, including servers mid-deploy and other apps nobody redeployed, fails at once. It also leaves the type as it was."
+  },
+  {
+   "id": "s3e16-r3",
+   "kind": "free",
+   "prompt": "Your app stores a customer's full name in one column, and you need separate first_name and last_name columns. The database serves a web app, a mobile backend and a nightly export job, and you can't take downtime. Walk through how you'd make the change.",
+   "keyIdeas": [
+    {
+     "idea": "First list every program that reads or writes the table: all three, plus any others",
+     "match": [
+      "list every",
+      "every app",
+      "every program",
+      "all three",
+      "every reader",
+      "inventory",
+      "who reads",
+      "who uses"
+     ]
+    },
+    {
+     "idea": "Add the new columns beside the old and have every writer write both",
+     "match": [
+      "write both",
+      "writes both",
+      "writing both",
+      "dual write",
+      "dual-write",
+      "beside the old",
+      "alongside"
+     ]
+    },
+    {
+     "idea": "Backfill old rows, move every reader and verify the columns agree",
+     "match": [
+      "backfill",
+      "compare",
+      "verify",
+      "check they match",
+      "both agree",
+      "move every reader",
+      "switch the readers",
+      "move the readers"
+     ]
+    },
+    {
+     "idea": "Drop the old column last, only when nothing reads or writes it",
+     "match": [
+      "drop it last",
+      "drop the old",
+      "remove the old",
+      "nothing uses",
+      "nothing reads",
+      "no longer used",
+      "only when"
+     ]
+    }
+   ],
+   "model": "Start by listing every program that reads or writes the table: the web app, the mobile backend and the nightly export job, plus anything else you find in the query logs. Expand: add first_name and last_name beside the old column. Release every writer so it writes both the old full name and the new columns. Backfill the old rows in small batches, splitting names carefully and flagging the ones that don't split cleanly. Move every reader to the new columns, and verify by comparing what the old and new columns give for each row. Then stop writing the old column, and drop the old column last, only when nothing reads or writes it, with a backup taken first. Every step before the drop can be undone."
+  },
+  {
+   "id": "s3e16-r4",
+   "kind": "mcq",
+   "prompt": "Since PostgreSQL 11, which of these ALTER TABLE changes avoids rewriting a large table?",
+   "options": [
+    "ADD COLUMN with a constant default, such as 0",
+    "ADD COLUMN with a default of clock_timestamp()",
+    "Changing a column's type from text to date",
+    "None: every ADD COLUMN rewrites the table"
+   ],
+   "answer": 0,
+   "why": "PostgreSQL 11's release notes allow ALTER TABLE to add a column with a non-null default without a table rewrite when the default is a constant; it is stored in the table's metadata. A volatile default such as clock_timestamp() rewrites the whole table and its indexes, and a type change normally does too."
+  },
+  {
+   "id": "s3e16-r5",
+   "kind": "mcq",
+   "prompt": "Stripe's \"Online migrations at scale\" describes four steps. Which comes first?",
+   "options": [
+    "Removing old data that relies on the outdated data model",
+    "Changing all write paths to only write to the new table",
+    "Dual writing to the existing and new tables to keep them in sync",
+    "Changing all read paths to read from the new table"
+   ],
+   "answer": 2,
+   "why": "Stripe starts with dual writing, so old and new stay in sync while the past is backfilled. Then all read paths move to the new table, then all write paths write only to it, and last the old data is removed."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. We did pack_day by the book and nothing went wrong. So in March Hartigan turned crew, the number of movers, from text into a number the same way: both apps wrote both columns, the backfill ran in batches, and for a week a check compared every row's two columns and found no difference. The list had both apps on it. He dropped the old crew column on the 20th. On 1 April the quarterly invoice export, a script the accountant runs on her laptop four times a year, stopped with 'column \"crew\" does not exist'. Nobody had thought of it as an app.",
+  "prompt": "Reply to OP. Why did a week of checks miss it, and what should Grisedale do before the next drop?",
+  "keyIdeas": [
+   {
+    "idea": "The export is a reader too, and it runs quarterly, so a week of checking never saw it use the column",
+    "match": [
+     "once a quarter",
+     "every quarter",
+     "full cycle",
+     "whole cycle",
+     "too short",
+     "rarely runs",
+     "runs rarely",
+     "only runs"
+    ]
+   },
+   {
+    "idea": "Find every reader from the database's side, by who actually queries the column, not from memory",
+    "match": [
+     "query log",
+     "pg_stat_statements",
+     "database logs",
+     "who queries",
+     "which users",
+     "database user",
+     "connections",
+     "audit"
+    ]
+   },
+   {
+    "idea": "Make the drop reversible or staged: wait a full cycle, take a backup, or hide the column first and keep the data",
+    "match": [
+     "backup first",
+     "take a backup",
+     "keep the data",
+     "rename it first",
+     "hide it",
+     "revoke",
+     "wait a quarter",
+     "wait a full",
+     "staged"
+    ]
+   }
+  ],
+  "model": "The invoice export is a reader of crew too, just a rare one: it runs once a quarter, so a week of checks between the backfill and the drop could never see it, and nobody listed a script on a laptop as an app. Build the list from the database's side as well as from memory: turn on query logging or use pg_stat_statements, look at which database users and connections still touch the old column, and give scripts their own named users so they show up. Then wait at least a full cycle, here a quarter, before dropping. And make the drop gentler: take a backup first and keep the old column's data, or revoke access to it or rename it to something like crew_retired for a while, so a forgotten reader fails loudly while the data can still be brought back in minutes."
+ },
+ "next": "Next, Field Report: A Million Writes a Second: the Netflix TechBlog archive, and testing a database at scale before you trust it.",
+ "sources": [
+  {
+   "title": "Jacqueline Xu, Online migrations at scale, Stripe Blog, 2 February 2017 (the four steps: dual writing, changing all read paths, changing all write paths, removing old data; backfill with Hadoop and MapReduce on database snapshots; Scientist reading from both tables and raising an error if the results don't match; all the changes were incremental)",
+   "url": "https://stripe.com/blog/online-migrations"
+  },
+  {
+   "title": "Danilo Sato, ParallelChange, martinfowler.com, 13 May 2014 (parallel change, also known as expand and contract; expand, migrate and contract phases; most database refactorings follow the pattern)",
+   "url": "https://martinfowler.com/bliki/ParallelChange.html"
+  },
+  {
+   "title": "PostgreSQL 18 Documentation, Explicit Locking (ACCESS EXCLUSIVE conflicts with all modes and guarantees the holder is the only transaction accessing the table; only ACCESS EXCLUSIVE blocks a plain SELECT; CREATE INDEX CONCURRENTLY takes SHARE UPDATE EXCLUSIVE)",
+   "url": "https://www.postgresql.org/docs/current/explicit-locking.html"
+  },
+  {
+   "title": "PostgreSQL 18 Documentation, ALTER TABLE (ACCESS EXCLUSIVE unless explicitly noted; RENAME has no effect on the stored data; DROP COLUMN makes the column invisible and is quick; ADD COLUMN with a non-volatile default stored in metadata, very fast; volatile default rewrites the table; changing a column's type normally rewrites the table and its indexes)",
+   "url": "https://www.postgresql.org/docs/current/sql-altertable.html"
+  },
+  {
+   "title": "PostgreSQL 11 Release Notes, 18 October 2018 (allow ALTER TABLE to add a column with a non-null default without doing a table rewrite, when the default value is a constant)",
+   "url": "https://www.postgresql.org/docs/release/11.0/"
+  },
+  {
+   "title": "GitHub, gh-ost README (a triggerless online schema migration solution for MySQL; a ghost table in the likeness of the original; the binary log stream captures table changes)",
+   "url": "https://github.com/github/gh-ost"
+  },
+  {
+   "title": "Percona Toolkit Documentation, pt-online-schema-change (alters a table's structure without blocking reads or writes; works on a copy of the table you wish to alter)",
+   "url": "https://docs.percona.com/percona-toolkit/pt-online-schema-change.html"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.32 Change Management (changes to information systems are planned, assessed, authorised, tested, documented, and communicated)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-32-change-management-2022/"
+  },
+  {
+   "title": "AICPA & CIMA: 2017 Trust Services Criteria (With Revised Points of Focus, 2022) (the common criteria used in SOC 2 reports, including CC8.1 on change management)",
+   "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+  }
+ ]
+}

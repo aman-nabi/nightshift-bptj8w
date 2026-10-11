@@ -1,0 +1,1059 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "a3e03",
+ "season": 3,
+ "n": 3,
+ "title": "The Vault of Vectors",
+ "setting": "a cold-storage vault",
+ "core": true,
+ "minutes": 13,
+ "concepts": [
+  "vector-databases",
+  "approximate-nearest-neighbour-indexes",
+  "filters",
+  "scale"
+ ],
+ "prerequisites": [
+  "a3e01",
+  "a3e02",
+  "a1e04",
+  "s3e01",
+  "s3e11"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/minus18_solenne",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 3861,
+  "title": "I'm the night curator of a seed vault kept at minus 18 °C. Our shared search says we don't hold a barley I'm holding in my hand, and lists it in three other vaults.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm the night curator at the Kestle Moor Seed Bank, a regional gene bank. The vault is kept at minus 18 °C: foil packets on steel shelves, and a door that sighs when it seals. Gene banks keep safety duplicates of each other's seeds, so that a fire or a flood in one place doesn't end a variety."
+   },
+   {
+    "t": "p",
+    "text": "The banks share one search, Seedline: 7.4 million accession records and their scanned field notes, split into 24 million chunks. Each chunk is embedded as 1,024 numbers and stored in PostgreSQL with pgvector, under an HNSW index, a graph that finds near vectors without comparing the question with all of them. The vectors alone are 24 million × 1,024 × 4 bytes, about 98 GB, on one database server with 256 GB of memory. Every setting is at its default, hnsw.ef_search included."
+   },
+   {
+    "t": "p",
+    "text": "Kestle Moor holds the original sample of Thrushgill barley, a landrace from a village drowned by a reservoir in 1961. Oswy Tebbit collected it in 1958 and wrote the field note in pencil. Ellerbeck, Ravensby and Skelderby hold safety duplicates, and their records carry a clean typed transcription of his note. Ours carries the note as first scanned: faded, and misread by the text recognition. Thrushgill came out as Thrash gull."
+   },
+   {
+    "t": "p",
+    "text": "At 02:14 a regeneration request came in. I pasted the note's text from the published catalogue and filtered to Kestle Moor's base collection, about 2 percent of the rows."
+   },
+   {
+    "t": "log",
+    "text": "02:14:07  seedline  query: Thrushgill barley field note (catalogue text)\n02:14:07  seedline  filter: holder = Kestle Moor, base collection\n02:14:07  seedline  0 rows"
+   },
+   {
+    "t": "p",
+    "text": "Without the filter, the top five came back at once: Ellerbeck's duplicate at 0.97, Ravensby's and Skelderby's at 0.96, then two barley notes from other banks. Each duplicate's record says the same thing: original held at Kestle Moor, KM-1958-0347."
+   },
+   {
+    "t": "beat",
+    "text": "The vault says it has no such seed. I was holding the packet."
+   },
+   {
+    "t": "p",
+    "text": "Then I switched the index off for one query, so the search scored every vector. It took 12.3 seconds. Filtered to Kestle Moor, the first row was our record, KM-1958-0347, at 0.71."
+   },
+   {
+    "t": "evidence",
+    "label": "seedline_0214_three_ways.png",
+    "diagram": {
+     "type": "arch",
+     "w": 760,
+     "h": 360,
+     "aria": "Solenne's drawing of the same catalogue text searched three ways at 02:14. Top row: the catalogue text goes to the HNSW index, ef_search at its default of 40, then the Kestle Moor filter, 2 percent of rows, and 0 rows come out. Middle row, no filter: number 1 Ellerbeck's duplicate at 0.97, number 2 Ravensby's at 0.96, number 3 Skelderby's at 0.96. Bottom row: with the index off, an exact search taking 12.3 seconds returns KM-1958-0347 first among Kestle Moor's rows, at 0.71.",
+     "nodes": [
+      {
+       "id": "q",
+       "label": "Catalogue text",
+       "sub": "the query",
+       "x": 120,
+       "y": 70,
+       "w": 170,
+       "h": 56,
+       "shape": "box",
+       "tone": ""
+      },
+      {
+       "id": "idx",
+       "label": "HNSW index",
+       "sub": "ef_search 40",
+       "x": 330,
+       "y": 70,
+       "w": 170,
+       "h": 56,
+       "shape": "db",
+       "tone": ""
+      },
+      {
+       "id": "flt",
+       "label": "Filter",
+       "sub": "Kestle Moor, 2%",
+       "x": 530,
+       "y": 70,
+       "w": 160,
+       "h": 56,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "none",
+       "label": "0 rows",
+       "x": 690,
+       "y": 70,
+       "w": 100,
+       "h": 56,
+       "shape": "box",
+       "tone": "bad"
+      },
+      {
+       "id": "d1",
+       "label": "#1 Ellerbeck",
+       "sub": "duplicate, 0.97",
+       "x": 250,
+       "y": 190,
+       "w": 180,
+       "h": 56,
+       "shape": "box",
+       "tone": "muted"
+      },
+      {
+       "id": "d2",
+       "label": "#2 Ravensby",
+       "sub": "duplicate, 0.96",
+       "x": 460,
+       "y": 190,
+       "w": 180,
+       "h": 56,
+       "shape": "box",
+       "tone": "muted"
+      },
+      {
+       "id": "d3",
+       "label": "#3 Skelderby",
+       "sub": "duplicate, 0.96",
+       "x": 670,
+       "y": 190,
+       "w": 160,
+       "h": 56,
+       "shape": "box",
+       "tone": "muted"
+      },
+      {
+       "id": "ex",
+       "label": "Index off: exact",
+       "sub": "12.3 s",
+       "x": 250,
+       "y": 310,
+       "w": 190,
+       "h": 56,
+       "shape": "box",
+       "tone": ""
+      },
+      {
+       "id": "km",
+       "label": "#1 KM-1958-0347",
+       "sub": "Kestle Moor, 0.71",
+       "x": 520,
+       "y": 310,
+       "w": 210,
+       "h": 56,
+       "shape": "box",
+       "tone": "ok"
+      }
+     ],
+     "edges": [
+      {
+       "from": "q",
+       "to": "idx"
+      },
+      {
+       "from": "idx",
+       "to": "flt"
+      },
+      {
+       "from": "flt",
+       "to": "none",
+       "tone": "bad"
+      },
+      {
+       "from": "ex",
+       "to": "km",
+       "tone": "ok"
+      }
+     ],
+     "notes": [
+      {
+       "x": 380,
+       "y": 24,
+       "text": "02:14, the same catalogue text, three ways",
+       "tone": "",
+       "anchor": "middle"
+      },
+      {
+       "x": 20,
+       "y": 194,
+       "text": "no filter",
+       "tone": "",
+       "anchor": "start"
+      }
+     ]
+    },
+    "caption": "Drawn at 03:00 from the night's three searches with the same catalogue text. Filtered to Kestle Moor through the index: 0 rows. Without the filter: Ellerbeck's safety duplicate at 0.97, Ravensby's and Skelderby's at 0.96. With the index off, an exact search over every vector took 12.3 seconds and put KM-1958-0347, our own record, first among Kestle Moor's rows at 0.71."
+   },
+   {
+    "t": "p",
+    "text": "The regeneration plan goes to the network on Friday, and every bank will search its own collection the same way. What should Seedline change?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/gradient_ghost",
+   "points": 164,
+   "age": "5h",
+   "text": "A cold vault and a warm index. Some names first. An exact search scores every vector, which is what you ran with the index off. An approximate nearest-neighbour index, like HNSW, scores only a small part of them and accepts that it may miss a few. hnsw.ef_search is the length of its candidate list: how many near rows it gathers before handing them on. A filter that runs on the rows the index hands over is called a post-filter. Recall is the share of the true nearest rows a search returns, measured against exact search. Three questions. With your filter on, how many rows did the index hand over, and whose were they? What share of all rows passes your filter? And without the filter, where does your record rank?",
+   "replies": [
+    {
+     "author": "u/minus18_solenne",
+     "op": true,
+     "points": 81,
+     "age": "4h",
+     "text": "EXPLAIN ANALYZE says Rows Removed by Filter: 40. ef_search is 40 by default. I printed those 40 without the filter: the three duplicates and 37 barley notes from other banks, none of them ours. Kestle Moor's base collection is 480,000 of the 24 million chunks, 2 percent. Without the filter our record isn't in the first hundred."
+    }
+   ]
+  },
+  {
+   "author": "u/bigger_model_brannagh",
+   "points": 97,
+   "age": "4h",
+   "text": "Approximate means it guesses, and it guessed wrong. But the real fault is upstream. A 1,024-number model can't see that a faded scan and a typed transcription are the same note, so your record sits miles away at 0.71. Move to a model with 3,072 numbers a chunk. The matches get sharper, your record lands beside the duplicates, and the index has an easy job. Someone at our place wanted to switch on hnsw.iterative_scan instead, an iterative scan that keeps scanning the index until enough rows pass the filter, up to a limit called hnsw.max_scan_tuples. That's a bandage on a model that can't read.",
+   "replies": [
+    {
+     "author": "u/minus18_solenne",
+     "op": true,
+     "points": 33,
+     "age": "3h",
+     "text": "Three times the numbers. Will that still fit on the server?"
+    },
+    {
+     "author": "u/bigger_model_brannagh",
+     "points": 21,
+     "age": "3h",
+     "text": "Buy memory. It's cheaper than losing a variety."
+    }
+   ]
+  },
+  {
+   "author": "u/ravensby_rozenn",
+   "points": 138,
+   "age": "3h",
+   "text": "I keep the cold room at Ravensby. Our duplicate of Thrushgill came from Kestle Moor in 1974, in a packet with Oswy Tebbit's pencil on it. Last winter our own small collection got short results too. One person said raise top-k to 100 so the filter has more to choose from. Another said filter first and score only our rows exactly, a pre-filter. A third said switch the index off and search exactly every time. Nobody measured anything, so we did none of them. I checked tonight: our record of your seed still says the original is with you.",
+   "replies": [
+    {
+     "author": "u/minus18_solenne",
+     "op": true,
+     "points": 52,
+     "age": "2h",
+     "text": "It is. It's on the bench beside me, frosting over."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "The regeneration plan goes out on Friday, and every bank will search its own collection. What should Seedline change? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Filter inside the search with iterative scans, set ef_search from a measured recall target, and check it against exact.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Seedline switched on hnsw.iterative_scan with relaxed order and left hnsw.max_scan_tuples at its default of 20,000. The 02:14 search came back with five Kestle Moor rows, KM-1958-0347 first at 0.71, without the 12.3-second wait. Then they measured instead of guessing. They took 50 sample queries, ran each through the index and through exact search, and compared the top 5. With no filter, recall@5 was 0.956 at ef_search 10 and 1.000 at 20 and at 40. With a holder filter it had been 0.072 at 40 under the post-filter; with iterative scans it was 0.956. They set a target of 0.95 for filtered searches, kept ef_search at 40, since 20 already reached 1.000 and 40 left headroom as the table grows, and made the 50 queries a nightly check that pages the on-call curator if recall falls below it. On Friday every bank searched its own collection. Ravensby found two of its own records it had written off as lost.",
+    "senior": "With an approximate index, a filter that runs after the scan sees only the ef_search candidates. With 2 percent of rows passing, 40 candidates hold 0.8 matching rows on average, and for a query whose own row is far away, none. Filtering inside the search keeps going until enough rows pass, within a limit. Then choose ef_search from recall measured against exact search, on samples that use the same filters people use, and keep measuring, because recall drifts as data grows. For very small filters, filter first and score exactly."
+   },
+   {
+    "text": "Raise top-k from 5 to 100, so the Kestle Moor filter has far more candidates to choose from before it throws any away.",
+    "tone": "bad",
+    "verdict": "Asked for 100, got the same 40",
+    "part2": "They set LIMIT 100. At 02:40 the search came back with 0 rows again, and EXPLAIN ANALYZE showed the same Rows Removed by Filter: 40. pgvector's HNSW scan hands over at most hnsw.ef_search candidates, 40, whatever the LIMIT says. Without the filter, the search now returned 40 rows where 100 were asked for, and recall@100 on the 50 sample queries came out at 0.400.",
+    "senior": "Top-k only trims what the index returns; the candidate list caps it. pgvector's own FAQ says results are limited by hnsw.ef_search, 40 by default. Raising ef_search instead helps by luck: with 2 percent of rows passing you'd need roughly 250 candidates to expect 5 matching rows, and every query pays for them, filtered or not."
+   },
+   {
+    "text": "Move to a bigger embedding model with 3,072 numbers a chunk, so the faded scan and the clean text land close together.",
+    "tone": "bad",
+    "verdict": "Three times the memory, same filter",
+    "part2": "They costed the 3,072-number model first. The vectors alone would be 24 million × 3,072 × 4 bytes, 294.9 GB, more than the server's 256 GB of memory. pgvector's HNSW index takes the vector type up to 2,000 dimensions, so the index wouldn't build, and every search fell back to exact: 73.7 billion multiply-adds, about 36.9 seconds each. Her record did come back, because every search was now exact. The scanned text still said Thrash gull.",
+    "senior": "A bigger model can't fix text that's wrong, and it triples the memory. Indexing it as halfvec, up to 4,000 dimensions, would let the index build, but the filter would still run after 40 candidates and still find none. The fault was where the filter runs, not the embedding. Change models for measured quality on your own data, never to repair a filter."
+   },
+   {
+    "text": "Turn the approximate index off and run an exact search over all 24 million chunks every time, so nothing is ever missed.",
+    "tone": "warn",
+    "verdict": "Trade-off: perfect, at 12.3 s a search",
+    "part2": "Seedline switched the index off. Her record came back first at 0.71, and every filtered search was right. At 09:00 the curators logged on. At about two searches a second, each needing 12.3 seconds, some 25 searches were running at once on one server, and they slowed each other down. By 09:20 a search took over a minute, and work on the regeneration plan stalled until the index went back on that afternoon.",
+    "senior": "Exact search has perfect recall and costs every row on every query: 24 million × 1,024 = 24.6 billion multiply-adds. At the case's teaching rate of 2 billion a second that's 12.3 s; parallel workers cut it, but the cost grows with the table. Keep exact search as the yardstick for measuring recall, and for small filtered sets, not as the main path."
+   }
+  ]
+ },
+ "sim": {
+  "module": "a3e03",
+  "title": "Search the Kestle Moor shelf yourself",
+  "lede": "You're Solenne at 02:14, before the search. A shelf of 1,000 chunks, drawn flat so you can see it, stands in for Seedline's 24 million. The cross is the catalogue text, and a chunk's score is 1 minus its distance from the cross, a teaching stand-in for cosine similarity. Twenty of the 1,000 are Kestle Moor's, 2 percent, drawn as squares. The three safety duplicates sit closest, at 0.97, 0.96 and 0.96; KM-1958-0347 sits at 0.71. The HNSW index here is small: 6 points on its top layer, 99 on the middle one, and all 1,000 on the ground layer, each linked to its 2 or 3 nearest on that layer, links both ways. A search starts at one entry point on the top layer, steps to whichever neighbour is nearer the cross until none is, drops a layer and repeats, then keeps a candidate list of hnsw.ef_search rows on the ground layer. Post-filter filters those candidates. The iterative scan keeps going until top-k rows pass, or until it has visited 400 rows, this shelf's stand-in for hnsw.max_scan_tuples. Pre-filter scores only Kestle Moor's rows, exactly. Exact search scores all 1,000. Recall compares the rows returned with exact search, for this query and for 50 sample queries. Full-size costs use 24 million chunks of 1,024 numbers at 4 bytes each, and count multiply-adds (one number times another, added to a running total) at a teaching rate of 2 billion a second. The 3,072-number model can't be indexed here, so it searches exactly; its points stay where they are, because the faded note says the same thing to any model.",
+  "tryThis": "Try this: press Run the search. Post-filter, ef_search 40, top 5: the index gathers 40 candidates, the 3 duplicates and 37 barley notes; 0 of 40 pass, 0 rows, 84 distance computations. Switch the filter off: Ellerbeck's duplicate is first at 0.97. Switch it back on and search with exact search: KM-1958-0347 first at 0.71, 1,000 computations, 12.3 s at full size. Back to the index, set top-k to 100: still 0 of 40. Set top-k back to 5 and pick the iterative scan: 378 rows visited, 394 computations, her record first. Pick pre-filter: 20 computations, 0.25 s at full size. Watch the sample recall: with no filter, 0.956 at ef_search 10 and 1.000 at 20 and 40; with the Kestle Moor filter at 40, 0.072 post-filter, 0.956 iterative, 1.000 pre-filter. Last, pick the 3,072 model: 294.9 GB on a 256 GB server, and 36.9 s a search."
+ },
+ "explain": {
+  "oneLine": "Nothing erased the seed. The index gathered its 40 candidates, every one from another bank, and the Kestle Moor filter ran after it: 0 of 40 passed. Her faded record ranked far below 40, so only a search that scored every row found it.",
+  "steps": [
+   {
+    "title": "Exact search is honest, and slow at this size.",
+    "text": "Scoring one query against one chunk takes 1,024 multiply-adds, one per number. Against all 24 million chunks that's 24,000,000 × 1,024 = 24,576,000,000, about 24.6 billion, and it means reading all 98 GB of vectors. At a teaching rate of 2 billion multiply-adds a second, roughly what one core manages while reading about 8 GB a second, one search takes 12.3 seconds: the time Solenne saw with the index off. Parallel workers (pgvector suggests raising max_parallel_workers_per_gather) shorten it, but the cost still grows with every row added."
+   },
+   {
+    "title": "HNSW: a graph with express lanes.",
+    "text": "HNSW builds layers of links. The top layer holds a few points with long links; each layer down holds more points with shorter links; the ground layer holds every point. A search starts at the top, steps greedily to whichever neighbour is nearer the query until none is, then drops a layer and repeats. On the ground layer it keeps a candidate list of ef_search rows. Three settings trade against each other. M is the links per point: more links, better recall, more memory. ef_construction is the candidate list used while building: a better graph, a slower build. ef_search is the list at query time: higher recall, slower queries. pgvector's defaults are 16, 64 and 40. The other common index, IVF (pgvector's IVFFlat), splits vectors into clusters called lists and searches only the nearest few, the probes."
+   },
+   {
+    "title": "The filter ran after the index.",
+    "text": "pgvector's README is plain about it: with approximate indexes, filtering is applied after the index is scanned. The index handed over its 40 candidates, the three safety duplicates and 37 barley notes from other banks, and the filter threw all 40 away. Even on average the numbers are thin: 40 candidates × 2 percent of rows = 0.8 matching rows. Top-k can't help, because the scan returns at most ef_search rows whatever the LIMIT."
+   },
+   {
+    "title": "Why her own record was so far away.",
+    "text": "The duplicates carry a clean typed transcription, so their vectors sit right beside the clean catalogue text, at 0.96 and 0.97. Kestle Moor's record carries the faded scan with recognition errors, Thrash gull for Thrushgill, so its vector sits further off, at 0.71, below more than a hundred other chunks. The safety duplicates filled the top of the list with copies from the wrong vaults: the more banks hold a copy, the more crowded the nearest rows are with records the filter will drop."
+   },
+   {
+    "title": "Three places to filter, and when each fails.",
+    "text": "A post-filter is cheap and fails when few rows pass. A pre-filter (a B-tree on the holder column, then an exact score of only those rows) is perfect for small filters, 480,000 × 1,024 = 491.5 million multiply-adds, about 0.25 s at the teaching rate, and slides toward full exact search as the filter grows. Filtering inside the search, pgvector's iterative index scans, keeps scanning until enough rows pass, and stops at hnsw.max_scan_tuples, 20,000 by default, so a filter matching very few rows can still come back short. Whichever you choose, measure recall@k: for a sample of queries, the share of exact search's top k that the index also returned, with the filters people really use."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 330,
+   "aria": "The fix, drawn for Friday. The catalogue text goes to the HNSW index with ef_search 40, set from measured recall. An iterative scan keeps going inside the search until 5 rows pass the Kestle Moor filter, up to max_scan_tuples 20,000. Out come 5 rows, KM-1958-0347 first at 0.71. Below, a nightly recall check runs 50 sample queries through the index and through exact search: filtered recall at 5 is 0.956, target 0.95.",
+   "nodes": [
+    {
+     "id": "q",
+     "label": "Catalogue text",
+     "sub": "the query",
+     "x": 100,
+     "y": 70,
+     "w": 160,
+     "h": 56,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "idx",
+     "label": "HNSW index",
+     "sub": "ef_search 40",
+     "meta": "set from recall",
+     "x": 300,
+     "y": 70,
+     "w": 170,
+     "h": 72,
+     "shape": "db",
+     "tone": ""
+    },
+    {
+     "id": "it",
+     "label": "Iterative scan",
+     "sub": "until 5 pass",
+     "meta": "cap 20,000",
+     "x": 500,
+     "y": 70,
+     "w": 170,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "out",
+     "label": "5 rows",
+     "sub": "KM-1958-0347",
+     "meta": "first, 0.71",
+     "x": 670,
+     "y": 70,
+     "w": 120,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "chk",
+     "label": "Nightly recall check",
+     "sub": "50 sample queries",
+     "meta": "filtered 0.956, target 0.95",
+     "x": 300,
+     "y": 250,
+     "w": 250,
+     "h": 72,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "ex",
+     "label": "Exact search",
+     "sub": "the yardstick",
+     "x": 600,
+     "y": 250,
+     "w": 170,
+     "h": 56,
+     "shape": "box",
+     "tone": "muted"
+    }
+   ],
+   "edges": [
+    {
+     "from": "q",
+     "to": "idx"
+    },
+    {
+     "from": "idx",
+     "to": "it",
+     "tone": "ok"
+    },
+    {
+     "from": "it",
+     "to": "out",
+     "tone": "ok"
+    },
+    {
+     "from": "chk",
+     "to": "idx",
+     "label": "sets ef_search",
+     "dash": true
+    },
+    {
+     "from": "ex",
+     "to": "chk",
+     "label": "true top 5",
+     "dash": true,
+     "tone": "muted"
+    }
+   ],
+   "notes": [
+    {
+     "x": 370,
+     "y": 20,
+     "text": "Friday: the filter runs inside the search",
+     "tone": "",
+     "anchor": "middle"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for Friday. The iterative scan keeps going inside the search until 5 rows pass the Kestle Moor filter, within max_scan_tuples, and KM-1958-0347 comes back first at 0.71. A nightly check runs 50 sample queries through the index and through exact search and compares their top 5: with a holder filter, recall@5 is 0.956 against a target of 0.95. ef_search stays at 40 because a measurement chose it.",
+  "fix": {
+   "title": "The fix: filter inside the search, and measure recall with the filter on",
+   "text": "Switch on hnsw.iterative_scan so the index keeps scanning until enough rows pass the filter, with hnsw.max_scan_tuples as the brake. Choose ef_search from a recall target: run a sample of real queries, with their real filters, through the index and through exact search, compare the top k, and pick the smallest ef_search that meets the target. Keep those queries as a nightly check, because recall drifts as rows are added. For filters that match very few rows, filter first with a B-tree and score those rows exactly; for a handful of groups searched all the time, pgvector suggests partial indexes or partitioning."
+  },
+  "limits": [
+   "Iterative scans have a brake. At hnsw.max_scan_tuples, 20,000 by default, the scan stops with whatever it has, so a filter matching a tiny share of rows can still come back short. Relaxed order, which gives better recall, can also return rows slightly out of distance order.",
+   "A recall check is only as good as its sample. Fifty queries that never use a filter would have scored 1.000 at ef_search 20 while every Kestle Moor search came back empty. Sample the queries and filters people really run, and redo the check when the data or the settings change.",
+   "Memory is the next wall. The vectors are 98 GB before the index, which needs room of its own on top. pgvector's halfvec stores each number in 2 bytes, about 49 GB here, and binary quantization shrinks the index further at some cost in recall, usually won back by re-ranking with the full vectors. A dedicated vector database such as Qdrant brings filter-aware indexes and sharding; pgvector keeps vectors beside the records, in one database you already run."
+  ],
+  "tradeoff": {
+   "head": [
+    "Approach",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Post-filter (as now)",
+     "Fast, and fine when most rows pass the filter.",
+     "A filter matching 2 percent of rows sees 40 candidates and, here, 0 rows."
+    ],
+    [
+     "Raise top-k to 100",
+     "Nothing to build.",
+     "The scan still hands over at most ef_search rows: 0 of 40 again."
+    ],
+    [
+     "Raise ef_search to about 250",
+     "Enough candidates, on average, for 5 matching rows.",
+     "Every query pays for 250, filtered or not, and a far record can still miss."
+    ],
+    [
+     "Bigger model, 3,072 numbers",
+     "May match better on clean text, if measured.",
+     "294.9 GB of vectors on a 256 GB server, no HNSW on vector above 2,000, and the faded text unchanged."
+    ],
+    [
+     "Exact search every time",
+     "Perfect recall.",
+     "24.6 billion multiply-adds, 12.3 s a search at the teaching rate."
+    ],
+    [
+     "Pre-filter: B-tree, then exact",
+     "Perfect recall for the filter; 0.25 s for Kestle Moor's 480,000 rows.",
+     "Slides toward full exact search as the filter matches more rows."
+    ],
+    [
+     "Partial index or partition per holder",
+     "Each holder's search runs on its own small index.",
+     "Works for a few values; one per bank, lot and year doesn't scale."
+    ],
+    [
+     "Iterative scan, ef_search from measured recall (the fix)",
+     "Keeps going until enough rows pass; settings chosen by measurement.",
+     "Stops at max_scan_tuples, and needs a recall check kept alive."
+    ]
+   ]
+  },
+  "seniorTake": "A vector index buys speed by not looking at most rows, so treat its settings as a recall budget you measure, not a default you trust. Ask where the filter runs: after the scan, before it, or inside it, and pick by how many rows the filter matches, using exact search on a sample as the yardstick. Watch memory as the table grows: halfvec and quantization buy room, and a dedicated vector database is worth it when filtered search and size outgrow one server. Exact keyword matches are the other half of retrieval: Dead Letter's s3e01 and s3e11 built B-tree and word indexes, and the next case, a3e04, joins BM25 keyword search with vectors.",
+  "realWorld": [
+   {
+    "title": "HNSW, 2016: start at the top, zoom in",
+    "text": "Malkov and Yashunin describe a multi-layer graph where the search starts from the upper layer which has only the longest links (the \"zoom-in\" phase), and the algorithm greedily traverses through the elements from the upper layer until a local minimum is reached, then switches to the lower layer and repeats. Their abstract says this allows a logarithmic complexity scaling.",
+    "source": 0
+   },
+   {
+    "title": "HNSW: ef sets quality, M sets memory",
+    "text": "The paper says the quality of the search is controlled by the ef parameter, and of M that a reasonable range of M is from 5 to 48. It adds that the parameter also defines the memory consumption of the algorithm (which is proportional to M), so it should be selected with care.",
+    "source": 0
+   },
+   {
+    "title": "pgvector: filtering is applied after the scan",
+    "text": "The pgvector README, read 11 October 2026: with approximate indexes, filtering is applied after the index is scanned. If a condition matches 10% of rows, with HNSW and the default hnsw.ef_search of 40, only 4 rows will match on average. For more rows, enable iterative index scans, which will automatically scan more of the index when needed.",
+    "source": 1
+   },
+   {
+    "title": "pgvector: iterative index scans and their brake",
+    "text": "The README says that starting with 0.8.0 you can enable iterative index scans, which will automatically scan more of the index until enough results are found (or it reaches hnsw.max_scan_tuples or ivfflat.max_probes). For HNSW, max_scan_tuples is the max number of tuples to visit (20,000 by default). Of relaxed ordering it says it allows results to be slightly out of order by distance, but provides better recall.",
+    "source": 1
+   },
+   {
+    "title": "pgvector: why fewer results after adding HNSW",
+    "text": "The README's FAQ: results are limited by the size of the dynamic candidate list (hnsw.ef_search), which is 40 by default. There may be even less results due to dead tuples or filtering conditions in the query. Of ef_search itself it says a higher value provides better recall at the cost of speed.",
+    "source": 1
+   },
+   {
+    "title": "pgvector: exact by default, and the size of a vector",
+    "text": "The README says that by default pgvector performs exact nearest neighbor search, which provides perfect recall, and that an index trades some recall for speed. Each vector takes 4 * dimensions + 8 bytes of storage, and the HNSW and IVFFlat indexes take the vector type up to 2,000 dimensions and halfvec up to 4,000. For small filters it suggests an index on the filter column, since exact indexes work well for conditions that match a low percentage of rows.",
+    "source": 1
+   },
+   {
+    "title": "Qdrant: the middle is the hard part",
+    "text": "Qdrant's indexing documentation, read 11 October 2026: in the case of high-selectivity (weak) filters, you can use the HNSW index as it is; in the case of low-selectivity (strict) filters, you can use the payload index and do a complete rescore. However, for cases in the middle, this approach does not work well. On one hand, we cannot apply a full scan on too many vectors. On the other hand, the HNSW graph starts to fall apart when using filters that are too strict. Qdrant solves this problem by extending the HNSW graph with additional edges based on indexed payload values.",
+    "source": 2
+   },
+   {
+    "title": "Svalbard: safety duplicates at minus 18 °C",
+    "text": "The Crop Trust says the Svalbard Global Seed Vault safeguards duplicates of over 1.4 million seed samples, and that a temperature of −18 °C (-0.4 °F) is required for optimal seed storage. Genebanks around the world deposit duplicate seed samples into the Seed Vault for long-term safekeeping, while retaining ownership of their collections. If seeds are lost elsewhere, the backups stored in Svalbard can be withdrawn and used to restore them.",
+    "source": 3
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How does a vector database find nearest neighbours fast?",
+    "What is HNSW, and what do its parameters trade?",
+    "Why can a filtered vector search return too few results?"
+   ],
+   "answer": "Start with why: exact search scores every vector, so its cost grows with the table, 24 million × 1,024 multiply-adds a query in my example. An approximate index scores a small share and accepts a few misses. HNSW is a layered graph: a search starts on a sparse top layer with long links, steps greedily toward the query, drops a layer, and on the ground layer keeps a candidate list of ef_search rows. M sets links per point (recall against memory), ef_construction sets build quality against build time, and ef_search sets recall against query latency. I'd choose ef_search by measuring recall@k against exact search on a sample of real queries. Filtered searches come back short when the filter runs after the scan: the index hands over ef_search candidates, and if only 2 percent of rows pass, few or none of them survive. The fixes are filtering inside the search, such as pgvector's iterative scans or Qdrant's filter-aware graph, or filtering first and scoring exactly when the filter matches few rows, and in every case measuring recall with the filters on."
+  }
+ },
+ "terms": [
+  {
+   "term": "Seed bank, gene bank",
+   "def": "A store that keeps seeds or other plant material alive for the future, usually dry and frozen. Kestle Moor is a regional one."
+  },
+  {
+   "term": "Accession",
+   "def": "One sample of seeds a gene bank keeps and numbers, such as KM-1958-0347. Its accession record holds what is known about it."
+  },
+  {
+   "term": "Field note",
+   "def": "What the collector wrote when gathering the seeds: place, date, the farmer's name for the crop, how it grew. Oswy Tebbit's was in pencil."
+  },
+  {
+   "term": "Safety duplicate",
+   "def": "A copy of a gene bank's sample kept at another bank, so a fire or flood in one place doesn't lose the variety. The original stays with its holder."
+  },
+  {
+   "term": "Landrace",
+   "def": "A local crop variety kept by farmers in one place over many years, rather than bred by a company. Thrushgill barley is one."
+  },
+  {
+   "term": "Regeneration",
+   "def": "Growing out stored seeds to make fresh ones before the old ones lose the ability to sprout."
+  },
+  {
+   "term": "Base collection",
+   "def": "A gene bank's long-term store of its own originals, as opposed to samples it holds for others."
+  },
+  {
+   "term": "Holder",
+   "def": "The bank that keeps a given sample. Seedline's filter used holder = Kestle Moor."
+  },
+  {
+   "term": "Text recognition (OCR)",
+   "def": "Software that reads the letters in a scanned image and turns them into text. On faded pencil it makes mistakes, like Thrash gull for Thrushgill."
+  },
+  {
+   "term": "PostgreSQL",
+   "def": "A widely used open-source relational database. Dead Letter's Season 3 runs on it."
+  },
+  {
+   "term": "pgvector",
+   "def": "An extension that adds a vector column type, distance operators and vector indexes to PostgreSQL."
+  },
+  {
+   "term": "Vector index",
+   "def": "A search structure over vectors that finds a query's near neighbours without scoring every row. Not the same as a1e04's index, a position in a list."
+  },
+  {
+   "term": "Exact search",
+   "def": "Nearest-neighbour search that scores the query against every vector. Perfect recall; the cost grows with every row. pgvector does this when no index is used."
+  },
+  {
+   "term": "Approximate nearest-neighbour index",
+   "def": "A vector index that scores only a small share of rows and accepts that it may miss some true nearest ones, in return for speed. HNSW and IVF are two kinds."
+  },
+  {
+   "term": "HNSW",
+   "def": "Hierarchical Navigable Small World: an approximate index built as layers of links, sparse at the top and complete at the bottom, searched greedily from the top down."
+  },
+  {
+   "term": "Layer (HNSW)",
+   "def": "One level of the HNSW graph. Upper layers hold few points with long links; the ground layer holds every point with short links."
+  },
+  {
+   "term": "Greedy search",
+   "def": "Moving at each step to whichever neighbour is nearest the query, and stopping when no neighbour is nearer."
+  },
+  {
+   "term": "Entry point",
+   "def": "The point on the top layer where every HNSW search starts."
+  },
+  {
+   "term": "M (HNSW)",
+   "def": "The most links each point keeps per layer. More links give better recall and use more memory. pgvector's default is 16."
+  },
+  {
+   "term": "ef_construction",
+   "def": "The candidate list size used while building an HNSW index. Larger builds a better graph, more slowly. pgvector's default is 64."
+  },
+  {
+   "term": "hnsw.ef_search",
+   "def": "pgvector's setting for the candidate list size at query time, 40 by default. Higher gives better recall and slower queries, and caps how many rows the scan returns."
+  },
+  {
+   "term": "Candidate list",
+   "def": "The near rows an index search keeps while it walks the graph; its size is ef_search. These are what it hands on to any filter."
+  },
+  {
+   "term": "Post-filter",
+   "def": "A filter applied to the rows the index hands over, after the scan. Cheap, but if few rows match, few or none survive."
+  },
+  {
+   "term": "Pre-filter",
+   "def": "Filtering first, for example through a B-tree on the filter column, then scoring only those rows exactly. Perfect for small filters, slow for large ones."
+  },
+  {
+   "term": "Iterative index scan",
+   "def": "pgvector (0.8.0 and later): when a filter leaves too few rows, the scan keeps going through more of the index until enough pass, or it reaches max_scan_tuples."
+  },
+  {
+   "term": "hnsw.iterative_scan",
+   "def": "pgvector's setting for iterative scans: off by default, strict_order, or relaxed_order (better recall, results may be slightly out of distance order)."
+  },
+  {
+   "term": "hnsw.max_scan_tuples",
+   "def": "pgvector's brake on an iterative scan: about how many rows it may visit, 20,000 by default. It doesn't affect the initial scan."
+  },
+  {
+   "term": "Recall",
+   "def": "The share of the true nearest rows that a search returned, measured against exact search."
+  },
+  {
+   "term": "Recall@k",
+   "def": "Recall for the top k: of exact search's top k rows, the share the index also returned, averaged over a sample of queries."
+  },
+  {
+   "term": "Recall target",
+   "def": "The recall a team decides is good enough, such as 0.95, used to choose settings like ef_search and to alarm when recall falls."
+  },
+  {
+   "term": "Sample queries",
+   "def": "A fixed set of real queries, with their real filters, run through both the index and exact search to measure recall."
+  },
+  {
+   "term": "Multiply-add",
+   "def": "One number times another, added to a running total. Scoring a query against a 1,024-number vector takes 1,024 of them."
+  },
+  {
+   "term": "Teaching rate",
+   "def": "This case's round figure of 2 billion multiply-adds a second for one exact search, roughly one core reading 8 GB a second. Real servers vary widely."
+  },
+  {
+   "term": "Distance computation",
+   "def": "Scoring the query against one stored vector. The sim counts them to show how much work each search does."
+  },
+  {
+   "term": "max_parallel_workers_per_gather",
+   "def": "A PostgreSQL setting for how many extra worker processes one query may use. pgvector suggests raising it to speed up exact search."
+  },
+  {
+   "term": "LIMIT",
+   "def": "The SQL clause that caps how many rows a query returns. In vector search it sets top-k."
+  },
+  {
+   "term": "B-tree",
+   "def": "PostgreSQL's default index type, sorted so it can jump straight to rows with a given value, such as one holder."
+  },
+  {
+   "term": "Partial index",
+   "def": "An index built over only the rows matching a condition, such as one holder's rows. pgvector suggests it when filtering by only a few distinct values."
+  },
+  {
+   "term": "Partitioning",
+   "def": "Splitting one table into several by a column's value, so each part gets its own smaller indexes. pgvector suggests it when filtering by many values."
+  },
+  {
+   "term": "IVF, IVFFlat",
+   "def": "An approximate index that splits vectors into clusters, called lists, and searches only the lists nearest the query. pgvector's version is IVFFlat."
+  },
+  {
+   "term": "Probes",
+   "def": "How many IVFFlat lists a search looks in. More probes, better recall, slower search; 1 by default in pgvector."
+  },
+  {
+   "term": "Local minimum",
+   "def": "In a greedy search, the point where no neighbour is nearer the query, so the walk stops there."
+  },
+  {
+   "term": "Rescore",
+   "def": "Score a short list again with the exact method, the same idea as re-ranking."
+  },
+  {
+   "term": "halfvec",
+   "def": "pgvector's half-precision vector type: 2 bytes per number, half the memory, and HNSW indexes up to 4,000 dimensions."
+  },
+  {
+   "term": "Quantization",
+   "def": "Storing numbers with fewer bits to save memory, at some cost in accuracy. Binary quantization keeps one bit per number."
+  },
+  {
+   "term": "Re-ranking",
+   "def": "Rescoring a short list of results with a more accurate method, here the full vectors after a search on quantized ones."
+  },
+  {
+   "term": "Qdrant",
+   "def": "An open-source vector database. Its filterable HNSW adds extra graph links based on indexed payload values so filtered searches stay connected."
+  },
+  {
+   "term": "Payload index (Qdrant)",
+   "def": "Qdrant's index on the fields stored with each vector, its payload, used for filtering and to estimate how many points a filter matches."
+  },
+  {
+   "term": "Sharding",
+   "def": "Splitting one data set across several machines, each holding a part."
+  },
+  {
+   "term": "Tenant",
+   "def": "One customer whose data shares a system with other customers' data."
+  },
+  {
+   "term": "Access control",
+   "def": "Rules for who may see or change which information, and the checks that enforce them."
+  },
+  {
+   "term": "Seedline",
+   "def": "The gene bank network's shared search in this story: 7.4 million accession records split into 24 million chunks, in PostgreSQL with pgvector."
+  },
+  {
+   "term": "Graph (search)",
+   "def": "Points joined by links, like stations on a map. HNSW walks its links from point to point toward the query."
+  },
+  {
+   "term": "Logarithmic scaling",
+   "def": "Cost that grows with the logarithm of the number of items: doubling the rows adds a small, roughly fixed amount of work instead of doubling it."
+  },
+  {
+   "term": "Dead tuple",
+   "def": "A row version PostgreSQL has deleted or replaced but not yet cleaned up. An index scan can still visit it and must skip it."
+  },
+  {
+   "term": "Selectivity",
+   "def": "How much a filter narrows the rows. Qdrant calls a filter that keeps most rows weak, and one that keeps very few strict."
+  },
+  {
+   "term": "Svalbard Global Seed Vault",
+   "def": "A vault inside a mountain on Svalbard, in the Arctic, that stores safety duplicates of seed samples from gene banks around the world."
+  },
+  {
+   "term": "Crop Trust",
+   "def": "An international organisation that funds crop diversity conservation, including support for the Svalbard Global Seed Vault."
+  },
+  {
+   "term": "On-call",
+   "def": "The person whose turn it is to be woken when an alarm fires."
+  }
+ ],
+ "atWork": "Look for a shared vector search at work that serves many customers or teams from one table, with a tenant or team filter on every query. A common incident: a small customer's filtered searches come back empty or with two results while big customers see full pages, because the filter runs after the index has handed over its ef_search candidates, and the small customer's rows are rarely among them. Find where your filter runs: after the scan, before it, or inside it. If your store supports filtering inside the search, such as pgvector's iterative scans or Qdrant's filterable HNSW, turn it on, and give very small tenants a pre-filter, a partial index or their own partition. Then build a recall check: a sample of real queries per tenant size, run through the index and through exact search, compared at the top k you serve, run nightly. Standards-readiness note: if your company holds or is pursuing ISO/IEC 27001:2022 certification, the tenant filter is an access control under Annex A control 5.15, and it must never be the only thing standing between one tenant's documents and another's. A search that returns too few rows today can return the wrong rows after the next change, so check permissions on the results as well, outside the search; a3e09 covers permission-aware retrieval.",
+ "board": {
+  "cards": [
+   {
+    "id": "vector-databases",
+    "title": "Vector databases"
+   },
+   {
+    "id": "approximate-nearest-neighbour-indexes",
+    "title": "Approximate indexes"
+   },
+   {
+    "id": "filters",
+    "title": "Filters"
+   },
+   {
+    "id": "scale",
+    "title": "Scale"
+   }
+  ],
+  "strings": [
+   {
+    "from": "vector-databases",
+    "to": "approximate-nearest-neighbour-indexes",
+    "label": "what's inside"
+   },
+   {
+    "from": "filters",
+    "to": "approximate-nearest-neighbour-indexes",
+    "label": "after or inside"
+   },
+   {
+    "from": "scale",
+    "to": "approximate-nearest-neighbour-indexes",
+    "label": "why approximate"
+   },
+   {
+    "from": "vector-databases",
+    "to": "embeddings",
+    "label": "stores these"
+   },
+   {
+    "from": "vector-databases",
+    "to": "pipeline",
+    "label": "the retrieve step"
+   },
+   {
+    "from": "approximate-nearest-neighbour-indexes",
+    "to": "recall-k",
+    "label": "measure misses"
+   },
+   {
+    "from": "scale",
+    "to": "quantization",
+    "label": "smaller vectors"
+   },
+   {
+    "from": "vector-databases",
+    "to": "hybrid-search",
+    "label": "add keywords"
+   },
+   {
+    "from": "filters",
+    "to": "permission-aware-retrieval",
+    "label": "not a lock"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "a3e03-r1",
+   "kind": "free",
+   "prompt": "Your company runs one shared pgvector table with an HNSW index for every customer's documents. A small customer, with about 1 percent of the rows, says searches limited to its own documents often come back empty or with two results, while big customers see full pages. Unfiltered searches look fine. What is happening, and what do you change?",
+   "keyIdeas": [
+    {
+     "idea": "The filter runs after the index hands over its ef_search candidates, so a customer with few rows rarely has any among them",
+     "match": [
+      "filter runs after",
+      "filtered after",
+      "after the scan",
+      "after the index",
+      "post-filter",
+      "postfilter",
+      "ef_search",
+      "candidate list",
+      "only 40"
+     ]
+    },
+    {
+     "idea": "Filter inside the search (iterative index scans keep going until enough rows pass), or pre-filter or partition very small customers",
+     "match": [
+      "iterative",
+      "keeps scanning",
+      "keep scanning",
+      "until enough",
+      "inside the search",
+      "pre-filter",
+      "prefilter",
+      "filter first",
+      "partial index",
+      "partition"
+     ]
+    },
+    {
+     "idea": "Measure recall against exact search on a sample of queries that use the real filters",
+     "match": [
+      "against exact",
+      "sample of",
+      "sample queries",
+      "measured recall",
+      "measure recall",
+      "recall@",
+      "recall at",
+      "compare with exact"
+     ]
+    }
+   ],
+   "model": "The filter runs after the index has done its work. The HNSW scan hands over its candidate list, ef_search rows, 40 by default in pgvector, and only then does the customer filter run. With 1 percent of rows passing, 40 candidates hold about 0.4 matching rows on average, so the small customer gets two rows or none while big customers fill the page. Asking for a bigger top-k won't help, because the scan returns at most ef_search rows. Turn on iterative scans, which keep scanning the index until enough rows pass the filter, up to hnsw.max_scan_tuples; for the very smallest customers, filter first and score their rows exactly, or give them a partition. Then measure recall against exact search on a sample of queries per customer size, with the real filters on, and keep that check running."
+  },
+  {
+   "id": "a3e03-r2",
+   "kind": "mcq",
+   "prompt": "A pgvector table has an HNSW index, hnsw.ef_search at its default of 40, and iterative scans off. A query filters on a condition that matches 10 percent of rows and asks for LIMIT 10. On average, about how many rows come back?",
+   "options": [
+    "10, because LIMIT asks for 10",
+    "About 4",
+    "About 40",
+    "None, because a filter can't be used with a vector index"
+   ],
+   "answer": 1,
+   "why": "The index hands over at most ef_search candidates, 40, and the filter runs afterwards. With 10 percent of rows matching, about 40 × 0.1 = 4 survive. The pgvector README gives exactly this example. LIMIT can only trim what is left, and iterative scans would keep scanning until more rows pass."
+  },
+  {
+   "id": "a3e03-r3",
+   "kind": "free",
+   "prompt": "In an interview you're asked what HNSW's M, ef_construction and ef_search each trade, and how you'd choose values. Answer in a few sentences.",
+   "keyIdeas": [
+    {
+     "idea": "M is the number of links per point: more links give better recall and use more memory",
+     "match": [
+      "links per",
+      "connections per",
+      "neighbours per",
+      "neighbors per",
+      "more memory",
+      "memory use",
+      "number of links"
+     ]
+    },
+    {
+     "idea": "ef_construction is the candidate list while building: a better graph costs a slower build and slower inserts",
+     "match": [
+      "build time",
+      "slower build",
+      "build speed",
+      "insert speed",
+      "slower inserts",
+      "while building",
+      "index build"
+     ]
+    },
+    {
+     "idea": "ef_search is the candidate list at query time: higher recall costs latency, chosen by measuring recall against exact search",
+     "match": [
+      "query time",
+      "at query",
+      "slower queries",
+      "latency",
+      "against exact",
+      "measured recall",
+      "recall target"
+     ]
+    }
+   ],
+   "model": "All three trade recall against a cost. M is the number of links per point on each layer: more links make the graph easier to navigate and raise recall, and they use more memory, which grows with M. ef_construction is the candidate list size while building: a larger one builds a better graph at the price of build time and slower inserts. ef_search is the candidate list at query time: higher means better recall and more latency, and in pgvector it also caps how many rows the scan returns. I'd start from the defaults, 16, 64 and 40 in pgvector, then run a sample of real queries through the index and through exact search, and pick the smallest ef_search that meets a recall target, raising M or ef_construction only if ef_search alone can't get there."
+  },
+  {
+   "id": "a3e03-r4",
+   "kind": "mcq",
+   "prompt": "Seedline holds 24 million chunks of 1,024 numbers each. An exact search scores the query against every chunk, one multiply-add per number. About how many multiply-adds is one exact search?",
+   "options": [
+    "About 24.6 million",
+    "About 24.6 billion",
+    "About 1,024",
+    "About 98.3 billion"
+   ],
+   "answer": 1,
+   "why": "24,000,000 × 1,024 = 24,576,000,000, about 24.6 billion. At the case's teaching rate of 2 billion a second that's 12.3 seconds a search. 98.3 billion is the number of bytes the vectors take, 98.3 GB, not the multiply-adds."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. Iterative scans have run all spring, and the nightly recall check has stayed at or above 0.95. Last week the network added a new filter for each bank's regeneration lot, the seeds due to be grown out this year. Kestle Moor's lot is 300 chunks of the 24 million. Searches filtered to it come back with one row or none, and each one takes far longer than a base collection search. The plan shows the index visiting about twenty thousand rows before it stops.",
+  "prompt": "Reply to OP. Why do the regeneration-lot searches come back short and slow, and what should Seedline do for filters this small?",
+  "keyIdeas": [
+   {
+    "idea": "The iterative scan stops at hnsw.max_scan_tuples (20,000 by default); with 300 of 24 million rows passing, that many visited rows hold about a quarter of a row on average",
+    "match": [
+     "max_scan_tuples",
+     "gives up",
+     "scan limit",
+     "quarter of a row",
+     "the brake",
+     "its limit",
+     "scan cap"
+    ]
+   },
+   {
+    "idea": "For a filter this small, filter first and score those rows exactly: a B-tree on the lot column, then 300 × 1,024 multiply-adds, with perfect recall",
+    "match": [
+     "filter first",
+     "pre-filter",
+     "prefilter",
+     "b-tree",
+     "btree",
+     "score those",
+     "exact over",
+     "exact on those"
+    ]
+   },
+   {
+    "idea": "Choose the strategy by how many rows a filter matches; groups searched all the time can get a partial index or a partition",
+    "match": [
+     "partial index",
+     "partition",
+     "how many rows",
+     "selectivity",
+     "cardinality",
+     "by filter size"
+    ]
+   }
+  ],
+  "model": "The iterative scan isn't endless: it gives up at hnsw.max_scan_tuples, 20,000 by default. With 300 of 24 million rows passing, 20,000 visited rows hold about a quarter of a row on average (20,000 × 300 / 24,000,000 = 0.25), so the scan does the most work it's allowed and still comes back short. Raising the scan cap would only make every lot search slower. For a filter this small, filter first: a B-tree on the lot column, then score those 300 rows exactly, 300 × 1,024 = 307,200 multiply-adds, a fraction of a millisecond at the teaching rate, with perfect recall. If a few small groups are searched all the time, a partial index or a partition gives each its own small index. Pick the strategy by how many rows a filter matches: exact on the few, iterative scans in the middle, the plain index when most rows pass."
+ },
+ "next": "Next, Two Kinds of Searching: a librarian and a bloodhound, and hybrid search: keyword search with BM25 plus vectors, joined by rank fusion.",
+ "sources": [
+  {
+   "title": "Yu. A. Malkov and D. A. Yashunin, Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs, arXiv 1603.09320 (v1 2016, v4 2018; layers, greedy search from the top, ef, M, efConstruction)",
+   "url": "https://arxiv.org/abs/1603.09320"
+  },
+  {
+   "title": "pgvector README (HNSW, index options, query options, filtering, iterative index scans, max_scan_tuples, halfvec, binary quantization, FAQ), read 11 October 2026",
+   "url": "https://github.com/pgvector/pgvector"
+  },
+  {
+   "title": "Qdrant documentation, Indexing: Filterable HNSW Index and payload index, read 11 October 2026",
+   "url": "https://qdrant.tech/documentation/concepts/indexing/"
+  },
+  {
+   "title": "Crop Trust, Svalbard Global Seed Vault (safety duplicates, −18 °C storage), read 11 October 2026",
+   "url": "https://www.croptrust.org/work/svalbard-global-seed-vault/"
+  },
+  {
+   "title": "ISO/IEC 27001:2022, Information security management systems",
+   "url": "https://www.iso.org/standard/27001"
+  },
+  {
+   "title": "UpGuard, ISO 27001 Control 5.15: Access Control",
+   "url": "https://www.upguard.com/compliance/iso-27001/5-15"
+  }
+ ]
+}
