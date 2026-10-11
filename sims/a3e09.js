@@ -315,7 +315,9 @@
     if (!r.sent.length) ui.sent.appendChild(ui.el("li", "", "nothing"));
     r.sent.forEach(function (c) {
       var note = !r.tr[c.id] ? " DELETED from the content system" : (!share(r.tr[c.id].groups, groups) ? " NOT ALLOWED for this asker" : "");
-      ui.sent.appendChild(ui.el("li", note ? "color:var(--bad, #b3261e);" : "", label(c) + ": " + c.text + note));
+      var li = ui.el("li", note ? "font-weight:600;" : "", label(c) + ": " + c.text + note);
+      if (note) li.setAttribute("class", "st-bad");
+      ui.sent.appendChild(li);
     });
     while (ui.tbody.firstChild) ui.tbody.removeChild(ui.tbody.firstChild);
     DOCS.forEach(function (d) {
