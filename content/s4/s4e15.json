@@ -1,0 +1,868 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-11) the post gives the oldest waiting page's send time (01:19); it had waited 62 minutes at 02:21, 63 at the restart",
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e15",
+ "season": 4,
+ "n": 15,
+ "title": "The Slow Room",
+ "setting": "a tired switchboard operator",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "backpressure",
+  "bounded-queues",
+  "load-shedding-at-consumers"
+ ],
+ "prerequisites": [
+  "s4e03",
+  "s2e13",
+  "s2e02",
+  "s1e02",
+  "s1e11",
+  "s1e04",
+  "s1e08",
+  "s2e01"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/bleep_desk_sorcha",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 2741,
+  "title": "I run the hospital switchboard at night. At 02:10 a porter's pager sent him to a job he had finished 40 minutes before. Twelve minutes later the paging system forgot 2,004 pages at once.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "Nights at St Wendreda's, I sit in what the day staff call the slow room: the switchboard and the paging console. Wards, porters and the pathology lab send each page to our pager gateway, a small program that keeps the pages waiting in a queue in its own memory and hands them to Dunnock Paging, the carrier that sends them out to the pagers. Our contract lets Dunnock take 20 pages a minute. On a normal night we send 12."
+   },
+   {
+    "t": "p",
+    "text": "Every page has a priority. Urgent means a doctor is wanted on a ward. Normal is porters and beds. Low is results ready and notices. Crash calls never touch the gateway; they go out on the switchboard's own line."
+   },
+   {
+    "t": "p",
+    "text": "The lab's link to the gateway was down from 19:00. At 01:00 it came back, and the lab sent all 1,040 result pages it had been holding, at once, every one of them taken without a murmur. Then it kept sending as it caught up, and the wards were busy too: 32 pages a minute until half past two."
+   },
+   {
+    "t": "log",
+    "text": "01:12  NORMAL  Porter to Ward 9: bed 4 to X-ray\n01:20  Sister Ozanne phones the porters' lodge: nobody came\n01:30  Abiola: bed 4 back from X-ray, job closed\n02:10  NORMAL  Porter to Ward 9: bed 4 to X-ray"
+   },
+   {
+    "t": "p",
+    "text": "At 02:10 Abiola's pager went off in the canteen. He walked up anyway. Bed 4 was where he had left it, the patient asleep, the X-ray already on the system."
+   },
+   {
+    "t": "beat",
+    "text": "The pager sent him to a job that had been done for 40 minutes."
+   },
+   {
+    "t": "p",
+    "text": "I watched the gateway's screen. 1,380 pages waiting at 01:30. 1,740 at 02:00. At 02:21, 2,004 waiting, the oldest sent at 01:19, and memory at 246 MB of its 256."
+   },
+   {
+    "t": "log",
+    "text": "02:22:00  health check  no answer in 2 s\n02:22:10  health check  no answer in 2 s\n02:22:20  health check  no answer in 2 s\n02:22:22  container orchestrator: restarting pager-gateway\n02:23:00  pager-gateway  waiting: 12"
+   },
+   {
+    "t": "p",
+    "text": "The gateway runs in a container under a container orchestrator: software that runs containers and restarts any that fail its health check. It asks every 10 seconds, waits 2 seconds for an answer, and after three misses in a row starts a fresh copy. The fresh copy remembered nothing. Every page sent from 01:19 to 02:21 was gone. Thackeray, our on-call engineer, says the gateway walks its whole queue once a second and answers the health check only after the walk: about a millisecond a page."
+   },
+   {
+    "t": "evidence",
+    "label": "gateway_screen_0221.png",
+    "diagram": {
+     "type": "arch",
+     "w": 740,
+     "h": 340,
+     "aria": "The gateway's screen at 02:21, redrawn. Wards and porters send 8 pages a minute, 1 urgent and 7 normal. The pathology lab sends 24 low pages a minute after its 1,040 held pages at 01:00. Both go to the pager gateway, which shows 2,004 pages waiting, the oldest 63 minutes, and 246 of 256 MB of memory. The gateway sends to Dunnock Paging, which takes 20 a minute. Below, the container orchestrator checks the gateway's health every 10 seconds; its answer takes 2.004 seconds against a 2-second timeout, and it is restarted at 02:22:22.",
+     "nodes": [
+      {
+       "id": "wards",
+       "label": "Wards and porters",
+       "sub": "8 a minute",
+       "meta": "1 urgent, 7 normal",
+       "x": 110,
+       "y": 70,
+       "w": 180,
+       "h": 72,
+       "shape": "box",
+       "tone": ""
+      },
+      {
+       "id": "lab",
+       "label": "Pathology lab",
+       "sub": "24 low a minute",
+       "meta": "1,040 at once at 01:00",
+       "x": 110,
+       "y": 230,
+       "w": 180,
+       "h": 72,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "gw",
+       "label": "Pager gateway",
+       "sub": "2,004 waiting",
+       "meta": "oldest 63 min, 246 of 256 MB",
+       "x": 400,
+       "y": 150,
+       "w": 230,
+       "h": 80,
+       "shape": "box",
+       "tone": "bad"
+      },
+      {
+       "id": "carrier",
+       "label": "Dunnock Paging",
+       "sub": "takes 20 a minute",
+       "x": 650,
+       "y": 150,
+       "w": 150,
+       "h": 60,
+       "shape": "cloud",
+       "tone": ""
+      },
+      {
+       "id": "orch",
+       "label": "Container orchestrator",
+       "sub": "answer 2.004 s, timeout 2 s",
+       "meta": "restart at 02:22:22",
+       "x": 400,
+       "y": 285,
+       "w": 240,
+       "h": 72,
+       "shape": "box",
+       "tone": "warn"
+      }
+     ],
+     "edges": [
+      {
+       "from": "wards",
+       "to": "gw",
+       "label": "pages"
+      },
+      {
+       "from": "lab",
+       "to": "gw",
+       "label": "pages"
+      },
+      {
+       "from": "gw",
+       "to": "carrier",
+       "label": "sends"
+      },
+      {
+       "from": "orch",
+       "to": "gw",
+       "label": "every 10 s",
+       "dash": true,
+       "tone": "muted"
+      }
+     ]
+    },
+    "caption": "My redrawing of the gateway's screen at 02:21. Thirty-two pages a minute in, twenty out. At 02:22:22 the box in the middle was replaced by an empty one."
+   },
+   {
+    "t": "p",
+    "text": "Nobody was harmed. The wards phoned when the pagers went quiet, the way they did before we had pagers. Thackeray wants it fixed before the lab's next outage. What should we change?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 154,
+   "age": "5h",
+   "text": "An old pager man's questions. First, a word: an in-memory queue is one kept only in a program's working memory, so a restart empties it. Now the evidence. How many pages a minute arrived after 01:00, and how many could leave? So what was the queue going to do, and for how long? When the lab sent page 1,040 at 01:00, what answer did it get, and how soon? Your health check: was it asking whether the gateway was alive, or how long its queue was? And of the 2,004 that went at 02:22, how many were results, and how many were for people?",
+   "replies": [
+    {
+     "author": "u/bleep_desk_sorcha",
+     "op": true,
+     "points": 61,
+     "age": "4h",
+     "text": "Thirty-two in, twenty out, so twelve more every minute, until half past two. The lab got an instant OK for every page, Thackeray says, even page 1,040. Nobody told it anything for an hour. The health check is meant to ask if the gateway is alive, but it waits behind the walk, so in practice it measured the queue. The restart log lists what was lost: 62 urgent, 434 normal, 1,508 low. Abiola's page wasn't one of them. It had already gone, 40 minutes too late."
+    }
+   ]
+  },
+  {
+   "author": "u/memory_is_cheap_ramsey",
+   "points": 92,
+   "age": "4h",
+   "text": "246 of 256 MB at 02:21 and a restart at 02:22. That's a box choking for memory, whatever the log calls it. Memory is cheap; just give it more. A gigabyte costs less than a porter's lunch, the queue never fills, the box never falls over, and the 2,004 pages go out instead of vanishing. Everything else in this thread is engineering for its own sake."
+  },
+  {
+   "author": "u/scale_out_kwabena",
+   "points": 47,
+   "age": "3h",
+   "text": "One gateway is the problem. Have the container orchestrator start another copy whenever the queue gets long, say past 500, up to three. Each one holds a share of the pages, so none of them ever gets slow enough to miss its health check. That's what autoscaling is for, and nobody has to touch the code."
+  }
+ ],
+ "reply": {
+  "prompt": "The lab's link will go down again some night. What should Thackeray change before it does? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Give the gateway 1 GB of memory instead of 256 MB, so there is room in it for a whole night of pages.",
+    "tone": "bad",
+    "verdict": "Plenty of room, the same restart",
+    "part2": "Thackeray gave the gateway 1 GB. In March the lab's link went down from 19:00 again, and at 01:00 the same 1,040 pages arrived at once, then 32 a minute. The night ran exactly as before. At 02:10 a porter's page from 01:12 buzzed, 58 minutes late. At 02:21 the screen said 2,004 waiting and 246 MB of 1,024: three quarters of the memory free. At 02:22:22 the container orchestrator restarted the gateway anyway, and 2,004 pages were lost again. It was never short of memory. It was the walk: 2,004 pages took 2.004 seconds, and the health check gives it 2.",
+    "senior": "More memory treats a reading, not the cause. The queue grew because pages arrived faster than the carrier took them, and a bigger box only lets it grow further, so every page waits longer before it goes. Here the restart came from the health check timing out on a long queue, so memory changed nothing at all; on another system the extra room would only postpone the same crash and make it lose more."
+   },
+   {
+    "text": "Cap the queue, give urgent pages their own lane, refuse low pages when full, and alert on depth and age.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Thackeray capped the gateway's queue at 250 pages and split it into three lanes, sending urgent first, then normal, then low. When the queue is full, a low page is refused at once with an answer, queue full, not sent, and the lab puts that result on the ward's results screen instead. An alert goes to me at 200 waiting or 5 minutes old. In March the link went down again, and at 01:00 the same 1,040 arrived. The alert came at 01:01 with 230 waiting. Every urgent and normal page went in the minute it was sent; a porter's page at 01:12 buzzed at 01:12. Low pages waited at most 20 minutes, and 1,870 of them were refused with an answer. No restart, nothing lost, and the health check stayed under a quarter of a second.",
+    "senior": "This is backpressure plus load shedding. A bound turns an endless backlog into a clear, early answer the sender can act on, and it keeps the queue short enough that nothing else, here the health check, falls over. Lanes decide who waits: the few urgent pages never stand behind a lab's backlog. Refusing the lowest priority first spends the carrier's 20 a minute on the pages that matter, and alerts on depth and on the oldest page's age tell a person while there's still time to act."
+   },
+   {
+    "text": "Have the container orchestrator add gateways when the queue passes 500, so the pages get shared out.",
+    "tone": "bad",
+    "verdict": "More gateways, the same 20 a minute",
+    "part2": "Thackeray told the container orchestrator to start another gateway whenever more than 500 waited, up to three. In March, at 01:01, with 1,032 waiting, gateway 2 started; it took pages from 01:04, and gateway 3 from 01:08. Each tried to send 20 a minute. Dunnock still took 20 a minute in all and refused the rest: 5,742 refusals by 03:30. New pages went to the gateways in turn, so the two new ones stayed short and the porter's page from 01:12, landing on one of them, buzzed at 01:17. But gateway 1 kept its old backlog and got only a third of the carrier. One urgent page sat in it for 143 minutes, and at 03:30, 1,620 pages were still waiting. No gateway passed 2,000, so nothing was lost; it just never arrived in time.",
+    "senior": "Adding consumers helps only when the consumers are the bottleneck. Here the bottleneck was the carrier's 20 a minute, which is shared, so more gateways only split the same queue into pieces, collected refusals from the carrier, and made the wait depend on which gateway a page happened to land on. When the limit is downstream, the queue must be bounded and prioritised where it is; scaling out just hides it in more places."
+   },
+   {
+    "text": "Write every page to a durable queue on disk, and keep the gateway itself exactly as it is, walking and all.",
+    "tone": "warn",
+    "verdict": "Trade-off: nothing lost, all of it late",
+    "part2": "Thackeray moved the queue onto disk; the gateway now reads the next pages from it and holds none in memory. In March the same 1,040 arrived at 01:00. The health check stayed instant, there was no restart, and not one page was lost. But the porter's page from 01:12 buzzed at 02:10, 58 minutes late, exactly as before, and urgent pages waited up to 87 minutes. At 03:30, 1,620 pages were still waiting on the disk, the oldest sent 89 minutes earlier.",
+    "senior": "A durable queue fixes losing pages in a restart, and that's worth having. It does nothing about the overload itself: pages still arrive faster than they can leave, so the backlog and the wait grow just as before, only now safely. A page that arrives an hour late can be as useless as one that never comes. Durability is a good partner to a bound and lanes, not a replacement for them."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e15",
+  "title": "Run St Wendreda's pages through the night",
+  "lede": "You're Sorcha, replaying the night from 00:50 a minute at a time. Twelve pages arrive a minute: 1 urgent, 5 normal, 6 low. At 01:00 the lab's 1,040 held pages arrive at once, and from 01:01 to 02:29, 32 a minute arrive (1 urgent, 7 normal, 24 low). Dunnock takes 20 a minute. The porter's page is the first normal page at 01:12; the ward phoned at 01:20 and Abiola had done the job by 01:30. The gateway answers its health check in 1 ms for each page waiting in its memory; the container orchestrator checks every 10 seconds, waits 2 seconds, and restarts it after three misses, so a gateway that starts a minute with more than 2,000 waiting is restarted at 22 seconds past, empty. Each waiting page takes 25 KB of memory on top of 196 MB for the program. Extra gateways, when allowed, start when more than 500 wait and take pages 3 minutes later; new pages go to the gateways in turn, and the carrier's 20 a minute is shared. These rates, timeouts and sizes are the sim's own numbers, chosen to match the story. Changing any setting starts the night again.",
+  "tryThis": "Try this: press Run to 03:30 as it is: the porter's page at 02:10, 58 minutes late, and the restart at 02:22:22 that loses 2,004 pages. Then try each option from Set up as. With 1 GB of memory, watch the memory reading drop and the restart come at the same second. Add gateways and watch Dunnock turn away every page over its 20 a minute while gateway 1's backlog waits. Put the queue on disk and nothing is lost, but read the porter's page and the oldest wait. Last, the bound with lanes: then switch the rule to refuse the newest and turn the lanes off, and see who gets refused."
+ },
+ "explain": {
+  "oneLine": "Nothing haunted the pager. Pages arrived faster than the carrier would take them, the queue had no limit and no order but arrival, so every page waited behind the lab's backlog, and once the queue was long enough to slow the health check, the restart threw it all away.",
+  "steps": [
+   {
+    "title": "Thirty-two in, twenty out.",
+    "text": "Dunnock takes 20 pages a minute. From 01:01 to 02:29, 32 arrived a minute, on top of the 1,040 that came at once at 01:00. A queue that gains 12 pages every minute never catches up until the arrivals fall. How long a page waits is roughly the pages ahead of it divided by the pages that leave a minute: the porter's page at 01:12 had about 1,165 ahead, and at 20 a minute that is 58 minutes."
+   },
+   {
+    "title": "Nothing ever said slow down.",
+    "text": "The gateway took every page with an instant OK, including page 1,040 of the lab's batch. The lab had no way to know its pages would go out an hour late, so it never held back, and the wards never knew to phone. That missing signal is what backpressure means: a receiver that can't keep up telling its senders, early and plainly, so they can wait, go elsewhere, or drop what no longer matters."
+   },
+   {
+    "title": "First come, first served, whatever it is.",
+    "text": "The queue kept one order, arrival. So a doctor wanted on a ward stood behind a thousand results-ready notices: urgent pages waited up to 62 minutes. Most of what was in the queue was low priority, and the carrier's 20 a minute was spent on it in the order it came."
+   },
+   {
+    "title": "The queue made the health check fail.",
+    "text": "The gateway walks its whole queue once a second and answers the health check after the walk, about 1 ms a page. At 02:21 the queue held 2,004, so the answer took 2.004 seconds against a 2-second timeout. Three misses later the container orchestrator did its job and replaced the gateway with a fresh, empty copy, and 2,004 pages held only in memory were gone. Memory read 246 of 256 MB, which looked like the cause, but the restart was the health check's."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 380,
+   "aria": "The fix, drawn for the next outage. Wards and porters send urgent and normal pages, and the pathology lab sends low pages, to the pager gateway. The gateway keeps three lanes, urgent, normal and low, sent in that order, and holds at most 250 pages. When it is full, a low page is refused at once with the answer queue full, not sent, and the lab shows that result on the ward's results screen. The gateway sends to Dunnock Paging at 20 a minute. An alert goes to the operator at 200 pages waiting or when the oldest has waited 5 minutes.",
+   "nodes": [
+    {
+     "id": "wards",
+     "label": "Wards and porters",
+     "sub": "urgent and normal",
+     "x": 110,
+     "y": 70,
+     "w": 180,
+     "h": 56,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "lab",
+     "label": "Pathology lab",
+     "sub": "low: results ready",
+     "x": 110,
+     "y": 250,
+     "w": 180,
+     "h": 56,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "gw",
+     "label": "Pager gateway",
+     "sub": "lanes: urgent, normal, low",
+     "meta": "at most 250 pages",
+     "x": 400,
+     "y": 160,
+     "w": 240,
+     "h": 80,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "carrier",
+     "label": "Dunnock Paging",
+     "sub": "20 a minute",
+     "x": 660,
+     "y": 160,
+     "w": 140,
+     "h": 60,
+     "shape": "cloud",
+     "tone": ""
+    },
+    {
+     "id": "alert",
+     "label": "Alert to the operator",
+     "sub": "200 waiting or 5 min old",
+     "x": 400,
+     "y": 320,
+     "w": 240,
+     "h": 56,
+     "shape": "box",
+     "tone": "warn"
+    }
+   ],
+   "edges": [
+    {
+     "from": "wards",
+     "to": "gw",
+     "label": "pages"
+    },
+    {
+     "from": "lab",
+     "to": "gw",
+     "label": "pages"
+    },
+    {
+     "from": "gw",
+     "to": "carrier",
+     "label": "sends"
+    },
+    {
+     "from": "gw",
+     "to": "alert",
+     "label": "depth, oldest",
+     "tone": "warn"
+    }
+   ],
+   "notes": [
+    {
+     "x": 110,
+     "y": 300,
+     "text": "full: refused, not sent",
+     "tone": "warn",
+     "anchor": "middle"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the next outage. Urgent pages go first and never wait behind the lab. The queue holds at most 250, and when it is full the lowest priority is refused at once with an answer the lab can act on. Depth and the oldest page's wait both raise an alert.",
+  "fix": {
+   "title": "The fix: a bound, lanes, refuse the lowest first, and alert early",
+   "text": "Put a bound on the gateway's queue, sized to what the carrier can clear in a useful time: 250 pages here, about 20 minutes of the 12 a minute the carrier has spare for low pages. Give each priority its own lane and send urgent first, then normal, then low. When the queue is full, refuse the lowest priority, newest first, with an immediate answer, queue full, not sent, so the sender can show the result another way or try later. Alert a person on both the depth and the oldest page's wait. On the night, every urgent and porter's page went the minute it was sent, low pages waited at most 20 minutes, 1,870 were refused with an answer, and nothing was lost."
+  },
+  "limits": [
+   "Refusing moves the problem to the sender. It works only if the lab does something sensible with a refusal, such as showing the result on the ward screen or trying again much later. A sender that retries at once just sends the same overload back.",
+   "Strict priority can starve the lowest lane. If urgent and normal pages ever needed all 20 a minute, no low page would leave at all, and a low lane full of refusals would be the only sign.",
+   "A bound counts pages, not minutes. A short queue behind a carrier that stops can still hold pages long past their use, so the bound is sized for tonight's carrier and needs looking at again when the carrier, the contract or the traffic changes."
+  ],
+  "tradeoff": {
+   "head": [
+    "Change",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "As it was: no limit, one lane",
+     "Every page is accepted and nothing is refused.",
+     "Porter's page 58 min late, urgent up to 62 min; restart at 02:22:22 loses 2,004."
+    ],
+    [
+     "1 GB of memory",
+     "Memory reads 246 MB of 1,024, three quarters free.",
+     "The same restart at the same second, the same 2,004 lost."
+    ],
+    [
+     "Bound 250, lanes, refuse low first, alert",
+     "Urgent and normal pages on time; no restart; alert at 01:01.",
+     "1,870 low pages refused; low pages wait up to 20 min."
+    ],
+    [
+     "Add gateways when over 500",
+     "No gateway restarts; nothing lost.",
+     "5,742 carrier refusals; an urgent page waits 143 min; 1,620 still waiting at 03:30."
+    ],
+    [
+     "Durable queue on disk",
+     "No restart, nothing lost.",
+     "Porter's page still 58 min late; 1,620 waiting at 03:30, the oldest 89 min."
+    ],
+    [
+     "A bigger contract, 40 a minute",
+     "The backlog clears and nothing restarts.",
+     "Costs money, and the next, bigger batch overruns it the same way."
+    ]
+   ]
+  },
+  "seniorTake": "A queue doesn't make a slow consumer faster; it only decides who waits and how long. When arrivals outrun the consumer, choose on purpose: bound the queue, decide which work matters most and keep it moving in its own lane, refuse the rest early with an answer the sender can use, and watch both depth and age. An unbounded queue hides overload until it fails all at once, often somewhere unexpected, like a health check.",
+  "realWorld": [
+   {
+    "title": "AWS: reject the excess to keep latency low",
+    "text": "In the Builders' Library, David Yanacek writes that when a server approaches overload, it should start rejecting excess requests, and that the goal of load shedding is to keep latency low for the requests that the server decides to accept.",
+    "source": 0
+   },
+   {
+    "title": "AWS: bound the queue, and the time on it",
+    "text": "The same article says that in addition to bounding the size of queues, they found it is extremely important to place an upper bound on the amount of time that an incoming request sits on a queue, and to throw it out if it's too old.",
+    "source": 0
+   },
+   {
+    "title": "AWS: the health check comes first",
+    "text": "It calls the ping from a load balancer the most important request a server will receive, and says that if the server doesn't respond to ping requests in time, the load balancer will stop sending new requests to that server. When a server is overloaded, it says, it has an opportunity to triage incoming requests to decide which ones to accept.",
+    "source": 0
+   },
+   {
+    "title": "Google SRE: four criticalities, the lowest refused first",
+    "text": "The Handling Overload chapter of Google's SRE book gives every request one of four criticality values, CRITICAL_PLUS, CRITICAL, SHEDDABLE_PLUS and SHEDDABLE, and says that when a task is itself overloaded, it will reject requests of lower criticalities sooner.",
+    "source": 1
+   },
+   {
+    "title": "Google SRE: don't stop taking everything",
+    "text": "The chapter calls it a common mistake to assume that an overloaded backend should turn down and stop accepting all traffic. A backend should accept only the requests that it can process and reject the rest gracefully, and should not fall over and crash under the load. Elsewhere it describes what happens otherwise: work piles up and tasks eventually run out of memory and crash.",
+    "source": 1
+   },
+   {
+    "title": "Reactive Streams: bounded by design",
+    "text": "The Reactive Streams specification aims to ensure that the receiving side is not forced to buffer arbitrary amounts of data, and says back pressure is an integral part of the model in order to allow the queues which mediate between threads to be bounded.",
+    "source": 2
+   }
+  ],
+  "interview": {
+   "asked": [
+    "What is backpressure?",
+    "What do you do when a consumer can't keep up?",
+    "How would you prioritise urgent messages in a queue?"
+   ],
+   "answer": "Backpressure is a slow consumer telling its producers to slow down, so the gap between arrivals and what it can handle doesn't pile up out of sight. When a consumer can't keep up, first find the real limit: if it's a shared downstream limit, like a carrier's rate, adding consumers won't help. Then bound the queue, so the backlog has a size you chose, and decide what happens when it's full: refuse the newest or the lowest priority early, with a clear answer such as a 429 or a queue-full error, so the sender can back off, retry later or use another route. For urgent messages, give them their own lane or queue and serve it first, so they never wait behind bulk work, and watch that the lowest lane doesn't starve. Alert on queue depth and on the oldest message's age, since a queue can look short while its oldest item is stale. Keep the queue durable if losing messages in a restart matters, and make sure nothing else, like a health check, gets slower as the queue grows."
+  }
+ },
+ "terms": [
+  {
+   "term": "Switchboard",
+   "def": "A hospital's telephone and paging desk, staffed day and night. At St Wendreda's the night operator also watches the paging console."
+  },
+  {
+   "term": "Pager",
+   "def": "A small radio receiver that buzzes and shows a short message. Hospitals still use them because they work where phones may not."
+  },
+  {
+   "term": "Page",
+   "def": "One message sent to a pager, such as Porter to Ward 9: bed 4 to X-ray."
+  },
+  {
+   "term": "Pager gateway",
+   "def": "St Wendreda's program between the hospital's systems and the paging carrier. It takes each page, keeps it in a queue in its memory, and hands it to the carrier."
+  },
+  {
+   "term": "Paging carrier",
+   "def": "The company that sends pages out to the pagers over its radio network. Dunnock Paging is St Wendreda's, and its contract takes 20 pages a minute."
+  },
+  {
+   "term": "Priority (of a page)",
+   "def": "St Wendreda's three kinds of page: urgent (a doctor wanted on a ward), normal (porters and beds) and low (results ready, notices)."
+  },
+  {
+   "term": "Crash call",
+   "def": "The emergency call for a patient whose heart or breathing has stopped. At St Wendreda's it goes out on the switchboard's own line, never through the gateway."
+  },
+  {
+   "term": "Porter",
+   "def": "Hospital staff who move patients, beds and equipment. Porters are sent to jobs by page and run from the porters' lodge."
+  },
+  {
+   "term": "Pathology lab",
+   "def": "The hospital laboratory that tests samples such as blood. It pages a ward when a result is ready."
+  },
+  {
+   "term": "Sister",
+   "def": "In British hospitals, a senior nurse in charge of a ward, here Sister Ozanne on Ward 9."
+  },
+  {
+   "term": "In-memory queue",
+   "def": "A queue kept only in a running program's memory. It is fast, but a crash or restart empties it, and everything waiting in it is lost."
+  },
+  {
+   "term": "Container orchestrator",
+   "def": "Software that runs containers across machines and replaces any that fail their health checks, such as Kubernetes. Not the saga orchestrator of an earlier case."
+  },
+  {
+   "term": "Walk (a queue)",
+   "def": "To go through every item in a queue, one after another. The time it takes grows with the queue's length."
+  },
+  {
+   "term": "Backpressure",
+   "def": "A slow receiver telling its senders to slow down or stop, for example by refusing new work while it is full, so the backlog can't grow without limit."
+  },
+  {
+   "term": "Bounded queue",
+   "def": "A queue with a set maximum size. When it is full, new work is refused or the least important waiting work is dropped, instead of the queue growing."
+  },
+  {
+   "term": "Priority lane",
+   "def": "A separate queue for one kind of work, served before the others, so urgent work never waits behind bulk work."
+  },
+  {
+   "term": "Strict priority",
+   "def": "Always serving the highest lane that has anything in it. Simple and fast for urgent work, but a busy upper lane can starve the lower ones."
+  },
+  {
+   "term": "Starve",
+   "def": "To leave some work waiting a very long time, or forever, because other work is always served first."
+  },
+  {
+   "term": "Load shedding",
+   "def": "Deliberately turning away some work when overloaded, so the work that is accepted still gets done in good time."
+  },
+  {
+   "term": "Refusal with an answer",
+   "def": "Turning a request away at once with a clear reply, such as queue full, not sent, so the sender knows and can act, instead of accepting it and failing later."
+  },
+  {
+   "term": "Bottleneck",
+   "def": "The slowest step in a chain, which sets how fast the whole chain can go. Speeding up any other step doesn't help. On the night, it was the carrier's 20 a minute."
+  },
+  {
+   "term": "Downstream",
+   "def": "Further along the path work travels. The carrier is downstream of the gateway, and the gateway is downstream of the wards and the lab."
+  },
+  {
+   "term": "Latency",
+   "def": "How long a request takes, from sending it to having the answer. For a page, from the ward pressing send to the pager buzzing."
+  },
+  {
+   "term": "Load balancer",
+   "def": "A server that spreads incoming requests across several servers, and checks each one's health so it can stop sending to any that fail."
+  },
+  {
+   "term": "Ping (health check)",
+   "def": "A small request that only asks a server whether it is there and working. AWS's article calls the load balancer's ping a server's most important request."
+  },
+  {
+   "term": "MB (megabyte)",
+   "def": "About a million bytes of memory or storage. The gateway had a limit of 256 MB; the sim gives each waiting page 25 KB, a fortieth of an MB."
+  },
+  {
+   "term": "Scaling out automatically",
+   "def": "Starting more copies of a program when a measure, such as queue length, passes a threshold. It helps only if the copies themselves were the bottleneck."
+  },
+  {
+   "term": "Carrier refusal",
+   "def": "In the sim, a page a gateway tried to send that the carrier turned away because the contract's 20 a minute was used up. The page stays waiting."
+  },
+  {
+   "term": "Criticality (Google SRE)",
+   "def": "A label on each request in Google's systems saying how bad it is to drop it: CRITICAL_PLUS, CRITICAL, SHEDDABLE_PLUS or SHEDDABLE. Lower ones are refused first under overload."
+  },
+  {
+   "term": "Reactive Streams",
+   "def": "A specification for passing streams of data between programs asynchronously with backpressure, so a receiver is never forced to buffer without limit."
+  },
+  {
+   "term": "SOC 2 availability (A1.1)",
+   "def": "In a SOC 2 report covering availability, criterion A1.1 expects the entity to maintain, monitor and evaluate current processing capacity and use of system components."
+  },
+  {
+   "term": "Capacity management (ISO/IEC 27001 A.8.6)",
+   "def": "The ISO/IEC 27001:2022 Annex A control on monitoring resource use and adjusting it to current and expected capacity needs."
+  },
+  {
+   "term": "Expiry (of a waiting message)",
+   "def": "A time limit after which a message still waiting in a queue is thrown out, because by then it would be useless. AWS calls it bounding the time on a queue."
+  }
+ ],
+ "atWork": "Find a queue in your systems that sits in front of something with a fixed limit: an email or SMS provider's rate, a payment gateway, a partner's API. A common incident is an order service that fell over during a sale because its in-memory queue had no limit: orders were accepted with an instant OK, waited longer and longer behind the provider's rate, and vanished when the service was restarted. Read-only access is enough. Is the queue bounded, and what happens when it's full: does the sender get a clear refusal, such as a 429 with Retry-After, or does it get an OK it shouldn't trust? Is there more than one priority in the same queue, and can the most important work wait behind bulk work? Is there an alert on the depth and one on the oldest item's age? Does anything else, a health check, a metrics endpoint, a scan, get slower as the queue grows? If your company is pursuing a SOC 2 report that includes the availability category, criterion A1.1 expects the entity to maintain, monitor and evaluate current processing capacity and use of system components; a documented bound and alerts on depth and age are the kind of evidence it asks for. Under ISO/IEC 27001:2022, control A.8.6 (capacity management) expects resource use to be monitored and adjusted to current and expected needs. Build both in now, not at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "backpressure",
+    "title": "Backpressure"
+   },
+   {
+    "id": "bounded-queues",
+    "title": "Bounded queues"
+   },
+   {
+    "id": "load-shedding-at-consumers",
+    "title": "Load shedding at consumers"
+   }
+  ],
+  "strings": [
+   {
+    "from": "bounded-queues",
+    "to": "offloading-slow-work-to-a-background-queue",
+    "label": "where it began"
+   },
+   {
+    "from": "bounded-queues",
+    "to": "message-queues",
+    "label": "give it a size"
+   },
+   {
+    "from": "backpressure",
+    "to": "bounded-queues",
+    "label": "push back early"
+   },
+   {
+    "from": "load-shedding-at-consumers",
+    "to": "bounded-queues",
+    "label": "when it's full"
+   },
+   {
+    "from": "bounded-queues",
+    "to": "health-check",
+    "label": "slow answers"
+   },
+   {
+    "from": "backpressure",
+    "to": "horizontal-scaling",
+    "label": "not the fix"
+   },
+   {
+    "from": "load-shedding-at-consumers",
+    "to": "load-shedding",
+    "label": "more in Season 6"
+   },
+   {
+    "from": "backpressure",
+    "to": "keystone",
+    "label": "next case"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e15-r1",
+   "kind": "free",
+   "prompt": "Your order service puts each incoming order on a queue in its own memory and hands orders to a payment provider that allows 100 calls a second. In a flash sale 300 orders a second arrive for 20 minutes. Customers see their order accepted at once, but confirmations come later and later, and then the service is restarted by its health check and thousands of orders are never charged. What happened, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "Orders arrived faster than the provider's limit, so the queue kept growing and every order waited longer; nothing told the senders",
+     "match": [
+      "faster than",
+      "can't keep up",
+      "cannot keep up",
+      "couldn't keep up",
+      "kept growing",
+      "keeps growing",
+      "grows without",
+      "no limit",
+      "without limit",
+      "nothing told"
+     ]
+    },
+    {
+     "idea": "Put a bound on the queue and refuse early with a clear answer when it's full: backpressure",
+     "match": [
+      "backpressure",
+      "back pressure",
+      "bound the",
+      "put a bound",
+      "cap on",
+      "cap the",
+      "when full",
+      "when it's full",
+      "refuse",
+      "reject",
+      "turn away",
+      "slow down"
+     ]
+    },
+    {
+     "idea": "Keep the most important work moving: a separate lane, and shed the lowest priority first",
+     "match": [
+      "priority",
+      "priorit",
+      "own lane",
+      "separate lane",
+      "separate queue",
+      "most important",
+      "lowest first",
+      "shed the",
+      "shedding"
+     ]
+    },
+    {
+     "idea": "Alert on the queue's depth and on the oldest item's wait",
+     "match": [
+      "oldest",
+      "how long",
+      "alert on",
+      "alarm on",
+      "queue depth",
+      "depth"
+     ]
+    }
+   ],
+   "model": "Orders arrived three times faster than the provider would take them, so the queue grew by about 200 a second and each order waited behind all the ones before it; the instant OK told customers nothing true, and nothing told the senders to slow down. The queue also lived only in memory and slowed the health check as it grew, so the restart emptied it. Put a bound on the queue sized to what the provider can clear in a useful time, and when it's full refuse new orders at once with a clear answer, such as a 429 with Retry-After or a please-try-again page: that's backpressure. If some work matters more, give it its own lane and shed the lowest priority first. Alert on the queue's depth and on how long the oldest order has waited, and keep the queue somewhere a restart doesn't empty."
+  },
+  {
+   "id": "s4e15-r2",
+   "kind": "mcq",
+   "prompt": "Dunnock takes 20 pages a minute, oldest first. At the end of 01:11, 1,164 pages were waiting, and at 01:12 one urgent page went in just ahead of the porter's. Roughly how long did the porter's page wait?",
+   "options": [
+    "About 12 minutes, the time since the batch arrived",
+    "About 20 minutes, one minute for every 20 waiting",
+    "About an hour: 1,165 ahead at 20 a minute",
+    "No time at all, because normal pages go before low ones"
+   ],
+   "answer": 2,
+   "why": "In a first-in, first-out queue a page waits for everything ahead of it: 1,165 pages at 20 a minute is about 58 minutes, which is why it buzzed at 02:10. The gateway had no lanes on the night, so a normal page didn't go before low ones."
+  },
+  {
+   "id": "s4e15-r3",
+   "kind": "mcq",
+   "prompt": "Which of these is backpressure?",
+   "options": [
+    "A consumer that accepts everything and stores it on disk until it can catch up",
+    "A full queue answering its producer at once, queue full, try later, so the producer slows down",
+    "Starting more consumers automatically when the queue gets long",
+    "A dead-letter queue for messages that failed several times"
+   ],
+   "answer": 1,
+   "why": "Backpressure is the receiver pushing back on the sender when it can't keep up, so the sender slows, waits or goes elsewhere. Storing everything is durability, not backpressure, more consumers is scaling out, and a dead-letter queue is for messages that keep failing."
+  },
+  {
+   "id": "s4e15-r4",
+   "kind": "free",
+   "prompt": "In an interview you're asked: a service that sends notifications through a provider with a fixed rate limit is falling behind every evening. Someone proposes running three times as many senders. What do you say?",
+   "keyIdeas": [
+    {
+     "idea": "The limit is downstream and shared, so more senders don't send any faster; they just split the backlog and collect refusals",
+     "match": [
+      "downstream",
+      "shared limit",
+      "the provider's limit",
+      "provider's rate",
+      "won't send faster",
+      "no faster",
+      "not the bottleneck",
+      "bottleneck"
+     ]
+    },
+    {
+     "idea": "Bound the queue and refuse or shed the least important work early, with a clear answer",
+     "match": [
+      "bound the",
+      "put a bound",
+      "cap on",
+      "cap the",
+      "refuse",
+      "reject",
+      "shed the",
+      "shed or",
+      "shedding",
+      "backpressure",
+      "back pressure"
+     ]
+    },
+    {
+     "idea": "Give urgent notifications their own lane and alert on depth and the oldest item's age",
+     "match": [
+      "own lane",
+      "separate lane",
+      "separate queue",
+      "priority",
+      "priorit",
+      "oldest",
+      "alert on"
+     ]
+    }
+   ],
+   "model": "First find the bottleneck. If it's the provider's rate limit, it's shared by every sender, so three times the senders send no faster: they split the backlog, hit the limit more often and get refused, and which message waits longest becomes luck. Instead, bound the queue to what the provider can clear in a useful time, and refuse or shed the least important notifications early with a clear answer so the producer can back off. Put urgent notifications in their own lane served first, and alert on the queue's depth and on the oldest message's age. If the evening load is real and lasting, negotiate a higher limit with the provider."
+  },
+  {
+   "id": "s4e15-r5",
+   "kind": "mcq",
+   "prompt": "Google's SRE book gives each request one of four criticality values. When a task is itself overloaded, what does it do?",
+   "options": [
+    "Stops accepting all traffic until the load falls",
+    "Rejects requests of lower criticalities sooner",
+    "Serves requests strictly in the order they arrived",
+    "Asks the load balancer to start more tasks"
+   ],
+   "answer": 1,
+   "why": "The Handling Overload chapter says an overloaded task will reject requests of lower criticalities sooner, so SHEDDABLE traffic goes before CRITICAL_PLUS does. It also calls it a common mistake to assume an overloaded backend should stop accepting all traffic."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The lanes, the bound and the alert have held through three lab outages. But on 14 August Dunnock's own network went down from 03:00 to 03:15 and took nothing. Our alert went at 03:05, when the oldest page was 5 minutes old, and nothing was refused: 15 minutes of pages never came near 250. At 03:15 Dunnock came back and the gateway sent everything, urgent first. Abiola's pager went off five times between 03:15 and 03:17, for jobs the wards had phoned through and he had already done.",
+  "prompt": "Reply to OP. Why did the fix let those pages through, and what should change?",
+  "keyIdeas": [
+   {
+    "idea": "The bound counts pages, not time: a short queue behind a stopped carrier still holds pages past their usefulness",
+    "match": [
+     "counts pages",
+     "not time",
+     "not the age",
+     "too old",
+     "past their",
+     "stale",
+     "no longer useful",
+     "useless"
+    ]
+   },
+   {
+    "idea": "Give each page a time limit and throw it out, telling the sender, once it's too old to matter",
+    "match": [
+     "expire",
+     "expiry",
+     "time limit",
+     "time to live",
+     "deadline",
+     "throw it out",
+     "throw them out",
+     "drop pages older",
+     "discard"
+    ]
+   },
+   {
+    "idea": "When the carrier is down, push back on the senders so wards phone instead: refuse or warn early",
+    "match": [
+     "tell the ward",
+     "tell the sender",
+     "phone instead",
+     "fall back",
+     "fallback",
+     "push back",
+     "stop accepting",
+     "backpressure",
+     "back pressure"
+    ]
+   }
+  ],
+  "model": "The bound worked as designed: it limits how many pages wait, not how long. With the carrier taking nothing, 15 minutes of pages sat in a queue well under 250, long past their use, and when Dunnock came back they all went out, including porter jobs the wards had already phoned through. Give each page an expiry, a time limit by priority, say a few minutes for a porter's job, and throw out anything older, telling the sender it wasn't sent, as AWS puts it: bound the time on the queue as well as its size. And when the carrier stops taking pages, push back on the senders at once, refusing or warning that pages aren't going out, so wards switch to the phone straight away instead of at 03:05."
+ },
+ "next": "Next, Field Report: The Data Pipeline: the Netflix TechBlog archive, and how one company-wide event pipeline grew from batch jobs into Kafka-fronted real-time streaming.",
+ "sources": [
+  {
+   "title": "David Yanacek, Using load shedding to avoid overload, Amazon Builders' Library, read on 2026-10-11 at its current address on builder.aws.com (the aws.amazon.com/builders-library address now redirects there): start rejecting excess requests when approaching overload; the goal of load shedding is to keep latency low for the requests the server decides to accept; bounding the size of queues and an upper bound on the time a request sits on a queue; the ping from a load balancer as the most important request; triaging incoming requests",
+   "url": "https://builder.aws.com/content/3Eun1EEyX6p2e3VYNyRLSJzLuMV/using-load-shedding-to-avoid-overload"
+  },
+  {
+   "title": "Alejandro Forero Cuervo (edited by Sarah Chavis), Handling Overload, chapter 21 of Site Reliability Engineering (Google), read on 2026-10-11: the four criticality values CRITICAL_PLUS, CRITICAL, SHEDDABLE_PLUS and SHEDDABLE; an overloaded task rejects requests of lower criticalities sooner; the common mistake of stopping all traffic; accept only what it can process and reject the rest gracefully; tasks running out of memory and crashing",
+   "url": "https://sre.google/sre-book/handling-overload/"
+  },
+  {
+   "title": "Reactive Streams, the specification's home page, read on 2026-10-11: the receiving side is not forced to buffer arbitrary amounts of data; back pressure allows the queues which mediate between threads to be bounded",
+   "url": "https://www.reactive-streams.org/"
+  },
+  {
+   "title": "Linford & Co: Availability Trust Services Criteria in a SOC 2 Audit (A1.1: the entity maintains, monitors, and evaluates current processing capacity and use of system components)",
+   "url": "https://linfordco.com/blog/availability-soc-2-trust-service-principle/"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.6 Capacity Management (proactively managing IT resources to meet current and future operational demands)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-6-capacity-management-2022/"
+  }
+ ]
+}
