@@ -1,4 +1,4 @@
-/* sims/a3e03-v1.0.0.js  (published as sims/a3e03.js)
+/* sims/a3e03-v1.0.1.js  (published as sims/a3e03.js)
    Case a3e03 "The Vault of Vectors": a vector index lab for the Kestle Moor Seed Bank. A shelf of
    1,000 chunks, drawn in 2-D so it can be seen, stands in for Seedline's 24 million. The learner
    sets ef_search, top-k, the filter mode (post-filter, iterative index scan, pre-filter), the
@@ -7,6 +7,8 @@
    distance computations. Widget-style sim: it draws its own shelf inside api.root. No real model.
 
    CHANGELOG
+   v1.0.1 (2026-10-11) rule 15 renames: Brantholme (the third bank) and Silas Tebbit (the collector); the case is
+     content/latent/a3/a3e03-v1.0.1.json
    v1.0.0 (2026-10-11) first version: a deterministic 1,000-point shelf, a small three-layer
      HNSW-like graph, post-filter / iterative scan / pre-filter, exact search, two model sizes,
      recall on 50 sample queries, full-size memory and cost. selfTest: 11 assertions.
@@ -15,7 +17,7 @@
    - A chunk is a point in the unit square. The score is a teaching stand-in for cosine
      similarity: score = 1 - straight-line distance to the query. The query (the clean catalogue
      text) sits at (0.5, 0.5).
-   - Fixed points: three safety duplicates (Ellerbeck at distance 0.03, Ravensby 0.04, Skelderby
+   - Fixed points: three safety duplicates (Ellerbeck at distance 0.03, Ravensby 0.04, Brantholme
      0.04, so scores 0.97, 0.96, 0.96); Solenne's own record, Kestle Moor KM-1958-0347, the faded
      scan, at distance 0.29 (score 0.71); 60 barley notes from other banks between 0.11 and 0.25.
      The other 936 points fill the square on a jittered 35 x 35 grid outside radius 0.26; 19 of
@@ -38,7 +40,7 @@
      type indexes up to 2,000 dimensions), so every search is exact; the shelf keeps its points,
      because the faded note says the same thing to any model (a teaching simplification).
 
-   Where every number comes from (the case is content/latent/a3/a3e03-v1.0.0.json):
+   Where every number comes from (the case is content/latent/a3/a3e03-v1.0.1.json):
    - Full size: 24,000,000 chunks x 1,024 numbers x 4 bytes = 98,304,000,000 bytes, 98.3 GB, on a
      server with 256 GB of memory. At 3,072 numbers: 294.9 GB.
    - Exact search: 24,000,000 x 1,024 = 24,576,000,000 multiply-adds, 24.6 billion. Teaching rate
@@ -71,7 +73,7 @@
   var KM_ROWS = 480000;
   var RATE = 2e9;
   var SERVER_GB = 256;
-  var VAULT = { KM: "Kestle Moor", EL: "Ellerbeck", RV: "Ravensby", SK: "Skelderby", OT: "other banks" };
+  var VAULT = { KM: "Kestle Moor", EL: "Ellerbeck", RV: "Ravensby", SK: "Brantholme", OT: "other banks" };
   var EFS = [10, 20, 40, 80, 100, 200, 400];
   var KS = [5, 10, 100];
   var MODES = [

@@ -1,9 +1,11 @@
-/* sims/a3e02-v1.0.0.js  (published as sims/a3e02.js)
+/* sims/a3e02-v1.0.1.js  (published as sims/a3e02.js)
    Case a3e02 "Cutting the Pages": a chunking lab, from Henrike Marrable's studio at Hobcarr Mill, where a
    book conservator's apprentices ask an assistant that answers from the studio handbook (an 1860s binder's
    manual with the studio's own notes typed in after the chapters they belong to).
 
    CHANGELOG
+   v1.0.1 (2026-10-11) rule 15 rename: the apprentice is now Imani (name and handle); the case is
+     content/latent/a3/a3e02-v1.0.1.json
    v1.0.0 (2026-10-11) first version: widget sim in api.root, no diagram, theme classes only. No real model
      or embedding. Pages 40 to 47 of the handbook (3 chapters, 9 sections, 11 paragraphs) cut by one of five
      splitters; 6 test questions with known right rules. selfTest: 11 assertions.
@@ -21,11 +23,11 @@
    - The top 3 are sent; the stand-in answers from the first that holds a whole rule (in a chunk with
      several, the one sharing most keywords with the question). Tokens: 300 + 20 + the chunks sent.
 
-   Where every number comes from (conventions rule 14; the case is content/latent/a3/a3e02-v1.0.0.json).
+   Where every number comes from (conventions rule 14; the case is content/latent/a3/a3e02-v1.0.1.json).
    All of them follow from BLOCKS, RULES, VOCAB and TESTS through the functions below:
    - Story, Tuesday 21:52 (fixed, 125 tokens = 500 characters, no overlap, no heading): 6 chunks. Chunk 2 ends
      with the heading "Emerald green cloths" (characters 978 to 998); chunk 3 starts at character 1,000 with
-     "Bindings of this colour" and holds the warning, with no heading and no "green". Kezia's question
+     "Bindings of this colour" and holds the warning, with no heading and no "green". Imani's question
      (emerald, green, cloth) scores chunk 4 ("Other green cloths") 0.84, chunk 2 0.79, chunk 5 0.56, chunk 3
      0.00 (it holds only "arsenic"). The answer: "Handle it freely, and wash your hands after, as for any old
      book." from Other green cloths. Test set: right rule in the top 3 for 4 of 6, answered right 3 of 6.
@@ -33,15 +35,15 @@
    - Keep heading and page on, same cuts: chunk 3 scores 0.87, first; answered from Emerald green cloths;
      5 of 6 and 5 of 6 (the thread rule is still cut in two).
    - Overlap 25 tokens (100 characters), no heading: 7 chunks; the heading now rides into the chunk with the
-     warning, and Kezia's question is answered right; 6 of 6 retrieved, 5 of 6 right.
+     warning, and Imani's question is answered right; 6 of 6 retrieved, 5 of 6 right.
    - By chapter: 3 chunks, all 3 sent every time: 6 of 6 retrieved, 4 of 6 right (paste and thread answered
-     from the wrong chapter); 1,005 tokens a question (Kezia's).
+     from the wrong chapter); 1,005 tokens a question (Imani's).
    - One sentence each: 38 chunks. The heading line "Emerald green cloths" scores 1.00 and holds no rule; the
-     warning sentence scores 0.00; nothing found for Kezia. 5 of 6 retrieved, 5 of 6 right.
+     warning sentence scores 0.00; nothing found for Imani. 5 of 6 retrieved, 5 of 6 right.
    - The default the comment thread argues for (fixed, 512 tokens, 50 overlap): 2 chunks, 6 of 6 retrieved,
-     4 of 6 right; Kezia's question answered from Calico and buckram; 1,056 tokens.
+     4 of 6 right; Imani's question answered from Calico and buckram; 1,056 tokens.
    - The senior settings (by heading, 125 tokens, overlap 25, heading and page kept): 11 chunks, 6 of 6 and
-     6 of 6; Kezia's question answered from Emerald green cloths, p. 42; 563 tokens; 14 tokens sent twice.
+     6 of 6; Imani's question answered from Emerald green cloths, p. 42; 563 tokens; 14 tokens sent twice.
    - Story-only numbers, not computed: the ledger of 1858 (inside the 1840s to 1860s that the Poison Book
      Project gives for emerald green bookcloth); 21:52 on Tuesday; the 400 books still waiting.
 
@@ -53,7 +55,7 @@
 
   /* ---------- the story's numbers ---------- */
 
-  var START_CLOCK = 21 * 3600 + 52 * 60;   // Tuesday 21:52, when Kezia asked
+  var START_CLOCK = 21 * 3600 + 52 * 60;   // Tuesday 21:52, when Imani asked
   var CPT = 4;                             // teaching value: characters per token
   var SYSTEM_TOKENS = 300, QUESTION_TOKENS = 20, K = 3;
   var SIZES = [50, 75, 100, 125, 250, 512];
@@ -433,7 +435,7 @@
         "exaggerates the loss. The top 3 chunks are sent, and the stand-in answers from the first of them that holds a whole rule. " +
         "Keeping the heading and page puts the section path in front of each chunk's text and shows it under the answer.");
       draw(api);
-      api.log("Tuesday 21:52, Kezia's question, the handbook as it was cut. " + summary(S), S.ans.right ? "ok" : "bad");
+      api.log("Tuesday 21:52, Imani's question, the handbook as it was cut. " + summary(S), S.ans.right ? "ok" : "bad");
     },
 
     selfTest: async function (t) {
@@ -450,7 +452,7 @@
         t.stat("hit") === "4 of 6" && t.stat("right") === "3 of 6" && t.stat("tokens") === 695 && t.stat("twice") === 0 &&
         st().ui.ansLine.textContent === "Answer: Handle it freely, and wash your hands after, as for any old book." &&
         t.logText().indexOf("Answered from Other green cloths (chunk 4, 0.84)") >= 0,
-        "opens on Tuesday 21:52: fixed 500-character chunks, no overlap, no heading; 6 chunks; Kezia's question is answered from Other green cloths at 0.84; 4 of 6 retrieved, 3 of 6 right; 695 tokens");
+        "opens on Tuesday 21:52: fixed 500-character chunks, no overlap, no heading; 6 chunks; Imani's question is answered from Other green cloths at 0.84; 4 of 6 retrieved, 3 of 6 right; 695 tokens");
 
       // 2. The lost warning: the cut falls just after the heading, and the warning's chunk scores 0.00.
       t.expect(DOC.length === 2743 && story[1].text.slice(-20) === "Emerald green cloths" && story[2].r[0] === 1000 &&
@@ -471,7 +473,7 @@
       var o = ask(chunk(cfg("fixed", 125, 25, false)), T1);
       t.expect(t.stat("chunks") === 7 && t.stat("from") === "Emerald green cloths" && t.stat("hit") === "6 of 6" && t.stat("right") === "5 of 6" &&
         o.from.c.text.indexOf("Emerald green cloths") >= 0 && t.stat("twice") > 0,
-        "overlap of 25 tokens (100 characters): 7 chunks, the heading rides into the warning's chunk, Kezia's question answered right; 6 of 6 and 5 of 6, with tokens sent twice");
+        "overlap of 25 tokens (100 characters): 7 chunks, the heading rides into the warning's chunk, Imani's question answered right; 6 of 6 and 5 of 6, with tokens sent twice");
       t.set("over", 0);
 
       // 5. Option 0: a whole chapter each. Everything is sent; two answers come from the wrong chapter.
@@ -493,7 +495,7 @@
       t.set("split", "fixed"); t.set("size", 512); t.set("over", 50);
       t.expect(t.stat("chunks") === 2 && t.stat("hit") === "6 of 6" && t.stat("right") === "4 of 6" && t.stat("from") === "Calico and buckram" &&
         t.stat("tokens") === 1056,
-        "512 tokens with 50 overlap: 2 chunks, 6 of 6 retrieved, 4 of 6 right; Kezia's question answered from Calico and buckram; 1,056 tokens");
+        "512 tokens with 50 overlap: 2 chunks, 6 of 6 retrieved, 4 of 6 right; Imani's question answered from Calico and buckram; 1,056 tokens");
 
       // 8. The senior settings: by heading, 125 tokens, a sentence of overlap, heading and page kept.
       t.set("split", "heading"); t.set("size", 125); t.set("over", 25); t.set("meta", true);

@@ -1,4 +1,4 @@
-/* sims/a3e04-v1.0.1.js  (published as sims/a3e04.js)
+/* sims/a3e04-v1.0.2.js  (published as sims/a3e04.js)
    Case a3e04 "Two Kinds of Searching": a hybrid search lab, from Bryher's night helpline desk at the
    Lanternline Trust, a missing-persons charity. A test archive of ten documents copied from the real
    one is searched three ways: keyword search (BM25), vector search (cosine similarity of stated
@@ -7,8 +7,10 @@
    file and the Saltrigg sighting report land, and how many of six known-answer questions pass.
 
    CHANGELOG
-   v1.0.1 (2026-10-11) rule 15 renames: Isobel Gorringe and Lachlan; the case is
-     content/latent/a3/a3e04-v1.0.1.json
+   v1.0.2 (2026-10-11) rule 15 renames: Wilfrida Gorringe and Lachlan Hartsop; the case is
+     content/latent/a3/a3e04-v1.0.2.json
+   v1.0.1 (2026-10-11) rule 15 renames: Wilfrida Gorringe and Lachlan; the case is
+     content/latent/a3/a3e04-v1.0.2.json
    v1.0.0 (2026-10-11) first version: widget sim in api.root, no diagram, theme classes only. No real
      model or embedding. 10 documents, 7 questions (the caller's, plus a test set of 6), 4 modes
      (vector, keyword, hybrid, both lists side by side), k 10/30/60/100, rank window 3/5/10, synonym
@@ -31,21 +33,21 @@
      top 3 (descriptions). Side by side: first in either list, or top 3 of either.
    - Synonym list: raincoat also searches coat, yellow also searches mustard (keyword list only).
 
-   Where every number comes from (conventions rule 14; the case is content/latent/a3/a3e04-v1.0.1.json).
+   Where every number comes from (conventions rule 14; the case is content/latent/a3/a3e04-v1.0.2.json).
    All of them follow from DOCS, QUERIES and the functions below:
    - Story, Thursday 23:52, "Gorrimer 98/0417", vector search: Margaret Gorman 0.929, Rowena Gormley
-     0.898, Isobel Gorringe 0.859; Juliet Gorrimer's file 4th at 0.745 (not shown; 3 are shown).
+     0.898, Wilfrida Gorringe 0.859; Juliet Gorrimer's file 4th at 0.745 (not shown; 3 are shown).
    - Keyword (BM25): her file is the only match, 4.99 (gorrimer, 98 and 0417 are in her file alone).
    - Hybrid, k 60, window 10: her file 1/61 + 1/64 = 0.0320, first; Margaret Gorman 1/61 = 0.0164.
    - Conal's description, "woman in a long yellow raincoat walking to St Cleave's Light":
      vector: Saltrigg sighting 0.997 first, her file 0.708. Keyword: her file 12.81, the 2003 letter
-     3.44, Lachlan Tarrant 2.35, Isobel Gorringe 2.30, the sighting 5th at 1.53 (it shares only woman and
+     3.44, Lachlan Hartsop 2.35, Wilfrida Gorringe 2.30, the sighting 5th at 1.53 (it shares only woman and
      in). Hybrid k 60 window 10: her file 0.0325, the sighting 1/65 + 1/61 = 0.0318, second.
    - Synonym list on: the sighting rises to keyword 2nd at 4.29 (mustard, coat added).
-   - The trap, test question "97/0211" (Isobel Gorringe), window 3: Margaret Gorman is 3rd in both lists,
-     2/63 = 0.0317, first; Isobel's file is keyword 1st but vector 4th, outside the window: 1/61 = 0.0164,
-     second (tied with Lachlan Tarrant's vector-only 0.0164, and ahead on keyword rank). Window 5 or 10:
-     Isobel's file 1/61 + 1/64 = 0.0320 against Margaret's 0.0317.
+   - The trap, test question "97/0211" (Wilfrida Gorringe), window 3: Margaret Gorman is 3rd in both lists,
+     2/63 = 0.0317, first; Wilfrida's file is keyword 1st but vector 4th, outside the window: 1/61 = 0.0164,
+     second (tied with Lachlan Hartsop's vector-only 0.0164, and ahead on keyword rank). Window 5 or 10:
+     Wilfrida's file 1/61 + 1/64 = 0.0320 against Margaret's 0.0317.
    - Test set (6): vector only 2 of 6; keyword only 4 of 6; keyword with synonyms 5 of 6 (the lamp
      question finds nothing); side by side 6 of 6 with 6 results to read; hybrid window 3: 5 of 6 for
      k 10, 30, 60 and 100; hybrid window 5 or 10: 6 of 6 for every k.
@@ -72,12 +74,12 @@
       text: "Case 98/0417. Juliet Gorrimer, 34, missing from Wetherdene since March 1998. Last seen in a long yellow raincoat with horn toggles. She spoke of walking to St Cleave's Light." },
     { id: "F2", name: "Margaret Gorman, 97/0388", v: [0.7, 0.7, 0.1, 0, 0],
       text: "Case 97/0388. Margaret Gorman, 41, missing from Coldbrook since May 1997. Last seen in a grey anorak at the bus station." },
-    { id: "F3", name: "Isobel Gorringe, 97/0211", v: [0.7, 0.6, 0.3, 0, 0],
-      text: "Case 97/0211. Isobel Gorringe, 29, missing from Ullersby Fell since June 1997. Last seen in a yellow cardigan on the canal path." },
+    { id: "F3", name: "Wilfrida Gorringe, 97/0211", v: [0.7, 0.6, 0.3, 0, 0],
+      text: "Case 97/0211. Wilfrida Gorringe, 29, missing from Ullersby Fell since June 1997. Last seen in a yellow cardigan on the canal path." },
     { id: "F4", name: "Rowena Gormley, 99/0102", v: [0.7, 0.6, 0, 0.1, 0],
       text: "Case 99/0102. Rowena Gormley, 52, missing from Wetherdene since April 1999. Last seen in a red coat at the market." },
-    { id: "F5", name: "Lachlan Tarrant, 96/0045", v: [0.8, 0.1, 0, 0.1, 0.1],
-      text: "Case 96/0045. Lachlan Tarrant, 19, missing from Coldbrook since January 1996. Last seen in a long black coat by the river." },
+    { id: "F5", name: "Lachlan Hartsop, 96/0045", v: [0.8, 0.1, 0, 0.1, 0.1],
+      text: "Case 96/0045. Lachlan Hartsop, 19, missing from Coldbrook since January 1996. Last seen in a long black coat by the river." },
     { id: "F6", name: "Annis Bellwood, 97/0326", v: [0.5, 0.1, 0, 0, 0.6],
       text: "Case 97/0326. Annis Bellwood, 23, missing since 1997. Her mother still waits." },
     { id: "S1", name: "Saltrigg sighting, 1999", v: [0.2, 0, 0.7, 0.7, 0],
@@ -93,7 +95,7 @@
   var QUERIES = [
     { id: "q0", kind: "name and number", text: "Gorrimer 98/0417", right: "F1", v: [0.4, 0.9, 0, 0, 0], label: "The caller, 23:52: Gorrimer 98/0417" },
     { id: "n1", kind: "name", text: "Rowena Gormley", right: "F4", v: [0.4, 0.9, 0, 0, 0] },
-    { id: "n2", kind: "name", text: "Lachlan Tarrant", right: "F5", v: [0.9, 0.1, 0, 0, 0.3] },
+    { id: "n2", kind: "name", text: "Lachlan Hartsop", right: "F5", v: [0.9, 0.1, 0, 0, 0.3] },
     { id: "c1", kind: "number", text: "98/0417", right: "F1", v: [0.9, 0.3, 0, 0, 0] },
     { id: "c2", kind: "number", text: "97/0211", right: "F3", v: [0.9, 0.3, 0, 0, 0] },
     { id: "d1", kind: "description", text: "woman in a long yellow raincoat walking to St Cleave's Light", right: "S1", v: [0.2, 0, 0.7, 0.6, 0], label: "Conal's description (a test question too)" },
@@ -435,7 +437,7 @@
         L.fl[1].id === "F3" && L.fl[2].id === "F5" && L.fl[1].s === L.fl[2].s && t.stat("right") === 2 && t.stat("pass") === "5 of 6";
       t.set("w", 5);
       t.expect(trapped && st().L.fl[0].id === "F3" && f4(st().L.fl[0].s) === "0.0320" && t.stat("pass") === "6 of 6",
-        "window 3: Gorman, 3rd in both, 2/63 = 0.0317 beats Isobel Gorringe's file at 1/61 = 0.0164 (vector 4th, outside); 5 of 6. Window 5: 6 of 6");
+        "window 3: Gorman, 3rd in both, 2/63 = 0.0317 beats Wilfrida Gorringe's file at 1/61 = 0.0164 (vector 4th, outside); 5 of 6. Window 5: 6 of 6");
 
       // 8. k barely matters here; the window does.
       var byK = [];
@@ -472,7 +474,7 @@
       t.set("w", 3);
       L = st().L;
       t.expect(L.fl[0].id === "F1" && L.fl[1].id === "F5" && L.fl[0].s === 1 / 61 && L.fl[1].s === 1 / 61 && t.stat("right") === 1,
-        "98/0417 at window 3: her file and Lachlan Tarrant's both score 1/61; the tie goes to the better keyword rank");
+        "98/0417 at window 3: her file and Lachlan Hartsop's both score 1/61; the tie goes to the better keyword rank");
     }
   });
 })();
