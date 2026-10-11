@@ -1,0 +1,946 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e01",
+ "season": 4,
+ "n": 1,
+ "title": "Three Ways to Ask",
+ "setting": "a translator's booth",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "rest-vs-grpc-vs-graphql",
+  "api-design",
+  "versioning",
+  "pagination"
+ ],
+ "prerequisites": [
+  "s1e01",
+  "s1e02",
+  "s1e04",
+  "s1e05",
+  "s1e06",
+  "s1e10",
+  "s1e11",
+  "s3e02"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/booth_two_eluned",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 2874,
+  "title": "I interpret at night for an arbitration on the other side of the world. At 02:06 my screen named a man who walked out at 01:04, and the transcript says he gave up the point he had fought for all morning.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I work nights in a rented booth above a closed print shop, interpreting into English for hearings held where it is daytime. This month it is Corvallo Nickel against the Vintersky Port Authority. The hearing runs on a platform called Hearline. My booth console pulls the speaker list from Hearline and, whenever a microphone in the room goes live, puts that seat's name over my screen, so the transcript knows whose words I am saying."
+   },
+   {
+    "t": "p",
+    "text": "Emeric Vidmar, counsel for the port, argued all morning that clause 9 meant nothing. At 01:04 by my clock he closed his folder, bowed to the tribunal and walked out of seat 14. The room camera watched the chair stay empty."
+   },
+   {
+    "t": "p",
+    "text": "The afternoon session opened at 02:00, and the console reloaded the list. Its log:"
+   },
+   {
+    "t": "log",
+    "text": "02:00:00  GET /v1/speakers?offset=0&limit=20   200  20 rows  R-127 to R-108\n02:00:01  GET /v1/speakers?offset=20&limit=20  200  {\"speakers\":null,\"error\":\"busy\"}  retry in 30 s\n02:00:31  GET /v1/speakers?offset=20&limit=20  200  10 rows  R-110 to R-101\n02:00:31  loaded: 30 rows, 27 names"
+   },
+   {
+    "t": "p",
+    "text": "Three names sat twice in my speaker panel: Felix Coldicott, Anders Eskildsen, Joaquim Ilunga. Tsvetana, my booth partner, said it looked as if they had each brought someone."
+   },
+   {
+    "t": "p",
+    "text": "At 02:06 the microphone at seat 14 went live. A woman's voice, calm and careful. The name over my screen said EMERIC VIDMAR. I put her words into English under his name, because that is the job and there is no time to argue with a screen. She conceded clause 9."
+   },
+   {
+    "t": "beat",
+    "text": "The record says a man who had left an hour earlier gave up his own argument."
+   },
+   {
+    "t": "p",
+    "text": "Afterwards the hearing clerk sent me the door sheet. Three delegates registered late, at 02:00:12, 02:00:17 and 02:00:24: Femi Oyelaran, Rozalia Rautenbach and Sorin Ivanescu. Rautenbach was given seat 14. None of the three was ever in my console."
+   },
+   {
+    "t": "p",
+    "text": "The tribunal wants to know by Friday how its record named a man who wasn't in the room. What should change before the next session?"
+   },
+   {
+    "t": "evidence",
+    "label": "console_and_door_sheet.png",
+    "diagram": {
+     "type": "sequence",
+     "lanes": [
+      "Booth console",
+      "Hearline",
+      "Door desk"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "02:00:00 offset=0 limit=20"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "200 · R-127 to R-108"
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "02:00:01 offset=20"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "200 · error: busy",
+       "tone": "warn"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "02:00:12 to :24 · R-128 to R-130"
+      },
+      {
+       "note": 1,
+       "text": "30 rows, newest first",
+       "sub": "offset 20 is now R-110",
+       "tone": "warn"
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "02:00:31 offset=20"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "200 · R-110 to R-101",
+       "tone": "bad"
+      },
+      {
+       "outcome": 0,
+       "text": "3 twice, 3 never seen",
+       "tone": "bad"
+      },
+      {
+       "outcome": 0,
+       "text": "02:06 seat 14: VIDMAR",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "The console's three requests next to the door sheet. Page 1 at 02:00:00 held the 20 newest of 27 registrations, R-127 to R-108. Page 2's first answer at 02:00:01 was a 200 with an error inside, so the console waited 30 seconds. In that half minute R-128, R-129 and R-130 registered and went in at the top, so at 02:00:31 offset 20 was R-110, not R-107. Coldicott (R-110), Eskildsen (R-109) and Ilunga (R-108) came back a second time, and the three late delegates were never fetched."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 142,
+   "age": "5h",
+   "text": "Your console pages by offset: it asks for 20 rows starting at row 0, then 20 starting at row 20, counting from the top of a list sorted newest first. The 20 is the page size. The other common way is a cursor: the server hands back a marker for the last row you read, and you ask for the rows after it. A cursor is only as good as the key it marks, which needs to be stable and unique: a value that never changes and never repeats. Now the log. When page 2 finally came back at 02:00:31, how many rows did the list hold, and who had landed at offsets 0 to 2? Who sat at offset 20 at 02:00:00, and who at 02:00:31? Page 2's first answer was a 200: what did the console make of it, and what did Hearline's own error count say? And once the console had loaded at 02:00:31, did anything ever tell it seat 14 had changed hands?",
+   "replies": [
+    {
+     "author": "u/booth_two_eluned",
+     "op": true,
+     "points": 51,
+     "age": "4h",
+     "text": "The clerk says Hearline keeps everyone who registered in the list, even after they leave, because it is the register of the hearing, not of the room. Registration ids go up by one for each delegate, R-101, R-102 and so on, and are never reused. The console was written years ago for one-day hearings: it loads the list once per session and names a seat after the newest registration it holds for that seat. Hearline's error dashboard for Tuesday shows no errors at all. Its documentation says it returns at most 100 rows a request."
+    }
+   ]
+  },
+  {
+   "author": "u/one_query_okwuosa",
+   "points": 97,
+   "age": "4h",
+   "text": "GraphQL fixes all of this. GraphQL is a query language for APIs: the client sends one query naming exactly the fields it wants, and the server returns just those. Your console downloads whole delegate records to read a name and a seat. Ask for id, name and seat and nothing else, and the list arrives in a fraction of the bytes, quickly enough that nobody slips in between pages. It even has cursor connections built in. REST makes you take whatever record the server decided on; stop paging through it."
+  },
+  {
+   "author": "u/just_fetch_it_pradhan",
+   "points": 64,
+   "age": "3h",
+   "text": "It's 30 names. Set the page size to 500 and the whole list comes back in one request, so nothing can slide between pages. If you're still nervous, fetch the whole thing every 10 seconds and compare it with the last copy. Bandwidth is cheap; a misnamed speaker isn't."
+  }
+ ],
+ "reply": {
+  "prompt": "The next session is Thursday at 02:00. What should the booth and Hearline change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Move the console to GraphQL, so it asks only for the id, name and seat, and the list loads in fewer bytes.",
+    "tone": "bad",
+    "verdict": "Fewer bytes, the same gaps",
+    "part2": "Hearline's developers built a GraphQL endpoint in a week, and the console now asks for id, name and seat, by offset and limit as before. Before Thursday, Tsvetana replayed Tuesday through it with the door sheet. Page 1 came to 1,320 bytes instead of 4,840. The busy page came back as 200 OK with an errors list inside, so the console waited 30 seconds again, and Hearline's error count stayed at zero. At 02:00:31 offset 20 was still R-110. The same three names appeared twice, the same three delegates were never seen, and at 02:06 seat 14 still read EMERIC VIDMAR. The whole load cost 2,043 bytes instead of 7,312. The query language had changed; the offsets hadn't.",
+    "senior": "GraphQL changes how a client says what it wants, not how the server walks a list that changes underneath. Offset paging over a list that grows at the top shifts in any query language. GraphQL's cursor connections would help, but because of the cursor, which REST can carry just as well. And GraphQL over HTTP usually reports errors inside a 200, so the client has to read the body to know a request failed."
+   },
+   {
+    "text": "Page by a cursor on the registration id, version the API, and return real error codes the console handles.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Hearline added /v2/speakers alongside /v1, which stayed up unchanged for the other booths with a retirement date announced. Version 2 lists oldest first by registration id, 20 a page; each page ends with an opaque cursor for the last id read, and the console asks for the rows after it. Errors come back as real status codes with a problem body. Tsvetana replayed Tuesday: page 1 was R-101 to R-120; page 2 at 02:00:01 got 503 with Retry-After: 30, which the console obeyed and Hearline's dashboard counted as one error; at 02:00:31 page 2 brought R-121 to R-130, the three late delegates at the end, where new rows go. 30 names, none twice, none missing, 3 requests, 7,467 bytes. At 02:06 seat 14 read ROZALIA RAUTENBACH. Tsvetana then moved the late registrations to 02:05: the walk had ended at 02:00:31, so the console now keeps its last cursor and asks again for anything after it.",
+    "senior": "A cursor on a stable, unique key marks a row, not a position, so rows added elsewhere in the list can't push anything onto the next page or past it; listing oldest first puts newcomers at the end, where the walk reaches them. Changing the paging and the error format breaks existing clients, so they go into a new version while the old one keeps working until its stated retirement. Real status codes let the client, and the monitoring, tell busy from empty."
+   },
+   {
+    "text": "Raise the page size to 500, so the whole speaker list comes back in one request with no gap between pages.",
+    "tone": "bad",
+    "verdict": "One request, still stale",
+    "part2": "The console asked for 500 a page. Hearline returns at most 100 a request, and the console never noticed, because 27 rows is fewer than either. Tsvetana replayed Tuesday: one request at 02:00:00, 27 rows, 6,520 bytes, nothing twice. Then the three late delegates registered, 12 to 24 seconds after the only request the console would make that session. At 02:06 seat 14 still read EMERIC VIDMAR. Tsvetana also noticed what happens on a hearing with more than 100 delegates: Hearline sends 100, the console sees fewer than the 500 it asked for, and takes that as the end of the list.",
+    "senior": "A bigger page shrinks the window between pages but does nothing for rows added after the request, and servers cap the page size: Hearline at 100, Stripe at 100, GitHub at 100 for most lists, Google's guide says to coerce larger requests down. A client that asks for more than the cap and stops at a short page silently stops early. Page through every list as if it will change while you read it."
+   },
+   {
+    "text": "Fetch the whole speaker list again every 10 seconds, compare it with the last copy, and keep the newer one.",
+    "tone": "warn",
+    "verdict": "Right, at a price",
+    "part2": "The console now reloads the whole list every 10 seconds, by offset as before. Tsvetana replayed Tuesday: the first pass failed on the busy page and was dropped, the 02:00:10 pass found 27, the 02:00:20 pass 29, and from 02:00:30 every pass had all 30. At 02:06 seat 14 read ROZALIA RAUTENBACH. The bill for the hour: 720 requests and 2,617,432 bytes from one console, against 3 requests and 7,312 bytes before. Every booth on the hearing would do the same, and Hearline's busy moment at the start of each session would be met by every console at once, every 10 seconds.",
+    "senior": "Reloading everything is correct within one interval and costs list size times frequency times clients, for ever. It still pages by offset, so a pass that meets an insert between its pages is wrong until the next pass, and it still can't tell a busy answer from an empty one. It is a fair stopgap for a tiny list; the lasting fix is paging that doesn't shift, then asking only for what changed."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e01",
+  "title": "Replay the afternoon session through the booth console",
+  "lede": "You're Tsvetana, replaying Tuesday's afternoon session from 02:00:00, before the console has asked for anything. Delegates R-101 to R-127 are registered; R-1nn sits in seat nn minus 100, and Emeric Vidmar (R-114) left seat 14 at 01:04, which Hearline doesn't record. Three late delegates register at 02:00:12, :17 and :24: Femi Oyelaran (seat 28), Rozalia Rautenbach (seat 14) and Sorin Ivanescu (seat 29). Offset paging asks for rows from a position in the list, newest first; cursor paging asks for the rows after the last registration id read, oldest first. You can ask over REST, which returns whole records, or over GraphQL for id, name and seat only. Hearline returns at most 100 rows a request. The console asks for the next page 1 second after a page and stops at a page shorter than it asked for. At 02:00:01 Hearline is busy: it can say so with 200 OK and the error inside the body, or with 503, Retry-After: 30 and a problem body (a standard JSON description of the error, from RFC 9457); over GraphQL it is always a 200 with an errors list inside. Reloading every 10 s drops a pass that meets an error and starts the next 10 s after the last began. Bytes received count 40 per page, 240 per REST row and 64 per GraphQL row. The seat map names each seat after the newest registration the console holds for it. At 02:06:00 the microphone at seat 14 goes live. The hour stats count every request from 02:00 to 03:00. Changing any setting starts again at 02:00:00.",
+  "tryThis": "Try this: step through as on the night. Page 1 is R-127 to R-108; page 2's first answer is a 200 with the error inside, and the error count stays at 0. By 02:00:31 the list holds 30 and offset 20 is R-110: Coldicott, Eskildsen and Ilunga twice, the three late delegates never seen, and at 02:06 seat 14 names Emeric Vidmar. Try GraphQL: 2,043 bytes instead of 7,312, the same names twice and missing. Try 500 a page: one request of 27 rows, and Vidmar again. Try the whole list every 10 s: right at 02:06, at 720 requests and 2,617,432 bytes in the hour. Try the cursor with real errors: 30 names, none twice, 1 error seen, Rautenbach at seat 14. Then move the late delegates to 02:05: the cursor walk ended at 02:00:31 and misses them too. Last, set the busy answer to read as the end: 2 requests, 20 rows, 10 delegates never seen. Move the late delegates before page 1 and offsets work, by luck."
+ },
+ "explain": {
+  "oneLine": "Nobody haunted seat 14. The console read the list by offset, newest first; three late registrations went in at the top between page 1 and page 2, so three names slid back onto page 2 and the newcomers sat at offsets already read. The console's seat map never learned that Rozalia Rautenbach had Emeric Vidmar's old seat.",
+  "steps": [
+   {
+    "title": "Offsets count from a top that moved.",
+    "text": "Offset pagination asks for a slice by position: skip 20 rows, give me the next 20. That only works if the list holds still between requests. Hearline sorts newest first, so every registration goes in at position 0 and pushes everything else down. At 02:00:00 the console read positions 0 to 19: R-127 down to R-108. By 02:00:31 R-128, R-129 and R-130 had gone in at positions 0 to 2, so R-110, R-109 and R-108, last read at positions 17 to 19, now sat at 20 to 22 and came back on page 2. The three newcomers were at positions the console had already passed. 30 rows read, 27 names, 3 twice, 3 never seen. The bigger the gap between pages and the busier the list, the more slides; deletes do the opposite and skip rows."
+   },
+   {
+    "title": "The busy page hid behind a 200.",
+    "text": "The gap was 30 seconds because page 2's first answer said 200 OK with {\"error\":\"busy\"} in the body. The console found no rows, guessed, and waited its fixed 30 seconds. A client that guessed differently would have read no rows as the end of the list: 20 rows, 10 delegates never seen. And Hearline's error count stayed at zero, because by status code nothing had failed. HTTP already has words for this: 503 Service Unavailable with Retry-After says busy, come back in 30 seconds. RFC 9457 adds a standard body for the details, called problem details, served as application/problem+json, with a type, a title, the status, and a detail for this occurrence. Clients branch on the status code; people and logs read the body."
+   },
+   {
+    "title": "A cursor marks a row, not a position.",
+    "text": "Cursor pagination asks for the rows after the last one you read: after R-120, the next 20. A new row elsewhere in the list doesn't move R-120, so nothing slides onto the next page and nothing is skipped. The key has to be stable and unique, like a registration id that never changes and is never reused, and the order fixed; sort by something with ties and two rows can share a boundary. Ordered oldest first, newcomers land at the end, where the walk reaches them: in the replay R-128 to R-130 arrive on page 2. Give the client an opaque cursor, a token it passes back without reading, so the server can change what's inside. Stripe pages by object id this way, and Google's guide says page tokens must be opaque and must not be user-parseable."
+   },
+   {
+    "title": "Three ways to ask: REST, gRPC, GraphQL.",
+    "text": "REST, from Season 1, is resources at addresses with HTTP methods and status codes: understood by every client, cache and proxy, and the usual choice for public APIs. gRPC lets one program call a method on another machine as if it were local, from a contract written in Protocol Buffers that both sides compile; it is compact, typed, and can stream messages in either or both directions, which suits service-to-service traffic inside a company where you control both ends. GraphQL gives the client one endpoint and a typed schema, and the client asks for exactly the data it needs, which suits apps that assemble a screen from many resources. None of the three pages a changing list for you; each needs a cursor."
+   },
+   {
+    "title": "Change an API without breaking the booths.",
+    "text": "Moving from offset to cursor, or from 200-with-an-error to real status codes, breaks every existing client, so it is a breaking change and gets a new version: /v2/speakers beside /v1. Inside a version, make only additive changes, such as a new optional field or parameter that old clients can ignore. Deprecate the old version on a stated date, signal it in responses with the Deprecation header (RFC 9745) and the Sunset header (RFC 8594), watch who still calls it, and turn it off only then. Google's guide warns that adding pagination to a list that never had it is itself backwards-incompatible, so page every list from its first version."
+   }
+  ],
+  "diagram": {
+   "type": "sequence",
+   "lanes": [
+    "Booth console",
+    "Hearline /v2",
+    "Door desk"
+   ],
+   "steps": [
+    {
+     "from": 0,
+     "to": 1,
+     "label": "02:00:00 limit=20"
+    },
+    {
+     "from": 1,
+     "to": 0,
+     "label": "200 · R-101 to R-120 · cursor"
+    },
+    {
+     "from": 0,
+     "to": 1,
+     "label": "02:00:01 after=cursor"
+    },
+    {
+     "from": 1,
+     "to": 0,
+     "label": "503 · Retry-After: 30",
+     "tone": "warn"
+    },
+    {
+     "from": 2,
+     "to": 1,
+     "label": "02:00:12 to :24 · R-128 to R-130"
+    },
+    {
+     "note": 1,
+     "text": "new rows go at the end",
+     "tone": "ok"
+    },
+    {
+     "from": 0,
+     "to": 1,
+     "label": "02:00:31 after=cursor"
+    },
+    {
+     "from": 1,
+     "to": 0,
+     "label": "200 · R-121 to R-130",
+     "tone": "ok"
+    },
+    {
+     "outcome": 0,
+     "text": "30 names, none twice",
+     "tone": "ok"
+    },
+    {
+     "outcome": 0,
+     "text": "02:06 seat 14: RAUTENBACH",
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, replayed against Tuesday. Version 2 lists oldest first by registration id and ends each page with an opaque cursor for the last id read. Page 1 is R-101 to R-120. The busy answer is a 503 with Retry-After: 30, so the console waits and the dashboard counts one error. The three late registrations go at the end of the list, and page 2, after the cursor, brings R-121 to R-130: 30 names, none twice, none missing, and Rozalia Rautenbach at seat 14.",
+  "fix": {
+   "title": "The fix: a cursor on the registration id, in a new version, with real errors",
+   "text": "Hearline adds /v2/speakers: oldest first by registration id, a page size the server caps at 100, and an opaque cursor at the end of each page that the console passes back to get the rows after it. Busy is a 503 with Retry-After and a problem body; a bad cursor is a 400 with a problem body; the last page comes back with no cursor, which is the only way the end is signalled. /v1 stays up, unchanged, until its announced retirement date. The console keeps its last cursor after loading and asks again for anything after it. In the sim, Tuesday replays as 3 requests and 7,467 bytes, 30 names with none twice or missing, one error the dashboard can see, and Rozalia Rautenbach at seat 14."
+  },
+  "limits": [
+   "A cursor walk only sees rows that exist before it reaches the end. Move the late registrations to 02:05 and the walk, finished at 02:00:31, misses all three; the client must keep its last cursor and ask again, or the server must push changes.",
+   "Cursors can't jump to page 7 or show a total cheaply. For a small list that rarely changes, or an admin screen, offset can still be the simpler choice.",
+   "A new version has a running cost: /v1 and /v2 both live, both tested and both supported until the last client moves, which can take longer than the date you announced."
+  ],
+  "tradeoff": {
+   "head": [
+    "Choice",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Offset, newest first, loaded once (as now)",
+     "Simple; can jump to any page. 3 requests, 7,312 bytes.",
+     "Inserts between pages slide rows: 3 twice, 3 never seen, Vidmar named at seat 14."
+    ],
+    [
+     "GraphQL, same offsets",
+     "Asks for only id, name and seat: 2,043 bytes.",
+     "Same 3 twice and 3 missing. Errors still arrive inside a 200."
+    ],
+    [
+     "One page of 500",
+     "One request, nothing twice.",
+     "Capped at 100 by the server; misses anyone who registers after the request. Vidmar again."
+    ],
+    [
+     "Whole list every 10 s",
+     "Right within 10 seconds: Rautenbach at 02:06.",
+     "720 requests and 2,617,432 bytes an hour per console; still offset paging inside each pass."
+    ],
+    [
+     "Cursor on registration id, /v2, real errors",
+     "30 names, none twice or missing; the busy page shows as 1 error. 7,467 bytes.",
+     "Only sees rows that exist before the walk ends; needs a second version kept alongside /v1."
+    ]
+   ]
+  },
+  "seniorTake": "Design every list endpoint as if the list will change while someone pages through it, because it will. Page by an opaque cursor on a stable, unique key, cap the page size and say so, and signal the end of the list one way only. Tell the truth with status codes, and put the details in a problem body, so clients and dashboards can see failure. Version the API explicitly, change it additively inside a version, and retire old versions on a stated date with warning headers. Then pick the style by the caller: REST for public APIs, gRPC for typed, streaming traffic between your own services, GraphQL when clients assemble screens from many resources. The style doesn't fix the paging; the key does.",
+  "realWorld": [
+   {
+    "title": "Stripe: cursors on object ids, newest first",
+    "text": "Stripe's list API methods use cursor-based pagination through the starting_after and ending_before parameters, which both accept an existing object ID and return objects in reverse chronological order. limit ranges between 1 and 100, with a default of 10, and has_more says whether there are more elements after this set. That is Hearline's newest-first list, paged by a row instead of a position.",
+    "source": 0
+   },
+   {
+    "title": "Google AIP-158: opaque page tokens, and paging from day one",
+    "text": "Google's API Improvement Proposal 158 says page tokens must be opaque (but URL-safe) strings and must not be user-parseable, because if users are able to deconstruct these, they will do so. An empty next_page_token is the only way to communicate end-of-collection. A page_size above the maximum should be coerced down. And it is a backwards-incompatible change to add pagination to an existing method, so page collections up front.",
+    "source": 1
+   },
+   {
+    "title": "GitHub: a link header and a cap of 100",
+    "text": "GitHub's REST API returns a link header containing URLs you can use to fetch additional pages. For most endpoints the maximum value of per_page is 100, and if you specify a value greater than the maximum, GitHub does not return an error. Each paginated endpoint uses the page, before/after, or since parameters.",
+    "source": 2
+   },
+   {
+    "title": "RFC 9457: problem details for HTTP APIs",
+    "text": "RFC 9457 defines a problem detail to carry machine-readable details of errors in HTTP response content, as application/problem+json, with members type, title, status, detail and instance. It obsoletes RFC 7807, says generators MUST use the same status code in the actual HTTP response, and that problem details are not a debugging tool for the underlying implementation.",
+    "source": 3
+   },
+   {
+    "title": "gRPC: call a remote method as if it were local",
+    "text": "gRPC's introduction says a client application can directly call a method on a server application on a different machine as if it were a local object. You define a service, specifying the methods that can be called remotely with their parameters and return types, and gRPC can use protocol buffers as both its Interface Definition Language and its underlying message interchange format.",
+    "source": 4
+   },
+   {
+    "title": "gRPC: four kinds of call, three of them streaming",
+    "text": "gRPC's core concepts list unary RPCs, where the client sends a single request and gets a single response back, server streaming RPCs, client streaming RPCs, and bidirectional streaming RPCs, where both sides send a sequence of messages using a read-write stream.",
+    "source": 5
+   },
+   {
+    "title": "GraphQL: a query language and a runtime",
+    "text": "GraphQL's introduction calls it a query language for your API, and a server-side runtime for executing queries using a type system you define for your data. The client can make queries that mirror the structure of the data they need and receive just that data, in the expected shape, with a single request.",
+    "source": 6
+   },
+   {
+    "title": "GraphQL Cursor Connections: the cursor again",
+    "text": "The Relay connections specification gives GraphQL clients a consistent way to paginate: first and after for forward paging, last and before for backward, and a PageInfo with hasNextPage, hasPreviousPage, startCursor and endCursor. Each edge's cursor should be considered opaque by the client. GraphQL's own answer to paging is a cursor.",
+    "source": 7
+   },
+   {
+    "title": "GraphQL over HTTP: errors usually travel in a 200",
+    "text": "The GraphQL over HTTP Working Draft says that if the operation is executed and no GraphQL request error is raised, the server SHOULD respond with a status code of 200 OK, even when an error occurs while executing a field; the errors travel in the body. A GraphQL client must read the body to know part of its request failed.",
+    "source": 8
+   },
+   {
+    "title": "RFC 9745: the Deprecation header",
+    "text": "RFC 9745, a Standards Track RFC from March 2025, defines the Deprecation response header field, which signals to consumers of a resource that the resource will be or has been deprecated.",
+    "source": 9
+   },
+   {
+    "title": "RFC 8594: the Sunset header",
+    "text": "RFC 8594, an Informational RFC, defines the Sunset header field, which indicates that a URI is likely to become unresponsive at a specified point in the future.",
+    "source": 10
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Design a paginated API.",
+    "REST, gRPC or GraphQL: which and why?",
+    "How do you version an API?"
+   ],
+   "answer": "For a paginated API, start by assuming the list changes while clients page through it. Offset pagination is simple and can jump to any page, but inserts and deletes between requests slide rows, so clients see some twice and miss others. Use cursor pagination instead: sort by a stable, unique key, or a sort column plus the id as a tie-break, return an opaque cursor for the last row of each page, and take the rows after it. Cap the page size and document the cap, signal the end of the list one way only, such as an empty next cursor, and say what a client should do to catch rows added later: keep the last cursor and ask again. For errors, use real status codes, such as 400 for a bad cursor, 429 or 503 with Retry-After when the client should slow down, and a problem details body from RFC 9457, never 200 with an error inside. Choose the style by the caller: REST over HTTP for public APIs, because every client and cache understands it; gRPC for typed, high-volume or streaming calls between your own services, with Protocol Buffers as the contract; GraphQL when clients assemble screens from many resources and want exactly the data they need, accepting that errors usually arrive inside a 200. For versioning, put an explicit version in the path or a header, make only additive changes within a version, put breaking changes in a new version, and retire the old one on an announced date with Deprecation and Sunset headers while you watch who still calls it."
+  }
+ },
+ "terms": [
+  {
+   "term": "Interpreter",
+   "def": "Someone who turns speech in one language into another as it is spoken. A simultaneous interpreter speaks a second or two behind the speaker, from a booth with headphones."
+  },
+  {
+   "term": "Remote booth",
+   "def": "An interpreting booth away from the hearing room, connected by video and audio. Eluned's is above a print shop, in a time zone where the hearing runs at night."
+  },
+  {
+   "term": "Arbitration",
+   "def": "A private hearing in which the parties to a dispute agree to let a tribunal decide it instead of a court. Here, Corvallo Nickel against the Vintersky Port Authority."
+  },
+  {
+   "term": "Tribunal",
+   "def": "The arbitrators who hear the case and decide it. They rely on the transcript of who said what."
+  },
+  {
+   "term": "Delegate",
+   "def": "Anyone registered to take part in the hearing: counsel, witnesses, experts and party representatives. Each gets a registration id and a seat."
+  },
+  {
+   "term": "Clause 9",
+   "def": "The part of the contract the two sides were arguing about on Tuesday. Emeric Vidmar argued for the port that it meant nothing."
+  },
+  {
+   "term": "Concede",
+   "def": "To accept a point the other side has argued. A concession in the transcript can decide a case."
+  },
+  {
+   "term": "Transcript",
+   "def": "The written record of the hearing: every speech, under the name of the person who spoke. The interpretation transcript takes its names from the booth console."
+  },
+  {
+   "term": "Hearline",
+   "def": "The hearing platform in this story. It registers delegates, assigns seats and serves the speaker list to booth consoles through its API."
+  },
+  {
+   "term": "Booth console",
+   "def": "The program in Eluned's booth that loads the speaker list from Hearline and shows a name whenever a seat's microphone goes live."
+  },
+  {
+   "term": "Speaker list",
+   "def": "Hearline's list of everyone registered for the hearing, including those who have left, served by the /speakers endpoint."
+  },
+  {
+   "term": "Registration id",
+   "def": "The number Hearline gives each delegate when they register: R-101, R-102 and so on, one higher each time, never changed or reused. A stable, unique key."
+  },
+  {
+   "term": "Seat map",
+   "def": "The console's table from seat number to delegate. It names each seat after the newest registration it holds for that seat."
+  },
+  {
+   "term": "Door sheet",
+   "def": "The hearing clerk's list of who registered at the door and when."
+  },
+  {
+   "term": "Pagination",
+   "def": "Splitting a long list into pages and returning one page per request, so neither side has to handle everything at once."
+  },
+  {
+   "term": "Page size",
+   "def": "How many rows a client asks for in one request, such as limit=20. Servers usually cap it; Hearline, Stripe and most GitHub lists stop at 100."
+  },
+  {
+   "term": "Offset pagination",
+   "def": "Asking for a page by position: skip offset rows, return the next limit rows. Simple, but rows added or removed between requests shift what each position holds."
+  },
+  {
+   "term": "Offset",
+   "def": "A row's position in a list, counted from 0 at the top. In a list sorted newest first, every new row takes offset 0 and pushes the rest down."
+  },
+  {
+   "term": "Newest first",
+   "def": "Sorted with the most recent row at the top. Also called reverse chronological order."
+  },
+  {
+   "term": "Oldest first",
+   "def": "Sorted with the earliest row at the top, so new rows are added at the end."
+  },
+  {
+   "term": "Cursor",
+   "def": "A marker the server returns for the last row of a page. The client sends it back to ask for the rows after that row."
+  },
+  {
+   "term": "Cursor pagination",
+   "def": "Asking for the rows after a marked row instead of after a position. Rows added elsewhere don't shift the page. Also called keyset or seek pagination."
+  },
+  {
+   "term": "Opaque cursor",
+   "def": "A cursor the client passes back without reading or building it, such as ckd8o. The server can change what it encodes without breaking clients."
+  },
+  {
+   "term": "Stable, unique key",
+   "def": "A value that never changes for a row and never repeats across rows, like a registration id. A cursor needs one, or rows that share a value can be skipped."
+  },
+  {
+   "term": "Tie-break",
+   "def": "A second sort key used when the first one is equal, such as the id after the time, so every row has exactly one place in the order."
+  },
+  {
+   "term": "URI",
+   "def": "Uniform Resource Identifier: a string that names a resource, such as a web address. A URL is a URI you can also fetch."
+  },
+  {
+   "term": "Page token",
+   "def": "Google's name for an opaque cursor: next_page_token comes back with a page, and page_token sends it with the next request. Empty means the end."
+  },
+  {
+   "term": "has_more",
+   "def": "A field in Stripe's list responses that says whether more rows follow this page."
+  },
+  {
+   "term": "starting_after",
+   "def": "Stripe's cursor parameter: an object id meaning give me the objects listed after this one."
+  },
+  {
+   "term": "Link header",
+   "def": "An HTTP response header holding URLs for the next, previous, first and last pages. GitHub's REST API uses it for pagination."
+  },
+  {
+   "term": "Coerce down",
+   "def": "To quietly use the server's maximum when a client asks for more, instead of refusing. Google's guide asks for it; GitHub does it without an error."
+  },
+  {
+   "term": "GraphQL",
+   "def": "A query language for APIs, and a server runtime for it. The client sends one query naming the fields it wants, usually by POST to one endpoint, and gets back just those."
+  },
+  {
+   "term": "Query (GraphQL)",
+   "def": "A GraphQL request that reads data, shaped like the answer: speakers(offset: 20, limit: 20) { id name seat }."
+  },
+  {
+   "term": "Schema (GraphQL)",
+   "def": "The typed description of everything a GraphQL API can return and the arguments each field takes. Queries are checked against it."
+  },
+  {
+   "term": "Cursor connection",
+   "def": "The GraphQL convention for paging from the Relay specification: first and after, last and before, and a PageInfo with hasNextPage and endCursor."
+  },
+  {
+   "term": "PageInfo",
+   "def": "The part of a GraphQL connection that says whether more pages exist (hasNextPage, hasPreviousPage) and gives the first and last cursors."
+  },
+  {
+   "term": "errors list (GraphQL)",
+   "def": "The errors entry in a GraphQL response body, listing what failed. It often arrives with status 200, so a client has to look inside the body."
+  },
+  {
+   "term": "gRPC",
+   "def": "A framework for one program to call methods on another over the network as if they were local, from a contract both sides compile. Common between services."
+  },
+  {
+   "term": "RPC",
+   "def": "Remote procedure call: calling a function that runs on another machine, with the network hidden behind the call."
+  },
+  {
+   "term": "Protocol Buffers",
+   "def": "Google's language for describing messages and services, compiled into code for each side, and its compact binary format. gRPC's usual contract and wire format."
+  },
+  {
+   "term": "Contract (API)",
+   "def": "The agreed description of an API's calls and messages. With gRPC it is a .proto file both client and server are built from."
+  },
+  {
+   "term": "Interface Definition Language",
+   "def": "IDL: a language for describing an interface, its methods and their messages, independently of any programming language."
+  },
+  {
+   "term": "Unary and streaming RPC",
+   "def": "A unary call sends one request and gets one response. A streaming call sends or receives a sequence of messages: server, client or bidirectional streaming."
+  },
+  {
+   "term": "200 with an error inside",
+   "def": "An answer that says 200 OK in its status line and an error in its body. Clients, caches and dashboards that trust the status code treat it as success."
+  },
+  {
+   "term": "Problem details",
+   "def": "A standard JSON body for HTTP errors, from RFC 9457, with type, title, status, detail and instance. Sent with a real status code, never instead of one."
+  },
+  {
+   "term": "Problem body",
+   "def": "A response body written as problem details."
+  },
+  {
+   "term": "application/problem+json",
+   "def": "The Content-Type of a problem details body written in JSON."
+  },
+  {
+   "term": "type, title, status, detail, instance",
+   "def": "The problem details members: a URI for the kind of problem, its short title, the HTTP status code, a note on this occurrence, and a URI for this occurrence."
+  },
+  {
+   "term": "RFC 7807",
+   "def": "The earlier problem details standard, from 2016, which RFC 9457 replaced in 2023."
+  },
+  {
+   "term": "Error count",
+   "def": "A dashboard figure counting responses with 4xx and 5xx status codes. It can't see errors hidden inside a 200."
+  },
+  {
+   "term": "Additive change",
+   "def": "A change old clients can ignore: a new optional field, parameter or endpoint. Safe inside a version, unlike removing or renaming something."
+  },
+  {
+   "term": "Deprecation",
+   "def": "Announcing that a version or endpoint will be retired, with a date, while it keeps working, so clients have time to move."
+  },
+  {
+   "term": "Deprecation header",
+   "def": "A response header from RFC 9745 that tells clients the resource they called will be, or has been, deprecated."
+  },
+  {
+   "term": "Sunset header",
+   "def": "A response header from RFC 8594 giving the date after which a URI is likely to stop responding."
+  },
+  {
+   "term": "Reload (poll) the whole list",
+   "def": "Fetching the entire list again on a timer and replacing the old copy. Correct within one interval; the cost grows with list size, frequency and clients."
+  },
+  {
+   "term": "Pass (in the sim)",
+   "def": "One trip through every page of the list. In 10-second mode a pass that hits an error is dropped and the next one starts 10 seconds after the last began."
+  },
+  {
+   "term": "Bytes received (in the sim)",
+   "def": "The size of what came back: 40 bytes per page envelope, 240 per REST row, 64 per GraphQL row, plus 32, 43 or 187 bytes for an error body."
+  },
+  {
+   "term": "Envelope",
+   "def": "The part of a list response around the rows: the list's name, the cursor or offset, and flags such as has_more."
+  },
+  {
+   "term": "Infinite scroll",
+   "def": "A feed that loads the next page as you reach the bottom, instead of showing page numbers."
+  },
+  {
+   "term": "Build Night",
+   "def": "A hands-on project night in this course, where you build a small system that uses what recent cases taught."
+  },
+  {
+   "term": "Monitor (Build Night N1)",
+   "def": "A saved check that calls a website or API on a schedule and records whether it answered. N1's API lets clients register, list and remove them."
+  }
+ ],
+ "atWork": "Find every list endpoint your systems serve or call, and ask four questions. How does it page: by offset or page number, or by a cursor on a stable, unique key? Can rows be added or removed while someone pages through it, and in what order do new ones land? What does it return when it is busy or the cursor is bad: a real status code with a problem body, or a 200 with an error inside that your dashboards count as success? And where is the version, and what is your rule for changes inside one? A common incident looks like this: a mobile feed loads 20 posts at a time newest first with ?page=2, and on a busy evening users scroll past the same post twice while others never appear, because new posts pushed the old ones down between requests. The fix is a cursor, not a bigger page. Build Night N1, an API to register monitors, asks for exactly this: cursor pagination on the monitor id, a versioned path such as /v1/monitors, and errors as status codes with problem details bodies. If your company is pursuing a SOC 2 report that includes the processing integrity category, criterion PI1.3 in the AICPA's 2017 Trust Services Criteria expects data to be processed completely and accurately; a list read that silently skips or repeats records, or an error a dashboard can't see, is the kind of gap an auditor can ask about, so design the paging and the errors in from the first version rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "rest-vs-grpc-vs-graphql",
+    "title": "REST vs gRPC vs GraphQL"
+   },
+   {
+    "id": "api-design",
+    "title": "API design"
+   },
+   {
+    "id": "versioning",
+    "title": "Versioning"
+   },
+   {
+    "id": "pagination",
+    "title": "Pagination"
+   }
+  ],
+  "strings": [
+   {
+    "from": "rest-vs-grpc-vs-graphql",
+    "to": "rest",
+    "label": "builds on"
+   },
+   {
+    "from": "rest-vs-grpc-vs-graphql",
+    "to": "apis",
+    "label": "three styles of"
+   },
+   {
+    "from": "pagination",
+    "to": "api-design",
+    "label": "part of"
+   },
+   {
+    "from": "api-design",
+    "to": "status-codes",
+    "label": "errors use"
+   },
+   {
+    "from": "versioning",
+    "to": "api-design",
+    "label": "keeps it safe"
+   },
+   {
+    "from": "pagination",
+    "to": "rest-vs-grpc-vs-graphql",
+    "label": "all three need it"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e01-r1",
+   "kind": "free",
+   "prompt": "Your team's photo app shows a feed newest first with infinite scroll. It asks the API for /feed?offset=0&limit=25, then offset=25, and so on. On busy evenings users report seeing a post twice and say some friends' posts never show up. What is happening, and what would you change in the API?",
+   "keyIdeas": [
+    {
+     "idea": "New posts go in at the top between requests and push older ones down, so the next offset repeats some posts and the new ones sit at positions already read",
+     "match": [
+      "pushed down",
+      "push down",
+      "pushes the",
+      "shift",
+      "slide",
+      "moves down",
+      "move down",
+      "at the top",
+      "positions change",
+      "already read",
+      "already passed"
+     ]
+    },
+    {
+     "idea": "Page by a cursor: return a marker for the last post read and ask for the posts after it",
+     "match": [
+      "cursor",
+      "after the last",
+      "starting_after",
+      "page token",
+      "next_page_token",
+      "last seen",
+      "keyset",
+      "seek pagination"
+     ]
+    },
+    {
+     "idea": "The cursor must sit on a stable, unique key (or a time plus an id tie-break), and be opaque to the client",
+     "match": [
+      "unique",
+      "tie-break",
+      "tiebreak",
+      "never changes",
+      "stable key",
+      "opaque",
+      "post id",
+      "plus the id"
+     ]
+    }
+   ],
+   "model": "Offset pagination counts positions from the top of a list sorted newest first, and on a busy evening new posts go in at the top between one request and the next. Each one pushes everything down a place, so the next offset starts inside posts the user has already seen, which show up twice, and the newest posts sit at positions the app has already passed, so they never appear. Change the API to cursor pagination: each page returns a cursor for the last post read, and the app asks for the posts after it. Put the cursor on a stable, unique key, such as the post id, or the post time plus the id as a tie-break so two posts in the same instant can't be skipped, and make it opaque so the app just passes it back. To show new posts, keep the first cursor and ask for anything newer, rather than reloading by offset."
+  },
+  {
+   "id": "s4e01-r2",
+   "kind": "mcq",
+   "prompt": "A list sorted newest first holds 50 rows. A client reads offset 0, limit 10. Then 4 new rows are added at the top. The client reads offset 10, limit 10. What does it get?",
+   "options": [
+    "Rows 11 to 20 of the original list, exactly",
+    "4 rows it has already seen and 6 new to it; the 4 newest rows never appear",
+    "The 4 newest rows, then 6 rows it has not seen yet",
+    "An error, because the list changed between requests"
+   ],
+   "answer": 1,
+   "why": "After the insert the 4 new rows hold offsets 0 to 3, so the original rows 1 to 10 now sit at offsets 4 to 13. Offset 10 starts at original row 7: rows 7 to 10 again, then 11 to 16. The 4 new rows are at offsets the client has already passed. Offset pagination doesn't notice the list changed; that is why a cursor on a stable key is safer."
+  },
+  {
+   "id": "s4e01-r3",
+   "kind": "free",
+   "prompt": "Your company is building three things: a public API that partner firms call to list and create orders, an internal pricing service that pushes price changes to 40 other services all day, and a mobile app screen that needs pieces of five different resources at once. Which of REST, gRPC and GraphQL would you choose for each, and why?",
+   "keyIdeas": [
+    {
+     "idea": "REST over HTTP for the public partner API: every client, tool and cache understands it, with status codes and versioned paths",
+     "match": [
+      "rest api",
+      "rest over http",
+      "restful",
+      "rest endpoints",
+      "partners get rest",
+      "http api for partners",
+      "rest to partners"
+     ]
+    },
+    {
+     "idea": "gRPC between internal services: a typed Protocol Buffers contract, compact messages, and streaming",
+     "match": [
+      "grpc for",
+      "grpc is",
+      "grpc between",
+      "grpc because",
+      "grpc, because",
+      "streaming",
+      "protocol buffers",
+      "protobuf"
+     ]
+    },
+    {
+     "idea": "GraphQL for the app screen: one query asking for exactly the data it needs from several resources",
+     "match": [
+      "graphql for",
+      "graphql is",
+      "graphql because",
+      "graphql, because",
+      "graphql lets",
+      "exactly the data",
+      "exactly the fields",
+      "fields it needs",
+      "one query"
+     ]
+    }
+   ],
+   "model": "Use REST over HTTP for the public partner API, because every client, language, tool and cache understands it, status codes carry errors in a standard way, and a version in the path lets you change it without breaking partners. Use gRPC between the pricing service and the services that consume it, because both sides are yours, a Protocol Buffers contract gives typed, compact messages, and server streaming lets each consumer hold one stream open and receive price changes as they happen. Use GraphQL for the mobile screen, because one query can ask for exactly the data it needs from five resources in one request, at the cost of errors that usually arrive inside a 200. Whichever you pick, page lists with a cursor."
+  },
+  {
+   "id": "s4e01-r4",
+   "kind": "mcq",
+   "prompt": "Your API is overloaded for a moment and wants clients to try again in 30 seconds. Which response follows HTTP and RFC 9457 best?",
+   "options": [
+    "200 OK with {\"error\": \"busy\"} in the body",
+    "503 Service Unavailable, Retry-After: 30, and an application/problem+json body",
+    "404 Not Found with an empty body",
+    "200 OK with an empty list, so clients treat it as no results"
+   ],
+   "answer": 1,
+   "why": "503 says the server can't handle the request right now, Retry-After says when to come back, and a problem details body explains it for people and logs. RFC 9457 says the status member must match the real status code. A 200 with an error inside hides the failure from clients and dashboards, and an empty list is worse: a client can take it as the end of the data."
+  },
+  {
+   "id": "s4e01-r5",
+   "kind": "mcq",
+   "prompt": "Old clients call GET /v1/orders, which pages by offset. You want cursor pagination. What is the safest way to make the change?",
+   "options": [
+    "Change how /v1/orders pages tonight; clients will adapt when they break",
+    "Add /v2/orders with cursors, keep /v1 working, and retire it on an announced date with Deprecation and Sunset headers",
+    "Tell clients to use a page size of 1,000 so they rarely need a second page",
+    "Keep offsets and ask clients to reload the whole list every 10 seconds"
+   ],
+   "answer": 1,
+   "why": "Changing how a list pages breaks every client written for the old way, so it belongs in a new version while the old one keeps working. Announce a date, mark old responses with the Deprecation and Sunset headers, watch who still calls /v1, and turn it off only then. Bigger pages and reloading everything hide the problem at a cost and don't fix the paging."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. Version 2 has run clean all season. Then Hearline's developers tidied it: the cursor now stands for the last registration time on the page instead of the last registration id, because times read better in their logs, and the console asks for delegates registered after that time. On Tuesday the door desk was busy. Page 1 ended with R-220, registered at 02:00:20. R-221 registered at 02:00:20 too. Page 2 asked for delegates registered after 02:00:20, and R-221 never reached the console. When he spoke, seat 9 was labelled with the name of the man who had sat there before lunch.",
+  "prompt": "Reply to OP. Why was R-221 skipped, and how should the cursor be built?",
+  "keyIdeas": [
+   {
+    "idea": "Registration times are not unique: two delegates can share one, and asking for rows strictly after the boundary row's time skips the other one",
+    "match": [
+     "not unique",
+     "isn't unique",
+     "aren't unique",
+     "share a timestamp",
+     "share a time",
+     "both registered at",
+     "collide",
+     "collision",
+     "duplicate time"
+    ]
+   },
+   {
+    "idea": "Put the cursor on a stable, unique key: the registration id, or the time plus the id as a tie-break",
+    "match": [
+     "back to the id",
+     "the id as",
+     "plus the id",
+     "time and id",
+     "tie-break",
+     "tiebreak",
+     "unique key",
+     "compound cursor"
+    ]
+   },
+   {
+    "idea": "Keep the cursor opaque, so the server can change what it encodes and fix this without breaking clients",
+    "match": [
+     "opaque",
+     "can't read",
+     "cannot read",
+     "not parse",
+     "doesn't parse",
+     "don't parse",
+     "change what it encodes",
+     "change what's inside"
+    ]
+   }
+  ],
+  "model": "Registration times aren't unique: R-220 and R-221 both registered at 02:00:20, and page 1 happened to end on R-220. Page 2 asked for delegates registered strictly after 02:00:20, which excludes R-221 as well, so he was skipped, and seat 9 kept the name of the delegate who held it before lunch. A cursor has to sit on a stable, unique key. Go back to the registration id, or if the list must be ordered by time, make the cursor the pair of time and id, sort by both, and ask for rows after that pair, so a tie on time is broken by the id. Because the cursor is opaque, the console just passes it back and never reads it, so Hearline can change what it encodes and fix this without breaking any client. Add a test that puts two registrations in the same second across a page boundary."
+ },
+ "next": "Next, The Line That Stays Open: a crisis hotline, and how polling, long polling, server-sent events and WebSockets keep a conversation flowing.",
+ "sources": [
+  {
+   "title": "Stripe API reference: Pagination (cursor-based pagination with starting_after and ending_before, which accept an object ID and return objects in reverse chronological order; limit between 1 and 100, default 10; has_more)",
+   "url": "https://docs.stripe.com/api/pagination"
+  },
+  {
+   "title": "Google API Improvement Proposals: AIP-158 Pagination (page tokens must be opaque and not user-parseable; empty next_page_token is the only end-of-collection signal; coerce page_size down; adding pagination later is backwards-incompatible)",
+   "url": "https://google.aip.dev/158"
+  },
+  {
+   "title": "GitHub Docs: Using pagination in the REST API (the link header; per_page maximum of 100 for most endpoints, no error above it; page, before/after or since parameters)",
+   "url": "https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api"
+  },
+  {
+   "title": "RFC 9457: Problem Details for HTTP APIs, 2023 (application/problem+json; type, title, status, detail, instance; obsoletes RFC 7807)",
+   "url": "https://www.rfc-editor.org/rfc/rfc9457.html"
+  },
+  {
+   "title": "gRPC: Introduction to gRPC (call a method on a server on a different machine as if it were a local object; services, methods, parameters and return types; protocol buffers as IDL and message format)",
+   "url": "https://grpc.io/docs/what-is-grpc/introduction/"
+  },
+  {
+   "title": "gRPC: Core concepts, architecture and lifecycle (unary, server streaming, client streaming and bidirectional streaming RPCs)",
+   "url": "https://grpc.io/docs/what-is-grpc/core-concepts/"
+  },
+  {
+   "title": "GraphQL: Introduction to GraphQL (a query language for your API and a server-side runtime; receive just the data you need in one request)",
+   "url": "https://graphql.org/learn/introduction/"
+  },
+  {
+   "title": "Relay: GraphQL Cursor Connections Specification (first/after, last/before, opaque cursors, PageInfo with hasNextPage, hasPreviousPage, startCursor, endCursor)",
+   "url": "https://relay.dev/graphql/connections.htm"
+  },
+  {
+   "title": "GraphQL over HTTP, Current Working Draft (if the operation is executed and no request error is raised, the server SHOULD respond with 200 OK)",
+   "url": "https://http-spec.graphql.org/draft/"
+  },
+  {
+   "title": "RFC 9745: The Deprecation HTTP Response Header Field, March 2025, Standards Track (signals that a resource will be or has been deprecated)",
+   "url": "https://www.rfc-editor.org/rfc/rfc9745.html"
+  },
+  {
+   "title": "RFC 8594: The Sunset HTTP Header Field (a URI is likely to become unresponsive at a specified point in the future)",
+   "url": "https://www.rfc-editor.org/rfc/rfc8594.html"
+  },
+  {
+   "title": "Linford & Co: What is Processing Integrity and Who Needs it in their SOC 2? (quotes the AICPA: PI1.3, data is processed completely, accurately, and timely as authorized)",
+   "url": "https://linfordco.com/blog/processing-integrity"
+  },
+  {
+   "title": "AICPA & CIMA: 2017 Trust Services Criteria (With Revised Points of Focus, 2022) (the criteria used in SOC 2 reports, including processing integrity)",
+   "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+  }
+ ]
+}
