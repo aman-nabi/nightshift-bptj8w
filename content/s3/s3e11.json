@@ -1,0 +1,1114 @@
+{
+  "_changelog": [
+    "v1.0.1 (2026-10-11) rule 15 rename: the skipper lost in 1952 is now Pascoe Bolitho; removed an unused term",
+    "v1.0.0 (2026-10-11) first version"
+  ],
+  "id": "s3e11",
+  "season": 3,
+  "n": 11,
+  "title": "The Word Index",
+  "setting": "a newspaper morgue",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "search",
+    "inverted-indexes",
+    "elasticsearch-basics",
+    "relevance"
+  ],
+  "prerequisites": [
+    "s3e01",
+    "s3e10",
+    "s2e14",
+    "s2e12",
+    "s2e05",
+    "s2e04",
+    "s1e02",
+    "s1e07",
+    "s1e09",
+    "s1e11"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/morgue_night_loveday",
+    "flair": "Part 1",
+    "age": "5h",
+    "votes": 3187,
+    "title": "I'm the night librarian in a newspaper's morgue. A reporter filed an obituary at 23:40. At 01:30 the search swore it didn't exist, and when I searched for how he died, it gave me his father instead.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "The morgue is what a newspaper calls its clippings library, and I'm the night librarian at the Gullstone Herald's. We keep 1,214,000 clippings back to 1881, scanned into our database, and since 2021 every search goes through Elasticsearch, a search server that keeps its own index of every word. Lanyon Tredinnick, our systems editor, set it up."
+      },
+      {
+        "t": "p",
+        "text": "On Thursday at 23:40 Kenwyn Chenoweth filed an obituary: Jago Bolitho, 81, fisherman, drowned off Gullstone quay that evening. I knew him. Every spring he came in to read about his father's boat. At 01:30 I searched for Bolitho, to file the obituary beside the family's clippings."
+      },
+      {
+        "t": "beat",
+        "text": "One result. 14 March 1952. GUILLEMOT FEARED LOST AT SEA. Skipper Pascoe Bolitho among the crew."
+      },
+      {
+        "t": "p",
+        "text": "Not the obituary. Kenwyn swore he had filed it, and the database had it, saved at 23:40:00. So I searched for drowned. Three results: a boy in 1987, a swimmer in 1999, and the Guillemot again, third. I read the 1952 clipping four times. It never says drowned. It says lost at sea, twice."
+      },
+      {
+        "t": "log",
+        "text": "23:15:00  reindex-job  PUT /morgue/_settings  refresh_interval: -1\n23:15:00  reindex-job  loading 48,000 rescanned clippings, 100 a second\n23:19:00  reindex-job  ERROR scan 1961-07-22 p4 unreadable, job stopped at 24,000 of 48,000\n23:40:00  newsroom     indexed /morgue  OBITUARY  BOLITHO, JAGO\n01:30:00  search       \"Bolitho\"  1 hit: 1952-03-14 GUILLEMOT FEARED LOST AT SEA\n01:31:00  search       \"drowned\"  3 hits: 1987-08-02, 1999-06-11, 1952-03-14\n07:12:00  day shift    POST /morgue/_refresh"
+      },
+      {
+        "t": "p",
+        "text": "At 07:12 Hedra Annear on the day shift ran a refresh, because Lanyon's notes say to when the search looks stale. The obituary appeared at once, first for Bolitho. So did the 24,000 clippings the job had loaded before it stopped. Lanyon says the job turns refreshing off while it loads, because loading is faster that way, and its last line turns it back on."
+      },
+      {
+        "t": "p",
+        "text": "And drowned? In the spring Lanyon added a synonym list, so that one phrase also counts as another: lost at sea => lost at sea, drowned. Our analyzer also stems words, so to the search, drowning and drowned are the same word. There is a typed card above the old index drawers, from long before any of this:"
+      },
+      {
+        "t": "note",
+        "title": "INDEX CARDS",
+        "items": [
+          "A CLIPPING IS NOT IN THE MORGUE UNTIL IT HAS A CARD.",
+          "THE CARD IS NOT THE CLIPPING."
+        ],
+        "sig": "- chief librarian, 1958"
+      },
+      {
+        "t": "p",
+        "text": "Lanyon runs the job again tonight. What should he change?"
+      },
+      {
+        "t": "evidence",
+        "label": "lanyon_morgue_0130.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 470,
+          "aria": "Lanyon's drawing of the morgue at 01:30 on Thursday night. The obituary desk saved Jago Bolitho's obituary to the database and indexed it into Elasticsearch at 23:40:00. The reindex job set the morgue index's refresh_interval to -1 at 23:15:00, loaded 24,000 rescanned clippings and stopped at 23:19:00. The night librarian's 01:30 search for Bolitho found one hit, from 1952. The morgue index's last refresh was at 23:15:00, so 24,001 clippings were indexed but not searchable until a refresh.",
+          "nodes": [
+            {
+              "id": "desk",
+              "label": "Obituary desk",
+              "sub": "23:40:00 indexed",
+              "meta": "Bolitho, Jago",
+              "x": 120,
+              "y": 60,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": ""
+            },
+            {
+              "id": "job",
+              "label": "Reindex job",
+              "sub": "refresh -1 at 23:15:00",
+              "meta": "stopped 23:19:00",
+              "x": 370,
+              "y": 60,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "me",
+              "label": "Night librarian",
+              "sub": "01:30 search: Bolitho",
+              "meta": "1 hit, from 1952",
+              "x": 620,
+              "y": 60,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            },
+            {
+              "id": "db",
+              "label": "Database",
+              "sub": "1,214,000 clippings",
+              "meta": "obituary since 23:40:00",
+              "x": 130,
+              "y": 300,
+              "w": 220,
+              "h": 72,
+              "shape": "db",
+              "tone": "ok"
+            },
+            {
+              "id": "es",
+              "label": "Elasticsearch: morgue",
+              "sub": "refresh_interval -1",
+              "meta": "last refresh 23:15:00",
+              "x": 480,
+              "y": 250,
+              "w": 260,
+              "h": 72,
+              "shape": "db",
+              "tone": "bad"
+            },
+            {
+              "id": "hidden",
+              "label": "Indexed, not searchable",
+              "sub": "24,001 clippings",
+              "meta": "until a refresh",
+              "x": 480,
+              "y": 410,
+              "w": 260,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            }
+          ],
+          "edges": [
+            {
+              "from": "desk",
+              "to": "db",
+              "label": "saved"
+            },
+            {
+              "from": "desk",
+              "to": "es",
+              "label": "indexed"
+            },
+            {
+              "from": "job",
+              "to": "es",
+              "label": "loads"
+            },
+            {
+              "from": "me",
+              "to": "es",
+              "label": "searches"
+            },
+            {
+              "from": "es",
+              "to": "hidden",
+              "dash": true,
+              "tone": "muted"
+            }
+          ],
+          "notes": [
+            {
+              "x": 725,
+              "y": 462,
+              "text": "Thursday, 01:30",
+              "tone": "muted",
+              "anchor": "end"
+            }
+          ]
+        },
+        "caption": "Lanyon's drawing of the morgue at 01:30. The obituary went into the database and into the search index at 23:40:00. But the reindex job had set the index's refresh_interval to -1 at 23:15:00 and stopped at 23:19:00, before its last line could set it back. The last refresh was at 23:15:00, so the obituary and the 24,000 clippings the job had loaded, 24,001 in all, were in the index and could not be found."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 131,
+      "age": "4h",
+      "text": "Two things happened to you on one night, and they may have different causes. Some words first. Elasticsearch keeps an inverted index: every token, roughly a word, points to its postings, the list of clippings that contain it. The analyzer turns text into tokens, for clippings and for searches alike, with steps such as lowercasing, dropping stop words like the, a stemmer that cuts words down to a root, and your synonym list. A refresh opens everything indexed since the last one for search; until then an indexed clipping can't be found. The scores on the results come from BM25, Elasticsearch's default way of ranking matches. Now your log. When was the last refresh before 01:30, and what was the refresh interval at 01:31? Which line of the job puts it back, and did that line ever run? And what tokens did the 1952 clipping become on its way in?",
+      "replies": [
+        {
+          "author": "u/morgue_night_loveday",
+          "op": true,
+          "points": 38,
+          "age": "3h",
+          "text": "Lanyon checked at 08:00: the morgue index's refresh_interval was still -1. The line that sets it back to 1s comes after the loading loop, not in a finally block, the part of a program that runs even when the code before it fails; he says the job had never failed before. He also says an index nobody searches skips its background refreshes until a search arrives, the search-idle rule, but not once the interval has been set explicitly, and the job had set it to -1. Then he copied six clippings from the night's searches into a test index of their own and replayed the night. There, at 01:30, drowned scored the Guillemot 0.6844, and after the morning refresh 0.5605, though not a word of it had changed."
+        }
+      ]
+    },
+    {
+      "author": "u/cheap_iron_fitzwilliam",
+      "points": 64,
+      "age": "3h",
+      "text": "You're rationing freshness and calling it engineering. Set refresh_interval to 1ms on every index, the job too, and a clipping is searchable the instant it lands; nothing can hide for seven hours again. Someone will tell you to make the obituary desk save with refresh=wait_for, a flag on a write that holds the reply until a refresh has made it searchable. Why make a reporter wait at all? Each refresh writes a segment, a small read-only piece of the index, so yes, you'll have a lot of segments. Refreshes are cheap and hardware is cheaper. We run our shop's product search at 1ms and the servers barely notice."
+    },
+    {
+      "author": "u/stemless_ysella",
+      "points": 41,
+      "age": "2h",
+      "text": "I'd switch the stemmer and the synonym list off. A morgue is a record. When I search for drowned I want clippings that say drowned, not the search server's guess at what I meant. That 1952 clipping is exactly the kind of answer nobody can explain to a grieving family."
+    },
+    {
+      "author": "u/just_like_spargo",
+      "points": 29,
+      "age": "2h",
+      "text": "Or skip the copy. The database had the obituary at 23:40:00. SELECT ... WHERE body LIKE '%drowned%' would have found it at 01:30, and it can't find a word that isn't there. It's slower, sure, and it can't rank anything. But it's never wrong about what has been saved."
+    }
+  ],
+  "reply": {
+    "prompt": "Lanyon runs the reindex job again tonight at 23:15, and the obituary desk files at 23:40 as usual. What should he change first? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Set refresh_interval to 1 ms on every index, the job included, so each clipping is searchable the moment it is indexed.",
+        "tone": "bad",
+        "verdict": "Fresh everywhere, paid for everywhere",
+        "part2": "Lanyon set refresh_interval to 1ms on the morgue index and took the -1 out of the job, then replayed Thursday on the test index. With a refresh every millisecond, every refresh took its slice of indexing time, and the job loaded 50 clippings a second instead of 100. When it hit the unreadable scan at 23:19:00 it had loaded 12,000, not 24,000, and written 240,000 segments, one a millisecond, each a tiny piece of index that has to be merged later. A full run would take 16 minutes and write 960,000 for the load alone. The obituary was searchable 0.001 s after it was indexed, and at 01:30 Bolitho found it, first. But drowned still showed the Guillemot, fourth now, and nothing on the screen said why. Fitzwilliam says the merges will catch up. Lanyon says Elastic's own page on the refresh API calls refreshes resource-intensive, and he would rather not learn what 960,000 of them cost on the real morgue.",
+        "senior": "1 ms makes everything fresh by making every write pay for a refresh, all day, on every index, to fix one desk that needed its own writes visible and one job that forgot to restore a setting. Each refresh writes a segment that later has to be merged, so the cost lands on indexing, on searches across many tiny segments and on merging. And it changed nothing about the 1952 clipping. Keep the default where it serves, switch refreshing off for bulk loads with a restore that always runs, and give the few writers who must read their own writes refresh=wait_for."
+      },
+      {
+        "text": "Restore refresh in a finally step, alert if it stays off, give the desk wait_for, and show what each hit matched.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Lanyon moved the line that sets 1s into a finally step, added an alert for any index with refreshing off for more than 10 minutes (a full run takes 8), gave Kenwyn's desk refresh=wait_for, and made the search screen show the tokens each result matched. Then he replayed Thursday on the test index. The job hit the unreadable 1961 scan at 23:19:00, after 24,000 clippings, and this time the finally step set the interval back to 1s at once: the 24,000 were searchable at 23:19:01. The alert never fired; refreshing had been off for 4 minutes. At 23:40:00 the obituary was indexed, and Kenwyn's save came back 1 s later, searchable. At 01:30 Bolitho found two clippings, the obituary first at 1.4217 and 1952 at 0.9176. Drowned found four, and beside the Guillemot the screen now said: drown x2: from lost at sea (synonym). Lanyon and the news editor went through the synonym list together and kept that rule, because reporters do want the storm stories, but now anyone can see why a clipping is there. The other 24,000 rescans still had to be loaded, so Lanyon reran the job from where it stopped. Hedra says the card above the drawers was right twice over.",
+        "senior": "Two separate faults, two separate fixes. A bulk load may switch refreshing off, and Elastic's own tuning guide suggests it, but whatever switches it off must switch it back on even when the load fails, which is what a finally step is for, and something outside the job must notice when it doesn't, because a killed process runs no finally step. The obituary desk needs to read its own writes, so it waits for the next refresh on its own saves rather than making every index refresh constantly. And the stemmer and synonyms were doing their job; what was missing was any way to see why a result matched, and someone who owns the list."
+      },
+      {
+        "text": "Turn off the stemmer and the synonym list, so a search for a word finds only clippings that really contain that word.",
+        "tone": "bad",
+        "verdict": "Fixes the surprise, not the silence",
+        "part2": "Lanyon took the stemmer and the synonym list out of the analyzer, rebuilt the test index from its six clippings and replayed Thursday. The job set refreshing to -1 at 23:15:00, stopped at the unreadable scan at 23:19:00, and nothing set it back. At 01:30 Bolitho found only 1952 again, and 24,001 clippings were still hidden. Drowned found one clipping, the 1987 boy, at 1.9654: no Guillemot, and no 1999 swimmer either, who was drowning, not drowned. A search for drowning now found only drowning. Hedra ran the refresh at 07:12:00 and the obituary appeared 27,120 s after it was indexed, exactly as before. Ysella was pleased about the Guillemot. Kenwyn wasn't: the obituary he filed was invisible all night again.",
+        "senior": "The stemmer and the synonym list caused the surprise, but not the silence: the obituary was hidden by a refresh interval left at -1, and analysis doesn't touch that. Turning analysis off also throws away what it is for. Without stemming, drowned misses drowning; without the synonym, the storm stories reporters asked for vanish. Show which tokens matched, fix or remove the one rule that misleads, and remember that a rule applied as clippings are indexed reaches old clippings only when the index is rebuilt."
+      },
+      {
+        "text": "Search the database with LIKE and retire Elasticsearch, so every search sees exactly what was saved, the moment it is.",
+        "tone": "warn",
+        "verdict": "Trade-off: always fresh, never ranked",
+        "part2": "Lanyon pointed the test search screen at the database with LIKE, case-sensitive as in PostgreSQL, and replayed Thursday. Nothing depended on a refresh any more: at 01:30 Bolitho found the obituary and the 1952 clipping, newest first, because there was no score to sort by. Drowned, as LIKE '%drowned%', found the obituary and the 1987 boy, but not the 1999 swimmer, who was drowning, and not the Guillemot. The drowning found nothing at all. Every search read all 1,214,000 clippings, 2,428 ms in the sim's model, and every reporter searching at once would each wait as long. Hedra says it was like the old days, waiting on the card drawers. Lanyon kept it as a fallback for the obituary desk and went back to fixing the job.",
+        "senior": "LIKE on the database is always as fresh as the database, which is the one thing the night was missing, and it's an honest choice for a small table. But a pattern with a leading wildcard can't use a B-tree, so every search reads every clipping, and it brings no stemming, no synonyms and no ranking. A search index exists to answer word queries fast and in a useful order. Keep it, treat it as a copy built from the database, and fix the job that left it stale."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s3e11",
+    "title": "Replay Thursday night in the Gullstone Herald's morgue",
+    "lede": "You're Lanyon, replaying Thursday night on a test index of six clippings from the morgue: five old ones, and Jago Bolitho's obituary, which the newsroom indexes at 23:40:00. The panel shows the inverted index: every token, and the clippings in its postings. The analyzer runs the same steps on clippings and on searches, in this order: split on anything that isn't a letter or a digit; lowercase; the synonym rule lost at sea => lost at sea, drowned, which adds drowned at the same position (an index-time synonym, so it is stored in the postings, and as in Elasticsearch's default it doesn't count toward a clipping's length); stop words, Elasticsearch's default English list, off as now; and a teaching stemmer with three rules: strip -ing, else -ed, else a final -s that isn't -ss, when at least 3 letters remain. Changing the analyzer rebuilds the index of the six at once. Scores are BM25 as Elasticsearch computes it, over these six alone: for each search token, idf x f x (k1 + 1) / (f + k1 x (1 - b + b x dl / avgdl)), with idf = ln(1 + (N - n + 0.5) / (n + 0.5)), k1 = 1.2 and b = 0.75, summed over the tokens. N counts the searchable clippings, n those containing the token, f the token's count in the clipping, dl the clipping's length in tokens and avgdl the average length. The night runs a second at a time from 23:14:00. At 23:15:00 the reindex job starts loading 48,000 rescanned clippings, 100 a second when nothing refreshes, and it hits an unreadable scan at 23:19:00. A refresh makes everything indexed so far searchable; the next comes one interval after the last, or after the interval was set. The teaching cost model: each refresh that finds new clippings writes one segment and takes 0.5 ms from indexing. The index is searched often, so the search-idle rule never applies. With the alert on, an index with refreshing off for 10 minutes pages Lanyon, who sets 1s again 5 minutes later. At 07:12:00 the day shift runs a refresh if anything is still hidden. With LIKE on, searches go to the database instead: case-sensitive, unranked, newest first, and each reads all 1,214,000 clippings, 4 to an 8 KB page at 0.008 ms a page. Changing the refresh interval, the job, the crash, the alert or wait_for replays from 23:14:00; the analyzer, LIKE and the search box act at once.",
+    "tryThis": "Try this: as now, search Bolitho at 23:14:00: one hit, the 1952 clipping, 1.2372. Run to 01:30:00: refreshing off since 23:15:00, 24,001 clippings not yet searchable, and Bolitho still finds only 1952. Search drowned: 1987 at 0.7641, 1999 at 0.7544, and 1952 at 0.6844, which matched drown only through the synonym. Run to 07:30:00: the day shift's refresh at 07:12:00 shows the obituary 27,120 s after it was indexed, and every score moves, because N is now 6. Turn on wait_for and run again: the desk's save waits all night. Pick the finally step: the interval is back at 23:19:00, the 24,000 are searchable at 23:19:01 and the obituary 1 s after it lands. Back to as now with the alert on: it fires at 23:25:00 and the interval is back at 23:30:00. Turn the alert off, set 1 ms and run as now: nothing changes, because the job sets -1 anyway. Now let the job leave the interval alone: 12,000 clippings loaded by 23:19:00 instead of 24,000, and 240,001 segments by 01:30, one for each millisecond of loading and one for the obituary. Reset, run to 01:30:00, turn the stemmer and synonyms off and search drowned: one hit. Turn LIKE on: the obituary is found at 01:30, unranked, 2,428 ms a search. Last, reset and search the drowning with stop words off, then on."
+  },
+  "explain": {
+    "oneLine": "Nothing was hiding the obituary but a setting. The reindex job turned refreshing off and stopped before it could turn it back on, so everything indexed after 23:15 stayed unsearchable until a refresh at 07:12. And the 1952 clipping matched drowned because the analyzer had turned lost at sea into drown when the clipping was indexed.",
+    "steps": [
+      {
+        "title": "An inverted index turns the question around.",
+        "text": "The B-tree in The Card Catalog sorts whole values, so it can find the rows with a given surname, or names that start with one. It can't find a word in the middle of a body of text: that's a leading wildcard, LIKE '%drowned%', and it means reading every row. A search server keeps the other kind of index. Lucene, the library inside Elasticsearch, calls its core the inverted index, made of postings: a map from each term, roughly a word or token, to the ordered list of documents containing it. Lucene's file format notes put it plainly: it can list, for a term, the documents that contain it, the inverse of documents listing terms. In Lanyon's test index, drown's postings are the 1952 Guillemot, the 1987 boy and the 1999 swimmer, each twice. A search for drowned reads that one short list instead of six clippings, and in the morgue, instead of 1,214,000."
+      },
+      {
+        "title": "The analyzer decides what counts as the same word.",
+        "text": "Before anything goes into the index, an analyzer turns text into tokens, and Elasticsearch runs the same analyzer on searches so the two meet. Its docs describe the parts: a tokenizer that breaks text into tokens, then token filters that may add, remove or change them, such as lowercasing, removing stop words like the, and adding synonyms. Each choice helps and surprises. Lowercasing lets BOY DROWNED match boy drowned. A stemmer reduces a word to its root, so drowning and drowned both become drown and a search for either finds both; the sim's stemmer also turns evening into even. Lanyon's synonym rule makes lost at sea add drowned at the same position, and the stemmer turns that into drown, so the 1952 clipping holds drown twice without ever saying it. Turn both off and drowned finds one clipping out of the three that are about drowning. Because the synonym sits in the index-time analyzer, it is stored in the postings, so changing the rule later means reindexing."
+      },
+      {
+        "title": "BM25 ranks what matched.",
+        "text": "Matching decides which clippings come back; relevance decides the order. BM25, Elasticsearch's default, scores each search token with three ideas and adds them up. Term frequency: more mentions score higher, but with saturation, so the tenth mention adds far less than the second; k1, 1.2 by default, sets how fast it flattens. Inverse document frequency: a rare token counts for more than a common one. Length normalization: a mention in a short clipping counts for more than one in a long clipping; b, 0.75 by default, sets how much. At 01:30 the test index had 5 searchable clippings, 3 of them containing drown, so idf = ln(1 + 2.5 / 3.5), about 0.539. The 1987 boy and the 1952 Guillemot each hold drown twice, but the boy is 20 tokens long and the Guillemot 29, against an average of 22.4, so the boy scored 0.7641 and the Guillemot 0.6844. After the refresh there were 6 clippings and 4 holding drown, idf fell to about 0.442, and the Guillemot dropped to 0.5605 without a word of it changing. Scores compare clippings within one search, not across searches."
+      },
+      {
+        "title": "Indexed is not searchable until a refresh.",
+        "text": "Elasticsearch calls its search near real-time. Indexed documents sit in memory until a refresh writes them into a new segment and opens it for search. By default that happens every second, and only on indices that have had a search in the last 30 seconds. A bulk load is faster without refreshes, so Elastic's tuning guide suggests setting refresh_interval to -1 during it and restoring it afterwards. Lanyon's job did the first at 23:15:00, loaded 24,000 clippings, hit an unreadable scan at 23:19:00 and stopped before its last line, the restore. Because -1 is an explicit setting, the search-idle rule, under which a search on an idle shard would have triggered a refresh, didn't apply, and Loveday's searches couldn't wake it. The obituary, indexed at 23:40:00, and the 24,000 were in the index and invisible until Hedra's refresh at 07:12:00, 27,120 s, or 7 hours 32 minutes, after the obituary was indexed. A writer that must find its own write can ask for refresh=wait_for, which holds its reply until a refresh has made the write visible, though with refreshing off, the docs warn, it waits indefinitely."
+      },
+      {
+        "title": "The index is a copy, built from the database.",
+        "text": "The database had the obituary at 23:40:00; the search index is a second copy of the same clippings, shaped for word searches and built from the database, much like the copies kept for one way of reading in Normal and Not. A copy can be thrown away and rebuilt: that is what Lanyon's job does with rescanned clippings, and it is how any change to index-time analysis reaches old clippings. Elasticsearch's reindex API copies documents into a new index, which must be a different one from the source and set up beforehand, and an alias can then point searches at it. It also means the copy can be behind, as here, or incomplete: 24,000 rescans were never loaded, and only the database knows. Searching the database directly with LIKE avoids the lag, but every search reads all 1,214,000 clippings, 2,428 ms in the sim's model, with no stemming and no order but the date."
+      }
+    ],
+    "diagram": {
+      "type": "sequence",
+      "aria": "The fix, replayed on Thursday night. The reindex job sets refresh_interval to -1 at 23:15:00 and loads clippings. At 23:19:00 it hits an unreadable scan and stops at 24,000; its finally step sets refresh_interval back to 1s, and at 23:19:01 a refresh makes the 24,000 searchable. At 23:40:00 the obituary desk indexes the obituary with refresh=wait_for, and the morgue index replies once it is visible, at 23:40:01. At 01:30 the night librarian searches for Bolitho and gets two hits, the obituary first. An alert watches for refreshing left off for more than 10 minutes.",
+      "lanes": [
+        "Reindex job",
+        "morgue index",
+        "Obituary desk",
+        "Night librarian"
+      ],
+      "steps": [
+        {
+          "from": 0,
+          "to": 1,
+          "label": "23:15:00 refresh -1"
+        },
+        {
+          "span": 0,
+          "rows": 2,
+          "label": "loading",
+          "tone": "warn"
+        },
+        {
+          "note": 0,
+          "text": "23:19:00 unreadable scan",
+          "sub": "stops at 24,000",
+          "tone": "bad"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "finally: refresh 1s",
+          "tone": "ok"
+        },
+        {
+          "note": 1,
+          "text": "23:19:01 refresh",
+          "sub": "24,000 searchable",
+          "tone": "ok"
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "23:40:00 wait_for"
+        },
+        {
+          "from": 1,
+          "to": 2,
+          "label": "visible 23:40:01",
+          "tone": "ok"
+        },
+        {
+          "from": 3,
+          "to": 1,
+          "label": "01:30 Bolitho"
+        },
+        {
+          "from": 1,
+          "to": 3,
+          "label": "2 hits, obituary first",
+          "tone": "ok"
+        },
+        {
+          "outcome": 1,
+          "text": "alert if off over 10 min",
+          "tone": "ok"
+        }
+      ]
+    },
+    "caption": "The fix, replayed on Thursday night. The job still stops at 23:19:00, but its finally step puts the interval back, so the 24,000 clippings it loaded are searchable a second later. The obituary desk's save waits for the refresh and comes back at 23:40:01, already searchable, and at 01:30 a search for Bolitho finds the obituary first. If a restore ever doesn't happen, the alert fires after 10 minutes with refreshing off.",
+    "fix": {
+      "title": "The fix: a restore that always runs, a desk that waits for its own write, and results that explain themselves",
+      "text": "Move the line that sets refresh_interval back to 1s into a finally step, so the job restores it whether the load finishes or fails: in the replay the 24,000 loaded clippings are searchable at 23:19:01, not 07:12:00. Add an alert for any index whose refreshing has been off for more than 10 minutes, longer than a normal 8-minute run, because a finally step can't run if the process is killed or the machine dies; in the sim, with the job as now, it fires at 23:25:00 and the interval is back at 23:30:00. Have the obituary desk save with refresh=wait_for, so Kenwyn's reply means searchable, after 1 s at most, and leave every other writer on the default. Show the tokens each result matched and where they came from, and give the synonym list an owner who reviews it; a change to an index-time rule means reindexing. Then rerun the job for the 24,000 clippings it never loaded."
+    },
+    "limits": [
+      "A finally step runs when the code inside fails with an error, not when the process is killed or its machine dies, which is why the alert matters. And it restores the setting, not the work: the 24,000 clippings the job never loaded stay missing until someone notices the job failed and reruns it, so the job's own failure needs an alert too.",
+      "refresh=wait_for makes the writer wait, for up to one refresh interval, and with refreshing off it waits until something refreshes, all night as now. Use it only for writers that must find their own write straight away, and batch several writes into one bulk request rather than waiting on each.",
+      "Showing which tokens matched explains a surprise but doesn't decide it. Someone still has to own the synonym list and say which rules stay, and the sim's scores are a teaching copy: Lucene stores each length in a single byte, so real scores can differ in the later decimals."
+    ],
+    "tradeoff": {
+      "head": [
+        "Choice",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "Refresh every 1 s (the default)",
+          "A new clipping is searchable within about a second, and an idle index skips refreshes until someone searches.",
+          "A bulk load pays for a refresh every second it runs, which is why jobs switch it off."
+        ],
+        [
+          "-1 for a bulk load, restored in a finally step, with an alert",
+          "The job loads at full speed, 100 a second in the sim, and a failed load still restores it: searchable at 23:19:01.",
+          "Nothing loaded is searchable until the restore. If the process dies, only the alert notices: 23:25:00 in the sim, back at 23:30:00."
+        ],
+        [
+          "1 ms on every index, the job included",
+          "Searchable 0.001 s after indexing.",
+          "In the sim the job loads half as fast, 12,000 by 23:19:00 instead of 24,000, and writes 240,000 segments to merge. Elastic calls refreshes resource-intensive."
+        ],
+        [
+          "refresh=wait_for on one writer",
+          "That writer's reply means searchable: the obituary desk sees its own write, 1 s after saving.",
+          "The writer waits up to an interval, and with refreshing off it waits until something refreshes: all night, as now."
+        ],
+        [
+          "Stemmer and synonyms off",
+          "Only words really in a clipping match, so no result needs explaining.",
+          "drowned misses drowning and lost at sea: one hit at 01:30 instead of three."
+        ],
+        [
+          "LIKE on the database",
+          "As fresh as the database: the obituary found at 01:30.",
+          "Reads all 1,214,000 clippings, 2,428 ms a search in the sim. No ranking, no stemming, and case-sensitive."
+        ]
+      ]
+    },
+    "seniorTake": "A search index is a copy of your data, built for one kind of question, and two things decide what it answers: what is in it yet, and what counts as a match. For the first, know when a write becomes searchable, about a second by default in Elasticsearch, and treat any job that changes that as a change that must undo itself: restore in a finally step, alert from outside when the setting is left wrong, and give the few writers who must find their own writes refresh=wait_for instead of refreshing everything constantly. For the second, the analyzer is a set of decisions, each with a benefit and a surprise; make results show why they matched, give the synonym list an owner, and plan for reindexing whenever index-time analysis changes. And keep the database as the record: when the index is wrong, rebuild it from there.",
+    "realWorld": [
+      {
+        "title": "Elasticsearch: near real-time search",
+        "text": "Elastic's docs say a stored document is indexed and fully searchable in near real-time, within 1 second. Lucene, the Java libraries on which Elasticsearch is based, introduced per-segment search, and new segments can be written and opened, making the documents they contain visible to search without performing a full commit. In Elasticsearch, this process of writing and opening a new segment is called a refresh, and a refresh makes all operations performed on an index since the last refresh available for search. By default Elasticsearch periodically refreshes indices every second, but only on indices that have received one search request or more in the last 30 seconds. That, the page says, is why it is called near real-time: document changes are not visible to search immediately, but will become visible within this timeframe.",
+        "source": 0
+      },
+      {
+        "title": "Elasticsearch: the refresh API",
+        "text": "The refresh API's page repeats the default and adds that you can change it with the index.refresh_interval setting, and that in Elastic Cloud Serverless the default is 5 seconds across all indices. It is direct about cost: refreshes are resource-intensive, and to ensure good cluster performance it recommends waiting for Elasticsearch's periodic refresh rather than performing an explicit refresh when possible. If your application indexes documents and then runs a search to retrieve them, it recommends the index API's refresh=wait_for option, which ensures the indexing operation waits for a periodic refresh before running the search.",
+        "source": 1
+      },
+      {
+        "title": "Elasticsearch: index.refresh_interval and search idle",
+        "text": "The index settings reference defines index.refresh_interval as how often to perform a refresh operation, which makes recent changes to the index visible to search. It defaults to 1s, or 5s in Serverless, and can be set to -1 to disable refresh. If the setting is not explicitly set, shards that haven't seen search traffic for at least index.search.idle.after seconds, 30s by default, will not receive background refreshes until they receive a search request, and a search that hits an idle shard with a pending refresh triggers one. To opt out of this behavior, it says, set an explicit value for the refresh interval, even if it matches the default value. Lanyon's job had opted out by setting -1.",
+        "source": 2
+      },
+      {
+        "title": "Elasticsearch: tuning for indexing speed",
+        "text": "Elastic's guide to indexing speed says that, to maximize indexing performance during large bulk operations, you can disable refreshing by setting the refresh interval to -1. While refresh is disabled, newly indexed documents will not be visible to search operations, and you should only re-enable refreshing after your bulk indexing is complete and you need the data to be searchable. If you can afford more delay without switching it off, raising the interval to something like 30s might help improve indexing speed. For initial loads it also mentions dropping replicas, and warns that it is important that the data lives elsewhere so that the load can be retried.",
+        "source": 3
+      },
+      {
+        "title": "Elasticsearch: the refresh parameter",
+        "text": "On the index, update, delete and bulk APIs, refresh=wait_for waits for the changes made by the request to be made visible by a refresh before replying; it doesn't force an immediate refresh, it waits for one to happen. The page says that unless you have a good reason to wait for the change to become visible, always use refresh=false, the default. It adds that refresh=true creates less efficient indexes constructs (tiny segments) that must later be merged, paid for at index time, at search time and at merge time. And it warns that if the refresh interval is set to -1, disabling the automatic refreshes, then requests with refresh=wait_for will wait indefinitely until some action causes a refresh.",
+        "source": 4
+      },
+      {
+        "title": "Elasticsearch: what an analyzer is",
+        "text": "Elastic describes an analyzer, whether built-in or custom, as a package of three building blocks: character filters, tokenizers and token filters. A tokenizer receives a stream of characters, breaks it up into individual tokens (usually individual words), and outputs a stream of tokens. A token filter receives the token stream and may add, remove, or change tokens: a lowercase token filter converts all tokens to lowercase, a stop token filter removes common words (stop words) like the, and a synonym token filter introduces synonyms into the token stream. An analyzer must have exactly one tokenizer and may have zero or more token filters, applied in order.",
+        "source": 5
+      },
+      {
+        "title": "Elasticsearch: stemming",
+        "text": "Stemming, in Elastic's words, is the process of reducing a word to its root form, so variants of a word match during a search: walking and walked can be stemmed to the same root word, walk. The root may not be a real word; jumping and jumpiness can both become jumpi, which doesn't matter for search. Because stemming changes tokens, Elastic recommends using the same stemmer token filters during index and search analysis. Algorithmic stemmers work by rules and are fast, but may not work well with irregular words such as mouse and mice; porter_stem is Elastic's recommended algorithmic stemmer for English.",
+        "source": 6
+      },
+      {
+        "title": "Elasticsearch: synonym rules",
+        "text": "The synonym token filter takes rules in Solr or WordNet format. In Solr format, equivalent synonyms are groups of words separated by commas, and explicit synonyms match a group of words to other words: words on the left hand side of the rule are expanded into all the possibilities described on the right hand side, as in personal computer => pc. Lanyon's lost at sea => lost at sea, drowned is an explicit rule that keeps the original words and adds one.",
+        "source": 7
+      },
+      {
+        "title": "Elasticsearch: synonyms at search time",
+        "text": "The synonym_graph token filter handles multi-word synonyms correctly by building a graph token stream, but it is designed to be used as part of a search analyzer only; to apply synonyms during indexing, the docs say, use the standard synonym token filter. Synonyms applied at search time can be changed without touching the stored postings, which is one way to avoid the reindex Lanyon's index-time rule needs.",
+        "source": 8
+      },
+      {
+        "title": "Elasticsearch: stop words",
+        "text": "The stop token filter removes stop words from a token stream, and when not customized it removes a list of English words including a, an, and, at, in, is, of, the, to, was and with. The test index's stop word toggle uses that list.",
+        "source": 9
+      },
+      {
+        "title": "Elasticsearch: BM25 is the default similarity",
+        "text": "Elasticsearch's similarity settings list BM25 similarity as the default: TF/IDF based similarity that has built-in tf normalization and is supposed to work better for short fields. Its k1 controls non-linear term frequency normalization (saturation), default 1.2, and b controls to what degree document length normalizes tf values, default 0.75. discount_overlaps is true by default, meaning overlap tokens, those added at the same position such as Lanyon's synonym, do not count when computing norms, the stored lengths.",
+        "source": 10
+      },
+      {
+        "title": "Elasticsearch: the (k1 + 1) factor",
+        "text": "Elasticsearch builds its BM25 scorer from a class called LegacyBM25Similarity, described in its source as a similarity that behaves like Lucene's BM25Similarity while also applying the k1+1 factor to the numerator of the scoring formula. The sim uses that form, so its scores are 2.2 times what Lucene's own class would give. The factor scales every score alike and changes no ranking.",
+        "source": 11
+      },
+      {
+        "title": "Apache Lucene: postings",
+        "text": "Lucene's index package documentation says its core, the inverted index, is comprised of postings, which with their term dictionary can be thought of as a map that provides efficient lookup given a Term (roughly, a word or token), to the ordered list of Documents containing that Term.",
+        "source": 12
+      },
+      {
+        "title": "Apache Lucene: why inverted",
+        "text": "Lucene's index file format notes say its terms index falls into the family of indexes known as an inverted index, because it can list, for a term, the documents that contain it, the inverse of the natural relationship, in which documents list terms.",
+        "source": 13
+      },
+      {
+        "title": "Apache Lucene: BM25Similarity",
+        "text": "Lucene's BM25Similarity credits Okapi at TREC-3, by Robertson, Walker, Jones, Hancock-Beaulieu and Gatford (1994), defaults to k1 = 1.2 and b = 0.75, and implements idf as log(1 + (docCount - docFreq + 0.5)/(docFreq + 0.5)). The sim's idf is the same formula.",
+        "source": 14
+      },
+      {
+        "title": "Apache Lucene: the score and the stored length",
+        "text": "In BM25Similarity's source, the score's explanation describes tf as computed as freq / (freq + k1 * (1 - b + b * dl / avgdl)), with no (k1 + 1) factor. Document lengths are read from a table of 256 values, so each document's length is kept in a single byte and long lengths are approximate. The sim keeps lengths exactly, which is why its scores are a teaching copy.",
+        "source": 15
+      },
+      {
+        "title": "Robertson and Zaragoza, 2009",
+        "text": "The Probabilistic Relevance Framework: BM25 and Beyond, by Stephen Robertson and Hugo Zaragoza, published in Foundations and Trends in Information Retrieval in 2009, sets out the theory behind BM25, including term frequency saturation and document length normalization.",
+        "source": 16
+      },
+      {
+        "title": "Elasticsearch: seeing why a result matched",
+        "text": "The explain API gets information about why a specific document matches, or doesn't match, a query, computing a score explanation for a query and one document. The search API's highlight parameter retrieves the best-matching highlighted snippets from fields in the results, though Elastic notes that highlighters don't reflect the boolean logic of a query when extracting terms. Either can show a reader that the Guillemot matched through lost at sea.",
+        "source": 17
+      },
+      {
+        "title": "Elasticsearch: reindexing into a new index",
+        "text": "The reindex API copies documents from a source to a destination. The destination must differ from the source, and reindex does not copy the settings from the source: mappings, shard counts and replicas must be configured ahead of time. Building a new index with the new analyzer and filling it, from the database or from the old index, is how an index-time change reaches clippings indexed long ago.",
+        "source": 19
+      },
+      {
+        "title": "Elasticsearch: aliases",
+        "text": "Elastic's docs say an alias points to one or more indices, and most Elasticsearch APIs accept an alias in place of an index name. Aliases let you change which indices your application uses in real time, and reindex data without downtime: the search screen keeps asking for the alias while a rebuilt index is swapped in behind it.",
+        "source": 21
+      },
+      {
+        "title": "PostgreSQL: LIKE is case-sensitive",
+        "text": "PostgreSQL's manual says the key word ILIKE can be used instead of LIKE to make the match case-insensitive according to the active locale, a PostgreSQL extension rather than standard SQL. So LIKE '%drowned%' on the morgue's database misses DROWNED in a headline unless the query lowercases both sides or uses ILIKE, and neither finds drowning.",
+        "source": 20
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How does a search engine find documents so fast?",
+        "Why isn't my new document showing up in search?",
+        "How is relevance scored?"
+      ],
+      "answer": "It keeps an inverted index: at write time an analyzer turns each document into tokens, lowercasing, stemming, sometimes adding synonyms or dropping stop words, and the index maps every token to its postings, the list of documents that contain it. A query goes through the same analyzer, so the engine reads one short postings list per query token instead of scanning documents, which a B-tree can't do for a word in the middle of a text. A new document not showing up is usually near-real-time search: in Elasticsearch a write becomes searchable only after a refresh, every second by default, and a bulk job may have raised the interval or set it to -1 and not restored it, so I'd check the index's refresh_interval first, then whether the document reached the index at all. A writer that must read its own write can use refresh=wait_for; forcing refreshes everywhere makes tiny segments that cost indexing, searching and merging. Relevance in Elasticsearch is BM25 by default: per query token, an idf factor that rewards rare tokens, times a term-frequency factor that saturates, controlled by k1, 1.2 by default, and is normalized by document length, controlled by b, 0.75, summed over the tokens. Finish with the operations view: the index is a copy built from the database, so analyzer changes mean reindexing into a new index behind an alias, and the explain API shows why a document scored as it did."
+    }
+  },
+  "terms": [
+    {
+      "term": "Morgue (newspaper)",
+      "def": "A newspaper's library of its own past articles, kept as clippings. The Gullstone Herald's holds 1,214,000, back to 1881."
+    },
+    {
+      "term": "Clipping",
+      "def": "One article cut from a printed page, or its scan. The morgue files each one so it can be found again."
+    },
+    {
+      "term": "Obituary",
+      "def": "A newspaper article about someone who has just died. Kenwyn filed Jago Bolitho's at 23:40 on Thursday."
+    },
+    {
+      "term": "Elasticsearch",
+      "def": "A widely used search server built on Lucene. It keeps its own index of every word in the documents you send it and ranks matches."
+    },
+    {
+      "term": "Lucene",
+      "def": "Apache Lucene, an open-source Java library for building search indexes. Elasticsearch is built on it."
+    },
+    {
+      "term": "Index (Elasticsearch)",
+      "def": "A named collection of documents in Elasticsearch, such as morgue, with its own settings and analyzers. Not the same as a database index."
+    },
+    {
+      "term": "Inverted index",
+      "def": "An index that maps each token to its postings, the documents that contain it: the inverse of documents listing their words. Lucene's core."
+    },
+    {
+      "term": "Token",
+      "def": "One unit an analyzer produces from text, roughly a word, after any lowercasing, stemming or synonyms. The index stores tokens, not the original words."
+    },
+    {
+      "term": "Term (search)",
+      "def": "Lucene's word for a token as stored in the index: a field name and the token's text, such as body:drown."
+    },
+    {
+      "term": "Postings",
+      "def": "For one token, the ordered list of documents that contain it, often with how many times. In the test index, drown's postings are three clippings, each twice."
+    },
+    {
+      "term": "Analyzer",
+      "def": "The steps that turn text into tokens: one tokenizer, then token filters in order. Elasticsearch runs one on documents as they are indexed and one on searches."
+    },
+    {
+      "term": "Tokenizer",
+      "def": "The part of an analyzer that breaks text into tokens, such as splitting on anything that isn't a letter or a digit."
+    },
+    {
+      "term": "Token filter",
+      "def": "A step in an analyzer that adds, removes or changes tokens, such as lowercasing, stop words, synonyms or a stemmer."
+    },
+    {
+      "term": "Lowercasing",
+      "def": "A token filter that turns every token into lower case, so DROWNED and drowned become the same token."
+    },
+    {
+      "term": "Stemmer",
+      "def": "A token filter that cuts words down to a root, so drowning and drowned both become drown. Reducing words this way is called stemming."
+    },
+    {
+      "term": "Teaching stemmer",
+      "def": "The sim's stemmer: strip -ing, else -ed, else a final -s that isn't -ss, when at least 3 letters remain. Real stemmers have many more rules."
+    },
+    {
+      "term": "Synonym list",
+      "def": "Rules that make one word or phrase also count as another, such as lost at sea => lost at sea, drowned. Lanyon added the morgue's in the spring."
+    },
+    {
+      "term": "Synonym rule (explicit)",
+      "def": "A rule with =>, in Solr format: the words on the left are replaced by everything on the right. Listing the left side again on the right keeps the original words."
+    },
+    {
+      "term": "Index-time synonym",
+      "def": "A synonym applied while documents are indexed, so the added token is stored in the postings. Changing the rule later means reindexing."
+    },
+    {
+      "term": "synonym_graph",
+      "def": "An Elasticsearch synonym filter that handles multi-word synonyms at search time only. For index-time synonyms the docs point to the plain synonym filter."
+    },
+    {
+      "term": "Overlap token",
+      "def": "A token added at the same position as another, as a synonym is. By default Elasticsearch doesn't count it toward a document's length."
+    },
+    {
+      "term": "Stop words",
+      "def": "Very common words, such as the, at and of, that a stop filter removes. Elasticsearch's default English list has 33. The morgue's analyzer keeps them."
+    },
+    {
+      "term": "Relevance",
+      "def": "How well a document answers a search. A search server estimates it with a score and returns the best first."
+    },
+    {
+      "term": "Relevance score",
+      "def": "The number a search server gives each match to rank it. It compares documents within one search, not across searches."
+    },
+    {
+      "term": "BM25",
+      "def": "Elasticsearch's default way of scoring matches: per search token, term frequency with saturation, times inverse document frequency, normalized by length, summed."
+    },
+    {
+      "term": "Term frequency",
+      "def": "How many times a token appears in one document, f in the BM25 formula. More mentions score higher, with diminishing returns."
+    },
+    {
+      "term": "Saturation",
+      "def": "BM25's diminishing returns: each extra mention of a token adds less than the one before. k1 sets how quickly it flattens."
+    },
+    {
+      "term": "Inverse document frequency (idf)",
+      "def": "How rare a token is across the searchable documents. BM25 uses ln(1 + (N - n + 0.5) / (n + 0.5)), so a token in fewer documents counts for more."
+    },
+    {
+      "term": "Length normalization",
+      "def": "Weighing term frequency against a document's length compared with the average, so one mention in a short clipping counts for more than in a long one."
+    },
+    {
+      "term": "k1",
+      "def": "A BM25 parameter that controls saturation. Elasticsearch's default is 1.2; the sim uses it."
+    },
+    {
+      "term": "b",
+      "def": "A BM25 parameter that controls how much document length normalizes term frequency, from 0 (none) to 1 (fully). The default is 0.75; the sim uses it."
+    },
+    {
+      "term": "Similarity (Elasticsearch)",
+      "def": "Elasticsearch's setting for how matches are scored. BM25 is the default; others exist."
+    },
+    {
+      "term": "Near real-time search",
+      "def": "Elasticsearch's description of its search: a change isn't searchable at once, but after the next refresh, within about a second by default."
+    },
+    {
+      "term": "Refresh",
+      "def": "Writing everything indexed since the last refresh into a new segment and opening it for search. Until then an indexed document can't be found."
+    },
+    {
+      "term": "Segment",
+      "def": "A small, read-only piece of a Lucene index, written by a refresh. Many tiny segments are slower to search and are later merged into bigger ones."
+    },
+    {
+      "term": "Merge (segments)",
+      "def": "Lucene combining several segments into one larger segment in the background. Tiny segments from frequent refreshes make more of this work."
+    },
+    {
+      "term": "refresh_interval",
+      "def": "The index setting index.refresh_interval: how often an index refreshes. 1s by default; -1 turns automatic refreshing off."
+    },
+    {
+      "term": "Search idle",
+      "def": "Elasticsearch skipping background refreshes on a shard with no searches for 30 seconds, when refresh_interval isn't set explicitly. A search then triggers one."
+    },
+    {
+      "term": "Shard (Elasticsearch)",
+      "def": "One piece of an Elasticsearch index, itself a Lucene index. An index is split into one or more shards, each with its own segments."
+    },
+    {
+      "term": "Refresh API",
+      "def": "POST /<index>/_refresh, which makes an index refresh now. Elastic calls refreshes resource-intensive and suggests waiting for the periodic one when possible."
+    },
+    {
+      "term": "refresh=wait_for",
+      "def": "A flag on a write that holds the reply until a refresh has made the write searchable. It doesn't force a refresh; with refreshing off it waits indefinitely."
+    },
+    {
+      "term": "refresh=true",
+      "def": "A flag on a write that forces a refresh straight after it. It makes the write searchable at once but creates tiny segments that must be merged later."
+    },
+    {
+      "term": "Bulk request",
+      "def": "One request to Elasticsearch carrying many documents to index, which is much faster than sending them one at a time."
+    },
+    {
+      "term": "Reindex job",
+      "def": "Lanyon's nightly program that loads rescanned clippings from the database into the morgue index: 48,000 on Thursday, 100 a second with refreshing off."
+    },
+    {
+      "term": "Rescanned clipping",
+      "def": "An old clipping scanned again for a clearer image and text. The reindex job loads them, and one unreadable scan stopped it at 23:19:00."
+    },
+    {
+      "term": "finally step",
+      "def": "Code in a finally block, which runs after the code before it whether that code finished or failed with an error. It doesn't run if the process is killed."
+    },
+    {
+      "term": "Reindex",
+      "def": "Building an index again: copying every document into a new index, so a new analyzer or setting applies to all of them."
+    },
+    {
+      "term": "Reindex API",
+      "def": "Elasticsearch's API that copies documents from one index into another. The destination must be a different index, set up beforehand."
+    },
+    {
+      "term": "Alias (Elasticsearch)",
+      "def": "A second name that points at an index. Searches use the alias, so a rebuilt index can be swapped in by moving the alias."
+    },
+    {
+      "term": "ILIKE",
+      "def": "PostgreSQL's case-insensitive form of LIKE, so ILIKE '%drowned%' also matches DROWNED. It is a PostgreSQL extension, not standard SQL."
+    },
+    {
+      "term": "Explain API",
+      "def": "An Elasticsearch API that shows why one document matched or didn't match a query, with each part of its score."
+    },
+    {
+      "term": "Highlighting",
+      "def": "Returning the snippets of each result where the search's tokens matched, so a reader can see why it came back."
+    },
+    {
+      "term": "Matched tokens",
+      "def": "The sim's list, for each result, of the search tokens it held and where they came from: as typed, stemmed, or added by a synonym."
+    },
+    {
+      "term": "Test index",
+      "def": "Lanyon's small copy of six morgue clippings, used to replay the night. The sim's scores are computed over these six alone."
+    },
+    {
+      "term": "Not yet searchable",
+      "def": "The sim's count of clippings indexed since the last refresh: in the index, but invisible to search."
+    },
+    {
+      "term": "Time until searchable",
+      "def": "The sim's figure for the obituary: from 23:40:00, when it was indexed, to the refresh that made it visible."
+    },
+    {
+      "term": "Segments written",
+      "def": "The sim's count of segments refreshes have written tonight: one for each refresh that found new clippings."
+    },
+    {
+      "term": "Teaching cost model",
+      "def": "The sim's stated rule for refresh cost: each refresh that finds new clippings writes one segment and takes 0.5 ms from indexing."
+    },
+    {
+      "term": "Systems editor",
+      "def": "At the Gullstone Herald, Lanyon: the person who runs the paper's computers, including the database and the search server."
+    },
+    {
+      "term": "Elastic Cloud Serverless",
+      "def": "Elastic's hosted Elasticsearch where it manages the servers. Its default refresh interval is 5 seconds."
+    },
+    {
+      "term": "Hybrid search",
+      "def": "Combining keyword search, such as BM25, with search by meaning over vectors, and merging the two rankings. LATENT's retrieval season covers it."
+    }
+  ],
+  "atWork": "Pick a search your team runs, such as an Elasticsearch index behind a product catalogue, and with read-only access look at each index's settings: GET /<index>/_settings usually lists refresh_interval only if someone set it explicitly. Is any index at -1? Which job sets it, and does that job put it back in a finally step? A common incident looks like this: a nightly price import switches refreshing off, fails halfway, and new products take minutes or hours to appear in search while their product pages, read from the database, look fine. Another: someone adds a synonym so that sofa finds couch, and a search for sofa bed starts ranking plain couches first. Check whether anything alerts on refreshing left off, which writers use refresh=wait_for or refresh=true and why, and whether your search screen or logs can show why a result matched, through the explain API or highlighting. If your company is pursuing ISO/IEC 27001:2022, an alert on a setting left off is the kind of record control A.8.16 (monitoring activities) asks for; treat that as a prompt, not audit advice. And BM25, the scoring in this case, is the keyword half of hybrid search in LATENT's retrieval season.",
+  "board": {
+    "cards": [
+      {
+        "id": "search",
+        "title": "Search"
+      },
+      {
+        "id": "inverted-indexes",
+        "title": "Inverted indexes"
+      },
+      {
+        "id": "elasticsearch-basics",
+        "title": "Elasticsearch basics"
+      },
+      {
+        "id": "relevance",
+        "title": "Relevance"
+      }
+    ],
+    "strings": [
+      {
+        "from": "inverted-indexes",
+        "to": "indexes",
+        "label": "not a B-tree"
+      },
+      {
+        "from": "search",
+        "to": "inverted-indexes",
+        "label": "token to postings"
+      },
+      {
+        "from": "search",
+        "to": "relevance",
+        "label": "match, then rank"
+      },
+      {
+        "from": "elasticsearch-basics",
+        "to": "read-your-writes",
+        "label": "refresh=wait_for"
+      },
+      {
+        "from": "elasticsearch-basics",
+        "to": "stale-reads",
+        "label": "not yet searchable"
+      },
+      {
+        "from": "search",
+        "to": "normalization-vs-denormalization",
+        "label": "a copy, rebuilt"
+      },
+      {
+        "from": "search",
+        "to": "sql",
+        "label": "LIKE: no ranking"
+      },
+      {
+        "from": "relevance",
+        "to": "hybrid-search",
+        "label": "the keyword half"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s3e11-r1",
+      "kind": "free",
+      "prompt": "A shop's product search runs on Elasticsearch. Since Monday, products added during the day take up to 40 minutes to show up in search results, though their product pages, read from the database, work straight away. A nightly job loads every price in bulk. What would you check, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "The nightly job probably switched refreshing off, or raised the interval, for its load and never put it back",
+          "match": [
+            "switched refreshing off",
+            "turned refreshing off",
+            "refreshing off",
+            "refresh off",
+            "left disabled",
+            "still disabled",
+            "never restored",
+            "not restored",
+            "never put it back",
+            "raised the interval",
+            "left it raised",
+            "refresh setting"
+          ]
+        },
+        {
+          "idea": "Make the job restore the setting in a finally step, and alert when an index has refreshing off for too long",
+          "match": [
+            "finally",
+            "alert",
+            "restore it",
+            "restores it",
+            "set it back",
+            "put it back"
+          ]
+        },
+        {
+          "idea": "A write that must be searchable at once uses refresh=wait_for, rather than refreshing everything constantly",
+          "match": [
+            "wait_for",
+            "wait for a refresh",
+            "waits for a refresh",
+            "its own write",
+            "their own write",
+            "read-your-writes"
+          ]
+        }
+      ],
+      "model": "Look at the index's refresh settings first: the nightly job very likely turned refreshing off, or raised the interval, for its bulk load and never put it back, so new products sit in the index until the next refresh comes round. GET the index's _settings and see what refresh_interval says. Then fix the job: restore the setting in a finally step, so it comes back even when the load fails, and alert when any index has refreshing off for longer than a normal run, because a killed job runs no finally step. If some page must find a product in search the moment it's saved, have that write use refresh=wait_for, so its reply waits for a refresh, instead of turning the interval down for everyone."
+    },
+    {
+      "id": "s3e11-r2",
+      "kind": "free",
+      "prompt": "On a hardware shop's site, a search for charger returns a cordless drill whose listing never contains that word, ranked above real chargers. Support say customers are confused, and a colleague wants to switch off stemming and synonyms everywhere. What would you look at, and what would you suggest?",
+      "keyIdeas": [
+        {
+          "idea": "First find out why it matched, with the explain API, highlighting or the analyzed tokens",
+          "match": [
+            "explain api",
+            "_explain",
+            "highlight",
+            "matched tokens",
+            "which tokens",
+            "which terms",
+            "why it matched",
+            "_analyze",
+            "analyze api"
+          ]
+        },
+        {
+          "idea": "Fix or remove the one misleading rule and give the list an owner, keeping stemming because it finds real variants",
+          "match": [
+            "one rule",
+            "that rule",
+            "bad rule",
+            "review the",
+            "an owner",
+            "keep the stemmer",
+            "keep stemming",
+            "variants",
+            "plurals"
+          ]
+        },
+        {
+          "idea": "If the rule is applied at index time, the change only reaches old listings after a reindex",
+          "match": [
+            "reindex",
+            "re-index",
+            "rebuild the index",
+            "new index",
+            "index again"
+          ]
+        }
+      ],
+      "model": "First find out why it matched: run the explain API for that drill and the query, or look at the highlighted or analyzed tokens. Most likely a synonym rule, such as battery pack => charger, or a stemmer collision is adding charger to the drill's tokens. Then fix or remove that rule rather than switching analysis off, and have someone own and review the synonym list. Keep stemming: it's what lets charger find chargers and other real variants. If the rule sits in the index-time analyzer, the drill's stored tokens keep the old synonym until you reindex into a new index with the corrected analyzer; a search-time synonym can change without that."
+    },
+    {
+      "id": "s3e11-r3",
+      "kind": "mcq",
+      "prompt": "Under BM25 with Elasticsearch's defaults, a one-word search matches two clippings. Each contains the word exactly once; one is 20 tokens long and the other 200. Which ranks higher?",
+      "options": [
+        "The 200-token one, because more text gives more chances to be relevant",
+        "They tie, because each contains the word exactly once",
+        "The 20-token one, because b = 0.75 weighs a mention against the length",
+        "Whichever was indexed last, because a newer segment is boosted"
+      ],
+      "answer": 2,
+      "why": "Both get the same idf, because idf depends only on how many documents contain the word. The difference is length normalization: with b = 0.75, term frequency is weighed against each clipping's length compared with the average, so one mention in 20 tokens counts for more than one in 200. A refresh changes what is searchable, and so N and the average length, but BM25 gives no bonus for being new."
+    },
+    {
+      "id": "s3e11-r4",
+      "kind": "mcq",
+      "prompt": "Why can an inverted index list every clipping that contains drowned without reading them all, when a B-tree index on the body column can't?",
+      "options": [
+        "It maps each token to the clippings that contain it, so a search reads one short list",
+        "It keeps every clipping in memory, so reading them all takes almost no time",
+        "It sorts clippings by date, so the search can stop at the first match",
+        "It is a B-tree too, with pages big enough to hold whole articles"
+      ],
+      "answer": 0,
+      "why": "A B-tree sorts whole values, so it can find bodies that start with some text, but not a word in the middle of one: that's a leading wildcard, LIKE '%drowned%', which reads every row. An inverted index turns the relationship around: as Lucene's file formats put it, it can list, for a term, the documents that contain it."
+    },
+    {
+      "id": "s3e11-r5",
+      "kind": "mcq",
+      "prompt": "A bulk job has set refresh_interval to -1 and crashed. The obituary desk now saves with refresh=wait_for. What happens to the desk's next save?",
+      "options": [
+        "It returns within a second, because the flag forces a refresh",
+        "It fails at once with an error saying refreshing is disabled",
+        "It returns at once, and the clipping is searchable a second later",
+        "It waits until something causes a refresh, which could take hours"
+      ],
+      "answer": 3,
+      "why": "Elastic's docs say refresh=wait_for doesn't force a refresh, it waits for one, and that if the refresh interval is set to -1, requests with it will wait indefinitely until some action causes a refresh, such as someone calling the refresh API. The docs also describe a forced refresh when too many waiting requests pile up on a shard, but a single desk's saves won't get there. Hence the finally step and the alert."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. The finally step has run twice, the alert has stayed quiet, and Kenwyn's desk saves with wait_for. Last week the Bolitho family asked why a search for drowned shows Pascoe's boat, so Lanyon took the lost at sea rule out of the analyzer settings, closed and opened the morgue index again, and checked that new clippings no longer get the extra token. This morning Hedra searched for drowned. The Guillemot, 1952, is still in the results, still matching drown. Lanyon says the rule doesn't exist any more. Hedra says the old cards still say what they said when they were typed.",
+    "prompt": "Reply to OP. Why is the Guillemot still there, and what should Lanyon do?",
+    "keyIdeas": [
+      {
+        "idea": "The synonym was applied when the 1952 clipping was indexed, so its stored postings still hold drown; removing the rule only affects clippings indexed from now on",
+        "match": [
+          "when it was indexed",
+          "when they were indexed",
+          "at index time",
+          "index-time",
+          "indexing time",
+          "already indexed",
+          "stored postings",
+          "in the postings",
+          "baked in"
+        ]
+      },
+      {
+        "idea": "Reindex every clipping from the database into a new index built with the new analyzer, then switch an alias to it",
+        "match": [
+          "reindex",
+          "re-index",
+          "new index",
+          "alias",
+          "rebuild",
+          "build it again"
+        ]
+      },
+      {
+        "idea": "The search index is a copy that can be thrown away and rebuilt; the database is the record",
+        "match": [
+          "a copy",
+          "source of truth",
+          "the record",
+          "disposable",
+          "derived",
+          "throw it away",
+          "thrown away"
+        ]
+      }
+    ],
+    "model": "Because the rule was in the index-time analyzer, it was applied when each clipping was indexed: the 1952 clipping's stored postings still hold drown, and taking the rule out of the settings only changes clippings indexed from now on, and searches. Lanyon should reindex every clipping from the database into a new index built with the new analyzer, check a few searches against it, then move the alias the search screen uses from the old index to the new one, and delete the old index once he's sure. The search index is a copy, built from the database, which stays the source of truth, so rebuilding it is routine rather than risky. If rules will keep changing, he could move synonyms to a search-time synonym_graph filter, which changes without a reindex."
+  },
+  "next": "Next, The Warehouse Out Back: a storage-unit facility, and object storage, presigned links and the pipelines that carry uploads in.",
+  "sources": [
+    {
+      "title": "Elastic Docs: Near real-time search (searchable within 1 second; per-segment search; a refresh writes and opens a new segment; periodic refresh every second, only on indices searched in the last 30 seconds)",
+      "url": "https://www.elastic.co/docs/manage-data/data-store/near-real-time-search"
+    },
+    {
+      "title": "Elasticsearch API: Refresh an index (default every second for searched indices; index.refresh_interval; 5 seconds in Serverless; refreshes are resource-intensive; use refresh=wait_for to search what you just indexed)",
+      "url": "https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-refresh"
+    },
+    {
+      "title": "Elastic Docs: General index settings (index.refresh_interval, default 1s, -1 disables refresh; index.search.idle.after, 30s; an explicit value opts out of search idle)",
+      "url": "https://www.elastic.co/docs/reference/elasticsearch/index-settings/index-modules"
+    },
+    {
+      "title": "Elastic Docs: Tune for indexing speed (disable refresh with -1 for large bulk operations; re-enable after; 30s may help; the data should live elsewhere so a load can be retried)",
+      "url": "https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/indexing-speed"
+    },
+    {
+      "title": "Elastic Docs: Refresh parameter (wait_for waits for a refresh and doesn't force one; use false unless you must wait; true creates tiny segments to merge; with -1, wait_for waits indefinitely)",
+      "url": "https://www.elastic.co/docs/reference/elasticsearch/rest-apis/refresh-parameter"
+    },
+    {
+      "title": "Elastic Docs: Anatomy of an analyzer (character filters, exactly one tokenizer, token filters such as lowercase, stop and synonym, applied in order)",
+      "url": "https://www.elastic.co/docs/manage-data/data-store/text-analysis/anatomy-of-an-analyzer"
+    },
+    {
+      "title": "Elastic Docs: Stemming (reducing a word to its root; use the same stemmer at index and search time; algorithmic and dictionary stemmers; porter_stem recommended for English)",
+      "url": "https://www.elastic.co/docs/manage-data/data-store/text-analysis/stemming"
+    },
+    {
+      "title": "Elastic Docs: Synonym token filter (Solr and WordNet rules; explicit rules with =>, left side expanded into the right side)",
+      "url": "https://www.elastic.co/docs/reference/text-analysis/analysis-synonym-tokenfilter"
+    },
+    {
+      "title": "Elastic Docs: Synonym graph token filter (multi-word synonyms with a graph token stream; for search analyzers only; use the synonym filter at index time)",
+      "url": "https://www.elastic.co/docs/reference/text-analysis/analysis-synonym-graph-tokenfilter"
+    },
+    {
+      "title": "Elastic Docs: Stop token filter (the default English stop word list)",
+      "url": "https://www.elastic.co/docs/reference/text-analysis/analysis-stop-tokenfilter"
+    },
+    {
+      "title": "Elastic Docs: Similarity settings (BM25 the default; k1 default 1.2, saturation; b default 0.75, length normalization; discount_overlaps true, overlap tokens don't count toward norms)",
+      "url": "https://www.elastic.co/docs/reference/elasticsearch/index-settings/similarity"
+    },
+    {
+      "title": "Elasticsearch source: LegacyBM25Similarity.java (behaves like Lucene's BM25Similarity while also applying the k1+1 factor to the numerator)",
+      "url": "https://github.com/elastic/elasticsearch/blob/main/server/src/main/java/org/elasticsearch/lucene/similarity/LegacyBM25Similarity.java"
+    },
+    {
+      "title": "Apache Lucene 10.3.0: package org.apache.lucene.index (the inverted index is comprised of postings, a map from a Term to the ordered list of Documents containing it)",
+      "url": "https://lucene.apache.org/core/10_3_0/core/org/apache/lucene/index/package-summary.html"
+    },
+    {
+      "title": "Apache Lucene 10.3.0: Index File Formats (Inverted Indexing: it can list, for a term, the documents that contain it)",
+      "url": "https://lucene.apache.org/core/10_3_0/core/org/apache/lucene/codecs/lucene103/package-summary.html"
+    },
+    {
+      "title": "Apache Lucene 10.3.0: BM25Similarity (Okapi at TREC-3; defaults k1 = 1.2 and b = 0.75; idf = log(1 + (docCount - docFreq + 0.5)/(docFreq + 0.5)))",
+      "url": "https://lucene.apache.org/core/10_3_0/core/org/apache/lucene/search/similarities/BM25Similarity.html"
+    },
+    {
+      "title": "Apache Lucene source: BM25Similarity.java (tf computed as freq / (freq + k1 * (1 - b + b * dl / avgdl)); lengths from a 256-entry table)",
+      "url": "https://github.com/apache/lucene/blob/main/lucene/core/src/java/org/apache/lucene/search/similarities/BM25Similarity.java"
+    },
+    {
+      "title": "Stephen Robertson and Hugo Zaragoza, The Probabilistic Relevance Framework: BM25 and Beyond, Foundations and Trends in Information Retrieval, Vol. 3, No. 4 (2009), pp. 333-389",
+      "url": "https://doi.org/10.1561/1500000019"
+    },
+    {
+      "title": "Elasticsearch API: Explain a document match result (why a specific document matches, or doesn't match, a query)",
+      "url": "https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-explain"
+    },
+    {
+      "title": "Elastic Docs: Highlighting (best-matching highlighted snippets; highlighters don't reflect a query's boolean logic)",
+      "url": "https://www.elastic.co/docs/reference/elasticsearch/rest-apis/highlighting"
+    },
+    {
+      "title": "Elasticsearch API: Reindex documents (copy from a source to a destination that must differ; settings, mappings and shards are not copied and must be set up first)",
+      "url": "https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-reindex"
+    },
+    {
+      "title": "PostgreSQL 18 Documentation, 9.7 Pattern Matching (ILIKE can be used instead of LIKE to make the match case-insensitive, a PostgreSQL extension)",
+      "url": "https://www.postgresql.org/docs/18/functions-matching.html"
+    },
+    {
+      "title": "Elastic Docs: Aliases (an alias points to one or more indices; change which indices an application uses in real time; reindex data without downtime)",
+      "url": "https://www.elastic.co/docs/manage-data/data-store/aliases"
+    }
+  ]
+}

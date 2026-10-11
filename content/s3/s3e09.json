@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.0.1 (2026-10-11) rule 15 renames: Pendarves",
     "v1.0.0 (2026-10-11) first version"
   ],
   "id": "s3e09",
@@ -58,11 +59,11 @@
       },
       {
         "t": "log",
-        "text": "Tue 23:00:00  owner chains  started: 6,140 objects, 6 steps each\nWed 05:49:20  owner chains  finished after 6 h 49 min 20 s\n   ...\n   lot 0417  music box  Marchetti, shop, Pendle, shop, Thorley\n   lot 0417  music box  Marchetti, shop, Pendle, shop, Pendle, shop, Pendle\n             the shop has owned this object 3 times"
+        "text": "Tue 23:00:00  owner chains  started: 6,140 objects, 6 steps each\nWed 05:49:20  owner chains  finished after 6 h 49 min 20 s\n   ...\n   lot 0417  music box  Marchetti, shop, Pendle, shop, Pendarves\n   lot 0417  music box  Marchetti, shop, Pendle, shop, Pendle, shop, Pendle\n             the shop has owned this object 3 times"
       },
       {
         "t": "p",
-        "text": "The line above the last is the box's story as the cards tell it. Marchetti sold it to us in 1962, we sold it to a Pendle in 1974, Pendle sold it back in 1991, and we sold it again in 2003, to a Thorley. Then the last line goes back to the shop, and back again."
+        "text": "The line above the last is the box's story as the cards tell it. Marchetti sold it to us in 1962, we sold it to a Pendle in 1974, Pendle sold it back in 1991, and we sold it again in 2003, to a Pendarves. Then the last line goes back to the shop, and back again."
       },
       {
         "t": "beat",
@@ -248,14 +249,14 @@
         "text": "Move everything into a graph database: objects, people and sales become nodes and links, and owner chains are exactly what graphs do.",
         "tone": "bad",
         "verdict": "Fast chains, slow everything else",
-        "part2": "The nephew moved the shop into a graph store over a month: objects, people and sales as nodes, each sale linked to its seller, its buyer and its object. The chains are a joy. Written so that no path uses a sale twice, all 6,140 take 0.31 seconds, and the music box's ends with Thorley. Then the readings: 22,075,200 of them, one node each, and the 12-month chart now takes 2 minutes 27 seconds every morning. Item lookups went from 1 ms to 2 ms, which nobody noticed. Mrs Rookwood noticed the chart.",
+        "part2": "The nephew moved the shop into a graph store over a month: objects, people and sales as nodes, each sale linked to its seller, its buyer and its object. The chains are a joy. Written so that no path uses a sale twice, all 6,140 take 0.31 seconds, and the music box's ends with Pendarves. Then the readings: 22,075,200 of them, one node each, and the 12-month chart now takes 2 minutes 27 seconds every morning. Item lookups went from 1 ms to 2 ms, which nobody noticed. Mrs Rookwood noticed the chart.",
         "senior": "A graph store makes walking relationships many steps deep cheap, because each node keeps its links beside it. That fits the owner chains and nothing else in the shop. Readings are ranges by time, items are lookups by key, baskets are get and set, and a graph store is built for none of them. Moving everything to serve one nightly job makes the other workloads worse, when a recursive query with an index serves that job in seconds."
       },
       {
         "text": "Keep PostgreSQL: a recursive query that stops at cycles, an index on sales, hourly rollups for readings. Add stores only when needed.",
         "tone": "ok",
         "verdict": "Senior answer",
-        "part2": "Mrs Rookwood moved the 25,180 sales into their own narrow table, sales(object_id, seller, buyer, sold_on), with an index on (object_id, seller), and rewrote the job as a recursive query with PostgreSQL's CYCLE clause on the sale id. On the first night it finished at 23:00:03, after 3.1 seconds. The music box now reads Marchetti, shop, Pendle, shop, Thorley: we owned it twice, 1962 to 1974 and 1991 to 2003, and the branch that went back to the 1974 sale stopped, marked as a cycle. Thirty-seven chains longer than six sales printed whole for the first time. The readings went into a table partitioned by month, with an hourly rollup table filled by a job every hour. Once three years of rollups were in, a retention rule began deleting raw readings older than 30 days, leaving 604,800. The chart takes 0.25 seconds. It's still one database to run and back up, and a graph store stays on the list for the day the chains crawl again.",
+        "part2": "Mrs Rookwood moved the 25,180 sales into their own narrow table, sales(object_id, seller, buyer, sold_on), with an index on (object_id, seller), and rewrote the job as a recursive query with PostgreSQL's CYCLE clause on the sale id. On the first night it finished at 23:00:03, after 3.1 seconds. The music box now reads Marchetti, shop, Pendle, shop, Pendarves: we owned it twice, 1962 to 1974 and 1991 to 2003, and the branch that went back to the 1974 sale stopped, marked as a cycle. Thirty-seven chains longer than six sales printed whole for the first time. The readings went into a table partitioned by month, with an hourly rollup table filled by a job every hour. Once three years of rollups were in, a retention rule began deleting raw readings older than 30 days, leaving 604,800. The chart takes 0.25 seconds. It's still one database to run and back up, and a graph store stays on the list for the day the chains crawl again.",
         "senior": "Start from the access patterns, not the store. The all-night run was a missing index and a chain that could go round in circles, and PostgreSQL fixes both in place: a recursive query that never reuses a sale on one path, and an index for each step. The readings are time-series data, and a time-partitioned table with hourly rollups and a retention rule serves them inside the database you already back up. A relational database stays the system of record for most products. Add another store when a pattern proves it needs one, and count what it costs to run, secure and keep in step."
       },
       {
@@ -271,7 +272,7 @@
     "module": "s3e09",
     "title": "Choose a store for each job at Rookwood's",
     "lede": "You're Mrs Rookwood, replaying Tuesday night from 23:00 at an hour a second. The shop has four workloads, and you pick the store each one runs on: item lookups (one object by lot number), the owner chains for all 6,140 objects, the cabinet sensors (14 writes a minute, and a chart of each cabinet's last 12 months) and the website's baskets. The stores are PostgreSQL, key-value, document, wide-column (rows grouped into partitions by a partition key and sorted by time inside each, like Discord's messages), graph and time-series. Pick how the chain is followed: six self-joins, as now; a recursive query with no cycle guard; or one with a cycle guard, a rule that stops a chain at a sale already on its path. For PostgreSQL you can index the sales on (object, seller), and give the readings a time-partitioned table with hourly rollups and raw readings kept 30 days. Times come from a simple cost model: with no index every chain step reads all 40,000 ledger rows at 60,000 a second, an indexed step takes 0.1 ms, and readings are read at 500,000 a second; the other stores' costs are in the terms. A job still running at 07:00 is stopped. Changing anything replays the night, and the four option buttons load the four replies. Click any box to see what it does.",
-    "tryThis": "Try this: let the night run as built. The job finishes at 05:49:20, after 6 h 49 min 20 s, and prints the music box with the shop as owner 3 times. Add the sales index: 3.7 s, but still 3 times, with 37 chains cut at 6 steps. Switch to a recursive query with no cycle guard: it never ends, index or not. Choose one that stops at cycles and turn the index off: 5 h 48 min. Turn the index back on: 3.1 s, and the box ends with Thorley. Turn on hourly rollups: the chart falls from 44.2 s to 0.25 s. Put the readings on a key-value store and see what happens to the chart. Then press the four option buttons and compare the times, the stores to run and the data kept in two stores."
+    "tryThis": "Try this: let the night run as built. The job finishes at 05:49:20, after 6 h 49 min 20 s, and prints the music box with the shop as owner 3 times. Add the sales index: 3.7 s, but still 3 times, with 37 chains cut at 6 steps. Switch to a recursive query with no cycle guard: it never ends, index or not. Choose one that stops at cycles and turn the index off: 5 h 48 min. Turn the index back on: 3.1 s, and the box ends with Pendarves. Turn on hourly rollups: the chart falls from 44.2 s to 0.25 s. Put the readings on a key-value store and see what happens to the chart. Then press the four option buttons and compare the times, the stores to run and the data kept in two stores."
   },
   "explain": {
     "oneLine": "The shop never owned the box a third time. The query followed names, not dates, so from the 1991 buyback it found the 1974 sale again and went round; and with no index on the sales, each of its 36,840 steps read the whole ledger.",

@@ -1,10 +1,12 @@
-/* sims/s3e10-v1.0.0.js  (published as sims/s3e10.js)
+/* sims/s3e10-v1.0.1.js  (published as sims/s3e10.js)
    Case s3e10 "Normal and Not": a modeling lab for the Thornleigh Family History Society. One
    person's death date is corrected in the person table (the truth); her 37 rows in the tree
    table (copies, one per tree she appears in) are refreshed, or not, by the storage model the
    learner picks.
 
    CHANGELOG
+   v1.0.1 (2026-10-11) rule 15 renames: u/rebuild_at_two_hildred (the nightly-rebuild commenter);
+     the case is now content/s3/s3e10-v1.0.1.json.
    v1.0.0 (2026-10-11) first version: storage models (tree copies with no refresh, as now; fixed
      by hand; normalized only; refreshed in the same transaction; refreshed from a change queue
      with a stated delay; rebuilt nightly 02:00 to 02:40), the correction time, the tree size for
@@ -12,7 +14,7 @@
      the longest a tree showed 1919, tree page time, database time per correction, rows touched
      per correction, tree rows rewritten each night. selfTest: 12 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s3/s3e10-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s3/s3e10-v1.0.1.json):
    - post: the society has 412 trees and a tree table of 41,236 rows (one row per person per tree
      they appear in); the biggest trees are about 400 people. Alcuin Treharne added the tree
      table in 2014. Lavinia Gorrandine (person P-20417, born 1852) appears in 37 of the 412
@@ -22,7 +24,7 @@
      Sabine's tree, T-0288: the 1900 photograph has 8 people and 9 names.
    - comments and OP replies: the 400-person tree takes 1,640 ms from the person table and 60 ms
      from its tree rows (Kesia's timing); a nightly rebuild of about 40 minutes
-     (u/rebuild_at_two_quenby); fixing by hand at about 2 minutes a tree (the committee's rule).
+     (u/rebuild_at_two_hildred); fixing by hand at about 2 minutes a tree (the committee's rule).
    - reply part 2s: A 1,640 ms against 60, 88 ms for a 12-person tree; B 37 trees x 2 minutes =
      74 minutes, 38 rows, 3,000 ms of database time; C the 10:14 correction waits until 02:40,
      16 h 26 min, and a correction at 02:10 waits 24 h 30 min, 41,236 rows rewritten each night;

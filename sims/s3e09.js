@@ -1,4 +1,4 @@
-/* sims/s3e09-v1.0.0.js  (published as sims/s3e09.js)
+/* sims/s3e09-v1.0.1.js  (published as sims/s3e09.js)
    Case s3e09 "Not Everything Is a Table": a store-chooser lab for Rookwood's, a curiosity shop on
    Wickery Row. The shop's four workloads (item lookups, the nightly owner chains, the cabinet
    sensors and the website's baskets) each run on a store the learner picks: PostgreSQL
@@ -9,13 +9,15 @@
    case's four reply options.
 
    CHANGELOG
+   v1.0.1 (2026-10-11) rule 15 renames: Pendarves (the music box's last buyer); the case is now
+     content/s3/s3e09-v1.0.1.json.
    v1.0.0 (2026-10-11) first version: Tuesday night from 23:00 to 07:00 at an hour a real second.
      The owner-chain job starts on the first tick and finishes at 23:00 plus its run time, or runs
      until 07:00 and is stopped. Stats: item lookup, owner chains, the 12-month humidity chart,
      baskets, stores to run, data kept in two stores, and how many times the music box's printed
      chain says the shop owned it. selfTest: 12 assertions.
 
-   Where every number comes from (conventions rule 14; the case is content/s3/s3e09-v1.0.0.json):
+   Where every number comes from (conventions rule 14; the case is content/s3/s3e09-v1.0.1.json):
    - post: the ledger is one PostgreSQL table with 61 columns, 53 of them empty on most rows, and
      40,000 rows: 6,140 objects, 25,180 sales and 8,680 everything else (people, repairs, baskets).
      Mrs Rookwood typed in the last of the eleven drawers of cards on Monday; the 1991 card (Pendle
@@ -35,11 +37,11 @@
      stops it, index or not.
    - six self-joins cut every chain at 6 steps: 37 objects have more than 6 sales.
    - the music box, lot 0417: Marchetti sold it to the shop in 1962; the shop sold it to Pendle in
-     1974; Pendle sold it back in 1991; the shop sold it to Thorley in 2003. Half the old cards have
+     1974; Pendle sold it back in 1991; the shop sold it to Pendarves in 2003. Half the old cards have
      no date, so a chain follows names: the buyer on one sale is the seller on the next. From the
      1991 sale the shop is the seller again, which matches the 1974 sale as well as the 2003 one.
      Six self-joins print, last: Marchetti, shop, Pendle, shop, Pendle, shop, Pendle (6 sales, the
-     shop 3 times). Stopping at cycles: Marchetti, shop, Pendle, shop, Thorley (the shop twice).
+     shop 3 times). Stopping at cycles: Marchetti, shop, Pendle, shop, Pendarves (the shop twice).
    - readings: 14 cabinets x 1,440 minutes a day = 20,160 a day; 1,095 days (three years) =
      22,075,200 rows. The morning chart shows each cabinet over the last 12 months: 14 x 525,600 =
      7,358,400 raw readings, or 14 x 8,760 = 122,640 hourly rollups. Raw kept for 30 days under the
@@ -129,7 +131,7 @@
   ];
 
   var CHAIN_FIXED = "Marchetti, shop, Pendle, shop, Pendle, shop, Pendle";
-  var CHAIN_GUARD = "Marchetti, shop, Pendle, shop, Thorley";
+  var CHAIN_GUARD = "Marchetti, shop, Pendle, shop, Pendarves";
   var CHAIN_LOOP = "Marchetti, shop, Pendle, shop, Pendle, shop, ...";
 
   /* ---------- small helpers ---------- */
@@ -298,7 +300,7 @@
       (S.use.chains === "pg" && !S.index ? " steps, each reading all " + fmt(LEDGER_ROWS) + " ledger rows." : " lookups.") + tail,
       c.secs > 3600 ? "bad" : (c.secs > 60 ? "warn" : "ok"));
     if (S.how === "fixed") {
-      api.log("Above it: lot 0417, music box: Marchetti, shop, Pendle, shop, Thorley.", "");
+      api.log("Above it: lot 0417, music box: Marchetti, shop, Pendle, shop, Pendarves.", "");
       api.log("Last line: lot 0417, music box: " + CHAIN_FIXED + ". The shop has owned this object 3 times.", "bad");
     } else {
       api.log("Lot 0417, music box: " + CHAIN_GUARD + ". The shop owned it twice, 1962 to 1974 and 1991 to 2003. The branch back to the 1974 sale stopped: that sale was already on the path.", "ok");
@@ -454,7 +456,7 @@
     wide: "<strong>Wide-column store.</strong> Rows grouped into partitions by a partition key and sorted inside each, built for huge, append-heavy data read by partition and time, such as messages per channel. In this sim the chart reads each cabinet's raw partitions for the year.",
     graph: "<strong>Graph store.</strong> Nodes and the relationships between them, stored side by side, so following a relationship is cheap: 0.01 ms a step in this sim. Ranges of readings are not its job: 50,000 a second.",
     ts: "<strong>Time-series store.</strong> Timestamped readings written in order, read by time range, rolled up and expired. It serves the chart from hourly rollups, but it has no lookups by key or by seller.",
-    box: "<strong>The music box, lot 0417.</strong> The job's last line on Tuesday. Marchetti sold it to the shop in 1962, the shop sold it to Pendle in 1974, Pendle sold it back in 1991, and the shop sold it to Thorley in 2003. From the 1991 sale, the shop is the seller again, and that matches the 1974 sale as well as the 2003 one."
+    box: "<strong>The music box, lot 0417.</strong> The job's last line on Tuesday. Marchetti sold it to the shop in 1962, the shop sold it to Pendle in 1974, Pendle sold it back in 1991, and the shop sold it to Pendarves in 2003. From the 1991 sale, the shop is the seller again, and that matches the 1974 sale as well as the 2003 one."
   };
 
   /* ---------- the module ---------- */
@@ -563,9 +565,9 @@
       t.set("index", true);
       await t.run(1);
       t.expect(t.stat("chain") === "3.1 s" && t.stat("shop") === 2 &&
-        t.logText().indexOf("Lot 0417, music box: Marchetti, shop, Pendle, shop, Thorley. The shop owned it twice") >= 0 &&
+        t.logText().indexOf("Lot 0417, music box: Marchetti, shop, Pendle, shop, Pendarves. The shop owned it twice") >= 0 &&
         t.node("box").text.meta === "the shop owned it 2 times",
-        "Recursive, stops at cycles, with the index: 3.1 s, and the music box ends with Thorley");
+        "Recursive, stops at cycles, with the index: 3.1 s, and the music box ends with Pendarves");
 
       // 7. Hourly rollups for the readings.
       t.set("rollup", true);
