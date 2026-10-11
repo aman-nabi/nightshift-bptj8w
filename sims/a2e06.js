@@ -1,8 +1,10 @@
-/* sims/a2e06-v1.0.0.js  (published as sims/a2e06.js)
+/* sims/a2e06-v1.0.1.js  (published as sims/a2e06.js)
    Case a2e06 "The Universal Socket": a hotel MCP lab, from Clement's night at the Belvane, where the guest
    concierge assistant opened room 412 at 03:10 for the guest in 207.
 
    CHANGELOG
+   v1.0.1 (2026-10-11) review fixes: room 207's check-in name changed to Oriel (rule 15, the old name was
+     one letter from Mabyn in a2e03 and s2e10); the case pointer now names a2e06-v1.0.1.json.
    v1.0.0 (2026-10-11) first version: a widget-style sim built inside api.root (no diagram). No real model:
      a scripted, deterministic stand-in maps each guest message to one tool call. One MCP server,
      front-desk, offers three tools (order_room_service, set_wake_up_call, unlock_door). The night has
@@ -21,7 +23,7 @@
      combination of controls, the transport changing no outcome, determinism, every story number, and the
      controls.
 
-   Where every number comes from (conventions rule 14; the case is content/latent/a2/a2e06-v1.0.0.json).
+   Where every number comes from (conventions rule 14; the case is content/latent/a2/a2e06-v1.0.1.json).
    All of them follow from REQUESTS, BOOKINGS, serve() and night():
    - The Belvane has 48 rooms; the master credential opens all 48 doors (DOORS). The story's post, the
      evidence diagram, option A's part 2 and the explanation use the same 48.
@@ -97,7 +99,7 @@
 
   var BOOKINGS = {
     118: { guests: 1, who: "the guest in 118" },
-    207: { guests: 1, who: "Mabry, paid in cash" },
+    207: { guests: 1, who: "Oriel, paid in cash" },
     305: { guests: 2, who: "two guests" },
     412: { guests: 1, who: "Mrs Arkwright, alone" },
     516: { guests: 1, who: "the guest in 516" }
