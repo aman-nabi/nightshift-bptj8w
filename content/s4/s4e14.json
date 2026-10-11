@@ -1,0 +1,783 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e14",
+ "season": 4,
+ "n": 14,
+ "title": "Out of Order",
+ "setting": "a train dispatcher",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "ordering-guarantees",
+  "sequence-numbers",
+  "reordering"
+ ],
+ "prerequisites": [
+  "s4e10",
+  "s4e06",
+  "s4e04",
+  "s4e03",
+  "s3e06",
+  "s2e14",
+  "s2e13",
+  "s2e01",
+  "s1e11",
+  "s1e06",
+  "s1e04"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_board_murdina",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 2961,
+  "title": "I dispatch trains at night on a rural line. At 01:16 the board showed a train slide back to a station it had already passed. I nearly sent a freight out in front of it.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm the night dispatcher on the Strathcullen line: seven stations, Tarvennan at one end and Lochsgair at the other, double track all the way, and a passing loop at Inchvoray where freights wait for the passenger trains to go by. I never see the trains. I see the dispatch board, a map of the line with a dot for each one. Every station has a trackside sensor that reads each train as it passes and sends an update, \"2V08 passed Kilmardy\", to the board. Cadwgan, who built it, put a queue between the sensors and the board, with two consumers reading it. If a sensor's send fails, the sensor tries again. \"Nothing gets lost,\" he said."
+   },
+   {
+    "t": "p",
+    "text": "On Thursday 2V08 (that's its headcode), the last down passenger, passed Tarvennan just after 01:06. The timber freight, 6E19, sat in the Inchvoray loop waiting for it to go by. 2V08's dot stayed at Tarvennan far too long. At 01:15:45 it jumped to Drumlarach, two stations on. At 01:16:10 it slid back to Kilmardy."
+   },
+   {
+    "t": "log",
+    "text": "01:06:35  board  2V08 -> Tarvennan\n01:15:45  board  2V08 -> Drumlarach\n01:16:10  board  2V08 -> Kilmardy\n01:19:25  board  2V08 -> Inchvoray"
+   },
+   {
+    "t": "beat",
+    "text": "Back the way it had come."
+   },
+   {
+    "t": "p",
+    "text": "I believed the board. With 2V08 back at Kilmardy, the down line past Drumlarach looked clear, and 6E19 had waited long enough. At 01:17 I started setting its route out of the loop. The phone rang. It was Fearchar Tullo, the signaller at Inchvoray, the last signal box on the line. \"Who's that route for? I've got 2V08 coming. I can hear it.\" I cancelled the route. At 01:19:20 2V08 ran through Inchvoray, past the loop where 6E19 was still waiting."
+   },
+   {
+    "t": "evidence",
+    "label": "kilmardy_drumlarach_0116.png",
+    "diagram": {
+     "type": "sequence",
+     "aria": "Four lanes: Kilmardy sensor, Drumlarach sensor, the queue and the dispatch board. At 01:12:05 Kilmardy's sensor sees 2V08 and its send fails; it will retry. At 01:15:40 Drumlarach's sensor sees 2V08 and sends; the queue passes it to the board at 01:15:45. Then Kilmardy's retry reaches the queue, and the board gets it at 01:16:10. The board shows 2V08 back at Kilmardy.",
+     "lanes": [
+      "Kilmardy sensor",
+      "Drumlarach sensor",
+      "Queue",
+      "Dispatch board"
+     ],
+     "steps": [
+      {
+       "note": 0,
+       "text": "01:12:05 send failed",
+       "sub": "sensor will retry",
+       "tone": "warn"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "01:15:40 2V08 passed"
+      },
+      {
+       "from": 2,
+       "to": 3,
+       "label": "01:15:45 Drumlarach"
+      },
+      {
+       "from": 0,
+       "to": 2,
+       "label": "retry: 2V08 passed",
+       "tone": "warn"
+      },
+      {
+       "from": 2,
+       "to": 3,
+       "label": "01:16:10 Kilmardy",
+       "tone": "bad"
+      },
+      {
+       "outcome": 3,
+       "text": "2V08 shown back at Kilmardy",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Cadwgan's drawing from the sensors' logs and the board's. Kilmardy's sensor saw 2V08 at 01:12:05 and its send failed. Drumlarach's sensor saw it at 01:15:40, and that update reached the board at 01:15:45. Kilmardy's retry reached the board at 01:16:10, and the board moved 2V08 back."
+   },
+   {
+    "t": "p",
+    "text": "Cadwgan went through it this morning. Every update arrived, once. The queue handed them out in the order they came in, and the board applied each one as it came. Fearchar says in all his years no train has ever reversed into his stretch of line, and on Thursday the board showed one doing it for over three minutes. Cadwgan has four changes on his list. Which should he make before tonight?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 129,
+   "age": "5h",
+   "text": "A few words before the logs. Event time is when something happened: here, when a sensor saw the train. Arrival time is when the news of it reached the board. They differ by however long the trip took, and the trip isn't the same length for every update. A retry is a sender trying again, later, after a send failed. A sequence number is a counter a sender puts on each message it sends: 1, 2, 3. Now the evidence. Which update reached the queue first, Kilmardy's or Drumlarach's? What does an update carry: the train and the station, or a time as well? And when two updates about one train disagree, what does the board go by to decide which is newer?",
+   "replies": [
+    {
+     "author": "u/night_board_murdina",
+     "op": true,
+     "points": 41,
+     "age": "4h",
+     "text": "Drumlarach's reached the queue first and the board at 01:15:45; Kilmardy's retry came in at 01:16:10. Cadwgan says an update carries the train and the station, nothing else. The 01:12:05 is from Kilmardy's own log, from the sensor's clock, which is set by NTP like all of them. The board doesn't decide anything. Whatever arrives last is what it shows."
+    }
+   ]
+  },
+  {
+   "author": "u/one_consumer_gilzean",
+   "points": 88,
+   "age": "4h",
+   "text": "You run two consumers. That's your bug. Two consumers each grab the next update and finish when they finish, so one train's updates can land on the board out of turn. Every system that promises order does it with one reader per line: Kafka gives each partition to one consumer in a group, and an SQS FIFO message group hands out one message at a time. Drop to one consumer and the board applies every update in exactly the order it arrives. One consumer means one order."
+  },
+  {
+   "author": "u/token_hut_wardlaw",
+   "points": 37,
+   "age": "3h",
+   "text": "I worked a box like Fearchar's for a long time. We never moved a train on one message alone: the box ahead had to tell us the last train had cleared before we let another in. A train can't be in two places, and it doesn't go back without somebody asking it to. Your board seems to have forgotten both."
+  }
+ ],
+ "reply": {
+  "prompt": "Cadwgan can make one change before tonight's trains. Which should it be? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Stamp each update with the sensor's own time; the board ignores any older than the last applied for that train.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Cadwgan had every sensor put its own time on each update, from its NTP-set clock, and made the board keep, for each train, the time of the last update it applied, and ignore anything older. He replayed Thursday night through it. At 01:16:10 Kilmardy's retry arrived carrying 01:12:05, older than Drumlarach's 01:15:40, and the board logged it and ignored it. 17 updates applied, 1 ignored, no train shown going backwards, and at 01:17:00 the board showed 2V08 at Drumlarach, where it was. The dots still run 5 seconds behind the trains, as they always have. It went live on Friday. Fearchar rang me at 01:17 that night anyway, to ask where I had 2V08. Drumlarach, I said. He said he could hear it there.",
+    "senior": "The queue kept the order the updates reached it; the retry had scrambled that order before the queue ever saw it. So the order has to come from the data: carry the time the event happened, from the source, keep the newest applied per train, and drop anything older. It costs no delay. It does trust the sensors' clocks, which the limits below cover."
+   },
+   {
+    "text": "Run one consumer instead of two, so the board applies every update in exactly the order it arrives at the queue.",
+    "tone": "bad",
+    "verdict": "One order, the wrong one",
+    "part2": "Cadwgan cut the board to one consumer and replayed Thursday night. Nothing changed. Drumlarach's update still reached the queue first and the board at 01:15:45, Kilmardy's retry still came in at 01:16:10, and the one consumer applied them in that order, faithfully. 2V08 went back to Kilmardy at 01:16:10 and stayed there on the board for 3 min 15 s; at 01:17:00 it showed at Kilmardy while the train ran on past Drumlarach. The order was wrong before the queue ever saw it, and one consumer kept it wrong.",
+    "senior": "One consumer keeps the order things reached the queue, and that is all a queue, a partition or a message group can keep. A retry reorders updates before they reach the queue, so a single consumer applies the wrong order exactly. It also gives up the parallel reading you may need later. Order has to come from the data: when the sensor saw the train."
+   },
+   {
+    "text": "Stamp each update with the board's own clock as it arrives, and have the board apply them sorted by that stamp.",
+    "tone": "bad",
+    "verdict": "Arrival order with a timestamp",
+    "part2": "Cadwgan had the board stamp each update with its own clock as it arrived and apply them sorted by that stamp. Replayed: Kilmardy's retry arrived at 01:16:10 and got the latest stamp of the night so far, so it sorted after Drumlarach's 01:15:45. The same night again: 2V08 back to Kilmardy at 01:16:10, shown going backwards for 3 min 15 s, at Kilmardy on the board at 01:17:00. Every update now had a time on it, and every time said when the board heard, not when the train passed.",
+    "senior": "The board's clock records when an update arrived, which is the order you already had. Arrival time and event time differ exactly when something was delayed, and that is the only time the order matters. Stamp at the source, with the time the thing happened."
+   },
+   {
+    "text": "Hold every update for 30 seconds at the board, and sort by the sensor's time before applying any of them.",
+    "tone": "warn",
+    "verdict": "Trade-off: the right order, 30 seconds late",
+    "part2": "Cadwgan had the sensors put their own time on each update and made the board hold every update 30 seconds after it arrived, then apply what it held in order of the sensor's time. Replayed: Drumlarach's update was held until 01:16:15; Kilmardy's retry arrived at 01:16:10, inside that hold window, and both went at 01:16:15, Kilmardy first. No train shown going backwards. But every dot on the board now runs 35 seconds behind its train instead of 5, on a board people route freights by. And when he set the retry to come 4 min 15 s after the sensor instead of 4 min 5 s, it missed the window: 2V08 went back to Kilmardy at 01:16:50, for 3 min 5 s.",
+    "senior": "A hold-and-sort buffer puts right anything that arrives within its window, and charges every update the window as delay. Anything later than the window comes out of order again. It suits messages where a fixed delay is cheap and every event must be kept; for a display of where things are now, drop the stale update instead and pay no delay."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e14",
+  "title": "Replay Thursday night on the Strathcullen line",
+  "lede": "You're Murdina, replaying Thursday night from 01:05:00 to 01:40:00. 18 updates for 3 trains: 2V08 down, 2T31 up, and the freight 6E19 leaving the Inchvoray loop at 01:22:40. Every update reaches the board through the queue 5 seconds after its sensor saw the train, except one: Kilmardy's send for 2V08 at 01:12:05 fails, and the sensor's retry reaches the board after the retry delay, 4 min 5 s on the night (01:16:10). Consumers take updates off the queue in the order they arrived. The rules: apply in arrival order (as built); stamp each update with the board's clock on arrival and sort by that; stamp it with the sensor's own time, from its NTP-set clock, and ignore any update older than the last applied for that train; number each sensor's updates 1, 2, 3 and ignore one not newer than the last from that sensor; or hold every update for a window after it arrives, then apply in order of the sensor's time. Board lag is the longest time from sensor to board for an update that arrived first time. Press Next update to step, or Run to 01:40:00.",
+  "tryThis": "Try this: press Run to 01:40:00 as it is: 2V08 shown going backwards for 3 min 15 s, and at Kilmardy on the board at 01:17:00. Set consumers to 1: nothing changes. Try the board's clock stamp: nothing changes. Now the sensor's time: 1 update ignored, nothing backwards, Drumlarach at 01:17:00. Try the per-sensor numbers and read why Kilmardy's #1 passes. Then hold and sort: nothing backwards, but a board lag of 35 s; set the retry to 255 s and it fails too. Last, go back to arrival order and set the retry to 220 s, to see when arrival order is enough."
+ },
+ "explain": {
+  "oneLine": "No train went backwards; a message did. Kilmardy's update was retried and reached the board 25 seconds after Drumlarach's newer one, and the board applied updates in the order they arrived, so the older position overwrote the newer.",
+  "steps": [
+   {
+    "title": "A queue keeps the order things reached it, and no more.",
+    "text": "A Kafka partition, an SQS FIFO message group and a Pub/Sub ordering key each promise order within their scope: messages come out in the order they were written or arrived. That is an ordering guarantee about the queue. It says nothing about when the events happened. On Thursday the queue did its job: Drumlarach's update reached it first, at 01:15:45, and was handed out first."
+   },
+   {
+    "title": "Retries reorder.",
+    "text": "Kilmardy's sensor saw 2V08 at 01:12:05, its send failed, and its retry arrived 4 min 5 s later, 25 seconds after Drumlarach's update from 01:15:40. Anything that tries again later can land behind newer news: a sender's retry, a second sender on a faster link, two consumers finishing at different speeds. Kafka's own producer settings warn that a retried batch can land after a later one. Reordering happens before the queue as often as inside it."
+   },
+   {
+    "title": "Event time, not arrival time.",
+    "text": "Event time is when the sensor saw the train; arrival time is when the board heard. One consumer applies arrival order. A stamp from the board's clock is arrival time written down. Both rebuild the order that was already wrong. Only the event time, put on the update by the sensor, says which update is newer, so the update has to carry it."
+   },
+   {
+    "title": "Drop the stale update.",
+    "text": "The board shows where each train is now, so it needs only the newest news. Keep, per train, the sensor time of the last update applied, and ignore any update that isn't newer: Kilmardy's 01:12:05 against Drumlarach's 01:15:40. Per-source sequence numbers are the general tool for one sender's messages, but these two updates came from two different sensors, whose numbers can't be compared. Across sensors you need clocks you trust, set by NTP, or a natural order such as each station's position along the line."
+   },
+   {
+    "title": "Or wait and sort, and pay for the wait.",
+    "text": "A reorder buffer holds every update for a window and releases them in event-time order: 30 seconds catches Thursday's retry and puts every dot 35 seconds behind its train, and a retry later than the window still comes through out of order."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 360,
+   "aria": "The fix, drawn for tonight. Kilmardy's sensor and Drumlarach's sensor send updates carrying their own times, 01:12:05 by retry and 01:15:40, into the queue. The queue hands them to the dispatch board in arrival order. The board checks each against a table of the last applied sensor time per train, where 2V08 has 01:15:40, and records new ones. At 01:16:10 the 01:12:05 update is older, so it is ignored.",
+   "nodes": [
+    {
+     "id": "kil",
+     "label": "Kilmardy sensor",
+     "sub": "stamps 01:12:05",
+     "x": 100,
+     "y": 70,
+     "w": 160,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "dru",
+     "label": "Drumlarach sensor",
+     "sub": "stamps 01:15:40",
+     "x": 100,
+     "y": 250,
+     "w": 160,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "queue",
+     "label": "Queue",
+     "sub": "arrival order",
+     "x": 380,
+     "y": 160,
+     "w": 160,
+     "h": 64,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "board",
+     "label": "Dispatch board",
+     "sub": "2V08: Drumlarach",
+     "x": 640,
+     "y": 160,
+     "w": 150,
+     "h": 64,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "last",
+     "label": "Last applied",
+     "sub": "2V08: 01:15:40",
+     "meta": "per train",
+     "x": 640,
+     "y": 300,
+     "w": 150,
+     "h": 72,
+     "shape": "db",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "kil",
+     "to": "queue",
+     "label": "retry, 01:16:10",
+     "tone": "warn"
+    },
+    {
+     "from": "dru",
+     "to": "queue",
+     "label": "01:15:45"
+    },
+    {
+     "from": "queue",
+     "to": "board",
+     "label": "in order"
+    },
+    {
+     "from": "board",
+     "to": "last",
+     "label": "check, record"
+    }
+   ],
+   "notes": [
+    {
+     "x": 360,
+     "y": 335,
+     "text": "01:16:10: 01:12:05 is older, ignored",
+     "tone": "ok",
+     "anchor": "middle"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for tonight. Each sensor puts its own time on its update. The queue still hands updates out in the order they arrive, and the retry still arrives late. The board checks each update against the last sensor time it applied for that train, and at 01:16:10 Kilmardy's 01:12:05 is older than Drumlarach's 01:15:40, so it is ignored.",
+  "fix": {
+   "title": "The fix: the sensor's time on every update, and the board ignores stale ones",
+   "text": "Have each sensor put its own time, from its NTP-set clock, on every update it sends. On the board, keep for each train the sensor time of the last update applied, and ignore, and log, any update for that train that isn't newer. Keep the queue and the retries as they are: an update that never arrives is worse than a late one, and a late one can now do no harm. Then watch the sensors' clocks, and as a second check, make sure a down train's new station is further down the line than its last."
+  },
+  "limits": [
+   "Ordering by the sensor's time trusts the sensors' clocks. NTP usually keeps them close, but a sensor whose clock drifts behind makes its newest updates look old, and the board drops them. Alert when a sensor's clock wanders, and check each station's position along the line as well.",
+   "Dropping stale updates suits a record of where something is now. Where every event matters, such as a log of every passing or a count of trains, the late one can't be thrown away; it has to be put in its place, which means sorting by event time after a wait.",
+   "Per-source sequence numbers order one sender's messages and catch its repeats, as Kafka's idempotent producer does. They can't order two different senders' updates about one train, and Thursday's two updates came from two sensors."
+  ],
+  "tradeoff": {
+   "head": [
+    "Rule",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Arrival order (as built)",
+     "Simple; dots 5 s behind the trains.",
+     "A late retry overwrites newer news: 2V08 shown backwards for 3 min 15 s."
+    ],
+    [
+     "One consumer",
+     "Nothing can be reordered inside the board.",
+     "The order was wrong before the queue: still 3 min 15 s backwards."
+    ],
+    [
+     "Board's clock stamp, sorted",
+     "Every update has a time on it.",
+     "It is the arrival time again: the same backwards train."
+    ],
+    [
+     "Sensor's time, ignore older",
+     "Retry ignored, nothing backwards, still 5 s behind.",
+     "Trusts the sensors' clocks; a stale update is dropped, not kept."
+    ],
+    [
+     "Sequence number per sensor",
+     "Orders each sensor's own updates and drops its repeats.",
+     "Kilmardy's #1 and Drumlarach's #1 can't be compared: still backwards."
+    ],
+    [
+     "Hold 30 s and sort",
+     "Retry caught, nothing backwards.",
+     "Every dot 35 s behind; a retry 4 min 15 s late still lands out of order."
+    ]
+   ]
+  },
+  "seniorTake": "Decide what order you need and where it comes from. A queue, a partition, a message group or an ordering key can only keep the order messages reached it, and anything before it, a retry, a second sender, a slower link, can scramble that. When the record is where something is now, carry the event time from the source, keep the newest applied per thing, and drop anything older; it costs no delay. Number messages per source when one source's messages are what needs ordering, and across sources use clocks you trust or a natural order such as position. Hold and sort only where a fixed delay is cheap.",
+  "realWorld": [
+   {
+    "title": "Kafka: one partition, one order",
+    "text": "Apache Kafka's introduction says events with the same event key, for example a customer or vehicle ID, are written to the same partition, and Kafka guarantees that any consumer of a given topic-partition will always read that partition's events in exactly the same order as they were written. The promise is the order of writing, not of the events themselves.",
+    "source": 0
+   },
+   {
+    "title": "Kafka: retries can reorder",
+    "text": "Kafka's producer settings say that allowing retries while enable.idempotence is false and max.in.flight.requests.per.connection is above 1 will potentially change the ordering of records, because if two batches are sent to a single partition, and the first fails and is retried but the second succeeds, then the records in the second batch may appear first. With idempotence on, which is the default when no setting conflicts, ordering is preserved.",
+    "source": 1
+   },
+   {
+    "title": "Kafka: a sequence number per producer",
+    "text": "Kafka's design notes describe a topic as divided into a set of totally ordered partitions, and the idempotent producer as one where the broker assigns each producer an ID and deduplicates messages using a sequence number sent by the producer along with every message. That orders and de-duplicates one producer's messages; it can't compare two producers'.",
+    "source": 2
+   },
+   {
+    "title": "SQS FIFO: order within a message group, as it arrives",
+    "text": "SQS's FIFO delivery logic page says that within a message group ID, all messages are sent and received in strict order, that messages with different message group IDs may arrive or be processed out of order relative to one another, and that when several producers send to one group, SQS stores and processes them in the order they arrive.",
+    "source": 3
+   },
+   {
+    "title": "SQS FIFO: one at a time per group",
+    "text": "SQS's FIFO key terms say messages within the same message group are always processed one at a time, in strict order, so no two messages from the same group are processed simultaneously.",
+    "source": 4
+   },
+   {
+    "title": "Pub/Sub: ordering keys",
+    "text": "Google Cloud Pub/Sub's ordering page calls an ordering key a string that identifies related messages that should be ordered, says messages published with the same ordering key are expected to be received in order, and that you must publish all messages with the same ordering key in the same region. It adds that redelivery of a message triggers redelivery of all later messages for that key, even acknowledged ones.",
+    "source": 5
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you keep events in order?",
+    "What can reorder messages?",
+    "Event time or processing time?"
+   ],
+   "answer": "First ask what order is needed and over what scope: usually per thing, such as per train, per order or per account, not for everything. A queue or log keeps the order messages reached it within a scope: a Kafka partition chosen by key, an SQS FIFO message group, a Pub/Sub ordering key. Then say what reorders before that: a sender's retry, two senders on different paths, parallel producers, and inside it, parallel consumers or retried batches, which Kafka's idempotent producer keeps in order. So for state like a current position, carry the event time, when the thing happened, from the source, keep the newest applied per key, and drop anything older. Processing time, when you heard, is fine for measuring your own system and wrong for ordering what happened. Per-source sequence numbers order one sender's messages exactly; across senders you need trusted clocks or a natural order. Where every event must be kept in order, buffer for a window and sort by event time, and accept the delay and that anything later than the window still needs handling."
+  }
+ },
+ "terms": [
+  {
+   "term": "Dispatcher (railway)",
+   "def": "The person who watches a line's trains on a board and decides where each goes next, setting routes and holding trains in loops. Murdina is the Strathcullen line's night dispatcher."
+  },
+  {
+   "term": "Dispatch board",
+   "def": "The screen at the dispatcher's desk: a map of the line with a dot for each train, moved by the updates the sensors send."
+  },
+  {
+   "term": "Trackside sensor",
+   "def": "A box beside the rails at a station that reads each passing train and sends an update. It keeps its own log, with times from its own clock."
+  },
+  {
+   "term": "Update (position update)",
+   "def": "One sensor's message: which train passed which station. On Thursday it carried nothing else. The board moves that train's dot to that station."
+  },
+  {
+   "term": "Headcode",
+   "def": "A train's four-character running number, such as 2V08, used on the board and between signal boxes to say which train is meant."
+  },
+  {
+   "term": "Down and up",
+   "def": "Railway words for the two directions. On the Strathcullen line down trains run from Tarvennan to Lochsgair and up trains run back."
+  },
+  {
+   "term": "Double track",
+   "def": "A line with a track for each direction, so up and down trains pass each other without waiting."
+  },
+  {
+   "term": "Passing loop",
+   "def": "A short second track beside the main line where a train waits for another to go by. 6E19 waits in the loop at Inchvoray."
+  },
+  {
+   "term": "Freight (train)",
+   "def": "A train carrying goods, not passengers. 6E19 carries timber."
+  },
+  {
+   "term": "Signal box",
+   "def": "A building beside the line where a signaller works the signals and points for a stretch of track. Inchvoray has the last one on the Strathcullen line."
+  },
+  {
+   "term": "Signaller",
+   "def": "The person in a signal box who controls the signals and points nearby and knows which trains are on their stretch of line. Fearchar Tullo works Inchvoray."
+  },
+  {
+   "term": "Route (setting a route)",
+   "def": "Choosing the path a train will take, here out of the loop and onto the down line, so its signals can clear."
+  },
+  {
+   "term": "Event time",
+   "def": "When the thing happened: here, when the sensor saw the train pass. An update carries it only if the sender puts it there."
+  },
+  {
+   "term": "Arrival time (processing time)",
+   "def": "When an update reached the board, by the board's clock: the event time plus however long the trip took, which isn't the same for every update."
+  },
+  {
+   "term": "Ordering guarantee",
+   "def": "What a queue or log promises about the order messages come out in, and over what scope: a partition, a message group, an ordering key. Outside that scope it promises nothing."
+  },
+  {
+   "term": "Reordering",
+   "def": "Messages coming out in a different order from the one their events happened in. Retries, several senders and different network paths all cause it."
+  },
+  {
+   "term": "Sequence number (per source)",
+   "def": "A counter a sender puts on each message it sends, 1, 2, 3, so a receiver can put that sender's messages in order and spot old or repeated ones. It says nothing about another sender's messages."
+  },
+  {
+   "term": "Stale update",
+   "def": "An update older than one already applied for the same thing. Applying it moves the record backwards."
+  },
+  {
+   "term": "Last applied (per train)",
+   "def": "The sensor time of the newest update the board has applied for a train. An update at or before it is stale."
+  },
+  {
+   "term": "Reorder buffer (hold and sort)",
+   "def": "Holding messages for a fixed window after they arrive, then releasing them sorted by event time, so ones that arrive a little out of order come out right."
+  },
+  {
+   "term": "Hold window",
+   "def": "How long a reorder buffer holds each update. Everything is delayed by it, and anything later than the window still comes out of order."
+  },
+  {
+   "term": "Board lag (in the sim)",
+   "def": "The longest time from a sensor seeing a train to the board showing it, for updates that arrived first time: 5 s as built, 35 s with a 30 s hold."
+  },
+  {
+   "term": "Shown going backwards (in the sim)",
+   "def": "The board moving a train to a station behind one it already showed. Shown backwards for: from that move until the train's next update is applied."
+  },
+  {
+   "term": "Retry delay (in the sim)",
+   "def": "How long after the sensor saw 2V08 at Kilmardy its retried update reached the board. On Thursday night, 4 min 5 s, so it arrived at 01:16:10."
+  },
+  {
+   "term": "Position along the line",
+   "def": "Where a station sits on the line, counted from one end. A down train's newer update is normally further down the line, so position can order one train's updates too."
+  },
+  {
+   "term": "Synchronised clocks",
+   "def": "Clocks kept close to one shared time, usually by NTP. They are close, never exact; the gap between two of them is clock skew."
+  },
+  {
+   "term": "Message group ID (SQS FIFO)",
+   "def": "The label, MessageGroupId, that puts a message in a message group of an SQS FIFO queue. Messages with the same ID come out in order, one at a time."
+  },
+  {
+   "term": "Google Cloud Pub/Sub",
+   "def": "Google's managed publish and subscribe messaging service: publishers send messages to a topic, and each subscription receives them."
+  },
+  {
+   "term": "Ordering key (Pub/Sub)",
+   "def": "A string a publisher sets on related messages in Google Cloud Pub/Sub. Messages with the same key, published in one region, are expected to be received in order."
+  },
+  {
+   "term": "Region",
+   "def": "One of a cloud provider's geographic locations, a group of data centres in one area."
+  },
+  {
+   "term": "Broker (Kafka)",
+   "def": "A server in a Kafka cluster. It stores partitions and serves the producers that write to them and the consumers that read them."
+  },
+  {
+   "term": "Idempotent producer (Kafka)",
+   "def": "A Kafka producer with enable.idempotence on. The broker gives it an ID and uses a sequence number sent with every message to drop repeats, which also keeps retried batches in order."
+  },
+  {
+   "term": "enable.idempotence",
+   "def": "A Kafka producer setting. When true, each message is written once and retries keep the order. It is on by default when no other setting conflicts."
+  },
+  {
+   "term": "max.in.flight.requests.per.connection",
+   "def": "A Kafka producer setting: how many requests can be waiting for an answer at once. Above 1 with idempotence off, a retried batch can land behind a later one."
+  },
+  {
+   "term": "Topic-partition",
+   "def": "Kafka's name for one partition of one topic, the unit inside which order is kept."
+  }
+ ],
+ "atWork": "Look for a screen in your systems that shows where something is now, fed by messages: a courier's position, an order's status, a device's last reading. A common incident is a delivery app whose courier dot jumps back along the route for a minute, because a phone's retried position arrived after a newer one. Read-only access is enough. Does each message carry the time the device saw the thing, or only the time the server got it? Does the consumer keep the newest applied per courier or per order, and ignore anything older, or does it apply whatever arrives last? Where do messages get retried, and could a retry land behind newer news? If it's Kafka, is the key the courier or order id, and is enable.idempotence on? If it's an SQS FIFO queue, what is the message group ID; on Pub/Sub, the ordering key? And are the devices' clocks trusted, or is there a second check such as position? Standards: none apply here beyond availability. If your company is pursuing SOC 2 with availability in scope, the availability criteria are about the system being up when needed, so a hold-and-sort delay on a live display is worth noting in its monitoring, and the ordering itself is engineering work, not audit work.",
+ "board": {
+  "cards": [
+   {
+    "id": "ordering-guarantees",
+    "title": "Ordering guarantees"
+   },
+   {
+    "id": "reordering",
+    "title": "Reordering"
+   },
+   {
+    "id": "sequence-numbers",
+    "title": "Sequence numbers"
+   }
+  ],
+  "strings": [
+   {
+    "from": "ordering-guarantees",
+    "to": "partitions",
+    "label": "within a partition"
+   },
+   {
+    "from": "ordering-guarantees",
+    "to": "message-queues",
+    "label": "order of arrival"
+   },
+   {
+    "from": "reordering",
+    "to": "at-least-once",
+    "label": "retries reorder"
+   },
+   {
+    "from": "reordering",
+    "to": "ordering-guarantees",
+    "label": "where it stops"
+   },
+   {
+    "from": "sequence-numbers",
+    "to": "reordering",
+    "label": "drop the stale"
+   },
+   {
+    "from": "sequence-numbers",
+    "to": "log-based-streams",
+    "label": "Kafka's producer"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e14-r1",
+   "kind": "free",
+   "prompt": "Your delivery app shows each courier as a dot on a map. Phones send a position every few seconds through a queue to a service that moves the dot; when a phone's send fails, the phone tries it again. Customers report the dot sometimes jumps back along the route for a minute. A teammate wants to run the service with a single consumer. What is happening, and what would you do?",
+   "keyIdeas": [
+    {
+     "idea": "A retried older position arrives after a newer one, and the service applies whatever arrives last",
+     "match": [
+      "retried",
+      "arrives after",
+      "arrived after",
+      "older position",
+      "late retry",
+      "delayed retry",
+      "after a newer",
+      "after the newer",
+      "out of order"
+     ]
+    },
+    {
+     "idea": "One consumer doesn't help: the order is already wrong when the messages reach the queue",
+     "match": [
+      "won't help",
+      "doesn't help",
+      "wouldn't help",
+      "already wrong",
+      "before the queue",
+      "before they reach",
+      "won't fix",
+      "doesn't fix",
+      "wouldn't fix"
+     ]
+    },
+    {
+     "idea": "Put the phone's own time on each position and ignore any position older than the last applied for that courier",
+     "match": [
+      "event time",
+      "phone's time",
+      "phone's own",
+      "ignore older",
+      "ignore any older",
+      "drop older",
+      "discard older",
+      "older than the last",
+      "last applied",
+      "stale"
+     ]
+    }
+   ],
+   "model": "A phone's send failed and its retry arrived after a newer position from the same phone, and the service applies whatever arrives last, so the older position overwrote the newer one and the dot went back along the route until the next position came in. A single consumer won't help: the order was already wrong before the messages reached the queue, and one consumer would apply that wrong order faithfully. Have each phone put its own time on every position, the event time, and have the service keep, per courier, the time of the last position it applied and ignore anything older, so a stale retry is dropped. Phone clocks can be off, so treat a position far from the server's time with suspicion, but this costs no delay."
+  },
+  {
+   "id": "s4e14-r2",
+   "kind": "mcq",
+   "prompt": "A Kafka producer has retries on, enable.idempotence set to false, and max.in.flight.requests.per.connection at 5. It sends two batches to one partition. What can happen?",
+   "options": [
+    "They always land in the order sent, because a partition keeps order.",
+    "If the first fails and is retried while the second succeeds, the second batch's records may appear first.",
+    "The second batch is dropped as a duplicate of the first.",
+    "The two batches are sent to different partitions."
+   ],
+   "answer": 1,
+   "why": "A partition keeps the order records were written to it, and with several requests in flight and no idempotence a retried batch can be written after a later one. Kafka's producer settings say exactly this. With enable.idempotence on, the default when nothing conflicts, the broker uses the producer's sequence numbers and ordering is preserved."
+  },
+  {
+   "id": "s4e14-r3",
+   "kind": "free",
+   "prompt": "A warehouse tracks pallets past its doors. The scanner at each door numbers its own messages 1, 2, 3, and the tracking service ignores any message whose number isn't higher than the last it applied from that scanner. A pallet still sometimes shows at the first door it went through after it has passed the second. Why doesn't the check catch it, and what would order the scans?",
+   "keyIdeas": [
+    {
+     "idea": "Sequence numbers order one scanner's messages only; the pallet's two scans came from different scanners, whose numbers can't be compared",
+     "match": [
+      "different scanners",
+      "two scanners",
+      "one scanner's",
+      "each scanner's own",
+      "per scanner",
+      "different sources",
+      "across scanners",
+      "can't be compared",
+      "cannot be compared"
+     ]
+    },
+    {
+     "idea": "Put the scan's own time on each message, from synchronised clocks, and ignore any scan older than the last applied for that pallet",
+     "match": [
+      "synchronised",
+      "synchronized",
+      "scan time",
+      "event time",
+      "time of the scan",
+      "older than the last",
+      "per pallet",
+      "for that pallet"
+     ]
+    },
+    {
+     "idea": "Clocks can disagree, so check with a natural order too, such as the order of the doors along the pallet's path",
+     "match": [
+      "clock skew",
+      "clocks drift",
+      "clocks disagree",
+      "door order",
+      "order of the doors",
+      "position along",
+      "along the path",
+      "second check"
+     ]
+    }
+   ],
+   "model": "The check works per scanner: it orders one scanner's own messages and drops its repeats. The pallet's two scans came from two different scanners, each counting on its own, and their numbers can't be compared, so a late message from the first door passes its own scanner's check and moves the pallet back. Put the scan time on each message, from scanner clocks synchronised by NTP, and have the service keep, per pallet, the time of the last scan applied and ignore anything older. Clocks can drift, so add a second check where there is a natural order, such as the order of the doors along the pallet's path, and alert on a scanner whose clock skew grows."
+  },
+  {
+   "id": "s4e14-r4",
+   "kind": "mcq",
+   "prompt": "Two updates about one train disagree. Which time tells you which is newer?",
+   "options": [
+    "The time each reached the queue.",
+    "The time the board's consumer handled each.",
+    "The time each sensor saw the train, from synchronised clocks.",
+    "The order of the updates' message ids."
+   ],
+   "answer": 2,
+   "why": "Only the event time, when the sensor saw the train, says which happened later. The queue's time and the consumer's time are arrival or processing times, which a retry or a slow path can scramble, and message ids from two senders say nothing about the order of events. The sensors' clocks must be trusted for this, which is why they are set by NTP and watched."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The sensor-time rule has held all winter; nothing has gone backwards. But on a night in March, after Balquharn's sensor came back from a repair, the board kept 2V08 at Inchvoray long after it had gone. Cadwgan found that the repaired sensor's time was 6 minutes behind every other station's. It saw 2V08 at 01:24:10 and stamped 01:18:10, earlier than Inchvoray's 01:19:20, so the board ignored it as stale, and 2V08 sat at Inchvoray on the board until Strathcullen's update came in at 01:28:50.",
+  "prompt": "Reply to OP. Why did a fresh update get thrown away, and what should Cadwgan add?",
+  "keyIdeas": [
+   {
+    "idea": "The sensor's clock was wrong, so its new update looked older than the last applied and the rule dropped it: the rule trusts the clocks",
+    "match": [
+     "clock was wrong",
+     "clock was off",
+     "clock skew",
+     "clock drift",
+     "wrong time",
+     "looked older",
+     "seemed older",
+     "trusts the clock",
+     "trust the clock"
+    ]
+   },
+   {
+    "idea": "Keep the sensors' clocks synchronised and watched: alert when one is far from the others or from the arrival time",
+    "match": [
+     "ntp",
+     "monitor the clock",
+     "alert when",
+     "alert on",
+     "clock offset",
+     "compare with the arrival",
+     "against the arrival",
+     "sanity check"
+    ]
+   },
+   {
+    "idea": "Use position along the line as a second check: a down train's newer update is further down the line, so it shouldn't be dropped",
+    "match": [
+     "position along",
+     "further down",
+     "station order",
+     "next station",
+     "along the line",
+     "direction of travel"
+    ]
+   }
+  ],
+  "model": "The rule did what it was told: it trusts each sensor's clock, and Balquharn's clock was wrong, 6 minutes behind, so its new update looked older than Inchvoray's 01:19:20 and was dropped as stale. Two things to add. First, keep every sensor's clock set by NTP and watch it: compare each update's sensor time with its arrival time, which should be about 5 seconds apart, and alert when a sensor's clock offset grows, so a repaired box can't go live with the wrong time. Second, use position along the line as a second check: a down train's update from a station further down than the one shown is newer, whatever its time says, so the board should apply it and flag the clock instead of dropping it."
+ },
+ "next": "Next, The Slow Room: a tired switchboard operator, and what to do when messages arrive faster than they can be handled.",
+ "sources": [
+  {
+   "title": "Apache Kafka, Introduction (events with the same event key, e.g. a customer or vehicle ID, are written to the same partition; any consumer of a topic-partition will always read its events in exactly the same order as they were written)",
+   "url": "https://kafka.apache.org/intro"
+  },
+  {
+   "title": "Apache Kafka 4.3 documentation, Producer Configs (retries with enable.idempotence false and max.in.flight.requests.per.connection above 1 may change the ordering of records; with idempotence, ordering preserved for up to 5 in flight; idempotence on by default if no conflicting settings)",
+   "url": "https://kafka.apache.org/43/configuration/producer-configs/"
+  },
+  {
+   "title": "Apache Kafka 4.3 documentation, Design (a set of totally ordered partitions; the broker assigns each producer an ID and deduplicates messages using a sequence number sent by the producer with every message)",
+   "url": "https://kafka.apache.org/43/design/design/"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: FIFO queue delivery logic in Amazon SQS (within a message group ID, all messages are sent and received in strict order; different group IDs may arrive or be processed out of order; same group from several producers stored and processed in the order they arrive)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-understanding-logic.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Amazon SQS FIFO queue key terms (message group ID: messages in the same group are processed one at a time, in strict order)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-key-terms.html"
+  },
+  {
+   "title": "Google Cloud Pub/Sub documentation (docs.cloud.google.com), Order messages (an ordering key identifies related messages that should be ordered; same key expected to be received in order; publish a key in one region; a redelivery triggers redelivery of all later messages for that key)",
+   "url": "https://docs.cloud.google.com/pubsub/docs/ordering"
+  }
+ ]
+}
