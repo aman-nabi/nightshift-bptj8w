@@ -1,0 +1,894 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e09",
+ "season": 4,
+ "n": 9,
+ "title": "Replay the Night",
+ "setting": "a courthouse stenographer's tapes",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "cqrs",
+  "event-sourcing",
+  "events-as-the-source-of-truth",
+  "projections"
+ ],
+ "prerequisites": [
+  "s4e08",
+  "s4e06",
+  "s4e04",
+  "s2e12",
+  "s2e07",
+  "s1e13",
+  "s1e09",
+  "s1e06",
+  "s1e04",
+  "s1e02"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_clerk_verity",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 4127,
+  "title": "I'm the night clerk at a magistrates' court. Overnight our system summoned a widow to give evidence at a hearing that ended five years ago, in her late husband's case.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I keep the night desk at Cressbrook Magistrates' Court: the out-of-hours phone, the warrants, the morning docket. In the basement there are still shelves of a stenographer's tapes from before my time. The tapes were the record; the typed transcript was only ever made from them. Rafferty, who built our listings system, says it works the same way. Every change to a case is an event: CaseFiled, HearingListed, HearingAdjourned, HearingHeard. Events go into the event store in order and are never changed, 43,200 of them since 3 January 2019. The docket on my screen isn't the record. A program he calls the projection builds it from the events, and when the projection reads a HearingListed, it also emails each witness a summons."
+   },
+   {
+    "t": "p",
+    "text": "On Monday a solicitor rang. Her client's hearing on Thursday 8 October had been adjourned on Friday, and our docket still showed it listed. Rafferty found the bug by teatime: the projection ignored HearingAdjourned. Four hearings on the docket were wrong. He fixed the code and, at 23:30, set it replaying every event since 2019 into the docket, 4 a second, so the docket would come out right. \"Three hours,\" he said. \"It reads the tapes again.\" Then he went home."
+   },
+   {
+    "t": "beat",
+    "text": "It read every one of them again."
+   },
+   {
+    "t": "p",
+    "text": "I watched the docket empty, then fill, year by year. By 02:30 it was right. At 07:00 the phones started and didn't stop. The mail log showed 1,264 summonses sent overnight. One was new. The other 1,263 were for listings that had been summoned once already: 1,222 for hearings long heard or adjourned, and 41 second summonses for hearings still to come."
+   },
+   {
+    "t": "log",
+    "text": "00:24:07  replay  pos 12,988  HearingListed  21/0412  for Mon 14 Jun 2021 10:00\n00:24:07  email   summons sent: H. Quarrington, witness\n00:24:07  email   summons sent: the reporting officer, witness\n02:30:00  replay  position 43,200 reached\n02:30:01  replay  pos 43,201  HearingListed  26/1530  (listed 02:10)"
+   },
+   {
+    "t": "p",
+    "text": "At 07:12 Mrs Hyacinth Quarrington rang. She had been summoned to give evidence at 10:00 on Monday 14 June 2021, in case 21/0412. In the spring of 2021 her husband Lionel was knocked off his bicycle on the Mill Road; she saw it, and she gave her evidence that June. Lionel died two winters ago. She wasn't angry. She asked, very gently, whether the court would be wanting Lionel as well."
+   },
+   {
+    "t": "evidence",
+    "label": "replay_night_0530.png",
+    "diagram": {
+     "type": "arch",
+     "w": 740,
+     "h": 300,
+     "aria": "Monday night as Rafferty ran it. The event store, 43,200 events since 2019, is replayed into the projection v2 from 23:30:00 to 02:30:00, 4 events a second. The projection writes the docket, which is wiped and rebuilt, and sends summonses by email: 1,264 overnight, 1,263 of them repeats.",
+     "nodes": [
+      {
+       "id": "store",
+       "label": "Event store",
+       "sub": "43,200 events",
+       "meta": "since 3 Jan 2019",
+       "x": 110,
+       "y": 90,
+       "w": 180,
+       "h": 72,
+       "shape": "db",
+       "tone": ""
+      },
+      {
+       "id": "proj",
+       "label": "Projection v2",
+       "sub": "replaying, 4 a second",
+       "meta": "23:30:00 to 02:30:00",
+       "x": 370,
+       "y": 90,
+       "w": 200,
+       "h": 72,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "docket",
+       "label": "Docket",
+       "sub": "wiped, rebuilt",
+       "meta": "right by 02:30",
+       "x": 630,
+       "y": 90,
+       "w": 180,
+       "h": 72,
+       "shape": "db",
+       "tone": ""
+      },
+      {
+       "id": "email",
+       "label": "Email",
+       "sub": "1,264 summonses",
+       "meta": "1,263 repeats",
+       "x": 370,
+       "y": 230,
+       "w": 200,
+       "h": 72,
+       "shape": "cloud",
+       "tone": "bad"
+      }
+     ],
+     "edges": [
+      {
+       "from": "store",
+       "to": "proj",
+       "label": "replay"
+      },
+      {
+       "from": "proj",
+       "to": "docket",
+       "label": "rows"
+      },
+      {
+       "from": "proj",
+       "to": "email",
+       "label": "summons",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Monday night, redrawn from Rafferty's logs. The replay read all 43,200 events from position 1, 23:30:00 to 02:30:00, and wrote the docket again. Every HearingListed it read sent its summonses again, Mrs Quarrington's at 00:24:07. The listing that arrived at 02:10 waited for the replay and was handled at 02:30:01."
+   },
+   {
+    "t": "p",
+    "text": "Rafferty has four changes on the board and wants one in before the next fix needs a replay. Which one?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 142,
+   "age": "5h",
+   "text": "A few words first. An event store keeps every change as an event, in order, and never edits one. A projection is code that reads those events and builds something from them; what it builds is a read model, here your docket. A checkpoint is the position a projection has saved as reached, so it can carry on from there instead of from the start. A handler is any program that reacts to events as they arrive. Now the evidence. Which program sent the emails, and could it tell a 2021 event read for the second time from one appended tonight? Look at the 02:10 listing: when did its summons go, and why then? And between 23:30 and 02:30, what would an usher have seen on the docket?",
+   "replies": [
+    {
+     "author": "u/night_clerk_verity",
+     "op": true,
+     "points": 51,
+     "age": "4h",
+     "text": "The projection sends them, Rafferty says, as it reads each HearingListed. It can't tell; an event is an event. The 02:10 listing came in the listing office's overnight batch and sat behind the replay until 02:30:01. And from 23:30 the docket was half-built: anyone looking at 01:00 would have seen 2019, 2020 and nothing after. His favourite change is the nightly checkpoint. Sunday's was saved at position 43,164, so a replay from it covers only Monday's 36 events, 9 seconds instead of 3 hours."
+    }
+   ]
+  },
+  {
+   "author": "u/patch_the_rows_pargeter",
+   "points": 97,
+   "age": "4h",
+   "text": "Replaying is dangerous, and you've just proved it. You had four wrong rows. Four. Open the docket's database, set those hearings to adjourned, deploy the fixed code so new adjournments come out right, and you're done in two minutes with nothing emailed to anyone. Never run three hours of history through a live system again. The docket is just a table. Patch the read model directly."
+  },
+  {
+   "author": "u/off_switch_yarcombe",
+   "points": 38,
+   "age": "3h",
+   "text": "Our council had a system like this for parking notices. Before any rebuild, the on-call turned the mail relay off and turned it back on in the morning. Worked for years. The night somebody forgot is a story for another thread."
+  }
+ ],
+ "reply": {
+  "prompt": "Rafferty can make one change before the next replay. Which should it be? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Never replay again: set the wrong rows right by hand in the docket's database, and deploy the fix.",
+    "tone": "bad",
+    "verdict": "Two minutes, and two rows nobody saw",
+    "part2": "Rafferty ran Monday night again on a copy, the other way. I set Thursday's hearing and Wednesday's to adjourned by hand, the two I could see coming, and he deployed the fixed code with no replay. Nothing old was emailed. The 02:10 listing got its one summons at 02:10:00. But at 06:00 the docket still had 2 rows wrong: a hearing on 19 October 2020 in case 20/1187 and one on 15 January 2024 in case 23/2264, both adjourned, both still showing as listed and never heard. The bug had touched every adjournment since 2019, and nobody knew which rows to look at; only the events did. And my edits aren't events. When Rafferty ran the next rebuild on the copy with the old code, they vanished: 4 rows wrong again.",
+    "senior": "A read model is derived data: the events say what is true, and the projection says how to show it. Editing its rows by hand fixes only the rows you happen to know about, leaves no event to explain the change, and is undone by the next rebuild. Fix the code, then rebuild, and make the rebuild safe."
+   },
+   {
+    "text": "Send summonses from a handler that records what it sent; replay into a new docket, then switch.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Rafferty moved the summons out of the projection. A handler now follows new events only, emails each witness once, and writes the hearing and witness into a table of summonses sent, checked before every send. The projection only builds the docket. Then he ran Monday night again on a copy, into a new docket beside the old one. The replay ran from 23:30:00, and the old docket served the court all night. The 02:10 listing's witness got one summons, at 02:10:00, from the handler. At 02:30:01 the new docket had read to the end of the store, matched the events row for row, 0 wrong, and the court switched to it. One summons all night, instead of 1,264. The chair of the bench wrote to Mrs Quarrington herself, by hand, to say sorry.",
+    "senior": "Keep projections free of side effects, so running one again only rebuilds data. Anything that touches the outside world goes in a handler that follows new events and records what it has done, so a replay never reaches it and a repeat finds its record. Build the new read model beside the live one and switch only when it has caught up."
+   },
+   {
+    "text": "Save a checkpoint of the docket every night, so a replay only runs from the last one, in seconds.",
+    "tone": "bad",
+    "verdict": "Fast, and the bug is saved too",
+    "part2": "Rafferty ran Monday night again on a copy, starting from Sunday's checkpoint at position 43,164. The replay took 9 seconds: Monday's 36 events, 23:30:00 to 23:30:09. Nothing from 2021 went out. But the checkpoint had been saved by the old code, so every adjournment before Sunday night was still missing from it: 3 rows wrong at 06:00, including Thursday's hearing that started all this. And the summonses still sat inside the projection, so Monday's two listings sent theirs again: 3 second summonses for hearings in October and November, plus the 02:10 listing's one. The next time the projection's code changes, the checkpoints are no use at all; the fix has to run from position 1, and the summons is still inside it.",
+    "senior": "A checkpoint saves how far a projection has read and what it built, so it is only as good as the code that built it. After a projection's code changes, the read model has to be rebuilt from the first event. Shorter replays don't stop a projection's side effects from repeating; they only repeat fewer of them."
+   },
+   {
+    "text": "Before every replay, switch the summons email off by hand, and switch it back on again at 06:00.",
+    "tone": "warn",
+    "verdict": "Trade-off: works on the nights someone remembers",
+    "part2": "Rafferty ran Monday night again on a copy with the email switched off from 23:25 to 06:00. Nothing was sent: 0 summonses, and the docket was right by 02:30:01. But the 02:10 listing's witness never got a summons either. The email was off, the projection doesn't try twice, and nothing records that one was due. That witness would have had no letter for a hearing on 22 October. And the docket was half-built from 23:30:00 to 02:30:01, as before. It all depends on a person remembering a switch at 23:25 before every replay. The first night someone doesn't, it is 1,264 again.",
+    "senior": "Turning the outside world off during a replay is a real technique; Martin Fowler describes gateways that are disabled during replay processing. Done by hand, it depends on memory, and it also drops the genuine messages that arrive while it's off. If you go this way, build the switch into the code that sends, so a replay is never sent, and keep a record so nothing new is lost."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e09",
+  "title": "Run Cressbrook's replay night again",
+  "lede": "You're Verity, at 23:29:59 on Monday 5 October 2026. The full store holds 43,200 events since Thursday 3 January 2019; the sim shows 27 of them, from 7 cases, each with its position in the store. A replay reads 4 events a second from 23:30:00, so the full store takes 3 h 00 min. The docket you start with was built by v1, the old code that ignores HearingAdjourned; v2 is the fix. Last night's checkpoint is the docket v1 saved on Sunday at 23:00, at position 43,164, which leaves Monday's 36 events to replay. At 02:10 the listing office's batch lists one more hearing, H12, naming 1 witness. A summons is sent either inside the projection, for every HearingListed it reads, or by a handler that follows only new events and records each summons it sends. The full store's listings name 1,263 witnesses: 287 listings name 1, 344 name 2 and 96 name 3, and the night's total multiplies them out when the whole store is replayed. Email switched off means off from 23:25 to 06:00.",
+  "tryThis": "Try this: press Run the night as it is: 21 summonses from the sample, 1,264 in the full store, and Mrs Quarrington's at 00:24:07. Change the replay to a new docket: H12's witness now gets two. Move the summons to the handler: one summons, at 02:10:00, and the switch at 02:30:01. Then try last night's checkpoint, the email off, and the clerk's hand edits with the replay off, and count the rows still wrong."
+ },
+ "explain": {
+  "oneLine": "Nobody meant to summon Mrs Quarrington. A replay runs the projection over the record again, and this projection did more than build the docket: every HearingListed it read sent its summonses, so her 2021 summons went out a second time at 00:24:07, with 1,262 others.",
+  "steps": [
+   {
+    "title": "The events are the record; the docket is built from them.",
+    "text": "Event sourcing stores every change as an event, in order, and never edits one, like Cressbrook's old tapes. The current state, here the docket, is worked out from the events by a projection, and it can be thrown away and built again. This usually comes with CQRS: one model to change data and another to read it. At Cressbrook a command such as \"adjourn hearing H7\" is checked by the write model and recorded as HearingAdjourned; the docket is the read model, shaped for ushers to read. The two are separate, so a bug in the docket can be fixed without touching the record."
+   },
+   {
+    "title": "A replay repeats everything the projection does.",
+    "text": "To fix a read model, you fix the projection and run it over every event from position 1. Whatever the projection does besides building rows, it does again. Cressbrook's projection emailed a summons for each HearingListed, so reading 43,200 events meant 1,263 summonses for listings already summoned: 1,222 for hearings long over or adjourned, 41 second ones for hearings still to come. An email server can't tell a replayed event from a new one. Neither could the projection."
+   },
+   {
+    "title": "Side effects go in a handler that remembers.",
+    "text": "Keep the projection pure: the same events in, the same docket out, and nothing else. Anything that touches the outside world, an email, a payment, a letter, goes in a separate handler. It follows new events only, so a rebuild of the docket never reaches it, and it records each summons it sends, by hearing and witness, in a table it checks before every send. If the handler itself is ever restarted from an earlier position, the record catches the repeats, as dedup by message id did at the pharmacy. In the sim, the night's summonses drop from 1,264 to 1."
+   },
+   {
+    "title": "Rebuild beside the live docket, then switch.",
+    "text": "Replaying into the live docket left it half-built for three hours and made the 02:10 listing wait until 02:30:01. Build a new docket beside the old one instead, let the new projection read to the end of the store, including events that arrive during the rebuild, check it, then point readers at it. Shortcuts don't replace this after a code change. A checkpoint, a projection's saved position, was written by the old code and carries its bug: 3 rows wrong. A snapshot is something else: one aggregate's state saved at an event, so loading it replays fewer events. Both speed up reads of unchanged code; neither fixes a projection."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 400,
+   "aria": "The fix, drawn for the next replay. The event store, 43,201 events with the 02:10 listing, is replayed into projection v2, which builds only a new docket, from 23:30:00 to 02:30:01. The old docket serves the court until then, and the court switches to the new one at 02:30:01. A summons handler follows new events only, records each summons in a table of summonses sent, and emails one summons, at 02:10:00.",
+   "nodes": [
+    {
+     "id": "store",
+     "label": "Event store",
+     "sub": "43,201 events",
+     "meta": "the record",
+     "x": 110,
+     "y": 90,
+     "w": 180,
+     "h": 72,
+     "shape": "db",
+     "tone": ""
+    },
+    {
+     "id": "proj",
+     "label": "Projection v2",
+     "sub": "builds rows only",
+     "meta": "no email",
+     "x": 370,
+     "y": 90,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "newd",
+     "label": "New docket",
+     "sub": "23:30:00 to 02:30:01",
+     "meta": "0 rows wrong",
+     "x": 630,
+     "y": 90,
+     "w": 200,
+     "h": 72,
+     "shape": "db",
+     "tone": "ok"
+    },
+    {
+     "id": "oldd",
+     "label": "Old docket",
+     "sub": "serves until 02:30:01",
+     "x": 630,
+     "y": 250,
+     "w": 200,
+     "h": 64,
+     "shape": "db",
+     "tone": "muted"
+    },
+    {
+     "id": "sent",
+     "label": "Summonses sent",
+     "sub": "hearing, witness",
+     "x": 110,
+     "y": 250,
+     "w": 180,
+     "h": 64,
+     "shape": "db",
+     "tone": ""
+    },
+    {
+     "id": "handler",
+     "label": "Summons handler",
+     "sub": "new events only",
+     "meta": "checks, then sends",
+     "x": 370,
+     "y": 250,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "email",
+     "label": "Email",
+     "sub": "1 summons, 02:10:00",
+     "x": 370,
+     "y": 356,
+     "w": 180,
+     "h": 52,
+     "shape": "cloud",
+     "tone": ""
+    }
+   ],
+   "edges": [
+    {
+     "from": "store",
+     "to": "proj",
+     "label": "replay"
+    },
+    {
+     "from": "proj",
+     "to": "newd",
+     "label": "rows"
+    },
+    {
+     "from": "oldd",
+     "to": "newd",
+     "label": "switch",
+     "dash": true
+    },
+    {
+     "from": "store",
+     "to": "handler",
+     "label": "new events"
+    },
+    {
+     "from": "handler",
+     "to": "sent",
+     "label": "record"
+    },
+    {
+     "from": "handler",
+     "to": "email",
+     "label": "send"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the next replay. The projection only builds rows, into a new docket beside the old one, and the court switches when the new one has read to the end of the store. The handler never sees the replay: it follows new events, checks its table of summonses sent, and emails the 02:10 listing's witness once.",
+  "fix": {
+   "title": "The fix: a projection that only builds, a handler that remembers, and a rebuild beside the live docket",
+   "text": "Take the email out of the projection. Give summonses their own handler that follows new events from where it last stopped, looks up each hearing and witness in a table of summonses sent, sends only if there is no record, and writes the record straight after. Then, whenever the projection's code changes, rebuild into a new docket from position 1 while the old one keeps serving. Let the new projection keep reading until it reaches the newest event, compare the two dockets and the events, switch the court to the new docket, and keep the old one for a day in case you need to switch back."
+  },
+  "limits": [
+   "The handler's record has the same small gap as any dedup: a crash between sending a summons and recording it sends that one again. And the record has to be protected like the events. If someone resets the handler's position and empties its table, it is Monday night again.",
+   "A rebuild beside the live docket costs a second copy of the data and the full replay time, 3 hours at Cressbrook. The switch is safe only once the new docket has read every event the store holds; switch earlier and anything appended during the rebuild is missing.",
+   "Event sourcing and CQRS are more work than one table you update. The docket trails the events by a moment, eventually consistent, and events are never edited, so a mistake about a person is corrected with a new event, not by changing an old one."
+  ],
+  "tradeoff": {
+   "head": [
+    "Change",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Replay into the live docket, summons inside (Monday)",
+     "Docket right by 02:30:01.",
+     "1,264 summonses, 1,263 of them repeats; docket half-built for 3 hours."
+    ],
+    [
+     "Hand edits, no replay",
+     "Nothing old emailed; two minutes' work.",
+     "2 rows still wrong; the next rebuild undoes the edits."
+    ],
+    [
+     "Handler, then a new docket and switch",
+     "1 summons, once, at 02:10:00; 0 rows wrong; the old docket serves all night.",
+     "A table to keep; two dockets for 3 hours."
+    ],
+    [
+     "New docket, summons still inside",
+     "The old docket serves all night.",
+     "1,265 summonses: H12's witness gets two."
+    ],
+    [
+     "Replay from last night's checkpoint",
+     "9 s instead of 3 h.",
+     "3 rows still wrong, saved by the old code; 3 second summonses."
+    ],
+    [
+     "Email off by hand, 23:25 to 06:00",
+     "No summonses, on the nights it's remembered.",
+     "H12's real summons lost; one forgotten night is 1,264."
+    ]
+   ]
+  },
+  "seniorTake": "Event sourcing earns its keep where the history matters as much as the current state: courts, money, anything people will ask \"what did we know, and when?\" about. Its promise is that a read model can be thrown away and built again from the events, so make sure that is true: projections that only build data, side effects in handlers that remember what they have done, and rebuilds that run beside the live model and switch when they have caught up. Use CQRS on the parts of a system that need it, not everywhere, because two models are more work than one.",
+  "realWorld": [
+   {
+    "title": "Fowler, 2005: changes stored as events",
+    "text": "Martin Fowler's article on event sourcing opens: \"Event Sourcing ensures that all changes to application state are stored as a sequence of events.\" It describes a complete rebuild: \"We can discard the application state completely and rebuild it by re-running the events from the event log on an empty application.\"",
+    "source": 0
+   },
+   {
+    "title": "Fowler, 2005: replays and outside systems",
+    "text": "The same article warns: \"if these events cause update messages to be sent to external systems, then things will go wrong because those external systems don't know the difference between real processing and replays.\" That is Cressbrook's email server on Monday night.",
+    "source": 0
+   },
+   {
+    "title": "Fowler, 2005: gateways that can be disabled",
+    "text": "Fowler's answer is to wrap external systems in a gateway: \"For rebuilds and temporal queries it's usually sufficient for the gateways to be able to be disabled during the replay processing.\" He adds that it should be invisible to the domain logic. Switching email off by hand is the manual version of this.",
+    "source": 0
+   },
+   {
+    "title": "Fowler, 2011: two models",
+    "text": "Fowler's CQRS note: \"At its heart is the notion that you can use a different model to update information than the model you use to read information.\" He continues: \"For some situations, this separation can be valuable, but beware that for most systems CQRS adds risky complexity.\"",
+    "source": 1
+   },
+   {
+    "title": "Fowler, 2011: only on specific portions",
+    "text": "The same note says \"CQRS should only be used on specific portions of a system\" and not the system as a whole.",
+    "source": 1
+   },
+   {
+    "title": "KurrentDB: projections and their checkpoints",
+    "text": "KurrentDB's documentation, the event store formerly called EventStoreDB, says \"Projections is a KurrentDB subsystem that lets you append new events or link existing events to streams in a reactive manner.\" On resetting one: \"The checkpoint will also be reset. This means that the projection will start processing events from the beginning of the event stream and not from the latest checkpoint.\"",
+    "source": 2
+   },
+   {
+    "title": "Microsoft: what a snapshot is",
+    "text": "Microsoft's Event Sourcing pattern says that to cut the cost of replaying long streams you can create snapshots at specific intervals, such as every N events: \"A snapshot is a serialized representation of the entity's state at a specific point in its eventstream.\" Loading reads the latest snapshot and replays only the events after it.",
+    "source": 3
+   },
+   {
+    "title": "Microsoft: side effects that trigger twice",
+    "text": "The same pattern notes that event delivery is typically at least once, and warns: \"Without idempotency, projections drift from the event stream and side effects such as payments or notifications trigger more than once.\"",
+    "source": 3
+   }
+  ],
+  "interview": {
+   "asked": [
+    "What is event sourcing, and when would you use it?",
+    "How do you rebuild a read model safely?",
+    "What is CQRS?"
+   ],
+   "answer": "Event sourcing stores every change as an event that is never changed, in an append-only store and derives current state from the events, through projections that build read models. I'd use it where the history is valuable in itself, such as audit, money or legal records, or where I need to rebuild views after a bug or add new ones from old data. It usually comes with CQRS: commands go through a write model that checks them and appends events, and queries read from separate read models shaped for them, which are eventually consistent. Fowler warns that CQRS adds risky complexity for most systems, so use it on the parts that need it. Rebuilding a read model safely has three parts. Keep projections free of side effects, so a replay only rebuilds data; put emails, payments and other outside calls in handlers that follow new events and record what they've done, keyed so a repeat is skipped. Rebuild into a new read model from the first event while the old one keeps serving, let it catch up to the newest event, compare, then switch, and keep the old one for a while. Don't use a checkpoint saved by the old code as the starting point after a code change, and don't confuse it with an aggregate snapshot, which only speeds up loading."
+  }
+ },
+ "terms": [
+  {
+   "term": "Magistrates' court",
+   "def": "A local criminal court in England and Wales where most cases start and many end, heard by magistrates or a district judge. Cressbrook's sits Monday to Friday."
+  },
+  {
+   "term": "Night clerk",
+   "def": "The court officer on duty overnight: the out-of-hours phone, warrants, and getting the docket ready for the morning."
+  },
+  {
+   "term": "Stenographer's tapes",
+   "def": "Recordings a court stenographer made of hearings. At Cressbrook the tapes were the record, and a typed transcript was made from them."
+  },
+  {
+   "term": "Docket",
+   "def": "The court's list of hearings and their status: listed, adjourned or heard. Ushers, magistrates and solicitors read it. At Cressbrook it is a read model."
+  },
+  {
+   "term": "Usher",
+   "def": "A court officer who calls people into the courtroom and checks who has arrived for each hearing, reading the docket."
+  },
+  {
+   "term": "Hearing",
+   "def": "A session of the court for one case on one date. The sim names them H1 to H12."
+  },
+  {
+   "term": "Adjourned",
+   "def": "Put off. An adjourned hearing doesn't take place on its date; the case is usually listed again for a later one."
+  },
+  {
+   "term": "Witness summons",
+   "def": "A court's order to a person to come and give evidence at a hearing on a stated date. Cressbrook's system emails them."
+  },
+  {
+   "term": "Chair of the bench",
+   "def": "The magistrate who leads a court's magistrates."
+  },
+  {
+   "term": "Listings system",
+   "def": "Cressbrook's program for cases and hearings. It stores every change as an event and builds the docket from them."
+  },
+  {
+   "term": "Listing office's batch",
+   "def": "A file of new hearings the regional listing office sends overnight. On the Tuesday it arrived at 02:10 with one listing, H12, naming 1 witness."
+  },
+  {
+   "term": "Event (event sourcing)",
+   "def": "A record of something that happened, named in the past tense, such as HearingListed, with its data and time. Once stored, it is never changed."
+  },
+  {
+   "term": "CaseFiled, HearingListed, HearingAdjourned, HearingHeard",
+   "def": "Cressbrook's four kinds of event: a case opened; a hearing given a date and witnesses; a hearing put off; a hearing held."
+  },
+  {
+   "term": "Event store",
+   "def": "A database that keeps events in order, each at a position, and only ever adds to the end. Cressbrook's held 43,200 by Monday night."
+  },
+  {
+   "term": "Position (in an event store)",
+   "def": "An event's number in the store's order, from 1, like an offset in a log. Mrs Quarrington's 2021 listing sits at 12,988; the 02:10 listing at 43,201."
+  },
+  {
+   "term": "Event sourcing",
+   "def": "Storing every change as an event and working out the current state from the events, instead of keeping only the latest state."
+  },
+  {
+   "term": "Projection",
+   "def": "Code that reads events in order and builds a read model from them. Run it again over the same events and it builds the same thing."
+  },
+  {
+   "term": "Projection v1 and v2",
+   "def": "v1 is the code as it ran until Monday, which ignored HearingAdjourned; v2 is Rafferty's fix, which marks the hearing adjourned."
+  },
+  {
+   "term": "Read model",
+   "def": "Data shaped for reading, built by a projection from the events: here, the docket. It can be thrown away and built again."
+  },
+  {
+   "term": "Write model",
+   "def": "The side that takes commands, checks them against the rules, and records what happened as new events."
+  },
+  {
+   "term": "Command (CQRS)",
+   "def": "A request to change something, such as \"adjourn hearing H7\". The write model checks it and, if it's allowed, appends an event."
+  },
+  {
+   "term": "Query (CQRS)",
+   "def": "A request to read something, such as \"what's on Thursday's docket?\", answered from a read model without changing anything."
+  },
+  {
+   "term": "CQRS",
+   "def": "Command Query Responsibility Segregation: one model to change data and a different one to read it. Martin Fowler wrote it up in 2011."
+  },
+  {
+   "term": "Rebuild (a read model)",
+   "def": "Throwing a read model away and running its projection over every event from position 1. Needed when the projection's code changes."
+  },
+  {
+   "term": "Live docket",
+   "def": "The read model the court is reading right now."
+  },
+  {
+   "term": "Half-built",
+   "def": "A read model in the middle of a rebuild: its rows stop at whatever year the replay has reached."
+  },
+  {
+   "term": "Switch-over",
+   "def": "Pointing readers from the old read model to a new one, once the new one has read every event in the store."
+  },
+  {
+   "term": "Side effect",
+   "def": "Something code does to the world outside its own result, such as sending an email. A docket can be rebuilt; an email can't be unsent."
+  },
+  {
+   "term": "Handler (event handler)",
+   "def": "A program that reacts to events as they arrive. Unlike a projection it may act on the outside world, so it has to remember what it has done."
+  },
+  {
+   "term": "Table of summonses sent",
+   "def": "The handler's record of each summons it has emailed, by hearing and witness, checked before every send."
+  },
+  {
+   "term": "Checkpoint (projection)",
+   "def": "The position a projection has saved as reached, usually stored with its read model, so it carries on from there instead of from position 1."
+  },
+  {
+   "term": "Snapshot (event sourcing)",
+   "def": "One aggregate's state saved at a given event, so loading it replays only the events after that one. It speeds up loading; it changes nothing the events say."
+  },
+  {
+   "term": "Aggregate (event sourcing)",
+   "def": "A group of data changed as one unit, with its own stream of events, such as one case and its hearings. Its state comes from replaying its events."
+  },
+  {
+   "term": "Mail log",
+   "def": "The email system's list of every message sent, with its time."
+  },
+  {
+   "term": "Mail relay",
+   "def": "The server that passes a system's outgoing email on to the world. Turn it off and the email goes nowhere."
+  },
+  {
+   "term": "Email switched off (in the sim)",
+   "def": "Cressbrook's email turned off by hand from 23:25 to 06:00. Every summons sent in that window is dropped, and nothing tries again."
+  },
+  {
+   "term": "Hand edit",
+   "def": "Changing a read model's rows directly in its database, outside the projection. No event records it, so a rebuild undoes it."
+  },
+  {
+   "term": "Second summons (in the sim)",
+   "def": "A summons sent again for a hearing still to come, to a witness who already had one."
+  },
+  {
+   "term": "Gateway (Fowler)",
+   "def": "Code that wraps every call to an outside system, such as an email service. Fowler describes gateways that can be disabled while events are replayed."
+  },
+  {
+   "term": "Temporal query",
+   "def": "Fowler's name for working out what the state was at an earlier time, by replaying events up to that point."
+  },
+  {
+   "term": "Domain logic",
+   "def": "The code that carries a system's own rules, here the court's rules for cases and hearings, as opposed to plumbing such as email."
+  },
+  {
+   "term": "KurrentDB",
+   "def": "An event store database, formerly called EventStoreDB, with a built-in projections feature. Kurrent is the company that makes it."
+  },
+  {
+   "term": "Stream (event store)",
+   "def": "A named sequence of events inside an event store, often one per aggregate, such as one case."
+  },
+  {
+   "term": "Serialized",
+   "def": "Turned into bytes or text so it can be stored or sent, and read back later."
+  },
+  {
+   "term": "Accuracy (GDPR Art. 5(1)(d))",
+   "def": "The GDPR principle that personal data must be \"accurate and, where necessary, kept up to date\", with inaccurate data erased or rectified without delay."
+  },
+  {
+   "term": "Statement service",
+   "def": "In atWork, a bank's program that builds customers' statements from their transactions and emails a notice when one is ready."
+  }
+ ],
+ "atWork": "Find a read model in your systems that is built from events or from a change feed: a statement page, an order history, a search index, a dashboard. A common incident is a bank's statement service that rebuilt its read model after a bug fix and re-sent a year of \"your statement is ready\" emails, because the code that built the statements also sent the notices. Read-only access is enough. Find the code that builds the read model and list everything it does besides writing rows: emails, calls to other systems, payments, messages to other teams. Ask how a rebuild is run today. Into the live tables, or into new ones with a switch? Is there a checkpoint, and was it written by the code you're about to replace? Who would have to remember to turn anything off? If your read models show personal data and your company is subject to GDPR, Article 5(1)(d) requires personal data to be \"accurate and, where necessary, kept up to date\". A projection bug that shows people's data wrongly is an accuracy problem, and a rebuild checked against the events is better evidence of the correction than rows patched by hand.",
+ "board": {
+  "cards": [
+   {
+    "id": "event-sourcing",
+    "title": "Event sourcing"
+   },
+   {
+    "id": "events-as-the-source-of-truth",
+    "title": "Events are the record"
+   },
+   {
+    "id": "projections",
+    "title": "Projections"
+   },
+   {
+    "id": "cqrs",
+    "title": "CQRS"
+   }
+  ],
+  "strings": [
+   {
+    "from": "event-sourcing",
+    "to": "events-as-the-source-of-truth",
+    "label": "the record"
+   },
+   {
+    "from": "events-as-the-source-of-truth",
+    "to": "log-based-streams",
+    "label": "a log you keep"
+   },
+   {
+    "from": "projections",
+    "to": "events-as-the-source-of-truth",
+    "label": "built from it"
+   },
+   {
+    "from": "cqrs",
+    "to": "projections",
+    "label": "the read side"
+   },
+   {
+    "from": "projections",
+    "to": "at-least-once",
+    "label": "side effects"
+   },
+   {
+    "from": "projections",
+    "to": "transactional-outbox",
+    "label": "send it once"
+   },
+   {
+    "from": "cqrs",
+    "to": "read-replicas-for-read-heavy-traffic",
+    "label": "another read copy"
+   },
+   {
+    "from": "event-sourcing",
+    "to": "pub-sub",
+    "label": "next case"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e09-r1",
+   "kind": "free",
+   "prompt": "Your shop's order history page is a read model built from order events, and its projection has a rounding bug in the totals. A teammate plans to deploy the fix and replay every event since launch into the live order history tonight. The same projection also emails \"your order has shipped\" whenever it reads an OrderShipped event. What will happen, and what would you change before the replay?",
+   "keyIdeas": [
+    {
+     "idea": "The replay re-runs the projection over every old event, so every OrderShipped emails its customer again",
+     "match": [
+      "again for every",
+      "every customer",
+      "re-send",
+      "resend",
+      "sent again",
+      "emailed again",
+      "duplicate email",
+      "old orders",
+      "every shipped"
+     ]
+    },
+    {
+     "idea": "Move the email out of the projection into a separate handler that follows new events and records what it has sent",
+     "match": [
+      "separate handler",
+      "own handler",
+      "a handler",
+      "out of the projection",
+      "records what",
+      "already emailed",
+      "sent table",
+      "record each"
+     ]
+    },
+    {
+     "idea": "Rebuild into a new read model beside the live one, let it catch up, then switch",
+     "match": [
+      "new read model",
+      "new table",
+      "beside the",
+      "alongside",
+      "side by side",
+      "switch over",
+      "switch to",
+      "swap"
+     ]
+    }
+   ],
+   "model": "The replay runs the projection over every order event since launch, and it can't tell an old event from a new one, so every OrderShipped it reads emails its customer again: every customer who ever had an order shipped gets a duplicate email tonight. Before replaying, take the email out of the projection. Put it in a separate handler that follows new events only and records what it has sent, by order, checking that record before each send. Then the projection only builds data, and replaying it is safe. Don't replay into the live order history either: rebuild into a new read model beside it from the first event, let it catch up to the newest event, compare the totals, and switch over, keeping the old one for a day."
+  },
+  {
+   "id": "s4e09-r2",
+   "kind": "mcq",
+   "prompt": "Which statement about snapshots and checkpoints in event sourcing is right?",
+   "options": [
+    "A snapshot saves one aggregate's state at an event, so loading it replays only later events; a checkpoint saves how far a projection has read.",
+    "A snapshot and a checkpoint are the same thing: the read model, saved every night.",
+    "After fixing a projection's code, rebuilding from its last checkpoint gives a correct read model in seconds.",
+    "Once a snapshot exists, the events before it can be deleted, because the snapshot replaces them."
+   ],
+   "answer": 0,
+   "why": "A snapshot is an aggregate's state saved at a point in its stream, to make loading faster; Microsoft's pattern calls it the entity's state at a specific point in its eventstream. A checkpoint is the position a projection has reached, saved with what it built. A checkpoint written by the old code carries the old bug, which is why the sim's checkpoint run still had 3 rows wrong. Neither replaces the events."
+  },
+  {
+   "id": "s4e09-r3",
+   "kind": "free",
+   "prompt": "Your company's meeting-room booking app is a simple form: people create, change and cancel bookings, and a page lists today's rooms. A colleague wants to rewrite it with CQRS and event sourcing because \"that's how serious systems are built\". What would you tell them, and where might it be worth it?",
+   "keyIdeas": [
+    {
+     "idea": "CQRS means separate models for writing and reading, and event sourcing derives state from stored events",
+     "match": [
+      "separate model",
+      "different model",
+      "two models",
+      "write model",
+      "read side",
+      "derived from",
+      "built from the"
+     ]
+    },
+    {
+     "idea": "Both add complexity and lag, so for a simple form they cost more than they give",
+     "match": [
+      "complexity",
+      "complex",
+      "more work",
+      "more moving parts",
+      "eventually consistent",
+      "overkill",
+      "not worth"
+     ]
+    },
+    {
+     "idea": "Use them only on the parts that need history, audit or several very different views",
+     "match": [
+      "audit",
+      "history",
+      "specific portions",
+      "only where",
+      "specific parts",
+      "parts that",
+      "not the whole"
+     ]
+    }
+   ],
+   "model": "CQRS means using one model to change data and a separate model to read it, and event sourcing means storing every change as an event and building the current state from those events through projections. For a room-booking form both mostly add complexity: two models to keep in step, a read side that is eventually consistent, rebuilds to plan, and more moving parts to run, while a plain table does the job. Fowler warns that for most systems CQRS adds risky complexity and should be used only on specific portions of a system. It can be worth it where the history itself matters, such as audit trails, money or legal records, or where the same data needs several very different views, not the whole app."
+  },
+  {
+   "id": "s4e09-r4",
+   "kind": "mcq",
+   "prompt": "In the sim, with the summons inside the projection and the email switched off from 23:25 to 06:00, what happens to the hearing H12 listed at 02:10?",
+   "options": [
+    "Its witness gets the summons at 06:00, when the email comes back on.",
+    "Its witness never gets a summons: it was dropped while the email was off and nothing tries again.",
+    "Its witness gets two summonses, one from the replay and one at 06:00.",
+    "The listing is held in the event store until 06:00 and not added to the docket."
+   ],
+   "answer": 1,
+   "why": "Switching the email off drops everything sent in that window, the real summons as well as the replayed ones. The projection sent H12's at 02:30:01, the email dropped it, and nothing records that it was due, so the sim shows 0 sent and 1 never sent. A handler that records what it sent would notice the missing one; a hand-worked switch doesn't."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The handler has held: no one has been summoned twice since. In March Rafferty added courtroom numbers to the docket, which meant a rebuild. He did it the new way: a new docket beside the old one, replaying from 23:30. The store held 48,000 events, so the replay took 3 h 20 min, and at 02:50:00 it reached position 48,000 and he switched the court over. But the listing office's batch had come in at 02:10 with 3 new listings, positions 48,001 to 48,003. The handler summoned their witnesses correctly. On Thursday three witnesses arrived for hearings that weren't on the docket, and an usher sent them home.",
+  "prompt": "Reply to OP. Why are three hearings missing from the new docket, and how should the switch be done?",
+  "keyIdeas": [
+   {
+    "idea": "The new projection stopped at the position the store had when the rebuild began, so events appended during the rebuild never reached the new docket",
+    "match": [
+     "stopped at",
+     "appended during",
+     "arrived during",
+     "after it started",
+     "after the rebuild began",
+     "never read",
+     "didn't read",
+     "missed the"
+    ]
+   },
+   {
+    "idea": "Keep the new projection following the store and switch only when its position matches the newest event",
+    "match": [
+     "keep reading",
+     "keep following",
+     "catch up",
+     "caught up",
+     "newest event",
+     "latest event",
+     "positions match",
+     "same position"
+    ]
+   },
+   {
+    "idea": "Check the new docket against the old one and the events before switching, and keep the old one to switch back",
+    "match": [
+     "compare",
+     "switch back",
+     "keep the old",
+     "before switching",
+     "check it",
+     "verify"
+    ]
+   }
+  ],
+  "model": "The new projection stopped at 48,000, the position the store had when the rebuild began at 23:30, so the three listings appended during the rebuild, 48,001 to 48,003, never reached the new docket. The old docket had them, and the switch threw them away. The handler was fine because it follows new events on its own. A rebuild has to keep reading: let the new projection keep following the store after it reaches the old end, and switch only when it has caught up, when its position is the same position as the newest event. Before switching, compare the new docket with the old one and the events, row counts at least, and keep the old docket ready so you can switch back if something is missing."
+ },
+ "next": "Next, Everyone Hears It: a town's emergency siren, and publish and subscribe, where one event fans out to everyone who needs to hear it.",
+ "sources": [
+  {
+   "title": "Martin Fowler, Event Sourcing, martinfowler.com, 12 December 2005 (all changes stored as a sequence of events; complete rebuild; external updates and replays; gateways disabled during replay processing; overnight snapshots of application state)",
+   "url": "https://martinfowler.com/eaaDev/EventSourcing.html"
+  },
+  {
+   "title": "Martin Fowler, CQRS, martinfowler.com bliki, 14 July 2011 (a different model to update than to read; for most systems CQRS adds risky complexity; only on specific portions of a system)",
+   "url": "https://martinfowler.com/bliki/CQRS.html"
+  },
+  {
+   "title": "KurrentDB documentation (v25.1), Introduction to projections (a subsystem that appends or links events in a reactive manner; resetting a projection resets its checkpoint and processes from the beginning)",
+   "url": "https://docs.kurrent.io/server/v25.1/features/projections/"
+  },
+  {
+   "title": "Microsoft Azure Architecture Center, Event Sourcing pattern (snapshots at intervals, a snapshot as the entity's state at a point in its eventstream; at-least-once delivery; without idempotency side effects such as notifications trigger more than once)",
+   "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing"
+  },
+  {
+   "title": "Regulation (EU) 2016/679, General Data Protection Regulation, Article 5(1)(d) (accuracy: accurate and, where necessary, kept up to date)",
+   "url": "https://gdpr-info.eu/art-5-gdpr/"
+  }
+ ]
+}
