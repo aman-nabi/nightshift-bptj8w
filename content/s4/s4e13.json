@@ -1,0 +1,843 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e13",
+ "season": 4,
+ "n": 13,
+ "title": "The Webhook That Knocked Twice",
+ "setting": "a doorbell camera company",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "webhooks",
+  "signatures",
+  "retries",
+  "replay-protection"
+ ],
+ "prerequisites": [
+  "s4e06",
+  "s4e07",
+  "s1e05",
+  "s4e10",
+  "s4e08",
+  "s1e06",
+  "s1e04"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_support_vesna",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 3561,
+  "title": "I do night support for a doorbell camera company. At 02:50 an old woman's hub told her someone was at the door. Her camera shows an empty porch.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm the night support engineer at Doorwarden, in Lowestone. We make doorbell cameras. When someone rings, our sender tells the customer's smart-home hub with a webhook: an HTTPS POST to an address the hub gave us, carrying a \"someone at the door\" event as JSON, with its own event id. Each delivery is signed with a secret the hub shares with us. The hub flashes the porch lights and the hall speaker says someone is at the front door. If a hub doesn't answer within 5 seconds, we count the delivery as failed and try again: 40 minutes after that try, then 2 hours after the next, then 6 hours. Cyprian, who built it, says nobody misses a ring."
+   },
+   {
+    "t": "beat",
+    "text": "Nobody missed one last night."
+   },
+   {
+    "t": "p",
+    "text": "At 02:10 a taxi driver rang Mrs Ludmila Ferrandine's bell. The clip shows him read the house number, shake his head at the lens and walk back to his cab: wrong house. Her hub was installing an update. It flashed the lights, announced him, and answered us 7 seconds later. We had stopped listening at 5."
+   },
+   {
+    "t": "log",
+    "text": "02:10:00  sender  event evt_039c2e51 to hub 7, try 1\n02:10:00  hub-7   visitor at the front door: lights, speaker\n02:10:05  sender  no answer in 5 s: failed, next try 02:50:00\n02:10:07  hub-7   200 OK (too late, ignored)\n02:50:00  sender  event evt_039c2e51 to hub 7, try 2\n02:50:00  hub-7   visitor at the front door: lights, speaker\n02:50:01  sender  200 OK: delivered"
+   },
+   {
+    "t": "p",
+    "text": "At 02:50 her porch lights flashed again and the speaker said someone was at the front door. Mrs Ferrandine is 79 and lives alone. She went down in her dressing gown and looked through the glass. Nobody. She opened the camera app: the porch, empty, under the street lamp, and no ring since 02:10. She sat on the stairs until it was light, and then she rang us."
+   },
+   {
+    "t": "evidence",
+    "label": "hub7_event9.png",
+    "diagram": {
+     "type": "sequence",
+     "lanes": [
+      "Doorbell",
+      "Doorwarden sender",
+      "Her hub",
+      "Porch and hall"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "02:10:00 ring: evt_039c2e51"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "POST, try 1"
+      },
+      {
+       "from": 2,
+       "to": 3,
+       "label": "lights and speaker"
+      },
+      {
+       "note": 1,
+       "text": "02:10:05 no answer in 5 s",
+       "sub": "failed: next try 02:50:00",
+       "tone": "warn"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "02:10:07 200 OK, ignored"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "02:50:00 POST, try 2",
+       "tone": "bad"
+      },
+      {
+       "from": 2,
+       "to": 3,
+       "label": "lights and speaker, again",
+       "tone": "bad"
+      },
+      {
+       "outcome": 3,
+       "text": "02:50: an empty porch",
+       "tone": "bad"
+      }
+     ],
+     "aria": "Event 9, evt_039c2e51. At 02:10:00 the doorbell rings and the sender POSTs try 1 to her hub, which flashes the lights and announces a visitor. At 02:10:05 the sender has had no answer in 5 seconds and marks the try failed, next try 02:50:00. The hub's 200 OK arrives at 02:10:07 and is ignored. At 02:50:00 try 2 arrives with the same event id, and the hub flashes the lights and announces a visitor again, to an empty porch."
+    },
+    "caption": "Cyprian's sender log and her hub's own log, drawn together. The same event, evt_039c2e51, reached her hub twice. The first time it acted and answered 2 seconds after we stopped waiting; the second time, 40 minutes later, it acted again."
+   },
+   {
+    "t": "p",
+    "text": "Last night: 20 rings, 21 deliveries, 21 announcements. While Cyprian was in there he found something else. Our signature covers the body and nothing more. Anyone who got hold of a copy of a delivery, from a log or a debugging tool, could send it to her hub again next week, and the hub would check the signature, find it good, and announce a visitor. Nobody has. He has four changes on the board for tonight. Which one?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 142,
+   "age": "4h",
+   "text": "Two words first. A delivery is one try at sending an event, so one event can have several. Your signature is an HMAC: a short code worked out from the message and a secret that both sides hold, so only someone with the secret can make it, and any change to the message breaks it. Now the evidence. At 02:10, did her hub do the work before it answered, or after? Of the two deliveries at 02:10 and 02:50, what was the same and what was different? And the signature: write down exactly which bytes go into it.",
+   "replies": [
+    {
+     "author": "u/night_support_vesna",
+     "op": true,
+     "points": 51,
+     "age": "3h",
+     "text": "Cyprian says the hub acts first and answers after; the update made the acting slow. Both deliveries carried the same event id and the same body. Only the sending time differed, a timestamp that travels in a header. The HMAC is made from the body alone."
+    }
+   ]
+  },
+  {
+   "author": "u/just_send_once_rasmus",
+   "points": 97,
+   "age": "4h",
+   "text": "Retries are the bug. Your system knocked twice because you told it to knock twice. A doorbell isn't a bank transfer: a ring 40 minutes old is worth nothing, so a retry of one can only ever be wrong. Send each event once and accept that a hub that's down misses that ring, the way you miss the doorbell when you're in the shower. Fewer moving parts, and no ghosts at 02:50."
+  },
+  {
+   "author": "u/hub_tinkerer_kenelm",
+   "points": 38,
+   "age": "2h",
+   "text": "I run a hub like hers at home. They crawl for a minute or two while an update installs; mine has taken over a minute to do anything. Five seconds is a tight wait for a box in somebody's hallway."
+  }
+ ],
+ "reply": {
+  "prompt": "Cyprian can make one change before tonight. Which should it be? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Stop retrying: send each event once, and accept that a hub that is down when the bell rings misses that ring.",
+    "tone": "bad",
+    "verdict": "Never twice, sometimes never",
+    "part2": "Cyprian switched retries off and ran last night through his lab: 20 deliveries, 1 timed out, 20 announcements, nothing at 02:50. Then he ran it with her hub restarting from 02:10 to 02:12 instead of slow, as it would be if the update rebooted it. The 02:10 delivery reached nothing, nothing ever tried again, and that visitor was never announced. The lab's replay test still came back accepted: the signature covered the body only, so a copy sent at 05:00 announced a visitor to an empty porch. It went live on Thursday. Mrs Ferrandine rang us the next week: her daughter had stood at the door in the rain, ringing, while the hub upstairs said nothing at all.",
+    "senior": "Sending once trades at least once for at most once. It removes the repeat by giving up on every ring the hub doesn't take the first time, silently, with nothing to show it was due. And it does nothing about the signature: the replay hole is still open. Keep retrying, and make a repeat harmless where it lands, at the hub."
+   },
+   {
+    "text": "Raise the timeout from 5 seconds to 60, so that a hub slowed down by an update still answers before we give up.",
+    "tone": "bad",
+    "verdict": "Moves the line, keeps the knock",
+    "part2": "Cyprian set the timeout to 60 seconds and ran last night: 20 deliveries, none timed out, nothing extra. Then he made her hub take 75 seconds instead of 7. It announced at 02:10:00 and answered at 02:11:15; the sender gave up at 02:11:00, tried again at 02:50:00, and the lights flashed for nobody. With her answer lost on the way back instead, the same: a retry, and a second announcement. The replay test still came back accepted. It went live on Thursday. A fortnight later a bigger update took her hub well past a minute, and forty minutes after the ring the hall speaker spoke to the empty porch again.",
+    "senior": "A longer timeout only moves the line between slow and failed, and the hub had already acted before it answered, so any answer slower than the line, or lost on the way, still brings a repeat that acts again. It also leaves the sender waiting longer on every slow hub and does nothing for replays. Make the answer fast and the repeat harmless instead."
+   },
+   {
+    "text": "Send each event once, and have every hub ask an events API every 5 minutes for any events it missed.",
+    "tone": "warn",
+    "verdict": "Trade-off: it works, and every hub polls",
+    "part2": "Cyprian built an events API, a list of recent events a hub can ask for, and switched retries off. In the lab, last night's 16 hubs asked it every 5 minutes: 1,536 polls for 20 rings. Nothing was announced twice, because a hub only fetches what it never received. With her hub restarting at 02:10, its 02:15:00 poll found the ring, and she heard about it 5 minutes late, once. But the replay test still came back accepted, since pushed deliveries were still signed over the body only. And the day team asked what 1,536 polls a night means when every Doorwarden hub does it, all night, mostly to hear that nothing happened.",
+    "senior": "Fetching what you missed is a sound safety net: Stripe suggests using its API to fetch anything missing, and it never repeats a ring the hub already has. But it makes every hub poll all night for rare gaps, delays a missed ring by up to the poll interval, and leaves the signature as weak as it was. It's a good addition to retries, not a replacement for a hub that ignores repeats."
+   },
+   {
+    "text": "Sign the timestamp with the body; hubs refuse old timestamps and seen event ids, and reply first, then act.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Cyprian made the sender sign the sending time and the body together, a new timestamp on every try, and the hubs refuse anything older than 5 minutes. Each hub keeps the event ids it has acted on for 3 days and skips a repeat, and it checks, stores and answers at once, then acts. Last night in the lab: 20 deliveries, none timed out, 20 announcements, and Mrs Ferrandine's lights flashed once, at 02:10. With her answer lost on the way back, the 02:50 retry came and her hub skipped it: evt_039c2e51, already seen. A copy of that retry sent again at 05:00 was 2 h 10 min old and refused. With her hub restarting at 02:10, the retry at 02:50 announced the visitor once, 40 minutes late, which is the next thing on Cyprian's board. Mrs Ferrandine sleeps through the night now. Last week she asked us to stop flashing the porch lights at all, just to be sure. We told her she can.",
+    "senior": "Webhooks are at least once by design, so make the repeat harmless where it lands: the receiver records event ids and skips what it has done. Answer at once and do the work after, so slowness doesn't cause retries in the first place. Put the time inside the signature and refuse anything outside a short window, with event ids covering the window, so a copied delivery is worthless. The limits say what's left."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e13",
+  "title": "Run the Doorwarden night again",
+  "lede": "You're Vesna, replaying last night from 22:00 to 06:00. 20 rings, each a \"someone at the door\" event with its own event id, go to 16 hubs; event 9 at 02:10 is Mrs Ferrandine's, to hub 7. A hub acts the moment a delivery arrives: lights and announcement. As now it answers when it has finished acting, 1 to 3 seconds for every event but hers; tonight her hub, mid-update, takes 7 seconds, and 1 second on any later try. Doorwarden waits 5 seconds; a later answer counts as none. A failed try is tried again 40 minutes after it was sent, then 2 hours, then 6 hours. The other policies: send once, or send once and have every hub poll an events API, a list of recent events it can ask for, every 5 minutes for anything it missed. With event ids on, a hub keeps each id it has acted on for 3 days and skips a repeat. The signature covers the body only, or the timestamp and the body; with the timestamp signed, the hub refuses a delivery older than the tolerance, the oldest age it will accept. The replay test sends a captured copy of event 9's last delivery again, at 05:00 or eight days later. The clock runs 600 times faster than real life. Click any box to see what it does.",
+  "tryThis": "Try this: press Skip to 06:00 as it is: 21 deliveries, 1 extra announcement, her porch at 02:10:00 and 02:50:00. Switch to send once, then set her hub to restarting: a visitor never announced. Put retries back with a 60-second timeout and make her hub take 75 seconds. Try the events API and count the polls. Turn on event ids, then reply at once, then lose her answer. Last, run the replay test at 05:00 with each signature, then a 3-hour tolerance, then eight days later."
+ },
+ "explain": {
+  "oneLine": "Nothing knocked twice on its own. Her hub had done the work at 02:10 and answered 2 seconds after Doorwarden stopped waiting; the retry 40 minutes later carried the same event, and the hub, which never looked at the event id, did the work again. And the signature, made from the body alone, would have let a copy do the same any night.",
+  "steps": [
+   {
+    "title": "A late answer is not a no.",
+    "text": "At 02:10:00 her hub flashed the lights and announced the visitor, and only then answered: at 02:10:07. Doorwarden had stopped waiting at 02:10:05, counted the delivery as failed and tried again 40 minutes after it. Retrying is the right instinct: a hub that is restarting needs it. But any sender that retries will sometimes deliver an event the receiver has already handled, so webhooks are at least once, as in At Least Once (s4e06). The repeat isn't a bug in the retry; it's a promise the receiver has to be built for."
+   },
+   {
+    "title": "The repeat carried its own name.",
+    "text": "The 02:50 delivery had the same event id as the 02:10 one, evt_039c2e51. A hub that records each event id when it acts on it, and skips any delivery whose id it already holds, acts once however many times the event arrives. In the lab that turns 21 announcements into 20, with the retry still sent and still answered. Keep the ids for longer than the retries run: Doorwarden's 40 minutes, 2 hours and 6 hours fit easily inside 3 days. This is s4e06's dedup by message id, done at the receiving end, and the same idea as an idempotency key (s4e07), with the sender naming the event."
+   },
+   {
+    "title": "Answer first, act after.",
+    "text": "The timeout measures how long the hub takes to answer, not whether it acted. Her hub did the slow part, the acting, before it answered. A hub that checks the signature, stores the event and answers 200 at once, then flashes the lights, answers in well under a second even mid-update, so a slow hub stops causing retries at all. Stripe and GitHub both ask receivers to return a 2xx quickly and do the work after. Event ids still matter: an answer can be lost on the way back, and then the retry comes anyway."
+   },
+   {
+    "title": "A signature over the body is good for ever.",
+    "text": "An HMAC over the body proves the sender held the secret and the body wasn't changed. It says nothing about when. A copy of a delivery, from a log or a debugging tool, is as valid next week as tonight, and sending it again is a replay attack. HTTPS protects the delivery on the wire, but copies end up in logs. The fix is to sign the timestamp together with the body and refuse any delivery whose timestamp is older than a short tolerance, 5 minutes by default in Stripe's libraries. Each retry gets a fresh timestamp, so honest retries pass. Inside the window, the event id check stops a copy, so keep ids for longer than the window."
+   },
+   {
+    "title": "Why the other three fall short.",
+    "text": "Sending once removes the repeat by losing every ring a hub misses the first time: in the lab, a restarting hub's visitor is never announced. A 60-second timeout moves the line: a 75-second answer, or a lost one, still brings a repeat that acts again. Fetching missed events from an events API works and never repeats, but 16 hubs make 1,536 polls a night for 20 rings, and a missed ring waits up to 5 minutes. None of the three touches the signature."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 330,
+   "aria": "The fix, drawn for event 9. The Doorwarden sender signs the timestamp and body of every try, and the retry at 02:50:00 gets a fresh timestamp. Her hub runs three checks: the signature, the age of the timestamp, and the event id. It answers at once, then acts. At 02:50 the event id evt_039c2e51 is already in its table of event ids seen, recorded at 02:10 and kept 3 days, so it skips the retry. The porch lights flash once, at 02:10. A captured copy sent at 05:00 is 2 h 10 min old and rejected.",
+   "nodes": [
+    {
+     "id": "sender",
+     "label": "Doorwarden sender",
+     "sub": "signs time + body",
+     "meta": "retry 02:50:00, new time",
+     "x": 110,
+     "y": 80,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "check",
+     "label": "Her hub: 3 checks",
+     "sub": "signature, age, event id",
+     "meta": "02:50: id seen, skip",
+     "x": 380,
+     "y": 80,
+     "w": 200,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "porch",
+     "label": "Porch and hall",
+     "sub": "lights once, 02:10",
+     "x": 640,
+     "y": 80,
+     "w": 170,
+     "h": 64,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "ids",
+     "label": "Event ids seen",
+     "sub": "evt_039c2e51 at 02:10",
+     "meta": "kept 3 days",
+     "x": 380,
+     "y": 250,
+     "w": 200,
+     "h": 72,
+     "shape": "db",
+     "tone": "ok"
+    },
+    {
+     "id": "copy",
+     "label": "Copy at 05:00",
+     "sub": "2 h 10 min old",
+     "meta": "rejected",
+     "x": 110,
+     "y": 250,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "muted"
+    }
+   ],
+   "edges": [
+    {
+     "from": "sender",
+     "to": "check",
+     "label": "POST"
+    },
+    {
+     "from": "check",
+     "to": "porch",
+     "label": "then act"
+    },
+    {
+     "from": "check",
+     "to": "ids",
+     "label": "record",
+     "at": 0.6
+    },
+    {
+     "from": "copy",
+     "to": "check",
+     "label": "replay",
+     "dash": true,
+     "tone": "muted",
+     "at": 0.35
+    }
+   ],
+   "notes": [
+    {
+     "x": 560,
+     "y": 160,
+     "text": "answers at once",
+     "tone": "ok",
+     "anchor": "middle"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for event 9 with her answer lost on the way back, the case event ids are there for. Every try is signed over its timestamp and body. Her hub checks the signature, the age and the event id, answers at once and only then acts. The 02:50 retry has a fresh timestamp but an event id the hub already holds, so it is skipped; a copy sent at 05:00 is too old and refused.",
+  "fix": {
+   "title": "The fix: sign the time, refuse old and repeated events, answer first",
+   "text": "On the sender: make the signature an HMAC over the timestamp, a full stop and the body, as Stripe does, with the timestamp in a header and a new one on every try. On the hub: check the signature against the raw body with a constant-time comparison, then refuse any delivery whose timestamp is more than 5 minutes from the hub's clock. Then look up the event id: if it's there, answer 200 and do nothing; if not, store the event and its id, answer 200 at once, and act from the stored copy. Keep ids for 3 days, longer than the retries run and far longer than the window. Keep the retries, and keep each hub's clock set from a time server."
+  },
+  "limits": [
+   "An honest delivery can still be late. With her hub restarting at 02:10, the retry at 02:50 announces the visitor once, 40 minutes late, to an empty porch. A shorter first retry helps (the Standard Webhooks example retries after 5 seconds, then 5 minutes), and so does a hub that checks when the ring happened and shows an old one as a missed visitor instead of a knock.",
+   "Answering first means the sender no longer learns whether the hub acted. The hub must store the event before it answers, so a crash between the answer and the lights doesn't lose the ring.",
+   "A timestamp check needs clocks that agree. A hub whose clock is wrong by more than the tolerance refuses every delivery, retries included, so set it from a time server and alert on refusals. Never set the tolerance to 0: in Stripe's libraries that switches the check off."
+  ],
+  "tradeoff": {
+   "head": [
+    "Change",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Nothing (as now)",
+     "No ring is lost to a slow or restarting hub.",
+     "21 deliveries, 21 announcements: one to an empty porch. Any copy is accepted for ever."
+    ],
+    [
+     "Send once",
+     "Nothing twice: 20 deliveries, 20 announcements.",
+     "A restarting hub's visitor is never announced. Replay still open."
+    ],
+    [
+     "Timeout 60 s",
+     "Her 7-second answer is in time: nothing extra.",
+     "A 75-second or lost answer still repeats. Replay still open."
+    ],
+    [
+     "Send once, hubs fetch missed events",
+     "Nothing twice; a restarting hub catches up at 02:15:00.",
+     "1,536 polls a night from 16 hubs for 20 rings; up to 5 minutes late. Replay still open."
+    ],
+    [
+     "Event ids only",
+     "The 02:50 retry is skipped: 20 announcements.",
+     "Still 21 deliveries and a time-out; a copy older than 3 days is accepted."
+    ],
+    [
+     "Timestamp and body, 5 minutes, event ids, reply first",
+     "Last night: 20 deliveries, none timed out. Nothing extra in all four 02:10 cases; copies refused.",
+     "Hubs must keep ids and good clocks; a restarting hub still hears a ring 40 minutes late."
+    ]
+   ]
+  },
+  "seniorTake": "A webhook is a promise to keep knocking until someone answers, so the receiver will see the same event more than once, and the sender can't tell a slow yes from a no. Build the receiver for that: answer at once and do the work after, record event ids and skip repeats, and keep the ids longer than the retries run. Then make the knock prove when it was made, not just who made it: sign the timestamp with the body and refuse anything outside a short window. Keep retries, shorten the first one, and give receivers a way to fetch what they missed as a safety net.",
+  "realWorld": [
+   {
+    "title": "Stripe: the timestamp is inside the signature",
+    "text": "Stripe's webhook docs say the Stripe-Signature header holds a timestamp and one or more signatures, and the signed payload is the timestamp, the character \".\", and the request body, signed with an HMAC using SHA-256 and the endpoint's signing secret. Because the timestamp is part of the signed payload, an attacker can't change it without invalidating the signature.",
+    "source": 0
+   },
+   {
+    "title": "Stripe: replay attacks and a 5-minute tolerance",
+    "text": "The same page defines a replay attack as an attacker intercepting a valid payload and its signature and re-transmitting them. Stripe's libraries have a default tolerance of 5 minutes between the timestamp and the current time, it suggests NTP to keep the server's clock accurate, and it warns not to use a tolerance of 0, which disables the recency check entirely.",
+    "source": 0
+   },
+   {
+    "title": "Stripe: three days of retries, and a new timestamp each time",
+    "text": "In live mode Stripe attempts delivery for up to three days with an exponential backoff. If it retries an event, it generates a new signature and timestamp for the new delivery attempt, which is why honest retries pass the tolerance check.",
+    "source": 0
+   },
+   {
+    "title": "Stripe: duplicates, and a 2xx before the work",
+    "text": "Stripe says endpoints might occasionally receive the same event more than once and suggests logging the event IDs you've processed and not processing already-logged events. It says an endpoint must quickly return a 2xx before any complex logic that could cause a timeout, and suggests an asynchronous queue for handling events.",
+    "source": 0
+   },
+   {
+    "title": "GitHub: answer within 10 seconds, and the delivery header",
+    "text": "GitHub's best practices say your server should respond with a 2XX within 10 seconds of receiving a webhook delivery, and suggest a queue to process payloads asynchronously. Against replay attacks, where a bad actor intercepts a delivery and re-sends it, they say to use the X-GitHub-Delivery header to make sure each delivery is unique per event.",
+    "source": 1
+   },
+   {
+    "title": "GitHub: an HMAC over the payload, compared in constant time",
+    "text": "GitHub signs each delivery in the X-Hub-Signature-256 header, an HMAC hex digest generated from your webhook's secret and the payload contents with HMAC-SHA256. It says never to use a plain == operator to compare signatures, and points to a constant time comparison such as crypto.timingSafeEqual. The page describes a signature over the payload contents and mentions no timestamp; against replays, the best practices point to the delivery header instead.",
+    "source": 2
+   },
+   {
+    "title": "GitHub doesn't retry for you",
+    "text": "GitHub's page on failed deliveries says GitHub does not automatically redeliver failed deliveries, and its best practices say that if your server goes down you should redeliver missed webhooks once it's back up. Senders differ, so read each one's retry policy before you design the receiver.",
+    "source": 3
+   },
+   {
+    "title": "Standard Webhooks: id, timestamp and body, signed together",
+    "text": "The Standard Webhooks specification signs msg_id.timestamp.payload with HMAC-SHA256, sent in webhook-id, webhook-timestamp and webhook-signature headers. The id stays the same however many times a failed webhook is retried, and the spec says to use it as an idempotency key to avoid processing a webhook twice, for example saving ids in Redis for 5 minutes, and to check the timestamp is within an allowable tolerance to prevent replay attacks.",
+    "source": 4
+   },
+   {
+    "title": "Standard Webhooks: a retry schedule spanning days",
+    "text": "The spec recommends retrying on a schedule spanning multiple days with exponential backoff, and gives an example: immediately, then 5 seconds, 5 minutes, 30 minutes, 2 hours, 5 hours, 10 hours, 14 hours, 20 hours and 24 hours. It suggests a request timeout of somewhere between 15 and 30 seconds and counts a 2xx as success.",
+    "source": 4
+   },
+   {
+    "title": "HMAC, 1997",
+    "text": "RFC 2104 describes HMAC as a mechanism for message authentication using cryptographic hash functions, used between two parties that share a secret key. Unlike the public-key signatures of s1e05, both sides hold the same secret, so the hub can check the code but must keep the secret as safe as the sender does.",
+    "source": 5
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you make webhooks reliable?",
+    "How do you verify a webhook came from who it says?",
+    "What is a replay attack, and how do you stop one?"
+   ],
+   "answer": "Treat webhooks as at least once. The sender retries on a backoff schedule spanning hours or days until it gets a 2xx, so it must be fine to deliver an event twice, and a timeout can't tell a slow success from a failure. On the receiver, verify the signature, store the event, and return a 2xx at once, then do the work from a queue; that keeps answers fast so slowness doesn't cause retries. Record each event id when you process it and skip any you've seen, keeping ids for longer than the sender's retries run. Offer an events API so receivers can fetch anything they missed. To verify the sender, use an HMAC over the request with a secret shared per endpoint, computed over the raw body and compared in constant time, plus HTTPS. A replay attack is someone re-sending a captured, validly signed request. If the signature covers only the body, a copy is valid for ever, so sign the timestamp together with the body, reject timestamps outside a short tolerance such as Stripe's 5-minute default, and let event ids catch a copy inside that window. Keep clocks in sync, and rotate secrets."
+  }
+ },
+ "terms": [
+  {
+   "term": "Doorwarden",
+   "def": "The doorbell camera company in this story, in Lowestone. Its sender tells customers' hubs about every ring by webhook."
+  },
+  {
+   "term": "Night support engineer",
+   "def": "The person who answers customers and watches the systems overnight. Vesna, at Doorwarden."
+  },
+  {
+   "term": "Smart-home hub",
+   "def": "A small box in a home that controls lights, speakers and other devices and can be told about events from outside, such as a ring at the door. Mrs Ferrandine's is hub 7."
+  },
+  {
+   "term": "Sender (webhook)",
+   "def": "The program that makes webhook calls. Doorwarden's POSTs each ring to the customer's hub, waits for the answer and retries a failed try."
+  },
+  {
+   "term": "Delivery",
+   "def": "One try at sending an event to a webhook address. One event can have several deliveries; Mrs Ferrandine's had two, at 02:10:00 and 02:50:00."
+  },
+  {
+   "term": "Signing secret",
+   "def": "A random value the sender and the receiver both hold, used to make and check each delivery's HMAC. Stripe makes one per endpoint and suggests changing it now and then."
+  },
+  {
+   "term": "HMAC",
+   "def": "Hash-based message authentication code: a short code worked out from a message and a shared secret. Only a holder of the secret can make it, and any change to the message breaks it."
+  },
+  {
+   "term": "SHA-256",
+   "def": "A widely used hash function: it turns any input into a 256-bit code. HMAC-SHA256 is an HMAC built on it."
+  },
+  {
+   "term": "Signed over the body only",
+   "def": "A webhook signature made from the request body alone, as Doorwarden's was. It proves who sent it and that it's unchanged, but not when, so a copy stays valid for ever."
+  },
+  {
+   "term": "Timestamp (webhook)",
+   "def": "The time a delivery was sent, in seconds, carried in a header. Only when it is signed with the body can the receiver trust it."
+  },
+  {
+   "term": "Tolerance",
+   "def": "The oldest age a receiver accepts for a signed timestamp. Stripe's libraries default to 5 minutes; a delivery older than that is refused."
+  },
+  {
+   "term": "Replay attack",
+   "def": "Sending a captured, validly signed request again, unchanged, so the receiver acts on it a second time."
+  },
+  {
+   "term": "Captured copy",
+   "def": "A copy of a real delivery, headers and body, taken from somewhere it was stored, such as a log or a debugging tool. In the lab's replay test it is sent to the hub again."
+  },
+  {
+   "term": "Retry schedule",
+   "def": "When a sender tries again after a failed try. Doorwarden's: 40 minutes after the failed try was sent, then 2 hours, then 6 hours, then no more."
+  },
+  {
+   "term": "Act, then reply",
+   "def": "A receiver doing the work first and answering after, as Mrs Ferrandine's hub did. A slow job means a slow answer, and a time-out on a delivery it already acted on."
+  },
+  {
+   "term": "Reply, then act",
+   "def": "A receiver checking the delivery, storing it and answering 200 at once, then doing the work. Stripe and GitHub both ask for a quick 2xx."
+  },
+  {
+   "term": "Events API",
+   "def": "An API that lists recent events, so a receiver can ask for any it missed. In the lab's send-once policy, every hub asks it every 5 minutes."
+  },
+  {
+   "term": "Poll",
+   "def": "One ask of an API on a timer, whether or not anything is new. 16 hubs asking every 5 minutes for 8 hours make 1,536 polls."
+  },
+  {
+   "term": "Time-out (a delivery)",
+   "def": "A delivery the sender counts as failed because no answer came within the timeout, 5 seconds at Doorwarden. The hub may have acted anyway."
+  },
+  {
+   "term": "Update (a hub's software)",
+   "def": "New software installed on a device such as a hub. While one installs, the hub can be slow, or restart."
+  },
+  {
+   "term": "Hash function",
+   "def": "A function that turns any input into a short fixed-size code, the same code every time; a tiny change to the input gives a completely different code."
+  },
+  {
+   "term": "Hex digest",
+   "def": "A hash or HMAC written out as hexadecimal characters, 0 to 9 and a to f, so it fits in a header."
+  },
+  {
+   "term": "Rotate (a secret)",
+   "def": "Replace a signing secret with a new one, now and then or when it may have leaked, usually with a short overlap while both are accepted."
+  },
+  {
+   "term": "Raw body",
+   "def": "The request body exactly as the bytes arrived, before any program parses or reformats it. Signatures are checked against it; Stripe warns that changing it breaks verification."
+  },
+  {
+   "term": "Constant-time comparison",
+   "def": "Comparing two codes in a way that takes the same time wherever they differ, so an attacker can't learn the right code from how long a refusal takes."
+  },
+  {
+   "term": "Stripe-Signature",
+   "def": "The header on Stripe's webhook deliveries holding t=, the timestamp, and v1=, an HMAC-SHA256 of the timestamp, a full stop and the body."
+  },
+  {
+   "term": "X-GitHub-Delivery",
+   "def": "A header on GitHub's webhook deliveries with a unique id for the delivery. GitHub suggests using it to make sure each delivery is handled once, against replays."
+  },
+  {
+   "term": "X-Hub-Signature-256",
+   "def": "The header on GitHub's webhook deliveries holding an HMAC-SHA256 hex digest of the payload, made with the webhook's secret."
+  },
+  {
+   "term": "Standard Webhooks",
+   "def": "An open specification for sending webhooks the same way everywhere: webhook-id, webhook-timestamp and webhook-signature headers, and an HMAC-SHA256 over the id, timestamp and body."
+  },
+  {
+   "term": "NTP",
+   "def": "Network Time Protocol: how computers set their clocks from a time server over the network. Stripe suggests it so timestamp checks don't fail on a wrong clock."
+  },
+  {
+   "term": "RFC",
+   "def": "Request for Comments: the numbered documents that define internet standards and practices. RFC 2104 defines HMAC."
+  },
+  {
+   "term": "Redis",
+   "def": "A fast in-memory key-value store, often used to keep short-lived records such as event ids already processed."
+  },
+  {
+   "term": "Asynchronous queue",
+   "def": "A list of jobs a program adds to now and works through later, so it can answer a request before the work is done."
+  },
+  {
+   "term": "Payments integration",
+   "def": "The code that connects a shop or service to a payment provider: it takes payments and reacts to the provider's webhooks, such as \"payment succeeded\"."
+  },
+  {
+   "term": "ISO/IEC 27001",
+   "def": "An international standard for running an information security management system. Its Annex A lists controls; 2022 is the current edition."
+  },
+  {
+   "term": "A.8.21 Security of network services",
+   "def": "The ISO/IEC 27001:2022 Annex A control on network services: identifying and putting in place their security mechanisms, such as authentication, and monitoring them."
+  }
+ ],
+ "atWork": "Find a webhook your company receives, from a payment provider, a code host or a delivery partner. A common incident is a payments integration that shipped orders twice: the handler created the shipment and only then answered, a slow day pushed it past the provider's timeout, and the provider's retry shipped the same order again. Read-only access is enough. In the handler's code, what happens first, the work or the 200? Does it record the event id, and for how long, against the provider's documented retry window? What does the signature check cover: the raw body only, or a signed timestamp as well, and what tolerance does it allow? Is the comparison constant-time, and where does the secret live? Then the other direction: if your company sends webhooks, read your retry schedule and how soon the first retry goes. If your company is pursuing ISO/IEC 27001:2022 certification, control A.8.21 (security of network services) is where authenticating inbound requests belongs: a written rule that every inbound webhook is checked for a valid signature over a timestamp and body, inside a stated tolerance, with event ids recorded and the secret rotated, plus logs of refused deliveries, is the kind of evidence an auditor can check.",
+ "board": {
+  "cards": [
+   {
+    "id": "webhooks",
+    "title": "Webhooks"
+   },
+   {
+    "id": "retries",
+    "title": "Retries"
+   },
+   {
+    "id": "signatures",
+    "title": "Signatures"
+   },
+   {
+    "id": "replay-protection",
+    "title": "Replay protection"
+   }
+  ],
+  "strings": [
+   {
+    "from": "webhooks",
+    "to": "retries",
+    "label": "until a 2xx"
+   },
+   {
+    "from": "retries",
+    "to": "at-least-once",
+    "label": "so: repeats"
+   },
+   {
+    "from": "retries",
+    "to": "idempotency-keys",
+    "label": "event id skips"
+   },
+   {
+    "from": "webhooks",
+    "to": "signatures",
+    "label": "who sent it"
+   },
+   {
+    "from": "signatures",
+    "to": "https",
+    "label": "on top of TLS"
+   },
+   {
+    "from": "signatures",
+    "to": "replay-protection",
+    "label": "sign the time"
+   },
+   {
+    "from": "webhooks",
+    "to": "ordering-guarantees",
+    "label": "next case"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e13-r1",
+   "kind": "free",
+   "prompt": "Your shop's payment provider sends a \"payment succeeded\" webhook for each order. Your handler books the courier, emails the customer and then returns 200, and the provider retries any call that takes longer than 10 seconds. On a busy afternoon about thirty customers got two parcels. What happened, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The handler had already done the work; its answer came after the provider stopped waiting, so the retry looked like a failure to the provider and did the work again",
+     "match": [
+      "already done",
+      "already booked",
+      "already processed",
+      "already handled",
+      "answer was late",
+      "answered too late",
+      "after the timeout",
+      "timed out",
+      "took longer than"
+     ]
+    },
+    {
+     "idea": "Record each event id when it is processed and skip any delivery whose id is already recorded, kept for longer than the provider's retries",
+     "match": [
+      "event id",
+      "event ids",
+      "same id",
+      "seen before",
+      "already seen",
+      "dedup",
+      "skip repeats",
+      "skip duplicates"
+     ]
+    },
+    {
+     "idea": "Answer 2xx at once after checking and storing the event, and do the slow work afterwards from a queue",
+     "match": [
+      "at once",
+      "immediately",
+      "straight away",
+      "return 200 first",
+      "reply first",
+      "answer first",
+      "queue",
+      "asynchron",
+      "afterwards"
+     ]
+    }
+   ],
+   "model": "The first call worked. The handler booked the courier and emailed the customer, but on a busy afternoon that took longer than 10 seconds, so its 200 arrived after the provider had stopped waiting. The provider counted it as failed and retried, and the handler, which never checked whether it had seen the event, booked a second courier. Webhooks are at least once, so the handler has to be safe to call twice. Verify the signature, then look up the event id: if it's recorded, return 200 and do nothing. If not, store the event and its id and return 200 immediately, then book the courier and send the email from a queue. Keep the ids for longer than the provider retries, days rather than minutes, and refund or recall today's duplicates."
+  },
+  {
+   "id": "s4e13-r2",
+   "kind": "mcq",
+   "prompt": "Stripe's libraries check that a webhook's signed timestamp is recent. What is their default tolerance between that timestamp and the current time?",
+   "options": [
+    "5 seconds",
+    "5 minutes",
+    "24 hours",
+    "Three days, as long as Stripe retries"
+   ],
+   "answer": 1,
+   "why": "Stripe's webhook docs say its libraries have a default tolerance of 5 minutes, which you can change, and warn that a tolerance of 0 disables the recency check entirely. Each retry gets a new timestamp, so honest retries pass; a copy sent later than that does not."
+  },
+  {
+   "id": "s4e13-r3",
+   "kind": "free",
+   "prompt": "A teammate says: \"Our webhooks are already signed with an HMAC of the body using a secret only we and the customer hold, over HTTPS. Nobody can fake one, so we're safe.\" What can still go wrong, and what would you add?",
+   "keyIdeas": [
+    {
+     "idea": "A captured copy of a real delivery is still validly signed and can be sent again later: a replay attack",
+     "match": [
+      "replay",
+      "copy of",
+      "captured",
+      "send it again",
+      "sent again",
+      "resend",
+      "re-send",
+      "valid for ever",
+      "valid forever"
+     ]
+    },
+    {
+     "idea": "Put the timestamp inside the signature, so it can't be changed without breaking it",
+     "match": [
+      "sign the timestamp",
+      "signed timestamp",
+      "timestamp in the signature",
+      "timestamp and the body",
+      "timestamp and body",
+      "timestamp with the body",
+      "include the timestamp"
+     ]
+    },
+    {
+     "idea": "Refuse deliveries whose timestamp is older than a short tolerance window, and let event ids catch a copy inside the window",
+     "match": [
+      "tolerance",
+      "too old",
+      "older than",
+      "window",
+      "reject old",
+      "refuse old"
+     ]
+    }
+   ],
+   "model": "The signature proves who sent a delivery and that the body wasn't changed, but not when it was sent. HTTPS protects it on the wire, yet copies end up in logs and debugging tools, and a copy sent again next week is just as validly signed: a replay attack. Sign the timestamp together with the body, as Stripe does with timestamp, a full stop and the body, and put the timestamp in a header with a new one on every try. The receiver refuses any delivery whose timestamp is outside a short tolerance, such as Stripe's 5-minute default, and records event ids for longer than that window, so a copy that arrives inside it is skipped as already seen. Keep clocks in sync and compare signatures in constant time."
+  },
+  {
+   "id": "s4e13-r4",
+   "kind": "mcq",
+   "prompt": "Under the Standard Webhooks specification, what content does the sender sign?",
+   "options": [
+    "The body alone",
+    "The body and the receiver's URL",
+    "The message id, the timestamp and the body, joined by full stops",
+    "The timestamp alone, so the body can be compressed"
+   ],
+   "answer": 2,
+   "why": "The specification signs msg_id.timestamp.payload with HMAC-SHA256: the id, the timestamp and the body joined by full stops. The id stays the same across retries, so receivers can use it to skip repeats, and the timestamp lets them refuse old deliveries."
+  },
+  {
+   "id": "s4e13-r5",
+   "kind": "mcq",
+   "prompt": "GitHub's webhook best practices ask your server to respond with a 2XX within how long of receiving a delivery?",
+   "options": [
+    "1 second",
+    "10 seconds",
+    "60 seconds",
+    "There is no limit, because GitHub always retries"
+   ],
+   "answer": 1,
+   "why": "GitHub says to respond with a 2XX within 10 seconds and suggests a queue to process payloads asynchronously. It also says GitHub does not automatically redeliver failed deliveries, so a slow answer can mean a lost event, not a repeat."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. The fix works: signed timestamps, a 5-minute tolerance, event ids and answers at once, and not one repeat since. But on Sunday morning Mrs Ferrandine rang to say nobody could reach her door. Her son had rung at 11:15 and again at 11:20, and her hub said nothing. Cyprian found every delivery to hub 7 since Saturday night refused with \"timestamp too old\", retries included, at 40 minutes, 2 hours and 6 hours. A storm had cut her power on Saturday evening. Her hub's own log shows times about an hour ahead of ours. Every other hub is fine.",
+  "prompt": "Reply to OP. Why did her hub refuse every delivery, and what should Doorwarden change?",
+  "keyIdeas": [
+   {
+    "idea": "Her hub's clock came back wrong after the power cut, an hour ahead, so every timestamp looked an hour old and fell outside the 5-minute tolerance, retries too",
+    "match": [
+     "clock",
+     "clock was wrong",
+     "wrong clock",
+     "clock ahead",
+     "wrong time",
+     "time is wrong",
+     "drift",
+     "power cut"
+    ]
+   },
+   {
+    "idea": "Set the hub's clock from a time server (NTP) at start-up and keep it in sync",
+    "match": [
+     "ntp",
+     "time server",
+     "network time",
+     "sync",
+     "synchron"
+    ]
+   },
+   {
+    "idea": "Watch for refusals: alert when a hub refuses deliveries as too old, rather than widening or switching off the check",
+    "match": [
+     "alert",
+     "monitor",
+     "alarm",
+     "refusal rate",
+     "notice the refusals",
+     "don't switch off",
+     "not widen",
+     "keep the check"
+    ]
+   }
+  ],
+  "model": "The check worked against a clock that was wrong. When the storm cut her power, her hub came back with its clock about an hour ahead, so every delivery's signed timestamp looked an hour old against it, far outside the 5-minute tolerance, and was refused. Retries didn't help: each got a fresh timestamp, which was still an hour old by her hub's clock. Set every hub's clock from a time server with NTP when it starts and keep it synced, and have the hub refuse to judge timestamps until it has synced. Alert on refusals: one hub refusing everything as too old is a clock problem, and support should hear about it in minutes, not from a son at a silent door. Don't widen the tolerance to hours or switch it off; that reopens the door to copies."
+ },
+ "next": "Next, Out of Order: a train dispatcher, and what order a queue or log really promises, sequence numbers, and setting late messages straight.",
+ "sources": [
+  {
+   "title": "Stripe Documentation: Receive Stripe events in your webhook endpoint (Stripe-Signature with t= and v1=; signed_payload is the timestamp, \".\" and the JSON payload; HMAC with SHA-256; replay attacks and a default tolerance of 5 minutes; don't use a tolerance of 0; NTP; a new signature and timestamp on each retry; retries for up to three days with exponential backoff in live mode; log processed event IDs; quickly return a 2xx before complex logic; asynchronous queues; the raw body)",
+   "url": "https://docs.stripe.com/webhooks"
+  },
+  {
+   "title": "GitHub Docs: Best practices for using webhooks (respond with a 2XX within 10 seconds; a queue to process payloads asynchronously; replay attacks and the X-GitHub-Delivery header; a webhook secret with high entropy; redeliver missed webhooks once your server is back up)",
+   "url": "https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks"
+  },
+  {
+   "title": "GitHub Docs: Validating webhook deliveries (X-Hub-Signature-256; an HMAC hex digest from the webhook's secret and the payload contents; HMAC-SHA256; never a plain == operator; crypto.timingSafeEqual)",
+   "url": "https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries"
+  },
+  {
+   "title": "GitHub Docs: Handling failed webhook deliveries (GitHub does not automatically redeliver failed deliveries)",
+   "url": "https://docs.github.com/en/webhooks/using-webhooks/handling-failed-webhook-deliveries"
+  },
+  {
+   "title": "Standard Webhooks specification v1.0.0 (webhook-id, webhook-timestamp and webhook-signature headers; msg_id.timestamp.payload signed with HMAC-SHA256; the id stays the same across retries and serves as an idempotency key, e.g. saved in Redis for 5 minutes; a timestamp tolerance against replay attacks; an example retry schedule; a request timeout between 15 and 30 s; 2xx is success)",
+   "url": "https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md"
+  },
+  {
+   "title": "H. Krawczyk, M. Bellare and R. Canetti, RFC 2104: HMAC: Keyed-Hashing for Message Authentication, 1997 (a mechanism for message authentication using cryptographic hash functions, between two parties that share a secret key)",
+   "url": "https://www.rfc-editor.org/rfc/rfc2104"
+  },
+  {
+   "title": "ISO/IEC 27001:2022, Information security, cybersecurity and privacy protection: Information security management systems: Requirements",
+   "url": "https://www.iso.org/standard/27001"
+  },
+  {
+   "title": "ISMS.online: ISO 27001:2022 Annex A 8.21, Security of network services (a guide: security aspects such as authentication, encryption and connection controls; logging and monitoring of network service use)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-21-security-of-network-services-2022/"
+  }
+ ]
+}
