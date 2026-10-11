@@ -1,0 +1,665 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e03",
+ "season": 4,
+ "n": 3,
+ "title": "Dead Letters",
+ "setting": "a post office's undeliverable room",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "message-queues",
+  "acknowledgements",
+  "visibility-timeouts",
+  "dead-letter-queues"
+ ],
+ "prerequisites": [
+  "s2e13",
+  "s2e03",
+  "s1e08",
+  "s1e05",
+  "s1e04",
+  "s1e02",
+  "s1e01"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/undeliverable_adaeze",
+  "flair": "Part 1",
+  "age": "7h",
+  "votes": 4127,
+  "title": "I supervise nights in a post office's undeliverable room. From 22:00 to 06:00 one envelope knocked on our queue every 30 seconds, and it never got out.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm the night supervisor at the Haverleigh address-correction centre. Everyone here calls it the undeliverable room. When a sorting machine can't read an address, it prints an ID on the envelope, holds the envelope in a tray and sends us a scan, a photo of the front. The scans go on a queue. A correction service with four workers takes them one at a time: read the address again, match it against the address file, send the answer back to the sorter, then delete the scan from the queue. About 30 scans arrive a minute, all night, and each takes a worker about 6 seconds."
+   },
+   {
+    "t": "p",
+    "text": "Ulfric, our developer, built it on Amazon SQS. When a worker receives a scan, he told me, the queue doesn't hand it over. It hides it for 30 seconds. If the worker deletes it in that time, it's done. If not, it comes back for another worker. \"Nothing gets lost,\" he said."
+   },
+   {
+    "t": "beat",
+    "text": "Nothing got lost last night."
+   },
+   {
+    "t": "p",
+    "text": "At 22:00 a scan came in for 14½ Wychbold Lane, Abernook. Worker-1 received it, and worker-1 died. The service starts a dead worker again, but that takes 40 seconds. At 22:00:30 the scan was back. Worker-2 received it, and worker-2 died."
+   },
+   {
+    "t": "log",
+    "text": "22:00:00  worker-1  received #0412 (14½ Wychbold Lane)\n22:00:00  worker-1  exited\n22:00:30  worker-2  received #0412 (14½ Wychbold Lane)\n22:00:30  worker-2  exited\n22:00:40  worker-1  started\n22:01:00  worker-1  received #0412 (14½ Wychbold Lane)\n22:01:00  worker-1  exited"
+   },
+   {
+    "t": "p",
+    "text": "It went on like that all night. Every 30 seconds, a knock, and a worker went down. One worker was always starting up again and another often was, so the four did about two-thirds of their work. At 23:00, 199 scans were waiting. At 03:00, 999. At 06:00, 1,599."
+   },
+   {
+    "t": "p",
+    "text": "Ulfric came in at 06:00 and looked the scan up. SQS keeps a count on every message, and this one said it had been received 960 times. Never deleted. Never delivered. Still in the queue."
+   },
+   {
+    "t": "p",
+    "text": "I went to tray 9 and found the envelope. Careful handwriting, blue ink. The half in 14½ is written the old way, a small 1 over a small 2. It sat a metre from my desk all night while its picture knocked on a door every 30 seconds."
+   },
+   {
+    "t": "evidence",
+    "label": "worker_status_2200.png",
+    "diagram": {
+     "type": "timeline",
+     "aria": "The correction service's four workers from 22:00:00 to 22:02:30. Scan #0412 is received at 22:00:00, 22:00:30, 22:01:00, 22:01:30 and 22:02:00. Worker-1 is restarting from 22:00:00 to 22:00:40, up until 22:01:00, restarting to 22:01:40, up until 22:02:00, then restarting again. Worker-2 is up until 22:00:30, restarting to 22:01:10, up until 22:01:30, restarting to 22:02:10, then up. Workers 3 and 4 are up throughout.",
+     "start": "22:00:00",
+     "seconds": 150,
+     "ticksEvery": 30,
+     "rows": [
+      {
+       "label": "worker-1",
+       "segments": [[40, 60, "ok"], [100, 120, "ok"]],
+       "gaps": [[0, 40, "restart"], [60, 100, "restart"], [120, 150, "restart"]]
+      },
+      {
+       "label": "worker-2",
+       "segments": [[0, 30, "ok"], [70, 90, "ok"], [130, 150, "ok"]],
+       "gaps": [[30, 70, "restart"], [90, 130, "restart"]]
+      },
+      {
+       "label": "worker-3",
+       "segments": [[0, 150, "ok"]]
+      },
+      {
+       "label": "worker-4",
+       "segments": [[0, 150, "ok"]]
+      }
+     ],
+     "markers": [
+      { "t": 30, "label": "2nd" },
+      { "t": 60, "label": "3rd" },
+      { "t": 120, "label": "5th" }
+     ]
+    },
+    "caption": "Ulfric's worker status for the first two and a half minutes, redrawn. #0412 comes back every 30 seconds, and each time the worker that receives it exits and needs 40 seconds to start again. So at any moment one worker is restarting and often a second is too, and only workers 3 and 4 never stop. That pattern ran until 06:00."
+   },
+   {
+    "t": "p",
+    "text": "Ulfric has four fixes on the whiteboard, and the day shift has opinions about all of them. Which one do we put in before tonight?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 142,
+   "age": "6h",
+   "text": "A few words, then questions. Receive, process, delete is how a queue like SQS learns that work is finished: the delete is the acknowledgement, the worker saying done. Until it comes, the message is in flight, hidden but not gone, and the visibility timeout is how long it stays hidden, 30 seconds by default. An exception is the error a program raises when it meets something it can't handle; code can catch it and carry on, and one that nothing catches ends the process. Now the evidence. What did the parser do with the ½? When a worker dies holding a scan, what brings the scan back, and how soon? SQS keeps a number on every message, ApproximateReceiveCount. Did anything in your setup ever read it? And between 22:00 and 06:00, what told you something was wrong?",
+   "replies": [
+    {
+     "author": "u/undeliverable_adaeze",
+     "op": true,
+     "points": 48,
+     "age": "5h",
+     "text": "Ulfric checked the parser. It turns the house number into a whole number, ½ isn't a digit, and it throws. Nothing catches it. The 30 seconds brings the scan back, he says, every time. The count was on the message all night and nothing reads it. What told me? The backlog light on the wall, when it went amber at 23:00."
+    }
+   ]
+  },
+  {
+   "author": "u/delete_on_arrival_prudhomme",
+   "points": 88,
+   "age": "5h",
+   "text": "Receive it, delete it, then work on it. If a message can crash you, it should never get the chance twice. Worst case you lose one odd envelope, and somebody re-scans it in the morning. Best case no worker ever dies for the same scan again. All this machinery for bringing a letter back is how you got 960 knocks. Delete on arrival and the knocking stops at one."
+  },
+  {
+   "author": "u/second_pass_thurstan",
+   "points": 51,
+   "age": "4h",
+   "text": "Before anyone touches the 30 seconds: it cuts both ways. Set it shorter than the work and the scan comes back while the first worker is still on it, so two workers correct the same envelope. That isn't what happened to you. Your workers didn't take 30 seconds over #0412, they took none. For what it's worth, the maximum is 12 hours."
+  }
+ ],
+ "reply": {
+  "prompt": "Ulfric can make one change before 22:00 tonight. Which should it be? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Move a scan to a dead-letter queue after 5 receives, catch the crash, and alarm on that queue.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Ulfric set a redrive policy with maxReceiveCount 5 and wrapped the parser, so its error is caught and logged and the worker takes the next scan. On Wednesday at 22:00 another scan came in for 14½ Wychbold Lane. It was received 5 times, at 22:00:00, 22:00:30, 22:01:00, 22:01:30 and 22:02:00, and no worker went down. At 22:02:30 SQS moved it to the dead-letter queue, and the alarm on that queue paged me at 22:02:30. All 14,400 scans of the night were corrected, and nothing was waiting at 06:00. In the morning Ulfric taught the parser to read ½ and redrove the dead-letter queue. The scan went back as a new message, was received once and corrected, and the envelope left tray 9.",
+    "senior": "Three parts, each covering a gap the others leave. The redrive policy caps how often one message can come round, so a poison message is set aside after a few receives instead of all night. Catching the crash means those receives cost nothing: no worker dies. The alarm on the dead-letter queue's depth tells a person, who fixes the cause and redrives. And the delete stays where it was, after the work."
+   },
+   {
+    "text": "Delete every scan the moment a worker receives it, so a scan that crashes a worker can never come back.",
+    "tone": "bad",
+    "verdict": "No knocks, no letter",
+    "part2": "Ulfric moved the delete to the moment of receiving. On Wednesday at 22:00 a scan for 14½ Wychbold Lane was received once, deleted, and crashed worker-1, which was back 40 seconds later. No backlog all night. And no scan: no queue held it, and nothing recorded where it went. On Thursday the service was restarted at 01:00 for a security patch. The 4 scans the workers held had already been deleted, so they went too. By Friday morning 5 envelopes sat in trays waiting for an answer that would never come.",
+    "senior": "Deleting on receive trades at-least-once delivery for at-most-once delivery: anything a worker holds when it dies is gone, not just the poison message. The visibility timeout, the receive count and the dead-letter queue all exist to keep work that failed. Delete after the work is done, and set aside what keeps failing."
+   },
+   {
+    "text": "Raise the visibility timeout to 12 hours, so a scan that fails waits quietly until the day shift comes in.",
+    "tone": "bad",
+    "verdict": "A quiet night, the same letter",
+    "part2": "Ulfric set the visibility timeout to 12 hours. On Wednesday at 22:00 a scan for 14½ Wychbold Lane was received once, crashed worker-1, and hid until 10:00. The night was quiet: nothing waiting, and no alarm, because there was nothing for one to watch. At 10:00 it came back and crashed a day-shift worker, and it was due again at 22:00. On Thursday the 01:00 patch restart caught 4 good scans in the workers' hands, and they stayed hidden until 13:00.",
+    "senior": "A long visibility timeout doesn't fix a poison message; it slows the knocking to twice a day and hides it from everyone. It also delays every honest retry: a scan whose worker dies for any reason waits the whole timeout. SQS's own docs warn that a timeout set too high delays the reappearance of unprocessed messages. Size the timeout to the work, and cap the receives instead."
+   },
+   {
+    "text": "Have someone watch the queue overnight and pull out by hand any scan that keeps coming back and failing.",
+    "tone": "warn",
+    "verdict": "Trade-off: works while someone's awake",
+    "part2": "Ifeoma took the evening desk and checked the queue every half hour until her shift ended at 02:00. On Wednesday the 22:00 scan for 14½ Wychbold Lane had been received 60 times by her 22:30 check, and the workers had crashed 60 times, but she pulled it out and keyed the address by hand. Nothing waited after that. At 03:00, with nobody watching, a second envelope for the same address came in. It was received 360 times by 06:00, and 599 scans were waiting when the day shift arrived.",
+    "senior": "A person watching does what a redrive policy does, slower and only while they're there. It worked for one letter at 22:30, after 60 crashes, and nobody was there for the one at 03:00. Let the queue count receives and set the letter aside, let an alarm call the person, and spend the person on fixing the cause."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e03",
+  "title": "Run the undeliverable room's night",
+  "lede": "You're Adaeze, replaying the night from 22:00 to 06:00 in 30-second steps. 15 scans arrive every 30 seconds, 14,400 in the night, and a worker takes 6 seconds to correct one, from receive to delete. Four workers. At 22:00 scan #0412, for 14½ Wychbold Lane, arrives, and the parser throws on the ½. With nothing catching it, the worker that received it crashes and takes 40 seconds to start again, and the scan comes back when its visibility timeout ends. The sim hands it to the lowest-numbered worker that's up, exactly every 30 seconds; in a real queue with a backlog it competes with the other scans, so it comes round about every 30 seconds, not exactly. In each step the workers' free seconds are pooled and spent on the waiting scans. With a redrive policy, SQS moves a scan to the dead-letter queue once it has been received maxReceiveCount times, and the alarm on that queue rings at once (a real alarm takes a minute or more). If Ifeoma, the evening clerk, watches, she checks the queue every half hour until 02:00 and pulls any scan received 5 or more times. The patch restart at 01:00, a restart to install a security fix, takes every worker down for 40 seconds, and each worker that was up held one scan it had received and not deleted. Changing a setting replays the night. The clock runs 600 times faster than real life. Click any box to see what it does.",
+  "tryThis": "Try this: press Skip to 06:00 as it is: 960 receives, 960 crashes, 1,599 scans waiting. Set maxReceiveCount to 5 and turn on Catch the crash: 5 receives, no crashes, the scan parked at 22:02:30 and the alarm with it; then press Fix the parser and redrive. Now try each other change on its own: delete on receive, a 12-hour timeout, Ifeoma watching. Last, add the patch restart at 01:00 and the second bad scan at 03:00, and see which changes still hold."
+ },
+ "explain": {
+  "oneLine": "Nothing in the room was haunted except the order of three steps. A worker receives a scan, works on it, then deletes it, and a worker that dies before the delete leaves the scan to come back when its visibility timeout ends. #0412 killed every worker that touched it, so it came back every 30 seconds, 960 times, and with no cap on receives and no dead-letter queue, nothing ever set it aside or told anyone.",
+  "steps": [
+   {
+    "title": "Receive, process, delete.",
+    "text": "A queue like SQS doesn't hand a message over when a worker receives it. It hides it, and the message is in flight. The worker does the work and then deletes the message, and the delete is the acknowledgement: done, don't send this again. The order matters. Delete first and a worker that dies takes the message with it. Delete last and a dead worker's message is still there, which is what kept every good scan safe in your room, and what kept #0412 alive. In The Queue Outside (s2e13) a worker that failed put the ticket back itself; here the worker dies, and the queue's timer brings the scan back."
+   },
+   {
+    "title": "The visibility timeout brings back what a dead worker held.",
+    "text": "The visibility timeout is how long a received message stays hidden: 30 seconds by default in SQS, 12 hours at most. If it isn't deleted by then, it becomes visible and the next worker can receive it. SQS's docs name the reasons it may not be: application errors, crashes, or connectivity problems. That's the safety net. It has no memory of why the last try failed, so a message that crashes every worker gets the same treatment as one whose worker lost its network for a moment."
+   },
+   {
+    "title": "A poison message turns the net into a loop.",
+    "text": "#0412 is a poison message: it fails every time. Each receive crashed a worker for 40 seconds, and it came round every 30, so in every 30 seconds one worker was down the whole time and another for 10 seconds. That's 80 of 120 worker-seconds, about 13 scans corrected against 15 arriving. The backlog grew by about 200 an hour: 199 at 23:00, 999 at 03:00, 1,599 at 06:00. More workers would only have hidden it. With 8, nothing waits, and #0412 still crashes one every 30 seconds."
+   },
+   {
+    "title": "Count the receives, set the letter aside, tell someone.",
+    "text": "SQS counts every receive of a message that hasn't been deleted (ApproximateReceiveCount). A redrive policy names a dead-letter queue and a maxReceiveCount: once a message has been received that many times, SQS moves it to the dead-letter queue instead of handing it out again. With 5, #0412 is received from 22:00:00 to 22:02:00 and moved at 22:02:30. A CloudWatch alarm on the dead-letter queue's ApproximateNumberOfMessagesVisible, at 1 or more, calls a person. When the cause is fixed, a redrive moves the messages back to the source queue as new messages, and they go through."
+   },
+   {
+    "title": "Catch the crash, and mind the other edge.",
+    "text": "Catch the parser's exception in the worker, log it with the scan's ID and take the next scan, leaving this one undeleted for the receive count to deal with. One bad scan then costs a few receives and no worker. The timeout has a second edge too: set it shorter than the work and the message comes back while the first worker is still on it, and two workers do the same job. At Least Once, later this season, picks that up."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 360,
+   "aria": "The fix, drawn for the next bad scan. Scans are sent to the correction queue, which has a 30-second visibility timeout and a redrive policy of 5 receives. Workers receive each scan, catch the parser's error, correct the scan and only then delete it, and the corrected address goes back to the sorter. A scan received 5 times moves to the dead-letter queue, here #0412 at 22:02:30, and an alarm on that queue's depth calls Adaeze. After the fix, the dead-letter queue is redriven to the correction queue.",
+   "nodes": [
+    { "id": "scans", "label": "Scans", "sub": "30 a minute", "x": 90, "y": 70, "w": 140, "h": 56, "shape": "box", "tone": "" },
+    { "id": "queue", "label": "Correction queue", "sub": "visibility 30 s", "meta": "redrive policy: 5", "x": 330, "y": 70, "w": 190, "h": 72, "shape": "box", "tone": "ok" },
+    { "id": "workers", "label": "Workers", "sub": "catch the crash", "meta": "receive, correct, delete", "x": 610, "y": 70, "w": 190, "h": 72, "shape": "box", "tone": "ok" },
+    { "id": "alarm", "label": "Alarm", "sub": "depth 1 or more", "x": 90, "y": 270, "w": 140, "h": 56, "shape": "box", "tone": "warn" },
+    { "id": "dlq", "label": "Dead-letter queue", "sub": "#0412 after 5 receives", "meta": "parked 22:02:30", "x": 330, "y": 270, "w": 190, "h": 72, "shape": "db", "tone": "warn" },
+    { "id": "sorter", "label": "Back to the sorter", "sub": "14,400 corrected", "x": 610, "y": 270, "w": 190, "h": 56, "shape": "box", "tone": "ok" }
+   ],
+   "edges": [
+    { "from": "scans", "to": "queue", "label": "send" },
+    { "from": "queue", "to": "workers", "label": "receive" },
+    { "from": "workers", "to": "sorter", "label": "delete" },
+    { "from": "queue", "to": "dlq", "label": "5th receive", "tone": "warn" },
+    { "from": "dlq", "to": "alarm", "label": "depth", "tone": "warn" }
+   ],
+   "notes": [
+    { "x": 330, "y": 330, "text": "redrive to the queue after the fix", "tone": "ok", "anchor": "middle" }
+   ]
+  },
+  "caption": "The fix, drawn for the next bad scan. Workers receive, correct and only then delete, and they catch the parser's error so no worker dies. The redrive policy moves a scan received 5 times to the dead-letter queue, here at 22:02:30, and the alarm on its depth calls Adaeze. After the parser is fixed, a redrive sends the scan back to the correction queue.",
+  "fix": {
+   "title": "The fix: cap the receives, catch the crash, alarm on the dead letters",
+   "text": "Give the correction queue a redrive policy with a dead-letter queue and maxReceiveCount 5, so a scan that fails 5 times is set aside instead of coming round all night. Wrap the parser in the worker: catch its error, log the scan's ID and the error, and take the next scan without deleting this one, so a bad scan can't take a worker down. Put a CloudWatch alarm on the dead-letter queue's ApproximateNumberOfMessagesVisible at 1 or more, and send it to whoever is on nights. Give the dead-letter queue a longer retention period than the correction queue. When someone has fixed the cause, redrive the dead-letter queue back to the correction queue. Keep the visibility timeout a little longer than the slowest correction, and keep deleting only after the work is done."
+  },
+  "limits": [
+   "A dead-letter queue is a place to look, not a fix. If the alarm reaches nobody, or the retention period runs out first, the letter is lost there instead. In a standard queue the expiry counts from when the message was first sent, not from when it was moved, so give the dead-letter queue the longer retention.",
+   "maxReceiveCount counts every receive that ends without a delete, whatever the reason. If the address file is out of reach for a few minutes, good scans fail too and can land in the dead-letter queue; set it high enough for passing failures, and look at what's there before you redrive.",
+   "Catching only works for errors the program can catch. A worker killed from outside, by running out of memory for example, still dies holding its message, and then the receive count is the only guard."
+  ],
+  "tradeoff": {
+   "head": [
+    "Change",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Nothing (as now)",
+     "No good scan is ever lost.",
+     "#0412 received 960 times, 960 crashes, 1,599 waiting at 06:00, and nobody told."
+    ],
+    [
+     "Delete on receive",
+     "One crash, then a quiet night.",
+     "The scan is gone with no record; a patch restart at 01:00 loses the 4 held scans too."
+    ],
+    [
+     "Visibility timeout 12 hours",
+     "One crash, then a quiet night.",
+     "Back at 10:00 and 22:00, never delivered; scans held at a restart wait until 13:00."
+    ],
+    [
+     "Someone watches until 02:00",
+     "The 22:00 scan is pulled at 22:30.",
+     "60 crashes first, and nobody for the 03:00 scan: 360 receives, 599 waiting."
+    ],
+    [
+     "Catch the crash only",
+     "No crashes, no backlog.",
+     "Received 960 times all the same, never set aside, nobody told."
+    ],
+    [
+     "maxReceiveCount 5, catch, alarm",
+     "5 receives, no crashes, parked at 22:02:30, a person told.",
+     "Passing failures can park good scans; someone has to read the queue and redrive."
+    ]
+   ]
+  },
+  "seniorTake": "A queue that keeps unfinished work is doing its job when a message comes back; it's doing yours badly when the same message comes back all night. Decide up front what a message gets: a few tries, then set aside where a person will see it. Make the worker survive a bad message, so the tries cost receives rather than workers. Delete only after the work is done. And alarm on the place you set things aside, because a dead-letter queue nobody reads is a slower way to lose letters.",
+  "realWorld": [
+   {
+    "title": "SQS hides a message; it doesn't remove it",
+    "text": "The SQS docs say a received message remains in the queue but becomes temporarily invisible to other consumers, and that if you don't process and delete it before the visibility timeout expires, due to application errors, crashes, or connectivity problems, it becomes visible again for the same or a different consumer. They add that setting the timeout too high can delay the reappearance of unprocessed messages.",
+    "source": 0
+   },
+   {
+    "title": "30 seconds by default, 12 hours at most",
+    "text": "SQS's message quotas give a default visibility timeout of 30 seconds, a minimum of 0 seconds and a maximum of 12 hours.",
+    "source": 4
+   },
+   {
+    "title": "A heartbeat for long work",
+    "text": "The visibility timeout page advises matching the timeout to the time your application typically needs, and using a heartbeat that extends it with ChangeMessageVisibility while the work goes on. The 12-hour limit counts from when the message is first received, and extending doesn't reset it.",
+    "source": 0
+   },
+   {
+    "title": "Too short means twice",
+    "text": "The ReceiveMessage reference says that if a consumer is still processing when the timeout expires, another consumer can receive the same message and process duplicates, and that a message not deleted or extended before the timeout counts as a failed receive. It defines ApproximateReceiveCount as the number of times a message has been received across all queues but not deleted.",
+    "source": 5
+   },
+   {
+    "title": "Dead-letter queues and maxReceiveCount",
+    "text": "The SQS docs call dead-letter queues useful for debugging, because you can isolate unconsumed messages to find out why processing failed. maxReceiveCount is the number of times a consumer can receive a message from a source queue before it is moved to a dead-letter queue, and they advise setting it high enough to allow for sufficient retries.",
+    "source": 1
+   },
+   {
+    "title": "Received 3 times, sent to the back",
+    "text": "For standard queues whose redrive policy has a maxReceiveCount greater than 3, SQS moves a message received 3 or more times without being deleted to the back of the queue. With a backlog that spaces out a poison message's later receives; the sim's backlog is empty by 22:02, so its 4th and 5th receives still come 30 seconds apart.",
+    "source": 1
+   },
+   {
+    "title": "Keep the dead letters longer",
+    "text": "For standard queues, a message's expiry is based on its original enqueue timestamp, which is unchanged when it moves to a dead-letter queue. The docs call it a best practice to set the dead-letter queue's retention period longer than the original queue's.",
+    "source": 1
+   },
+   {
+    "title": "The alarm to set",
+    "text": "SQS's guide to alarms for dead-letter queues says to monitor messages in a dead-letter queue with ApproximateNumberOfMessagesVisible, and to poll the queue to review them when the alarm triggers.",
+    "source": 3
+   },
+   {
+    "title": "Redrive, after the fix",
+    "text": "Dead-letter queue redrive moves unconsumed messages from a dead-letter queue to another destination, by default the source queue. Redriven messages are treated as new, with a new message ID and enqueue time. You can cap the rate at up to 500 messages a second, and SQS doesn't filter or change messages while redriving them.",
+    "source": 2
+   },
+   {
+    "title": "RabbitMQ: dead lettering",
+    "text": "RabbitMQ republishes a message to a dead letter exchange when a consumer rejects it without asking for it back, when its time to live runs out, when its queue exceeds a length limit, or when it is returned to a quorum queue more times than the delivery limit. The same idea, a separate place for messages that can't be handled, under another name.",
+    "source": 6
+   }
+  ],
+  "interview": {
+   "asked": [
+    "What is a dead-letter queue?",
+    "What happens when a consumer crashes mid-message?",
+    "How do you handle a poison message?"
+   ],
+   "answer": "A consumer receives a message, processes it and only then deletes it; the delete is the acknowledgement. Until then the message is hidden, not gone, for the visibility timeout, 30 seconds by default in SQS. If the consumer crashes mid-message, the delete never comes, the timeout ends and another consumer receives the message, so nothing is lost but the work may run again, which is why consumers should be safe to repeat. A poison message is one that fails every time, so that safety net becomes a loop: it comes back, fails or crashes a consumer, and comes back again. Handle it in three parts. Catch errors in the consumer so one message can't kill the process. Cap the tries with a redrive policy, maxReceiveCount, so after a few receives the queue moves it to a dead-letter queue: a separate queue for messages that couldn't be processed, where a person can see them. Alarm on the dead-letter queue's depth, fix the cause, then redrive the messages back. Size the visibility timeout to the work, since too short gives duplicates and too long delays retries, and give the dead-letter queue a longer retention than the source."
+  }
+ },
+ "terms": [
+  {
+   "term": "Address-correction centre",
+   "def": "A postal office where people and software work out the addresses that sorting machines can't read, so the held envelopes can be sent on."
+  },
+  {
+   "term": "Undeliverable room",
+   "def": "What the Haverleigh staff call their address-correction centre: the room where letters nobody can deliver yet end up."
+  },
+  {
+   "term": "Sorting machine",
+   "def": "A machine that reads each envelope's address and sends it to the right route. When it can't read one, it prints an ID on it, holds it and sends a scan."
+  },
+  {
+   "term": "Scan",
+   "def": "A photo of an envelope's front that a sorting machine sends for correction. Each scan is one message on the correction queue, like #0412."
+  },
+  {
+   "term": "Address file",
+   "def": "The postal service's list of every valid address. The correction service matches what it reads on a scan against it."
+  },
+  {
+   "term": "Correction service",
+   "def": "Haverleigh's program that takes scans off the queue with four workers: reads the address again, matches it against the address file, answers the sorter and deletes the scan."
+  },
+  {
+   "term": "Parser",
+   "def": "Code that reads text and splits it into parts, such as an address into house number, street and town. Haverleigh's turns the house number into a whole number."
+  },
+  {
+   "term": "Exception",
+   "def": "The error a program raises when it meets something it can't handle, like ½ where a digit should be. If nothing catches it, the process ends."
+  },
+  {
+   "term": "Catch (an exception)",
+   "def": "To handle an exception in code instead of letting it end the process: log it, skip that piece of work and carry on."
+  },
+  {
+   "term": "Receive (a message)",
+   "def": "To take a message from a queue to work on it. In SQS a receive doesn't remove the message; it hides it for the visibility timeout."
+  },
+  {
+   "term": "In flight",
+   "def": "A message that a consumer has received and not yet deleted. It is hidden from other consumers but still in the queue."
+  },
+  {
+   "term": "Acknowledgement (queue)",
+   "def": "A consumer telling the queue a message is done, so it isn't handed out again. In SQS the acknowledgement is deleting the message; RabbitMQ calls it an ack."
+  },
+  {
+   "term": "Receive, process, delete",
+   "def": "The order a queue consumer works in: take the message, do the work, and only then delete it, so a consumer that dies midway leaves the message to come back."
+  },
+  {
+   "term": "ApproximateReceiveCount",
+   "def": "A number SQS keeps on each message: how many times it has been received across all queues but not deleted. maxReceiveCount is compared with it."
+  },
+  {
+   "term": "Source queue",
+   "def": "The queue a dead-letter queue serves: the one messages are moved from. At Haverleigh, the correction queue."
+  },
+  {
+   "term": "Message ID",
+   "def": "The ID SQS gives a message when it is sent. A redriven message is treated as new and gets a new one."
+  },
+  {
+   "term": "ChangeMessageVisibility",
+   "def": "The SQS action that changes how long a received message stays hidden: to extend it while long work goes on, or to set it to 0 to give the message up at once."
+  },
+  {
+   "term": "Heartbeat (visibility)",
+   "def": "A worker extending a message's visibility timeout every so often while it is still working on it, so the message doesn't come back early."
+  },
+  {
+   "term": "Security patch",
+   "def": "An update that fixes a security hole. Installing one often means restarting the program, which at Haverleigh takes every worker down for 40 seconds."
+  },
+  {
+   "term": "At-most-once delivery",
+   "def": "A promise that a message is handled no more than once, sometimes never. Deleting on receive gives it: a worker that dies takes its message with it."
+  },
+  {
+   "term": "Dead letter exchange",
+   "def": "RabbitMQ's place for dead-lettered messages: an exchange, its routing point, that a queue republishes messages to when they can't be handled."
+  },
+  {
+   "term": "Delivery limit",
+   "def": "In a RabbitMQ quorum queue, how many times a message may be returned before it is dropped or dead-lettered."
+  },
+  {
+   "term": "Backlog light",
+   "def": "The light on the wall at Haverleigh that shows how many scans are waiting. It went amber at 23:00."
+  },
+  {
+   "term": "Worker-second",
+   "def": "One worker busy for one second. Four workers give 120 worker-seconds in 30 seconds; at 6 seconds a scan, that's 20 scans."
+  },
+  {
+   "term": "Enqueue timestamp",
+   "def": "When a message was first put on a queue. In a standard queue it stays the same when the message moves to a dead-letter queue, so its expiry clock keeps running."
+  },
+  {
+   "term": "Build Night",
+   "def": "A hands-on session in this course where you build a small working system from the cases you've finished."
+  }
+ ],
+ "atWork": "Think of a worker you can read that takes jobs from a queue, like an email sender. A common incident is a sender that crashes on one malformed address every few seconds while the outbox falls further behind. Read-only access is enough. Open the queue's settings: is there a redrive policy, what's maxReceiveCount, and does the dead-letter queue keep messages longer than its source? Is the visibility timeout longer than the slowest job? In the worker's code, find where it deletes the message: after the work, or before? What happens when one message throws: does the process exit, or is the error caught and logged with the message ID? Is there a CloudWatch alarm on the dead-letter queue's ApproximateNumberOfMessagesVisible, and who does it reach at 03:00? Build Night L5 builds exactly this: a queue with a backlog, a visibility timeout and a dead-letter queue. Build Night N3 puts a scheduler in front of a queue and workers behind it, receiving, processing and deleting the same way. In LATENT, Hands It Can Use and When It Goes in Circles meet the same problem in an agent's tool calls: a call that fails the same way every time needs a cap and a place to stop. If your company is pursuing SOC 2 with processing integrity in scope, criterion PI1.3 covers system processing, and a dead-letter queue with an alarm and a written redrive procedure is evidence that failed work is caught rather than dropped; under ISO/IEC 27001:2022 the alarm fits control A.8.16, monitoring activities.",
+ "board": {
+  "cards": [
+   { "id": "message-queues", "title": "Message queues" },
+   { "id": "acknowledgements", "title": "Acknowledgements" },
+   { "id": "visibility-timeouts", "title": "Visibility timeouts" },
+   { "id": "dead-letter-queues", "title": "Dead-letter queues" }
+  ],
+  "strings": [
+   { "from": "message-queues", "to": "offloading-slow-work-to-a-background-queue", "label": "where it began" },
+   { "from": "message-queues", "to": "acknowledgements", "label": "delete when done" },
+   { "from": "acknowledgements", "to": "visibility-timeouts", "label": "or it comes back" },
+   { "from": "visibility-timeouts", "to": "dead-letter-queues", "label": "count, then park" },
+   { "from": "visibility-timeouts", "to": "at-least-once", "label": "may run twice" },
+   { "from": "dead-letter-queues", "to": "monitoring", "label": "alarm on depth" },
+   { "from": "dead-letter-queues", "to": "retries", "label": "cap the tries" },
+   { "from": "message-queues", "to": "log-based-streams", "label": "next case" }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e03-r1",
+   "kind": "free",
+   "prompt": "Your team's thumbnail service reads jobs from an SQS queue. Since Friday, one corrupt photo has made the image library throw an error that nothing handles, and the worker process exits each time. Workers keep restarting and thumbnails are hours behind. What's happening, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The job is never deleted, so when its visibility timeout ends it comes back and kills the next worker too: a poison message",
+     "match": [
+      "poison",
+      "comes back",
+      "visible again",
+      "becomes visible",
+      "never deleted",
+      "not deleted",
+      "isn't deleted",
+      "returns to the queue"
+     ]
+    },
+    {
+     "idea": "Cap the tries: a redrive policy with maxReceiveCount moves it to a dead-letter queue",
+     "match": [
+      "dead-letter",
+      "dead letter",
+      "dlq",
+      "maxreceivecount",
+      "redrive policy",
+      "receive count",
+      "set it aside",
+      "set aside"
+     ]
+    },
+    {
+     "idea": "Catch the error in the worker so one bad job can't kill the process",
+     "match": [
+      "catch",
+      "try/catch",
+      "handle the error",
+      "handle the exception",
+      "exception handler",
+      "survive"
+     ]
+    },
+    {
+     "idea": "Alarm on the dead-letter queue, fix the cause, then redrive",
+     "match": [
+      "alarm",
+      "alert",
+      "page someone",
+      "redrive",
+      "notify",
+      "approximatenumberofmessagesvisible"
+     ]
+    }
+   ],
+   "model": "The corrupt photo is a poison message. The worker receives the job, the library throws, nothing catches it and the process exits before deleting the job. When the visibility timeout ends the job becomes visible again, the next worker receives it and dies too, so it comes back all weekend, keeping workers restarting while the real backlog grows. Catch the library's error in the worker, log the job's ID and move on, so one bad photo can't kill a process. Add a redrive policy with a dead-letter queue and a maxReceiveCount of a few, so the job is set aside after that many receives instead of coming round forever. Put a CloudWatch alarm on the dead-letter queue's ApproximateNumberOfMessagesVisible so someone looks, fix the cause, and redrive what can now be processed. Keep deleting only after the work is done."
+  },
+  {
+   "id": "s4e03-r2",
+   "kind": "mcq",
+   "prompt": "What are the default and the maximum visibility timeout for an Amazon SQS queue?",
+   "options": [
+    "0 seconds and 15 minutes",
+    "30 seconds and 14 days",
+    "30 seconds and 12 hours",
+    "60 seconds and 12 hours"
+   ],
+   "answer": 2,
+   "why": "SQS's message quotas give 30 seconds by default, 0 at least and 12 hours at most, and the 12 hours count from when the message is first received. 14 days is the longest a queue can keep a message (its retention period), and 15 minutes is the longest delay before a new message can be received."
+  },
+  {
+   "id": "s4e03-r3",
+   "kind": "mcq",
+   "prompt": "A standard queue's redrive policy has maxReceiveCount 5. One message crashes every worker that receives it, and the visibility timeout is 30 seconds. What happens to it?",
+   "options": [
+    "SQS deletes it after its 5th crash, and it is gone.",
+    "It's received 5 times; then SQS moves it to the dead-letter queue instead of handing it out again.",
+    "It comes round once every 5 visibility timeouts instead of once every one.",
+    "The worker has to count its own crashes and move the message elsewhere itself."
+   ],
+   "answer": 1,
+   "why": "SQS counts every receive that ends without a delete. Once the message has been received maxReceiveCount times, SQS moves it to the dead-letter queue the next time it would be handed out. Nothing is deleted, and the worker doesn't have to count; the crash simply means no delete came. In the sim, received from 22:00:00 to 22:02:00 and moved at 22:02:30."
+  },
+  {
+   "id": "s4e03-r4",
+   "kind": "free",
+   "prompt": "Your invoice worker takes about 45 seconds per job on busy days, and its SQS queue still has the default visibility timeout. Some customers get two copies of an invoice. Why, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The timeout ends before the work does, so the message becomes visible and a second worker takes it while the first is still working",
+     "match": [
+      "second worker",
+      "another worker",
+      "becomes visible",
+      "visible again",
+      "before the work",
+      "before it finishes",
+      "shorter than",
+      "still working",
+      "while the first"
+     ]
+    },
+    {
+     "idea": "Make the timeout longer than the work, or extend it while working with ChangeMessageVisibility as a heartbeat",
+     "match": [
+      "changemessagevisibility",
+      "heartbeat",
+      "extend the",
+      "extend it",
+      "longer than the",
+      "longer timeout"
+     ]
+    },
+    {
+     "idea": "Make the work safe to repeat: check whether the invoice has already gone out before sending",
+     "match": [
+      "idempot",
+      "already sent",
+      "already gone",
+      "already done",
+      "safe to repeat",
+      "safe to run",
+      "dedup",
+      "check first"
+     ]
+    }
+   ],
+   "model": "The default visibility timeout is 30 seconds and a busy-day job takes about 45, so the message becomes visible again while the first worker is still working. A second worker receives it and sends the invoice too, and the first worker's delete arrives late. Set the timeout longer than the slowest job, or better, have the worker extend it with ChangeMessageVisibility as a heartbeat while it works. Then make sending safe to repeat: record each invoice sent and check before sending, because SQS can deliver a message more than once anyway."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. The fix has held: two more scans for 14½ Wychbold Lane were caught, parked and sent through after another parser change. But on 3 February the address file was out of reach from 02:10 to 02:14 while its server restarted. Every scan the workers received in those minutes failed to match. The workers caught the error and took the next scan, and each failed scan came back 30 seconds later. The alarm rang at 02:12:30, and by 02:14 the dead-letter queue held 60 scans, every one received 5 times. When Ifeoma opened them, each address was perfectly readable.",
+  "prompt": "Reply to OP. Why did 60 readable scans end up in the dead-letter queue, and what should change?",
+  "keyIdeas": [
+   {
+    "idea": "The scans were fine; the failure was transient, and maxReceiveCount counts every failed receive whatever the cause, so 5 tries 30 seconds apart ran out inside the 4 minutes",
+    "match": [
+     "transient",
+     "passing failure",
+     "not the scans",
+     "nothing wrong with",
+     "were fine",
+     "counts every",
+     "temporary"
+    ]
+   },
+   {
+    "idea": "Redrive them now that the address file is back; they will go through",
+    "match": [
+     "redrive",
+     "send them back",
+     "move them back",
+     "back to the correction queue",
+     "back to the source"
+    ]
+   },
+   {
+    "idea": "Give passing failures more time: wait longer between tries (extend visibility, back off) or raise maxReceiveCount, and keep the parser's own errors on the short path",
+    "match": [
+     "backoff",
+     "back off",
+     "changemessagevisibility",
+     "wait longer",
+     "longer between",
+     "raise maxreceivecount",
+     "higher maxreceivecount",
+     "more receives"
+    ]
+   }
+  ],
+  "model": "Those scans were fine. The failure was transient: for 4 minutes the address file was out of reach, and maxReceiveCount counts every receive that ends without a delete, whatever the reason. With the timeout at 30 seconds, 5 receives took only 2 minutes, less than the outage, so the scans that arrived in its first 2 minutes, 60 of them, were parked. Redrive them now the file is back and they'll go through. Then give passing failures more room: when the error is the address file rather than the scan, wait longer before the next try, extending the message's visibility with ChangeMessageVisibility and backing off each time, or raise maxReceiveCount so the tries span several minutes. Keep the parser's own errors on the short path to the dead-letter queue, and look at what's parked before redriving it."
+ },
+ "next": "Next, The River: a dam control room, and logs of messages you can replay, split into partitions and read by consumer groups.",
+ "sources": [
+  {
+   "title": "Amazon SQS Developer Guide: Amazon SQS visibility timeout (a received message stays in the queue but is invisible to other consumers; not deleted before the timeout expires, due to application errors, crashes, or connectivity problems, it becomes visible again; default 30 seconds; too high delays reappearance; heartbeat with ChangeMessageVisibility; 12-hour limit from first receive)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Using dead-letter queues in Amazon SQS (useful for debugging; maxReceiveCount set high enough for sufficient retries; standard queues with maxReceiveCount above 3 move a message received 3 or more times to the back of the queue; enqueue timestamp unchanged; DLQ retention longer than the source)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Learn how to configure a dead-letter queue redrive in Amazon SQS (by default to the source queue; redriven messages get a new messageID and enqueueTime; custom maximum velocity up to 500 messages per second; no filtering or modifying while redriving)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-dead-letter-queue-redrive.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Creating alarms for dead-letter queues using Amazon CloudWatch (monitor a DLQ with ApproximateNumberOfMessagesVisible; poll the queue when the alarm triggers)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/dead-letter-queues-alarms-cloudwatch.html"
+  },
+  {
+   "title": "Amazon SQS Developer Guide: Amazon SQS message quotas (visibility timeout 30 seconds by default, 0 minimum, 12 hours maximum; retention 4 days by default, up to 14 days; message timer up to 15 minutes)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html"
+  },
+  {
+   "title": "Amazon SQS API Reference: ReceiveMessage (ApproximateReceiveCount, received but not deleted; a consumer still processing when the timeout expires lets another receive the same message and process duplicates; not deleted or extended in time counts as a failed receive)",
+   "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html"
+  },
+  {
+   "title": "RabbitMQ documentation: Dead Letter Exchanges (messages republished on rejection without requeue, per-message TTL expiry, queue length limit, or more returns than a quorum queue's delivery limit; configured by policy or the x-dead-letter-exchange argument)",
+   "url": "https://www.rabbitmq.com/docs/dlx"
+  }
+ ]
+}

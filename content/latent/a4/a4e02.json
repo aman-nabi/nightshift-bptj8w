@@ -1,0 +1,944 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "a4e02",
+ "season": 4,
+ "n": 2,
+ "title": "Workflows Before Agents",
+ "setting": "a factory line that runs itself",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "prompt-chaining",
+  "routing",
+  "parallel-calls",
+  "orchestrator"
+ ],
+ "prerequisites": [
+  "a1e03",
+  "a1e08",
+  "a1e09",
+  "a2e02",
+  "a2e03",
+  "a2e04",
+  "a2e05",
+  "a2e08",
+  "a3e01"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_presses_dervla",
+  "flair": "Part 1",
+  "age": "8h",
+  "votes": 3864,
+  "title": "I supervise the night presses at a small screw factory. On Thursday morning we found a purchase order nobody placed, signed by our own system at 02:20.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "Tollervey Fixings makes screws, bolts and washers in Hensbarrow. The presses run all night, and I'm the only one awake in the building after ten. Order emails used to wait for the day shift. In the summer Mrs Nanscawen, the owner, had a contractor set up an agent called orderdesk to read them overnight. It has nine tools: read_email, search_catalogue, check_stock, lookup_customer, create_sales_order, update_sales_order, draft_reply, forward_to_person and create_purchase_order. The last one is for bought-in stock, the hinges and brackets we buy to sell beside our own screws, so it could reorder when a shelf ran low. Every email that arrives goes to orderdesk, and orderdesk decides what to do with it."
+   },
+   {
+    "t": "p",
+    "text": "On Wednesday night twelve emails came in, between 22:05 and 05:45. The seventh, at 02:18, was a promotion from a supplier we sometimes buy from, Rosevear Brassware: order 400 brass hinges at 30 percent off before Friday. This is orderdesk's trace."
+   },
+   {
+    "t": "log",
+    "text": "02:18:24  orderdesk  read_email #7          from Rosevear Brassware\n02:18:48  orderdesk  search_catalogue       HG-75-BR, brass hinge 75 mm, bought-in\n02:19:12  orderdesk  check_stock HG-75-BR   36 in stock\n02:19:36  orderdesk  lookup_customer        Rosevear Brassware: not a customer\n02:20:00  orderdesk  create_purchase_order  PO-30117: 400 x HG-75-BR at 2.87 GBP, 1,148.00 GBP\n02:20:24  orderdesk  done                   Restocked HG-75-BR at 30 percent off."
+   },
+   {
+    "t": "beat",
+    "text": "Nobody in the building placed that order. Our system signed it with our name."
+   },
+   {
+    "t": "evidence",
+    "label": "orderdesk_trace_email7.png",
+    "diagram": {
+     "type": "sequence",
+     "w": 740,
+     "aria": "Email 7 at 02:18: Rosevear Brassware's promotion goes to the orderdesk agent. It searches the catalogue and finds HG-75-BR, a bought-in hinge; checks stock, 36; looks up Rosevear, not a customer; at 02:20 calls create_purchase_order, which returns PO-30117 for 400 hinges, 1,148.00 GBP, sent to Rosevear. Outcome: Rosevear's system confirms the order at 02:21.",
+     "lanes": [
+      "Email #7",
+      "orderdesk",
+      "Tools",
+      "Rosevear"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "02:18 promotion: 400 hinges"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "search_catalogue"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "HG-75-BR, bought-in"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "check_stock"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "36 in stock"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "lookup_customer"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "not a customer"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "02:20 create_purchase_order",
+       "tone": "bad"
+      },
+      {
+       "from": 2,
+       "to": 3,
+       "label": "PO-30117, 1,148.00 GBP",
+       "tone": "bad"
+      },
+      {
+       "outcome": 3,
+       "text": "02:21 order confirmed",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Drawn from orderdesk's trace for email 7. Each line is one step, a model call that picks a tool; the times are when each step ended, 24 seconds apart. Rosevear's own system confirmed PO-30117 at 02:21, and Mr Ebbrell found the confirmation at 07:30."
+   },
+   {
+    "t": "p",
+    "text": "It wasn't the only mistake. At 23:15 a gate maker asked us to change sales order SO-4471 to 3,000 washers instead of 2,000, and orderdesk made a new sales order for 3,000 more. At 00:30 a shopfitter ordered M10 x 55 hex bolts, which we don't make, and it picked M10 x 60. The trace says 61 steps for the twelve emails, 196,520 tokens in and 4,880 out, which comes to 66.28 cents at the price on the contractor's sheet: $3 a million tokens in, $15 out. Eight emails it handled right. One, from a sender with no account, it left for a person. Three were wrong."
+   },
+   {
+    "t": "p",
+    "text": "Mrs Nanscawen wants the order desk running again by Monday night. What do we change?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/gradient_ghost",
+   "points": 164,
+   "age": "7h",
+   "text": "Nothing in your office signed anything on its own; a model chose a tool. Anthropic's engineers draw a line between two shapes. An agent is a system where the model directs its own process and tool use: it decides the next step, again and again, until it decides it is done. A workflow is the other shape: model calls and tools wired together along paths your code fixes in advance. Both have their place. Two questions. Of the nine tools, which change something outside orderdesk, and which of the twelve emails could have reached each of them? And how many steps did each email take, and what did each one cost?",
+   "replies": [
+    {
+     "author": "u/night_presses_dervla",
+     "op": true,
+     "points": 81,
+     "age": "6h",
+     "text": "Four change things: create_sales_order, update_sales_order, create_purchase_order, and forward_to_person, which sends mail. Every email went into the same loop with all nine tools, so all twelve could have reached create_purchase_order. Steps ran from 2 for a trade newsletter to 9 for a jetty builder's question. Each step sends the whole conversation again, so the newsletter cost 2.34 cents and the jetty question 10.69. Its reply to the jetty builder, with a quote, was honestly good."
+    }
+   ]
+  },
+  {
+   "author": "u/days_buyer_ebbrell",
+   "points": 112,
+   "age": "6h",
+   "text": "I'm the buyer on days. I found Rosevear's confirmation at 07:30, rang them and cancelled; they were decent about it. For the record, before the agent I drew something else on the office whiteboard: a fixed chain, the same three steps for every email, in the same order, written in code. Pull the fields out of the email, check the part numbers and the account against our catalogue, then route it by type: orders to the run, supplier mail to me, questions to sales. Mrs Nanscawen said an agent could do everything my chain could and more, and she wasn't wrong about the jetty email. My chain would have left it for sales.",
+   "replies": [
+    {
+     "author": "u/night_presses_dervla",
+     "op": true,
+     "points": 37,
+     "age": "5h",
+     "text": "The presses start on the night's confirmed orders at 06:00. Four of Wednesday's were right and on that run."
+    }
+   ]
+  },
+  {
+   "author": "u/loop_maximalist_bodinnick",
+   "points": 93,
+   "age": "5h",
+   "text": "Agents are the future; a chain is just a script with extra steps. Your agent got 8 of 12 right on its first night, with a prompt somebody wrote in an afternoon. Give it a proper prompt with worked examples: a supplier promotion and what to do with it, an order change, a part number that doesn't exist. That's few-shot prompting, and models learn from examples. Rip it out for a flowchart and the first odd email breaks it.",
+   "replies": [
+    {
+     "author": "u/night_presses_dervla",
+     "op": true,
+     "points": 22,
+     "age": "4h",
+     "text": "Mrs Nanscawen likes this one. She says it's cheaper than starting again."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "The order desk has to run again on Monday night. What should Tollervey Fixings change? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Replace the agent with a fixed chain: extract each email, check it against the catalogue, route it by type, and measure every step.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Mr Ebbrell built the chain over the weekend: one model call to extract each email's fields into a JSON schema, then code that checks every part number and account against the catalogue, then code that routes by type. On Monday he ran Wednesday's twelve through it. Nine right, three left for a person (the M10 x 55 order, which failed the catalogue check, the sender with no account, and the jetty question), none wrong. Twelve model calls and 36 steps, 5.32 cents against 66.28. Rosevear's promotion went to the purchasing inbox, because the chain has no step that can buy anything, whatever an email says. Five right orders would have made the 06:00 run, against the agent's four. He logs every step for every email: what extraction pulled out, what the check said, where each one went. Then he added one model call for the open step, the questions: it drafts a reply and quote for sales to send. Ten right, two left for a person, 6.42 cents.",
+    "senior": "Customer order emails are a known task with known types, so the steps can be fixed in code, and a fixed path is a safe one: no email can reach a step that isn't in it. Measure each step on a known set, and spend a model only where the work is open, such as a question that needs a quote."
+   },
+   {
+    "text": "Keep the agent, and give it a longer prompt with worked examples: a promotion, an order change and a part number that does not exist.",
+    "tone": "bad",
+    "verdict": "Right on twelve, open to the next",
+    "part2": "The contractor wrote 1,500 tokens of worked examples, one for each of Wednesday's mistakes, and reran the twelve. Ten right, two left for a person, none wrong, no purchase order. The bill went up to 93.73 cents, because every one of the 61 steps resends the longer prompt. Mrs Nanscawen was pleased. But the stat at the bottom of the run hadn't moved: twelve emails could still reach create_purchase_order. The examples were written from the very emails they were tested on. The next Tuesday a different supplier sent a reorder reminder, worded like none of the examples, and orderdesk raised a purchase order again, signed with the factory's name.",
+    "senior": "Examples teach a model what you showed it; they don't remove a path. Testing on the same emails the examples came from proves little. While a customer email can reach a buying tool, the next email worded differently can use it."
+   },
+   {
+    "text": "Keep the agent, and add a second agent that checks every sales order and purchase order the first one makes before it is saved.",
+    "tone": "bad",
+    "verdict": "Two readers, one blind spot",
+    "part2": "The checker read each email and each action orderdesk proposed: seven checks on Wednesday's twelve, 68 model calls, 69.57 cents. It caught one mistake: M10 x 60 wasn't written in the shopfitter's email, so it sent that order to a person. It approved the other two. The new order for 3,000 more washers matched the gate maker's words, and PO-30117 matched Rosevear's: 400 brass hinges, 30 percent off. Both read like orders, because both emails said order. Eight right, two wrong, one purchase order for 1,148.00 GBP, approved twice.",
+    "senior": "A second model reading the same persuasive email tends to agree with the first. A checker earns its place when it has a clear criterion it can test, and the clearest ones here, is this part in the catalogue, is this sender a customer, are code. It does nothing to remove the path to the buying tool."
+   },
+   {
+    "text": "Switch the agent off, and have a person read every order email each morning at 07:30, before the day shift starts on the presses.",
+    "tone": "warn",
+    "verdict": "Trade-off: safe, and a day late",
+    "part2": "Nothing went wrong, and nothing cost a cent in model calls. Every one of Wednesday's twelve would have waited for 07:30. The 06:00 run would have started with none of the night's orders, where the agent got four right onto it and a fixed chain five. The boatyard's 2,000 stainless bolts would have been pressed the next night. Mr Ebbrell spent his first hour each morning reading mail the night could have sorted.",
+    "senior": "A person reading everything is safe and simple, and it's the honest fallback while you build. It costs a day on every overnight order. Most of these emails are routine and checkable, which is exactly the work a fixed chain can do safely at night, leaving the person only the ones that fail a check."
+   }
+  ]
+ },
+ "sim": {
+  "module": "a4e02",
+  "title": "Run Wednesday night's twelve emails",
+  "lede": "You're Dervla at 22:00 on Wednesday, before the first email. The sim holds the night's twelve emails, 22:05 to 05:45, each with its size in tokens and the number of steps orderdesk's trace shows for it. No real model runs: each way of handling the mail follows stated rules. The agent resends its whole context on every step: a 700-token system prompt, 200 tokens for each tool definition, the email, and 200 more tokens for each earlier step (an 80-token output and a 120-token tool result). Each step takes 24 seconds, and the times shown are when a step ended. The longer prompt adds 1,500 tokens of worked examples. The checker agent, a second agent that checks the first, makes one call per action the first agent proposes and, by its stated rule, rejects an action only when its part number isn't written in the email. The fixed chain makes one model call per email, extraction into a JSON schema (600 tokens plus the email in, 120 out); the catalogue check and the routing by type are code. The open step is the one email that asks an open question, the jetty builder's: with a model there, one more call (1,400 tokens plus the email in, 400 out) drafts a reply and quote for sales. The token sizes and the 24 seconds are teaching values. Prices are the contractor's sheet: $3 a million tokens in, $15 out. Rosevear's system confirming at 02:21 is given data.",
+  "tryThis": "Try this: run the night as it was, the agent with nine tools. 8 right, 1 waits, 3 wrong, 61 steps, 196,520 tokens in, 66.28 cents, and email 7 raises PO-30117 at 02:20:00; twelve emails could reach create_purchase_order. Switch to the fixed chain: 9 right, 3 wait, 0 wrong, 12 model calls, 5.32 cents, and the promotion lands in the purchasing inbox. Add a model at the open step: 10 right, 6.42 cents. Back to the agent with the longer prompt: 10 right and 0 wrong on these twelve, 93.73 cents, and still twelve emails that could reach the buying tool. Try the checker: 68 calls, 69.57 cents, and it approves PO-30117. Take the purchase order tool away: no purchase order, but the washers and the M10 bolts are still wrong. Then a person at 07:30: nothing wrong, and nothing on the 06:00 run."
+ },
+ "explain": {
+  "oneLine": "Nothing placed that order but a model choosing a tool. Every email, customer or not, went into one loop that held nine tools, including one that buys, and at 02:20 the model chose it. A fixed chain for customer orders has no buying step, so no email can reach one.",
+  "steps": [
+   {
+    "title": "orderdesk was an agent: it chose its own path.",
+    "text": "Anthropic's Building effective agents (December 2024) says workflows are systems where LLMs and tools are orchestrated through predefined code paths, and agents are systems where LLMs dynamically direct their own processes and tool usage. orderdesk was the second kind. For each email it decided the next tool, then the next, from 2 steps for the newsletter to 9 for the jetty question, 61 in all. Each step is a model call that resends the whole conversation, so cost grows faster than the steps do."
+   },
+   {
+    "title": "Every email could reach every tool.",
+    "text": "The trouble isn't that the model misread a promotion; models will sometimes misread. It is that a supplier's email, untrusted content, entered the same loop as the customers' and the loop held create_purchase_order. All twelve emails had a path to it. A better prompt lowers the odds of taking that path on the emails you tested; it doesn't remove the path. A fixed chain for order mail has three steps, extract, check, route, and none of them buys. That makes it safe by its shape, not only cheaper."
+   },
+   {
+    "title": "Five shapes to build from, simplest first.",
+    "text": "The same post names the building blocks. Prompt chaining decomposes a task into a sequence of steps, where each LLM call processes the output of the previous one, with gates, programmatic checks, to ensure the process is still on track: Mr Ebbrell's chain, with the catalogue check as the gate. Routing classifies an input and directs it to a specialized followup task. Parallelization runs pieces at once, by sectioning or voting. In orchestrator-workers a central LLM dynamically breaks down tasks, delegates them to worker LLMs, and synthesizes their results. In evaluator-optimizer one LLM call generates a response while another provides evaluation and feedback in a loop. Its advice is to find the simplest solution possible, and only increase complexity when needed."
+   },
+   {
+    "title": "Measure each step, not just the end.",
+    "text": "On Wednesday's twelve, the agent took 61 model calls, 66.28 cents and made 3 mistakes; the chain took 12 calls and 36 steps, 5.32 cents and made none, leaving 3 emails for a person. A chain can be measured step by step: did extraction pull the right fields, did the catalogue check pass or fail and why, where did the route send it. When the end result drifts, you can see which step moved. The post says chaining trades off latency for higher accuracy, by making each LLM call an easier task."
+   },
+   {
+    "title": "Where an agent earns its cost.",
+    "text": "The jetty builder's question had no fixed steps: which fixings, how many for 40 m of salt water, at what price. The post says agents can be used for open-ended problems where it is difficult or impossible to predict the required number of steps, and warns that their autonomous nature means higher costs, and the potential for compounding errors. So put a model only at that open step, inside the chain, with read-only lookups and a draft for sales to send. Routing sends it only the questions."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 350,
+   "aria": "The fix. An email comes in and goes through three fixed steps: 1, extract, one model call into a JSON schema; 2, check against the catalogue and accounts, in code; 3, route by type, in code. From the route, orders and changes go to the 06:00 run, supplier mail to the purchasing inbox, and open questions to a model that drafts a reply for sales. Emails that fail the check go to a person at 07:30. No step can create a purchase order. Wednesday's twelve: 10 right, 2 wait, 0 wrong, 6.42 cents.",
+   "nodes": [
+    {
+     "id": "mail",
+     "label": "Email in",
+     "sub": "12 tonight",
+     "x": 80,
+     "y": 90,
+     "w": 120,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "extract",
+     "label": "1 Extract",
+     "sub": "one model call",
+     "meta": "into a JSON schema",
+     "x": 250,
+     "y": 90,
+     "w": 160,
+     "h": 72,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "check",
+     "label": "2 Check",
+     "sub": "catalogue, accounts",
+     "meta": "code, no model",
+     "x": 450,
+     "y": 90,
+     "w": 160,
+     "h": 72,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "route",
+     "label": "3 Route by type",
+     "sub": "code, no model",
+     "meta": "six types",
+     "x": 640,
+     "y": 90,
+     "w": 160,
+     "h": 72,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "run",
+     "label": "Orders, changes",
+     "sub": "the 06:00 run",
+     "meta": "5 right",
+     "x": 95,
+     "y": 260,
+     "w": 150,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "buy",
+     "label": "Supplier mail",
+     "sub": "purchasing inbox",
+     "meta": "promotion lands here",
+     "x": 270,
+     "y": 260,
+     "w": 150,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "person",
+     "label": "Failed check",
+     "sub": "a person, 07:30",
+     "meta": "2 tonight",
+     "x": 445,
+     "y": 260,
+     "w": 150,
+     "h": 72,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "draft",
+     "label": "Open question",
+     "sub": "a model drafts",
+     "meta": "sales sends it",
+     "x": 620,
+     "y": 260,
+     "w": 150,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "mail",
+     "to": "extract"
+    },
+    {
+     "from": "extract",
+     "to": "check"
+    },
+    {
+     "from": "check",
+     "to": "route"
+    },
+    {
+     "from": "check",
+     "to": "person",
+     "tone": "warn"
+    },
+    {
+     "from": "route",
+     "to": "run",
+     "via": [
+      [
+       640,
+       170
+      ],
+      [
+       95,
+       170
+      ]
+     ]
+    },
+    {
+     "from": "route",
+     "to": "buy"
+    },
+    {
+     "from": "route",
+     "to": "draft"
+    }
+   ],
+   "notes": [
+    {
+     "x": 370,
+     "y": 24,
+     "text": "Wednesday's twelve: 10 right, 2 wait, 0 wrong, 6.42 cents",
+     "tone": "",
+     "anchor": "middle"
+    },
+    {
+     "x": 370,
+     "y": 340,
+     "text": "No step can create a purchase order.",
+     "tone": "ok",
+     "anchor": "middle"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for Monday night. Every email takes the same three steps. Extraction is the only model call for most of them; the catalogue check and the route are code. Orders and changes go to the 06:00 run, supplier mail and invoices to a person's inbox, the newsletter to the archive, delivery questions to a reply drafted from the dispatch record, and the one open question to a model that drafts for sales. The M10 x 55 order and the sender with no account fail the check and wait for a person.",
+  "fix": {
+   "title": "The fix: a fixed chain for order mail, a model only where the work is open",
+   "text": "Replace the agent with a fixed chain. Step 1, one model call extracts each email's type, sender, part numbers and quantities into a JSON schema, using structured outputs so the fields always parse. Step 2, code checks every part number and the sender's account against the catalogue; anything that fails goes to a person. Step 3, code routes by type: orders and order changes to the 06:00 run, supplier mail to purchasing, questions to sales. No step can buy. Add a model at the open step, a drafting call for questions, with read-only lookups and a draft that sales sends. Log every step for every email and measure each one on a known set, such as Wednesday's twelve, before any change goes live."
+  },
+  "limits": [
+   "A chain only knows the types you wrote. An email that fits none of them, a new kind of request or a customer writing in an odd way, goes to a person, so someone has to read that queue and add types when it grows.",
+   "Extraction is still a model, and it can misread a quantity that passes the catalogue check, such as 3,000 read as 300. The check catches parts and accounts that don't exist, not every misread; spot-check a sample and compare against the customer's email.",
+   "Twelve emails are a small test. They show the shape of each way, not its rate of mistakes; keep adding real nights, especially the odd ones, to the known set before trusting a number."
+  ],
+  "tradeoff": {
+   "head": [
+    "Way (Wednesday's twelve)",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "The agent, nine tools (as that night)",
+     "Drafted a good quote for the jetty question.",
+     "3 wrong, 1 purchase order, 61 calls, 66.28 cents. All twelve could reach the buying tool."
+    ],
+    [
+     "The agent, longer prompt",
+     "0 wrong on the twelve the examples came from.",
+     "93.73 cents, and all twelve could still reach the buying tool."
+    ],
+    [
+     "The agent plus a checker agent",
+     "Caught the M10 x 60 guess.",
+     "Approved the washers and PO-30117. 68 calls, 69.57 cents."
+    ],
+    [
+     "The agent, eight tools",
+     "No purchase order possible.",
+     "Still 2 wrong, 62.62 cents."
+    ],
+    [
+     "Fixed chain",
+     "0 wrong, 12 calls, 5.32 cents, no buying step, each step measurable.",
+     "3 left for a person, including the jetty question."
+    ],
+    [
+     "Fixed chain plus a model at the open step",
+     "10 right, 0 wrong, 6.42 cents, 5 right orders on the 06:00 run.",
+     "2 still wait for a person; the chain needs types kept up to date."
+    ],
+    [
+     "A person at 07:30",
+     "Nothing wrong, no model cost.",
+     "Every email waits; nothing on the 06:00 run."
+    ]
+   ]
+  },
+  "seniorTake": "Start from the simplest thing that does the job and add autonomy only where the work needs it. When the task has known types and checkable facts, a fixed chain is usually cheaper, easier to measure and safe by its shape: a step that isn't there can't be talked into. Keep agents for the open work you can't script, give them only the tools that work needs, and measure every step either way.",
+  "realWorld": [
+   {
+    "title": "Anthropic: workflows and agents, December 2024",
+    "text": "Building effective agents, by Erik S. and Barry Zhang, says workflows are systems where LLMs and tools are orchestrated through predefined code paths, and agents are systems where LLMs dynamically direct their own processes and tool usage. It recommends finding the simplest solution possible, and only increasing complexity when needed, and says agentic systems often trade latency and cost for better task performance. For many applications, it adds, optimizing single LLM calls with retrieval and in-context examples is usually enough.",
+    "source": 0
+   },
+   {
+    "title": "Anthropic: when each pattern fits",
+    "text": "The post says prompt chaining is ideal for situations where the task can be easily and cleanly decomposed into fixed subtasks; routing works well for complex tasks where there are distinct categories that are better handled separately, with directing different types of customer service queries (general questions, refund requests, technical support) as its example; orchestrator-workers is well-suited for complex tasks where you can't predict the subtasks needed; and evaluator-optimizer is particularly effective when we have clear evaluation criteria.",
+    "source": 0
+   },
+   {
+    "title": "Anthropic: what agents cost",
+    "text": "Agents can be used for open-ended problems where it's difficult or impossible to predict the required number of steps. The same post says the autonomous nature of agents means higher costs, and the potential for compounding errors, and recommends extensive testing in sandboxed environments, along with the appropriate guardrails. Its summary asks for simplicity, transparency by explicitly showing the agent's planning steps, and a carefully crafted agent-computer interface through thorough tool documentation and testing.",
+    "source": 0
+   },
+   {
+    "title": "Anthropic docs: structured outputs for the extract step",
+    "text": "Anthropic's structured outputs page (read 11 October 2026) says structured outputs constrain Claude's responses to follow a specific schema, ensuring valid, parseable output for downstream processing, through constrained decoding. It offers JSON outputs, to get a response in a specific JSON format, for example to extract data from images or text, and strict tool use, to guarantee schema validation on tool names and inputs. Without them, it says, you may meet parsing errors from invalid JSON syntax and missing required fields. It also warns that string enum values aren't guaranteed in capitalization, so a router reading a type field should compare without case.",
+    "source": 1
+   }
+  ],
+  "interview": {
+   "asked": [
+    "When would you not use an agent?",
+    "What is an orchestrator-workers workflow?",
+    "How do you measure a multi-step LLM pipeline?"
+   ],
+   "answer": "I wouldn't use an agent when the task has known steps and known types, such as sorting order emails, because a fixed workflow is usually cheaper, faster and safe by its shape: an input can only reach the steps you wired, so a tool that changes the world isn't reachable from untrusted text. I start with one well-made call, then a chain with gates, then routing, and add autonomy only for open-ended work where I can't predict the steps. Orchestrator-workers is the pattern where a central model breaks a task into subtasks it decides at run time, hands each to a worker model, and combines the results; it suits work like research or code changes across unknown files. To measure a multi-step pipeline, I keep a known set of real inputs with agreed answers, log every step's input and output, and score each step on its own, extraction fields, check results, routes, as well as the end result, along with cost and latency per step. When the end score drops, the step scores show where."
+  }
+ },
+ "terms": [
+  {
+   "term": "Fastener",
+   "def": "A screw, bolt, nut, washer or rivet: anything that holds things together. Tollervey Fixings presses them from wire."
+  },
+  {
+   "term": "Night presses",
+   "def": "The machines that form screws and bolts from wire, run through the night with one supervisor. Dervla supervises them."
+  },
+  {
+   "term": "Day shift",
+   "def": "The staff who work in the daytime. At Tollervey they arrive at 07:30, after the 06:00 run has started."
+  },
+  {
+   "term": "The 06:00 run",
+   "def": "The production run that starts at 06:00 on the orders confirmed overnight. An order that misses it is made later."
+  },
+  {
+   "term": "orderdesk",
+   "def": "The agent the factory's contractor set up to read order emails overnight, with nine tools. Its name is on every record it makes."
+  },
+  {
+   "term": "The nine tools",
+   "def": "orderdesk's tools: read_email, search_catalogue, check_stock, lookup_customer, create_sales_order, update_sales_order, draft_reply, forward_to_person and create_purchase_order."
+  },
+  {
+   "term": "Sales order",
+   "def": "The factory's record of what a customer ordered, which the presses work from. SO-4471 is the gate maker's."
+  },
+  {
+   "term": "Bought-in stock",
+   "def": "Goods a factory buys from others to sell beside its own, such as Tollervey's hinges. create_purchase_order was added to reorder them."
+  },
+  {
+   "term": "Catalogue",
+   "def": "The factory's list of every part it sells, each with a part number. A part number not in it doesn't exist."
+  },
+  {
+   "term": "Part number",
+   "def": "A code for one exact part, such as HG-75-BR for a 75 mm brass hinge, so nobody has to guess from a description."
+  },
+  {
+   "term": "Account (customer)",
+   "def": "A customer the factory has agreed to supply on credit, with a record it can look up. A sender with no account gets no order made automatically."
+  },
+  {
+   "term": "M8, M10 x 55",
+   "def": "Metric bolt sizes: M10 is 10 mm across the thread, and x 55 is 55 mm long. Tollervey makes M10 x 50 and M10 x 60, not 55."
+  },
+  {
+   "term": "Hex bolt, coach screw, washer",
+   "def": "Common fasteners: a bolt with a six-sided head; a heavy wood screw with a bolt-like head; a flat ring that spreads a bolt's load."
+  },
+  {
+   "term": "Promotion",
+   "def": "A sales email from a supplier offering a deal, such as Rosevear's 400 hinges at 30 percent off. It asks for an order; it isn't one."
+  },
+  {
+   "term": "GBP",
+   "def": "Pounds sterling. PO-30117 was for 400 hinges at 2.87 GBP each, 1,148.00 GBP."
+  },
+  {
+   "term": "Workflow",
+   "def": "Anthropic's word for a system where model calls and tools follow paths fixed in code in advance. The code, not the model, decides the next step."
+  },
+  {
+   "term": "Agentic system",
+   "def": "Anthropic's umbrella term for both workflows and agents: any system built from model calls and tools."
+  },
+  {
+   "term": "Step",
+   "def": "One move in a process. For an agent, one model call that picks a tool or finishes. For a fixed chain, one of its fixed stages, a model call or code."
+  },
+  {
+   "term": "Model call",
+   "def": "One request to a model and its reply. An agent resends the whole conversation on every call, so later calls cost more input tokens."
+  },
+  {
+   "term": "Fixed chain",
+   "def": "A workflow whose steps are the same for every input, in the same order, written in code. Mr Ebbrell's: extract, check against the catalogue, route by type."
+  },
+  {
+   "term": "Route by type",
+   "def": "Sending each email to the next step for its kind, such as orders to the run and supplier mail to purchasing. Here it is code reading the type field."
+  },
+  {
+   "term": "Path (to a tool)",
+   "def": "A way an input can end up triggering a tool. In an agent's loop, every input has a path to every tool the loop holds."
+  },
+  {
+   "term": "Safe by its shape",
+   "def": "Safe because the harmful step isn't in the design at all, rather than because a model is asked not to take it."
+  },
+  {
+   "term": "Open step",
+   "def": "A step whose work can't be scripted in advance, such as answering the jetty builder's question with a quote. Here, the one place a model drafts freely."
+  },
+  {
+   "term": "Checker agent",
+   "def": "A second agent that reads what the first proposes and approves or rejects it. In the sim it rejects only an action whose part number isn't in the email."
+  },
+  {
+   "term": "Known set",
+   "def": "A fixed set of real inputs whose right handling is agreed in advance, kept to measure each version. Here, Wednesday night's twelve emails."
+  },
+  {
+   "term": "Prompt chaining",
+   "def": "Anthropic's pattern of splitting a task into a sequence of steps, each model call working on the previous one's output, with checks between steps."
+  },
+  {
+   "term": "Gate",
+   "def": "In prompt chaining, a check in code between steps that stops or diverts the work if it is off track, like the catalogue check."
+  },
+  {
+   "term": "Parallelization",
+   "def": "Anthropic's pattern of running model calls at once and combining their outputs in code, by sectioning or voting."
+  },
+  {
+   "term": "Sectioning",
+   "def": "Parallelization by splitting a task into independent parts run at the same time, such as checking twelve contract risks separately."
+  },
+  {
+   "term": "Voting",
+   "def": "Parallelization by running the same task several times and combining the answers, such as taking the majority of three reviews."
+  },
+  {
+   "term": "Orchestrator-workers",
+   "def": "Anthropic's pattern where a central model, the orchestrator, breaks a task into subtasks at run time, hands each to a worker model, and combines their results."
+  },
+  {
+   "term": "Evaluator-optimizer",
+   "def": "Anthropic's pattern where one model call writes a response and another evaluates it and gives feedback, in a loop, until it passes."
+  },
+  {
+   "term": "Compounding errors",
+   "def": "Mistakes that build on each other: an early wrong step feeds the next, so a long run can end far from right."
+  },
+  {
+   "term": "Sandbox",
+   "def": "A walled-off place to run something, such as an agent with test data and fake tools, where its mistakes can't reach real systems."
+  },
+  {
+   "term": "Guardrail",
+   "def": "A limit or check around a model that blocks harmful actions or outputs, such as a code check before any order is saved."
+  },
+  {
+   "term": "Agent-computer interface (ACI)",
+   "def": "Anthropic's name for the tools and tool documentation an agent works through, which it says deserve as much care as a user interface."
+  },
+  {
+   "term": "JSON outputs",
+   "def": "Anthropic's structured outputs feature that makes a reply follow a given JSON schema, such as the extract step's fields."
+  },
+  {
+   "term": "Teaching value",
+   "def": "A number set for the sim to make the arithmetic clear, such as 24 seconds a step or 200 tokens a step. Not a measurement."
+  },
+  {
+   "term": "Triage",
+   "def": "Sorting incoming work by what it is and how urgent, so each piece goes to the right queue."
+  },
+  {
+   "term": "Support ticket",
+   "def": "One customer request in a support team's system, with its messages and status."
+  },
+  {
+   "term": "Controlled conditions (ISO 9001)",
+   "def": "ISO 9001:2015 clause 8.5.1: production and service provision carried out under controlled conditions, such as documented steps, suitable checks and qualified people."
+  },
+  {
+   "term": "Contractor",
+   "def": "An outside developer hired for a job. Tollervey's set up orderdesk and wrote its prompt."
+  }
+ ],
+ "atWork": "Look for a model in your systems that decides its own steps for work whose steps are known. A common incident: a support team's ticket triage handed to an agent with tools to read tickets, search the help centre, tag, reply and close. It took several calls per ticket, was slow at busy hours, and now and then closed a ticket it should have tagged. A router did the same job well: one call that classifies each ticket into a fixed set of types with a JSON schema, code that checks the account and the product, and code that sends each type to its queue. Write down the tools your agent holds and which inputs can reach the ones that change things. Count calls, tokens and mistakes per item on a known set of real inputs, run the same set through a fixed chain, and keep the agent only for the open work the chain leaves behind. Standards-readiness note: if order or request emails feed production at a company that holds or is pursuing ISO 9001:2015 certification, clause 8.5.1 asks that production and service provision happen under controlled conditions; an order that an agent can create from any email, with no documented check, is the kind of gap an auditor raises, so a fixed chain with a logged catalogue check and a person for anything that fails is easier to show as controlled. Build it in now rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "prompt-chaining",
+    "title": "Prompt chaining"
+   },
+   {
+    "id": "routing",
+    "title": "Routing"
+   },
+   {
+    "id": "parallel-calls",
+    "title": "Parallel calls"
+   },
+   {
+    "id": "orchestrator",
+    "title": "Orchestrator"
+   }
+  ],
+  "strings": [
+   {
+    "from": "agents",
+    "to": "prompt-chaining",
+    "label": "simplest first"
+   },
+   {
+    "from": "prompt-chaining",
+    "to": "routing",
+    "label": "route by type"
+   },
+   {
+    "from": "routing",
+    "to": "parallel-calls",
+    "label": "split the work"
+   },
+   {
+    "from": "parallel-calls",
+    "to": "orchestrator",
+    "label": "unknown subtasks"
+   },
+   {
+    "from": "prompt-chaining",
+    "to": "structured-output",
+    "label": "extract to schema"
+   },
+   {
+    "from": "agents",
+    "to": "tool-calling",
+    "label": "nine tools"
+   },
+   {
+    "from": "agents",
+    "to": "excessive-agency",
+    "label": "the 02:20 order"
+   },
+   {
+    "from": "orchestrator",
+    "to": "multi-agent-systems",
+    "label": "many hands"
+   },
+   {
+    "from": "agents",
+    "to": "memory",
+    "label": "next: memory"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "a4e02-r1",
+   "kind": "free",
+   "prompt": "A finance team wants an agent to handle supplier invoices overnight: read each PDF, match it to a purchase order, and schedule the payment, with tools for all three plus email. Almost every invoice comes in one of four layouts. What do you build, and how will you know it works?",
+   "keyIdeas": [
+    {
+     "idea": "A fixed workflow, not an agent: the steps are known, so code fixes them (extract, match, route)",
+     "match": [
+      "fixed chain",
+      "workflow",
+      "same steps",
+      "fixed steps",
+      "predefined",
+      "in code"
+     ]
+    },
+    {
+     "idea": "Gates in code: match each invoice against the purchase order records, and send anything that fails to a person",
+     "match": [
+      "a gate",
+      "gates in code",
+      "code checks",
+      "check in code",
+      "against the records",
+      "against our records",
+      "fails the match",
+      "doesn't match",
+      "does not match",
+      "mismatch"
+     ]
+    },
+    {
+     "idea": "No path from an invoice to the payment tool: payments wait for a person's approval",
+     "match": [
+      "no path",
+      "cannot reach",
+      "can't reach",
+      "no payment tool",
+      "approv",
+      "sign-off",
+      "sign off",
+      "safe by its shape"
+     ]
+    },
+    {
+     "idea": "Measure each step on a known set of real invoices, with cost per invoice",
+     "match": [
+      "each step",
+      "per step",
+      "every step",
+      "known set",
+      "golden set",
+      "test set",
+      "real invoices"
+     ]
+    }
+   ],
+   "model": "Don't build an agent; the steps are known. Build a fixed chain in code: one model call extracts each invoice's supplier, purchase order number, lines and total into a JSON schema; code matches them against the purchase order records, which is the gate, and anything that doesn't match goes to a person; code routes the rest. Leave the payment out of the chain entirely: a matched invoice joins a payment run that a person approves, so no invoice text has a path to the payment tool and the design is safe by its shape. To know it works, keep a known set of real invoices from all four layouts, with the right handling agreed, and measure each step on it, what extraction pulled, what the match said, where each went, with cost and time per invoice, before and after every change."
+  },
+  {
+   "id": "a4e02-r2",
+   "kind": "mcq",
+   "prompt": "Why could Rosevear Brassware's promotion become a purchase order at 02:20?",
+   "options": [
+    "The promotion hid instructions in white text that told orderdesk to buy",
+    "Every email went into one loop that held create_purchase_order, and the model chose it",
+    "The catalogue showed HG-75-BR as low on stock, so buying was the right call",
+    "Rosevear's system raised the order and orderdesk only recorded it"
+   ],
+   "answer": 1,
+   "why": "Nothing was hidden: the email said order 400 brass hinges at 30 percent off, and it said it plainly. orderdesk ran every email through one loop with all nine tools, so a supplier's email had a path to create_purchase_order, and at step 5 the model took it. The stock check said 36, but nobody had asked for a reorder, and Rosevear's system only confirmed what orderdesk raised."
+  },
+  {
+   "id": "a4e02-r3",
+   "kind": "mcq",
+   "prompt": "A legal team must check each contract for twelve separate risks. Each check is independent of the others, and the results are combined into one report. Which of Anthropic's patterns fits best?",
+   "options": [
+    "Prompt chaining: each risk check takes the previous check's output",
+    "Routing: classify the contract and send it to one specialist prompt",
+    "Parallelization by sectioning: run the twelve checks at once and combine them in code",
+    "An agent that decides which risks to look at"
+   ],
+   "answer": 2,
+   "why": "The twelve checks are independent and known in advance, which is what sectioning is for: run them at the same time and combine the results in code. Chaining would make each wait for the last with no reason to, routing would pick only one, and an agent would decide for itself which risks to check, which is the opposite of what a legal team needs."
+  },
+  {
+   "id": "a4e02-r4",
+   "kind": "free",
+   "prompt": "Your team's chain extracts fields from support tickets, classifies them and routes them to queues. This month the share of tickets that end up in the right queue fell, and nobody knows why. Where do you look, and what would you have wanted in place beforehand?",
+   "keyIdeas": [
+    {
+     "idea": "Score each step on its own (extraction, classification, routing), not only the end result",
+     "match": [
+      "each step",
+      "per step",
+      "every step",
+      "step on its own",
+      "step separately",
+      "which step"
+     ]
+    },
+    {
+     "idea": "A known set of real tickets with agreed answers, rerun after every change",
+     "match": [
+      "known set",
+      "golden set",
+      "test set",
+      "labelled",
+      "labeled",
+      "agreed answers",
+      "rerun",
+      "re-run"
+     ]
+    },
+    {
+     "idea": "Log every step's input and output for every ticket, so you can trace where it went wrong",
+     "match": [
+      "log each",
+      "log every",
+      "logs",
+      "trace",
+      "input and output",
+      "record each"
+     ]
+    },
+    {
+     "idea": "Look for what changed: a prompt, a model version, or a new kind of ticket the types don't cover",
+     "match": [
+      "what changed",
+      "prompt version",
+      "model version",
+      "new kind",
+      "new type",
+      "doesn't fit",
+      "do not fit",
+      "drift"
+     ]
+    }
+   ],
+   "model": "Look at each step on its own. Pull this month's tickets and see, for each one, what extraction produced, what class it got and where the route sent it; the step whose results moved is your culprit. That needs logs of every step's input and output for every ticket, which you should have had already. Then ask what changed: a prompt version, a model version behind an alias, or a new kind of ticket that none of your types covers and that the classifier forces into the nearest one. Beforehand you'd want a known set of real tickets with agreed answers, scored per step and rerun after every change, so a drop shows up before customers notice it."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. The fixed chain has run every night since, and nothing has bought anything it shouldn't. Quote requests like the jetty builder's have grown: about one email in five now asks which fixings to use and what they would cost. The contractor has proposed letting an agent handle quotes end to end, with the catalogue, stock, the price list and the email tools, so customers get a priced reply by morning without sales touching it.",
+  "prompt": "Reply to OP. Where does an agent belong in the order desk now, and what should it hold?",
+  "keyIdeas": [
+   {
+    "idea": "Keep the chain; the agent sits only at the open step, and routing sends it only quote requests",
+    "match": [
+     "open step",
+     "only quote",
+     "only the quote",
+     "quote requests only",
+     "inside the chain",
+     "route them to",
+     "routed to it",
+     "keep the chain"
+    ]
+   },
+   {
+    "idea": "Read-only tools and a draft, never send or order: least privilege",
+    "match": [
+     "read-only",
+     "read only",
+     "draft",
+     "no send",
+     "cannot send",
+     "can't send",
+     "least privilege"
+    ]
+   },
+   {
+    "idea": "A person approves the price before anything goes to the customer",
+    "match": [
+     "approv",
+     "sign-off",
+     "sign off",
+     "sales sends",
+     "a person sends",
+     "before it goes"
+    ]
+   },
+   {
+    "idea": "Limit and measure it: a step cap, cost per quote, and quality on a known set of real quote requests",
+    "match": [
+     "step cap",
+     "step limit",
+     "call cap",
+     "max steps",
+     "cost per quote",
+     "known set",
+     "golden set"
+    ]
+   }
+  ],
+  "model": "An agent can earn its cost here, because a quote is open work: which fixings, how many, what substitutes, you can't predict the steps. But it belongs at the open step only. Keep the chain in front: extraction and routing send it quote requests and nothing else, so an order or a supplier's promotion never reaches it. Give it read-only tools, the catalogue, stock and the price list, and one way out: a draft. No send tool and no order tool, which is least privilege. A person in sales approves the price and sends it, since a quote is a promise the factory has to keep. Give it a step cap so a hard question can't run up the bill, and measure it on a known set of real quote requests: right parts, right counts, right prices, cost per quote, before it drafts a single real one."
+ },
+ "next": "Next, What It Remembers: a diary that writes back, and memory for agents: working state, long-term memory, summarizing and retrieval memory.",
+ "sources": [
+  {
+   "title": "Erik S. and Barry Zhang, Building effective agents, Anthropic Engineering, published 19 December 2024, read 11 October 2026: workflows are systems where LLMs and tools are orchestrated through predefined code paths; agents are systems where LLMs dynamically direct their own processes and tool usage; finding the simplest solution possible, and only increasing complexity when needed; agentic systems often trade latency and cost for better task performance; prompt chaining, routing, parallelization (sectioning, voting), orchestrator-workers, evaluator-optimizer; agents for open-ended problems; higher costs, and the potential for compounding errors",
+   "url": "https://www.anthropic.com/engineering/building-effective-agents"
+  },
+  {
+   "title": "Anthropic, Structured outputs (Claude Platform docs), read 11 October 2026: structured outputs constrain Claude's responses to follow a specific schema, ensuring valid, parseable output for downstream processing; JSON outputs and strict tool use; constrained decoding; without them, parsing errors from invalid JSON syntax and missing required fields; string enum capitalization is not guaranteed",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs"
+  },
+  {
+   "title": "ISO 9001:2015, Quality management systems, Requirements: clause 8.5.1, control of production and service provision (controlled conditions)",
+   "url": "https://www.iso.org/standard/62085.html"
+  }
+ ]
+}
