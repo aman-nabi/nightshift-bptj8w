@@ -1,67 +1,54 @@
 /* sims/a4e03-v1.0.0.js  (published as sims/a4e03.js)
-   Case a4e03 "What It Remembers": a memory lab for Lowenna's night diary app, Nightleaf. She writes
-   one entry a night and the app writes one reply, so a night is 2 messages. As built, every 20
-   messages a summariser rewrites the old summary plus the new messages into a new summary, and
-   that summary is the app's long-term memory. No real model runs here: a stand-in summariser and
-   a stand-in replier follow stated rules, the same way every time. The learner picks the memory
-   mode, how often the summary is rewritten, the summariser's prompt, whether she deletes night 6's
-   entry, and the token budget, then steps through the 30 nights of September 2026 to night 31
-   (Thursday 1 October), and reads what the app remembers, the tokens it sends, whether the two
-   sisters stay apart, and whether the deleted entry survives.
-   Widget-style sim: it draws its own memory panel, reply and token bars inside api.root.
+   Case a4e03 "What It Remembers": a memory lab for Lowenna's night diary app, Nightleaf. One entry
+   and one reply a night (2 messages). As built, every 20 messages a stand-in summariser rewrites
+   the old summary plus the new messages. No real model runs. Widget-style sim inside api.root.
 
    CHANGELOG
-   v1.0.0 (2026-10-11) first version: modes (whole history, rolling summary, dated facts with
-     retrieval), summary every 10, 20 or 30 messages, the summariser prompt "keep names and
-     relationships exact", the delete on night 12, token budgets 2,000, 4,000, 8,000 and 200,000,
-     Next night and Run to night 31. Stats: night, tokens sent tonight, tokens sent so far,
-     summariser calls, messages cut, sisters, the deleted entry, the reply. selfTest: 11 assertions.
+   v1.0.0 (2026-10-11) first version: three memory modes, summary every 10 or 20 messages, the
+     exact-names prompt, the night 12 delete, budgets 400 to 200,000. selfTest: 11 assertions.
 
    The model (stated in sim.lede):
-   - NIGHTS below: 30 entries (1 to 30 September 2026) and the 30 replies she got, kept as they were
-     so every mode reads the same history. Entry n is message 2n - 1; its reply is message 2n.
-     Night 31 (Thursday 1 October) is her entry "My sister rang tonight. She sounds lonely up
-     there." and the reply the sim works out from memory.
-   - Tokens (a teaching rule): a text's words times 4 / 3, rounded up. The system prompt (SYS) is
-     27 words, 36 tokens.
-   - "My sister" with no name means the sister last named before it in the conversation (her
-     entries and the app's replies). Each night lists the sisters it names (nm), in order.
-   - Whole history: every night it sends the system prompt, every stored message and tonight's
-     entry. Over the budget, the oldest messages are cut until it fits.
-   - Rolling summary: after every N messages (20 as built) the summariser reads the old summary,
-     then the new messages, and writes a new one. A named fact goes under that person. "My sister"
-     with no name goes under the sister last named earlier in this batch; if none yet, under the
-     sister the old summary says most about (most facts; a tie goes to the one listed first). The
-     summary holds at most 20 facts. Over that, it folds people who share a relationship (the two
-     sisters become one entry, under the name it says more about, holding both sets of facts),
-     then drops the oldest facts, keeping each person's first, until 20 remain. With the prompt
-     "keep names and relationships exact" it never folds; it only drops. Each night it sends the
-     system prompt, the summary, the messages since the last pass and tonight's entry; over the
-     budget, the oldest of those messages are cut.
-   - Dated facts: each fact is written down the night it is said, from the conversation so far,
-     with its date and the message it came from. Each night the app sends the system prompt, the
-     6 facts that share the most tags with tonight's entry (ties: newest first) and tonight's entry.
-   - Delete: before her entry on night 12 she deletes night 6's entry (message 11) in settings. The
-     message is removed; dated facts from message 11 are removed with it. A summary already written
-     is text, and nothing in it points back to message 11.
-   - The reply (night 31): it asks after the sister "my sister" means in memory: whole history, the
-     sister last named in what was sent; summary, the sister last named in the recent messages, or
-     else the one the summary says most about; facts, the sister of the top fact. "How is <name>
-     getting on in <place>?" uses the newest place in her facts; it adds "I know this year has been
-     hard since she died." if her facts hold a death, and "And please stop blaming yourself for the
-     voicemail." if memory holds night 6's fact.
+   - NIGHTS: 30 entries (1 to 30 September 2026) and the replies she got. Entry n is message
+     2n - 1, its reply 2n. Night 31 (Thursday 1 October): "My sister rang tonight. She sounds lonely
+     up there." Tokens (teaching rule): words x 4 / 3, rounded up. SYS is 35 tokens.
+   - "My sister" means the sister last named before it in the conversation (entries and replies).
+   - Whole history: SYS, every stored message, tonight's entry; over budget, cut the oldest.
+   - Rolling summary: every N messages, old summary + new messages -> new summary. "My sister"
+     goes under the sister last named in this batch, else the one the old summary says most about.
+     Over 20 facts: fold the two sisters under the name with more facts, then drop the oldest
+     facts (each person's first kept) to 20. Exact prompt: no fold, only drops.
+   - Dated facts: written from the conversation as said, with date and source message; each night
+     the 6 sharing most tags with tonight's entry (ties: newest).
+   - Delete: night 12, message 11 removed, and its dated facts; a written summary is untouched.
+   - Reply 31: the sister "my sister" means in what was sent; her newest place; the death line if
+     she has a death; the voicemail line if night 6's fact was sent.
 
    Where every number comes from (conventions rule 14; the case is
    content/latent/a4/a4e03-v1.0.0.json). Worked out from the data and rules above; selfTest checks them.
-   - Facts in the 30 entries: 24. Romilly 9, Tegwen 5 (+ 4 said as "my sister" on nights 8, 11,
-     16, 21 and 26: 5 in all, so Tegwen 10), Pomona 2, Lowenna herself 3. (Counts in selfTest.)
-   - As built (summary every 20, budget 2,000): passes after nights 10, 20, 30 (3 calls).
-     Summary 1: apart. Summary 2: night 11's "first week at the hospital" filed under Romilly.
-     Summary 3: 24 facts > 20, the sisters fold under Romilly, and she holds Carrowmere.
-     Night 31's reply: "How is Romilly getting on in Carrowmere? I know this year has been hard
-     since she died. And please stop blaming yourself for the voicemail."
-   - Whole history, 200,000: no merge, the deleted entry gone, reply about Tegwen in Carrowmere.
-   - Exact token counts: see the selfTest expectations (computed by this file's rules).
+   - Facts in the 30 entries: 26. Romilly 10, Tegwen 11 (6 named, 5 said as "my sister" on nights
+     8, 11, 16, 21 and 26), Pomona 2, Lowenna herself 3.
+   - Tokens: September's 30 entries 511, the 30 replies 466, 977 in all. Night 1 sends 65 (35 +
+     30). Whole history after a year at this rate: 35 + round(977 x 365 / 30) = 35 + 11,887 =
+     11,922 a night.
+   - As built (summary every 20, budget 600): passes after nights 10, 20, 30 (3 calls).
+     Summary 1 (107 tokens): apart, and it holds night 6's voicemail. Summary 2: night 11's "first
+     week at the hospital went well" filed under Romilly (no sister named yet in that batch; the
+     old summary says most about Romilly, 5 facts to 3): "2, crossed: 1 of Tegwen's facts under
+     Romilly". Summary 3: 26 facts > 20, the sisters fold under Romilly (12 facts to 9), then the
+     oldest drop to 20: "1, merged: Romilly holds 8 of Tegwen's facts", Carrowmere among them.
+     Night 31 sends 258 tokens. Reply: "How is Romilly getting on in Carrowmere? I know this year
+     has been hard since she died. And please stop blaming yourself for the voicemail."
+     Tokens sent over the 31 nights: 10,722 (9,451 for replies, 1,271 into the summariser).
+   - Every 10 messages: 6 calls, the fold first on night 25 (23 facts > 20), the same reply.
+   - Exact prompt: no fold; Romilly still holds nights 11 and 21 ("2, crossed: 2 of Tegwen's facts
+     under Romilly"), night 21's bakery in Carrowmere among them; the same reply.
+   - Whole history at 200,000: night 31 sends 997 tokens (35 + 950 of messages, message 11
+     deleted, + 12); 17,767 over the 31 nights; sisters apart; deleted entry gone; reply "How is
+     Tegwen getting on in Carrowmere?". At 600: cuts start on night 17 (message 1, Romilly's
+     death, first); night 31 cuts 21 messages.
+   - Dated facts at 600: night 31 sends 145 tokens with 6 facts (Tegwen's lonely evenings first);
+     3,495 over the 31 nights; reply "How is Tegwen getting on in Carrowmere?"; message 11's fact
+     gone with it.
 */
 (function () {
   "use strict";
@@ -127,7 +114,7 @@
     { e: "My sister has a night shift every Thursday now. She says the ward is quiet after three.", nm: [],
       f: [["?", "works a night shift every Thursday", ["shift", "work"]]],
       r: "Thursday nights on a ward must be long. You could write to each other on those nights.", rn: [] },
-    { e: "Sunday. Seven o'clock came and went and nobody rang.", nm: [],
+    { e: "Thought about Sunday evenings again. Seven o'clock still hurts.", nm: [],
       f: [["Romilly", "seven o'clock on Sundays still hurts", ["sunday", "rang"]]],
       r: "Seven o'clock was Romilly's time. It makes sense that it still hurts.", rn: ["Romilly"] },
     { e: "Took Romilly's books to the charity shop. Kept the one with her handwriting in it.", nm: ["Romilly"],
@@ -170,7 +157,7 @@
       f: [],
       r: "That is a long time to carry this. Tegwen will be glad to see you at half term.", rn: ["Tegwen"] }
   ];
-  var N31 = { e: "My sister rang tonight. She sounds lonely up there.", tags: ["rang", "lonely"] };
+  var N31 = { e: "My sister rang tonight. She sounds lonely up there.", tags: ["rang", "lonely", "sister"] };
 
   var MODES = [
     { value: "summary", label: "Rolling summary (as built)" },
@@ -212,9 +199,8 @@
 
   /* ---------- the model (pure: the state after k nights, for settings C) ---------- */
 
-  function factLine(f) { return f.text; }
   function renderSummary(s) {
-    return s.map(function (p) { return p.name + " (" + p.role + "): " + p.facts.map(factLine).join("; ") + "."; }).join("\n");
+    return s.map(function (p) { return p.name + " (" + p.role + "): " + p.facts.map(function (f) { return f.text; }).join("; ") + "."; }).join("\n");
   }
   function factCard(f) { return dateOf(f.night) + ", message " + f.msg + ". " + f.owner + ": " + f.text + "."; }
 
@@ -298,7 +284,6 @@
       var ranked = mem.facts.map(function (f) {
         var sc = 0;
         f.tags.forEach(function (t) { if (tags.indexOf(t) >= 0) sc += 1; });
-        if (night > 30 && f.tags.indexOf("sister") >= 0) sc += 1;
         return { f: f, sc: sc };
       }).filter(function (x) { return x.sc > 0; });
       ranked.sort(function (a, b) { return (b.sc - a.sc) || (b.f.msg - a.f.msg); });
@@ -316,7 +301,7 @@
   // Run the nights 1..k for settings C. Night k's send uses memory from nights before it.
   function simulate(C, k) {
     var mem = { stored: [], recent: [], summary: [], facts: [], deleted: false };
-    var R = { nights: [], calls: 0, callTokens: 0, passes: [], total: 0, foldNight: 0 };
+    var R = { nights: [], calls: 0, passes: [], total: 0, foldNight: 0 };
     for (var night = 1; night <= k; night++) {
       if (C.del && night === DEL_NIGHT) {
         mem.deleted = true;
@@ -342,9 +327,8 @@
         mem.summary = p.s;
         mem.recent = [];
         R.calls += 1;
-        R.callTokens += oldTok + batchTok;
         R.total += oldTok + batchTok;
-        R.passes.push({ night: night, summary: clone(p.s), folded: p.folded });
+        R.passes.push({ night: night, folded: p.folded ? mostSister(p.s) : "" });
         if (p.folded && !R.foldNight) R.foldNight = night;
       }
     }
@@ -511,8 +495,8 @@
     var n = R.nights[S.k - 1];
     var s = "Night " + S.k + " (" + dateOf(S.k) + "): sent " + fmt(n.tokens) + " tokens" + (n.cut ? ", " + n.cut + " oldest messages cut to fit" : "") + ".";
     var p = R.passes.length ? R.passes[R.passes.length - 1] : null;
-    if (p && p.night === S.k) s += " Summary " + R.passes.length + " written" + (p.folded ? ": over 20 facts, the two sisters folded into one, " + p.summary.filter(function (x) { return x.role === "sister"; })[0].name + "." : ".");
-    if (S.k === DEL_NIGHT && S.C.del) s += " Before her entry she deleted night 6's entry (message 11); the deleted entry is " + deletedState(S.C, R) + ".";
+    if (p && p.night === S.k) s += " Summary " + R.passes.length + " written" + (p.folded ? ": over 20 facts, the two sisters folded into one, " + p.folded + "." : ".");
+    if (S.k === DEL_NIGHT && S.C.del) s += " Before her entry she deleted night 6's entry (message 11). Night 6's deleted entry: " + deletedState(S.C, R) + ".";
     if (S.k === 31) s += " Reply: " + reply31(S.C, R);
     api.log(s, S.k === 31 && reply31(S.C, R).indexOf("Romilly getting on in") >= 0 ? "bad" : "");
   }
@@ -589,15 +573,16 @@
         t.stat("sisters") === "nothing kept yet" && has("before night 1"),
         "Opens before night 1: nothing sent, nothing kept");
 
-      // 2. The data: 24 facts, 5 said as \"my sister\", all Tegwen's.
+      // 2. The data: 26 facts, 5 said as "my sister", all Tegwen's; 977 tokens of messages; a year at this rate.
       var q = FACTS.filter(function (f) { return f.who === "?"; });
-      t.expect(FACTS.length === 24 && q.length === 5 && q.every(function (f) { return f.owner === "Tegwen"; }) && tok(SYS) === 36,
-        "24 facts in 30 entries; the 5 said as my sister are all Tegwen's; the system prompt is 36 tokens");
+      t.expect(FACTS.length === 26 && q.length === 5 && q.every(function (f) { return f.owner === "Tegwen"; }) && tok(SYS) === 35 &&
+        SEPT === 977 && t.stat("year") === "11,922",
+        "26 facts in 30 entries; the 5 said as my sister are all Tegwen's; 977 tokens of September messages; 11,922 a night after a year");
 
       // 3. Night 1 as built.
       t.click("next");
-      t.expect(t.stat("night") === "1 of 31" && t.stat("sent") === 66 && has("Night 1 (1 Sep): sent 66 tokens."),
-        "Night 1 sends 66 tokens: the system prompt and her first entry");
+      t.expect(t.stat("night") === "1 of 31" && t.stat("sent") === 65 && has("Night 1 (1 Sep): sent 65 tokens."),
+        "Night 1 sends 65 tokens: the system prompt and her first entry");
 
       // 4. As built to night 10: summary 1 keeps the sisters apart.
       for (var i = 0; i < 9; i++) t.click("next");
@@ -612,7 +597,8 @@
 
       // 6. Night 31: the merge and the reply.
       t.click("run");
-      t.expect(t.stat("calls") === 3 && t.stat("sisters") === "1, merged: Romilly holds 5 of Tegwen's facts" &&
+      t.expect(t.stat("calls") === 3 && t.stat("sisters") === "1, merged: Romilly holds 8 of Tegwen's facts" &&
+        t.stat("sent") === 258 && t.stat("total") === "10,722" &&
         has("Summary 3 written: over 20 facts, the two sisters folded into one, Romilly.") &&
         has("Reply: How is Romilly getting on in Carrowmere? I know this year has been hard since she died. And please stop blaming yourself for the voicemail."),
         "Summary 3 folds the sisters under Romilly; night 31 asks how Romilly is getting on in Carrowmere and mentions the deleted voicemail");
@@ -630,8 +616,8 @@
       t.set("exact", true);
       var r2 = S.R;
       var st2 = sisterState(people(S.C, r2));
-      t.expect(r2.foldNight === 0 && st2.indexOf("2, crossed") === 0 && reply31(S.C, r2).indexOf("Romilly getting on in Carrowmere") >= 0 &&
-        reply31(S.C, r2).indexOf("voicemail") >= 0,
+      t.expect(r2.foldNight === 0 && st2 === "2, crossed: 2 of Tegwen's facts under Romilly" &&
+        reply31(S.C, r2) === reply31({ mode: "summary" }, asBuilt) && t.stat("deleted") === "survives in the summary",
         "Exact prompt: no fold, but Romilly still holds Carrowmere and the voicemail is still in the summary");
       t.set("exact", false);
 
@@ -640,19 +626,20 @@
       t.set("budget", "200000");
       var r0 = S.R;
       t.expect(t.stat("sisters") === "2, apart" && t.stat("deleted") === "gone everywhere" && t.stat("cut") === 0 &&
-        reply31(S.C, r0) === "How is Tegwen getting on in Carrowmere?",
-        "Whole history, whole window: sisters apart, the deleted entry gone, the reply asks after Tegwen");
+        t.stat("sent") === 997 && t.stat("total") === "17,767" && reply31(S.C, r0) === "How is Tegwen getting on in Carrowmere?",
+        "Whole history, whole window: 997 tokens on night 31, sisters apart, the deleted entry gone, the reply asks after Tegwen");
 
-      // 10. Whole history at the as-built budget: the oldest nights are cut, Romilly's death among them.
-      t.set("budget", "2000");
+      // 10. Whole history at the as-built budget: cuts from night 17, Romilly's death (message 1) first.
+      t.set("budget", "600");
       var rc = S.R;
-      t.expect(rc.nights[30].cut > 0 && rc.nights[30].send.sent.indexOf(1) < 0 && t.stat("cut") === rc.nights[30].cut,
-        "Whole history at 2,000 tokens: night 31 cuts the oldest messages, night 1 among them");
+      t.expect(rc.nights[15].cut === 0 && rc.nights[16].cut === 1 && t.stat("cut") === 21 && rc.nights[30].send.sent[0] === 23,
+        "Whole history at 600 tokens: cuts start on night 17 with message 1; night 31 cuts 21 messages");
 
       // 11. Option 3: dated facts with retrieval.
       t.set("mode", "facts");
       var r3 = S.R;
       t.expect(t.stat("sisters") === "2, apart" && t.stat("deleted") === "gone everywhere" && t.stat("calls") === 0 &&
+        t.stat("sent") === 145 && t.stat("total") === "3,495" &&
         reply31(S.C, r3) === "How is Tegwen getting on in Carrowmere?" && r3.nights[30].send.facts.length === 6,
         "Dated facts: 6 facts retrieved, sisters apart, the deleted fact gone, the reply asks after Tegwen in Carrowmere");
     }

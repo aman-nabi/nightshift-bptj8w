@@ -1,0 +1,901 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-11) first version"
+ ],
+ "id": "s4e08",
+ "season": 4,
+ "n": 8,
+ "title": "The Letter That Never Left",
+ "setting": "a law firm's outgoing mail",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "dual-write-problem",
+  "transactional-outbox",
+  "change-data-capture"
+ ],
+ "prerequisites": [
+  "s4e06",
+  "s4e03",
+  "s3e07",
+  "s3e04",
+  "s3e02",
+  "s2e13",
+  "s2e12",
+  "s2e05",
+  "s1e10",
+  "s1e09",
+  "s1e04",
+  "s1e02"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_paralegal_honora",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 3561,
+  "title": "I'm the night paralegal at a law firm. Our case system says a notice of claim left at 18:02. No postbox ever saw it, and the deadline passed at midnight.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I work evenings at Saxelby Ruddock, a law firm in Ludgrave, 17:00 to 01:00. Most of it is post. When a fee earner, one of our lawyers, marks a notice of claim served, the case system saves that to its database and then sends an event, a short message saying \"notice served\", to the broker, a program called RabbitMQ that passes messages between our systems. Sending it is called publishing. The mail room service picks the event up and prints the letter. At 23:00 I walk everything the printer made to the late counter at the sorting office, and the clerk stamps a certificate of posting for each one. Posted by midnight counts as served that day."
+   },
+   {
+    "t": "p",
+    "text": "On Tuesday the fee earners marked 20 notices served, from 17:08 to 22:52. One, at 20:41, the system refused, because the client had closed that matter at 20:30. At 18:02:10 Ms Fairweather marked notice 6 served: Mrs Brindlecombe's claim against the builder who took her savings and left her roof open. Its limitation deadline, the last day the law lets you bring the claim, was that midnight."
+   },
+   {
+    "t": "p",
+    "text": "At 23:00 I walked 18 letters to the late counter. I counted them there, and I came back with 18 certificates. I didn't count the screen."
+   },
+   {
+    "t": "beat",
+    "text": "The screen said 19."
+   },
+   {
+    "t": "p",
+    "text": "On Wednesday morning Ms Fairweather asked me for the certificate for notice 6, for the file. There isn't one. The case record says served, 18:02:10, with her name against it. The audit trail has the letter filled in: the claim number, the other side's address. The printer's log has no page for it. All night the record said a letter had left the building, and the letter never existed."
+   },
+   {
+    "t": "log",
+    "text": "18:01:59  case-system  notice 5: status served, COMMIT ok\n18:01:59  case-system  publish notice 5: ok\n18:02:00  broker       restarting\n18:02:10  case-system  notice 6: status served, COMMIT ok\n18:02:10  case-system  publish notice 6: connection refused\n18:02:10  case-system  error written to app.log\n18:02:40  broker       started"
+   },
+   {
+    "t": "p",
+    "text": "Caspian, our developer, found those lines in a log file nobody reads. The broker had restarted for 40 seconds. The save went through; the message didn't, and nothing tried it again. Nothing in the database says a letter is still owed. The other side's solicitors say no notice ever reached them, and the claim is out of time."
+   },
+   {
+    "t": "evidence",
+    "label": "notice_6_1802.png",
+    "diagram": {
+     "type": "sequence",
+     "aria": "Notice 6 at 18:02. Ms Fairweather marks it served at 18:02:10. The case system commits served to the database. The broker is restarting from 18:02:00 to 18:02:40. The case system's publish for notice 6 is refused with connection refused, and the error goes to the app log, never retried. The record says served at 18:02:10; the mail room prints nothing.",
+     "lanes": [
+      "Ms Fairweather",
+      "Case system",
+      "Database",
+      "Broker",
+      "Mail room"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "notice 6: served"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "COMMIT ok"
+      },
+      {
+       "note": 3,
+       "text": "restarting",
+       "sub": "18:02:00 to 18:02:40",
+       "tone": "bad"
+      },
+      {
+       "from": 1,
+       "to": 3,
+       "label": "publish notice 6",
+       "tone": "bad"
+      },
+      {
+       "from": 3,
+       "to": 1,
+       "label": "connection refused",
+       "tone": "bad"
+      },
+      {
+       "note": 1,
+       "text": "error to app.log",
+       "sub": "never retried",
+       "tone": "warn"
+      },
+      {
+       "outcome": 2,
+       "text": "served, 18:02:10",
+       "tone": "warn"
+      },
+      {
+       "outcome": 4,
+       "text": "no letter",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Caspian's logs for notice 6, redrawn. The database committed served at 18:02:10. The publish went to a broker that was restarting and was refused; the error went to a log file, and the mail room never heard of the notice."
+   },
+   {
+    "t": "p",
+    "text": "Mrs Brindlecombe's claim may be gone. There are notices every evening. Caspian has four changes on the board. Which one do we make before Thursday?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 128,
+   "age": "4h",
+   "text": "One term first. The dual-write problem is what you get when one action has to change two separate systems, here your database and your broker, and nothing ties the two changes together. An outage or a crash can fall between them, and then one system has the change and the other doesn't. Now the evidence. In what order does the case system make its two writes? When the publish failed at 18:02:10, did anything keep a note that a message was still owed? Look at notice 5 too, one second before the restart. And think about notice 14 at 20:41: what would have happened to it if the two writes had gone in the other order?",
+   "replies": [
+    {
+     "author": "u/night_paralegal_honora",
+     "op": true,
+     "points": 51,
+     "age": "3h",
+     "text": "Commit first, then publish, Caspian says. Nothing kept a note: the error went into app.log and that was the end of it. Here are his four changes, in his words. One: publish first, then commit, so a failed publish stops the save. Two: a two-phase commit, where a coordinator asks the database and the broker each to prepare and commits both only if both say yes. Three: an outbox, a table in the same database where the case system writes the message it means to send; then either a relay, a small program that polls the table and publishes what it finds, or change data capture (CDC), which reads new rows from the database's write-ahead log and publishes them. Four: a nightly job that compares served notices with printed letters and resends any gap."
+    }
+   ]
+  },
+  {
+   "author": "u/publish_first_garrick",
+   "points": 83,
+   "age": "3h",
+   "text": "You just publish before you commit. The broker is the flaky one; your database almost never says no. So put the flaky step first. If the publish fails, the save fails, the fee earner sees an error and tries again a minute later. You can't lose a letter that way, because nothing says served until the letter is on its way. Two lines swapped. No new tables and no new programs to babysit at night."
+  },
+  {
+   "author": "u/postage_book_aldermoor",
+   "points": 37,
+   "age": "2h",
+   "text": "I was a solicitor's clerk for thirty years before any of this. We kept a postage book, and every morning the senior clerk ticked it against the served list. Anything served and not posted went out by first post. A machine can do the ticking now."
+  }
+ ],
+ "reply": {
+  "prompt": "Caspian can make one change before Thursday evening's notices. Which should it be? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Publish the event first, then commit, so a failed publish stops the save itself.",
+    "tone": "bad",
+    "verdict": "Never lost, sometimes sent for nothing",
+    "part2": "Caspian swapped the two lines and ran Tuesday's evening through it, with the same 20 notices and the same 40-second restart. At 18:02:10 the publish for notice 6 was refused, so the save stopped and Ms Fairweather saw an error. She saved again at 18:03:10, the broker was back, and Mrs Brindlecombe's letter printed at 18:03:10. Nothing lost. Then 20:41:20. A fee earner marked notice 14 served; the event went first, the mail room printed the letter, and only then did the database refuse the save, because the client had closed the matter at 20:30. The run would have held 20 letters for 19 served notices: a notice of claim, stamped and posted, for a claim the firm no longer had, and no record anywhere that it was sent. In the morning the other side would have rung about a claim our own system says was never made.",
+    "senior": "Swapping the order only swaps which half can go missing. Publish first, and a database that refuses, or a crash between the two, leaves an event for a change that never happened, and nothing can call it back. Neither order makes two separate systems agree; the fix is one write that carries both."
+   },
+   {
+    "text": "Wrap the commit and the publish in one two-phase commit, so both happen or neither.",
+    "tone": "bad",
+    "verdict": "Not on offer, and every save waits on the broker",
+    "part2": "Caspian went looking for a two-phase commit between PostgreSQL and RabbitMQ and didn't find one. RabbitMQ's own transactions cover only publishes and acknowledgements on the broker's side, and its docs call them closer to batching than to a database's ACID. To see what it would have bought, he ran the evening in the lab as if the broker could join one: 19 letters for 19 served notices, nothing lost and nothing extra. But at 18:02:10 the broker couldn't prepare, so Ms Fairweather's save was refused and she did it again at 18:03:10. With the restart set to an hour, 167 saves were refused that evening, all but notice 14's between 18:00 and 19:00, and Mrs Brindlecombe's notice wasn't saved until 19:00:10. Every save now waits on the broker, and the firm would have had to change brokers for this one feature.",
+    "senior": "A two-phase commit needs every participant to prepare, then wait for the coordinator's word, and most brokers can't take part. Where one can, every save is only as available as the least available participant, and a coordinator lost mid-way can leave both sides stuck. Keep the two writes apart and make one of them a row in the same database."
+   },
+   {
+    "text": "Save the notice and an outbox row in one transaction; a relay or CDC publishes it.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Caspian added an outbox table to the case database. Marking a notice served now writes the notice and its outbox row in one transaction, so both are saved or neither is, and a relay reads the table every 5 seconds and publishes whatever hasn't been confirmed. He ran Tuesday's evening through it: 19 outbox rows for 19 served notices, and none for notice 14. During the restart the rows for notices 5 and 6 simply waited, and at 18:02:40 the relay sent them. Mrs Brindlecombe's letter printed at 18:02:40. But notice 5 printed twice. The relay had sent it at 18:02:00, the very second the broker went down; the broker kept it, the confirm never came, and the relay sent it again. So the mail room now keeps the notice ids it has printed and skips a repeat, as the pharmacy's notifier did with message ids. Run again: 20 events, 19 letters, and 19 certificates for 19 served notices. He tried Debezium reading the write-ahead log in place of the relay: the same 19.",
+    "senior": "Don't try to make two systems commit together. Write the message into the same database, in the same transaction as the change, and let a separate process publish it until the broker confirms. A lost message becomes a late one, and a late one at worst a duplicate, which the consumer skips by id. A polling relay is simpler; change data capture is quicker and puts no polling load on the table."
+   },
+   {
+    "text": "Run a nightly job that compares served notices with letters and resends any gap.",
+    "tone": "warn",
+    "verdict": "Trade-off: catches it, a day late",
+    "part2": "Caspian wrote a job for 02:00 that compares the notices saved as served with the letters printed, and sends an event for any notice with no letter. He ran Tuesday's evening as it was through it. At 02:00:00 the job found notice 6, and Mrs Brindlecombe's letter printed then, two hours after her deadline, to be posted on Wednesday. Every gap it closes is closed after the 23:00 run. It only looks one way, too: had the firm swapped to publishing first, it would have seen nothing wrong with notice 14's letter. The managing partner liked it as a check on whatever the real fix turns out to be, as long as it runs before the walk to the sorting office, not after.",
+    "senior": "A job that compares two records and repairs the difference is a good backstop for any dual write, and auditors like it. It only shortens how long a gap lasts; it can't close one before a deadline that falls between two runs. Fix the write, then keep the check, and run it early enough to matter."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s4e08",
+  "title": "Run Tuesday evening at Saxelby Ruddock again",
+  "lede": "You're Honora, replaying Tuesday from 17:00 to 02:00. Fee earners mark 20 notices of claim served at stated times, from 17:08:20 to 22:52:30; notice 6, Mrs Brindlecombe's, at 18:02:10. The database refuses notice 14's save, because its matter was closed at 20:30. The broker restarts from 18:02:00 to 18:02:40. A publish in its first second is stored, but the broker's confirm, its reply that it has the message, never arrives; any other publish while it's down is refused. The mail room prints a letter, in the same second, for every event the broker stores, and at 23:00 you take every letter printed before 23:00 to the late counter. The write modes: commit, then publish (as built; a failed publish goes to the app log); publish, then commit (a failed publish stops the save, and the fee earner saves again a minute later); a two-phase commit, as if the broker could join one; and an outbox, published by a polling relay or by change data capture one second after each commit. Both outbox modes send until the broker confirms. With dedup on, the mail room skips a notice id it has already printed. The nightly check runs at 02:00. The clock runs 600 times faster than real life. Click any box to see what it does.",
+  "tryThis": "Try this: press Skip to 02:00 as it is: 19 notices saved as served, 18 letters, and Mrs Brindlecombe's never printed. Switch to publish, then commit: hers prints at 18:03:10, but notice 14's letter goes out for a save the database refused. Try the outbox with a polling relay: nothing lost, but notice 5 prints twice, so turn on dedup. Set the relay to 15 minutes and watch notice 20 miss the run. Then go back to commit, then publish with the nightly check on, and last, set the outage to an hour in each mode."
+ },
+ "explain": {
+  "oneLine": "Nothing lost the letter in the post. The case system made two writes to two systems, the database and then the broker, and the broker restarted between them: the save went through, the publish was refused, and nothing anywhere remembered that a letter was still owed.",
+  "steps": [
+   {
+    "title": "Two writes, and nothing around them.",
+    "text": "A transaction ties changes inside one database; nothing ties a database commit to a publish on a broker. Commit, then publish, and a failure between them loses the event: notice 6, saved at 18:02:10 and never sent. Publish, then commit, and a refused commit or a crash between them sends an event for a change that was never saved: notice 14's letter, printed for a matter closed at 20:30. Either order, the two systems can disagree. That's the dual-write problem, and retrying the failed half in memory doesn't fix it, because the process holding that memory is the thing that can die."
+   },
+   {
+    "title": "A two-phase commit would tie them, where it's on offer.",
+    "text": "In a two-phase commit a coordinator asks each participant to prepare, then tells all of them to commit only if all said yes. It needs both the database and the broker to take part, and most brokers don't: RabbitMQ's transactions cover only its own publishes and acknowledgements. Where a broker can take part, every save waits on it. In the lab, an hour's broker outage means 167 refused saves, all but notice 14's between 18:00 and 19:00."
+   },
+   {
+    "title": "Put the message in the database: the transactional outbox.",
+    "text": "Write the notice and an outbox row, the event it should send, in one transaction. Now the two can't disagree: both are saved or neither is. A relay polls the outbox, publishes each unsent row, and marks it sent only once the broker confirms. A broker that is down turns a lost letter into a late one. On Tuesday the rows for notices 5 and 6 waited 40 seconds and went at 18:02:40, long before the 23:00 run."
+   },
+   {
+    "title": "Or read the outbox from the write-ahead log: change data capture.",
+    "text": "Every committed change is already in PostgreSQL's write-ahead log, the same log as The Logbook. Logical decoding turns it into a stream of row changes, and Debezium reads that stream and publishes each new outbox row about a second after its commit, with no polling queries against the table. It records its position in the log, so after a restart it carries on from there."
+   },
+   {
+    "title": "Both send at least once, so the mail room skips repeats.",
+    "text": "A relay that hasn't heard a confirm has to send again, and the broker may already have the message. Notice 5 went at 18:02:00, the second the broker went down; the broker kept it, the confirm was lost, and it went again at 18:02:40: two letters. The mail room has to skip a notice id it has already printed, and keep those ids somewhere a restart can't wipe, as the pharmacy's notifier did with message ids in At Least Once."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 340,
+   "aria": "The fix, drawn for Thursday. The case system commits each notice and its outbox row to the case database in one transaction. A relay, or Debezium reading the write-ahead log, reads the outbox and publishes to the broker until it confirms. The broker passes each event to the mail room, which skips any notice id it has already printed. The mail room's letters go to the late counter: 19 letters and 19 certificates for 19 served notices.",
+   "nodes": [
+    {
+     "id": "app",
+     "label": "Case system",
+     "sub": "notice + outbox row",
+     "meta": "one transaction",
+     "x": 110,
+     "y": 80,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "db",
+     "label": "Case database",
+     "sub": "19 served",
+     "meta": "19 outbox rows",
+     "x": 370,
+     "y": 80,
+     "w": 200,
+     "h": 80,
+     "shape": "db",
+     "tone": ""
+    },
+    {
+     "id": "relay",
+     "label": "Relay or Debezium",
+     "sub": "sends until confirmed",
+     "x": 630,
+     "y": 80,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "broker",
+     "label": "Broker",
+     "sub": "RabbitMQ",
+     "x": 630,
+     "y": 260,
+     "w": 180,
+     "h": 64,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "mail",
+     "label": "Mail room",
+     "sub": "skips ids printed",
+     "meta": "19 letters",
+     "x": 370,
+     "y": 260,
+     "w": 200,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "post",
+     "label": "Late counter",
+     "sub": "19 certificates",
+     "x": 110,
+     "y": 260,
+     "w": 180,
+     "h": 64,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "app",
+     "to": "db",
+     "label": "commit"
+    },
+    {
+     "from": "db",
+     "to": "relay",
+     "label": "read"
+    },
+    {
+     "from": "relay",
+     "to": "broker",
+     "label": "publish"
+    },
+    {
+     "from": "broker",
+     "to": "mail",
+     "label": "event"
+    },
+    {
+     "from": "mail",
+     "to": "post",
+     "label": "letters"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for Thursday. The notice and its outbox row are committed together, a relay or Debezium publishes each row until the broker confirms, and the mail room skips any notice id it has already printed. Tuesday's evening through it: 20 events, 19 letters, 19 certificates for 19 served notices.",
+  "fix": {
+   "title": "The fix: an outbox in the same transaction, a relay that sends until confirmed, and a mail room that skips repeats",
+   "text": "Add an outbox table to the case database. When a fee earner marks a notice served, write the notice's new status and an outbox row holding the event, with the notice id, in one transaction. Run a relay that polls the outbox every few seconds, publishes each row it hasn't had confirmed, in order, and marks it sent once the broker confirms; or let Debezium read the outbox rows from the write-ahead log and publish them. Give the mail room a table of notice ids it has printed, outside its own memory, and skip any id already there. Alarm when the oldest unsent outbox row is more than a few minutes old. Keep a check that compares served notices with printed letters, and run it at 22:30, before the walk to the sorting office, not after."
+  },
+  "limits": [
+   "The outbox makes a letter late instead of lost, and only as late as the relay lets it. A relay polling every 15 minutes would have sent notice 20, marked served at 22:52:30, at 23:00:00, after the run left. Keep the interval short, and alarm on the age of the oldest unsent row.",
+   "It sends at least once. A publish whose confirm is lost, like notice 5's at 18:02:00, goes again, so every consumer has to skip repeats by id, and keep those ids somewhere a restart can't wipe.",
+   "It covers only what the case system writes to its own database. A second system that sends its own messages is outside it. And change data capture ties you to the database's log: a replication slot holds write-ahead log on disk while its reader is down, so a stopped connector can slowly fill the disk."
+  ],
+  "tradeoff": {
+   "head": [
+    "Write mode",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Commit, then publish (as built)",
+     "Simple; saves never wait on the broker.",
+     "18 letters for 19 served: notice 6 lost, its error in a log nobody reads."
+    ],
+    [
+     "Publish, then commit",
+     "Nothing lost: notice 6 saved again at 18:03:10.",
+     "Notice 14's letter sent for a save the database refused; errors while the broker is down."
+    ],
+    [
+     "Two-phase commit (if offered)",
+     "19 letters for 19 notices, nothing extra.",
+     "Rarely offered by brokers; every save waits on the broker: 167 saves refused with an hour's outage."
+    ],
+    [
+     "Outbox, polling relay",
+     "Nothing lost: notices 5 and 6 sent at 18:02:40.",
+     "At least once: notice 5 twice without dedup. A table and a relay to run; late by up to the interval."
+    ],
+    [
+     "Outbox, change data capture",
+     "About a second behind, with no polling queries.",
+     "Debezium and a replication slot to run; still at least once."
+    ],
+    [
+     "Nightly check at 02:00",
+     "Finds notice 6 and sends it.",
+     "At 02:00:00, after the midnight deadline; blind to a letter sent for nothing."
+    ]
+   ]
+  },
+  "seniorTake": "When one action has to change your database and tell another system, don't write to both and hope. Make the database the only place you write, put the message there in the same transaction as the change, and let something else deliver it until it's confirmed. That gives you at least once, so every consumer skips repeats by id. A two-phase commit across a database and a broker is usually not on offer, and where it is, it couples every save to the broker. Keep a reconciliation as the backstop, and run it before the deadline, not after.",
+  "realWorld": [
+   {
+    "title": "microservices.io: the problem, and why not 2PC",
+    "text": "Chris Richardson's pattern page asks: \"How to atomically update the database and send messages to a message broker?\" Among its forces: \"2PC is not an option. The database and/or the message broker might not support 2PC.\"",
+    "source": 0
+   },
+   {
+    "title": "The outbox and its message relay",
+    "text": "The same page's solution: \"The solution is for the service that sends the message to first store the message in the database\", and \"A separate process then sends the messages to the message broker.\" It calls that process the message relay.",
+    "source": 0
+   },
+   {
+    "title": "The relay may publish twice",
+    "text": "Under its resulting context the page warns: \"The Message relay might publish a message more than once.\" Its answer is the mail room's: \"a message consumer must be idempotent, perhaps by tracking the IDs of the messages\".",
+    "source": 0
+   },
+   {
+    "title": "Debezium's outbox event router",
+    "text": "Debezium's docs call the outbox pattern \"a way to safely and reliably exchange data between multiple (micro) services\". You configure a connector to capture changes in an outbox table and apply the outbox event router, a single message transformation. Of the table's id column they say: \"You can use this ID, for example, to remove duplicate messages.\"",
+    "source": 1
+   },
+   {
+    "title": "Debezium: expect duplicates during recovery",
+    "text": "Debezium's FAQ says that when things go wrong, the consuming application \"will always see every event but may likely see at least some messages duplicated during recovery\".",
+    "source": 2
+   },
+   {
+    "title": "PostgreSQL: logical decoding reads the write-ahead log",
+    "text": "\"In PostgreSQL, logical decoding is implemented by decoding the contents of the write-ahead log\". It's the same log The Logbook (s3e04) used for crash recovery.",
+    "source": 3
+   },
+   {
+    "title": "PostgreSQL: a slot holds the log while nobody reads it",
+    "text": "The same page cautions that replication slots \"will prevent removal of required resources even when there is no connection using them\", which consumes storage, \"So if a slot is no longer required it should be dropped.\"",
+    "source": 3
+   },
+   {
+    "title": "Debezium's PostgreSQL connector keeps its place",
+    "text": "The connector's docs say: \"As the connector reads changes and produces events, it records the WAL position for each event.\"",
+    "source": 4
+   },
+   {
+    "title": "RabbitMQ: resend what wasn't confirmed, then dedup",
+    "text": "RabbitMQ's reliability guide says \"producers recovering from a channel or connection failure should retransmit any messages for which an acknowledgement has not been received from the broker\", because \"the broker might have sent a confirmation that never reached the producer\". So \"consumer applications will need to perform deduplication or handle incoming messages in an idempotent manner.\" That is notice 5.",
+    "source": 5
+   },
+   {
+    "title": "RabbitMQ's transactions are not a database's",
+    "text": "RabbitMQ's broker semantics page says its transactions are \"closer to providing a 'batching' feature than ACID capabilities known from the database world\", and \"AMQP transactions only apply to publishes and acks.\"",
+    "source": 6
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you update a database and publish an event reliably?",
+    "What is the transactional outbox?",
+    "What is change data capture?"
+   ],
+   "answer": "Start with why the obvious code fails: a commit and a publish are two writes to two systems, and a crash or an outage between them leaves one done and the other not. Commit first and you can lose the event; publish first and you can announce a change that never committed. A two-phase commit across both would fix it, but most brokers can't take part, and it couples every write to the broker's availability. The usual answer is the transactional outbox: write the change and an outbox row describing the event in the same database transaction, so they commit together. A separate process publishes the outbox: either a relay that polls the table and marks rows sent once the broker confirms, or change data capture, such as Debezium reading PostgreSQL's write-ahead log through logical decoding, which streams committed rows with low delay and no polling. Either way delivery is at least once, so consumers dedup by event id, durably. Then say what you'd monitor: the age of the oldest unsent outbox row, the replication slot's retained log, and a reconciliation between records and what was delivered."
+  }
+ },
+ "terms": [
+  {
+   "term": "Paralegal",
+   "def": "Someone who does legal work under a lawyer's supervision, such as preparing documents and keeping files, without being a lawyer. Honora works the evening and night shift."
+  },
+  {
+   "term": "Fee earner",
+   "def": "In a law firm, a lawyer whose time is billed to clients. Ms Fairweather is one."
+  },
+  {
+   "term": "Notice of claim",
+   "def": "A formal letter telling the other side that a claim is being brought against them. At Saxelby Ruddock it must be posted by the deadline to count."
+  },
+  {
+   "term": "Matter",
+   "def": "A law firm's word for one client's case. A closed matter takes no new actions; the case system refused notice 14 because its matter was closed at 20:30."
+  },
+  {
+   "term": "Limitation deadline",
+   "def": "The last day the law allows a claim to be brought. After it, the claim is out of time. Mrs Brindlecombe's was midnight on Tuesday."
+  },
+  {
+   "term": "Served (a notice)",
+   "def": "Delivered in a way the rules accept. In the story, a notice posted by midnight counts as served that day; the case system's status says served when a fee earner marks it."
+  },
+  {
+   "term": "Certificate of posting",
+   "def": "A slip the post office stamps to prove a letter was posted, and when. Honora came back with 18 on Tuesday."
+  },
+  {
+   "term": "Late counter",
+   "def": "The sorting office counter that stays open late, where Honora takes the evening's letters at 23:00 and gets a certificate for each."
+  },
+  {
+   "term": "Sorting office",
+   "def": "The post office building where letters are sorted for delivery."
+  },
+  {
+   "term": "Audit trail",
+   "def": "A record a system keeps of who did what to a file, and when. Notice 6's shows the letter filled in and marked served at 18:02:10."
+  },
+  {
+   "term": "Case system",
+   "def": "The firm's program for its cases. It saves each notice's status to a PostgreSQL database and publishes an event for the mail room."
+  },
+  {
+   "term": "Mail room service",
+   "def": "The program that receives each notice-served event from the broker and prints the letter. A consumer, in queue terms."
+  },
+  {
+   "term": "Event",
+   "def": "A short message saying something has happened, such as \"notice 6 served\". Other systems act on it."
+  },
+  {
+   "term": "Publish",
+   "def": "To send an event or message to a broker, which passes it on to whoever has asked for it."
+  },
+  {
+   "term": "RabbitMQ",
+   "def": "A widely used open-source message broker. Saxelby Ruddock's case system publishes to it, and the mail room receives from it."
+  },
+  {
+   "term": "AMQP",
+   "def": "The messaging protocol RabbitMQ speaks: the rules for how programs publish to it and receive from it."
+  },
+  {
+   "term": "Connection refused",
+   "def": "The error a program gets when nothing is listening at the address it called, as when the broker is restarting."
+  },
+  {
+   "term": "App log (app.log)",
+   "def": "A file where a program writes its errors and notes. Useful only if someone reads it or an alarm watches it; nobody watched the case system's."
+  },
+  {
+   "term": "Confirm (publisher confirm)",
+   "def": "The broker's reply that it has taken responsibility for a published message. A sender that never gets one can't tell whether the message arrived."
+  },
+  {
+   "term": "In flight (a publish)",
+   "def": "A message sent but not yet confirmed. In the lab, a publish in the first second of the restart is in flight: the broker keeps it, the confirm is lost."
+  },
+  {
+   "term": "Dual-write problem",
+   "def": "One action that must change two separate systems, such as a database and a broker, with nothing tying the changes together. A failure between them leaves one changed and the other not."
+  },
+  {
+   "term": "Two-phase commit",
+   "def": "A protocol where a coordinator asks every participant to prepare a change, and tells them all to commit only if all said yes. Written 2PC for short. Every participant has to support it."
+  },
+  {
+   "term": "Coordinator",
+   "def": "In a two-phase commit, the program that asks each participant to prepare and then tells them all to commit or abort."
+  },
+  {
+   "term": "Prepare (two-phase commit)",
+   "def": "The first phase: each participant makes the change ready and promises it can commit, then waits for the coordinator's decision."
+  },
+  {
+   "term": "Abort",
+   "def": "To cancel a transaction so none of its changes take effect."
+  },
+  {
+   "term": "Outbox",
+   "def": "A table in the same database as the data, where a service writes each message it means to send. Another process sends them later."
+  },
+  {
+   "term": "Outbox row",
+   "def": "One message waiting in the outbox: here, the notice-served event with the notice id."
+  },
+  {
+   "term": "Transactional outbox",
+   "def": "The pattern of writing a change and its outbox row in one transaction, so both are saved or neither is, and publishing from the outbox afterwards."
+  },
+  {
+   "term": "Relay (message relay)",
+   "def": "A small program that reads unsent outbox rows, publishes them, and marks each sent once the broker confirms."
+  },
+  {
+   "term": "Polling",
+   "def": "Asking again and again on a timer whether there is anything new. The relay polls the outbox."
+  },
+  {
+   "term": "Relay interval",
+   "def": "How often the polling relay looks at the outbox. In the lab: 1 second, 5 seconds, 1 minute or 15 minutes."
+  },
+  {
+   "term": "Change data capture (CDC)",
+   "def": "Reading each committed change from a database's log and passing it on as it happens. Here it publishes each new outbox row about a second after its commit."
+  },
+  {
+   "term": "Debezium",
+   "def": "An open-source change data capture tool. Its PostgreSQL connector reads changes through logical decoding and turns each one into an event."
+  },
+  {
+   "term": "Connector (Debezium)",
+   "def": "The Debezium part that watches one database and produces its change events."
+  },
+  {
+   "term": "Outbox event router",
+   "def": "A Debezium single message transformation that turns rows inserted into an outbox table into events sent to the broker."
+  },
+  {
+   "term": "Single message transformation (SMT)",
+   "def": "A small rule that reshapes each change event on its way out of a connector."
+  },
+  {
+   "term": "Logical decoding",
+   "def": "PostgreSQL's way of turning its write-ahead log into a readable stream of row changes for other programs."
+  },
+  {
+   "term": "Replication slot",
+   "def": "PostgreSQL's record of how far one reader has got in the change stream. It keeps the log the reader still needs, even while the reader is down."
+  },
+  {
+   "term": "Dedup by notice id",
+   "def": "The mail room recording each notice id it has printed, outside its own memory, and skipping any event whose id is already there."
+  },
+  {
+   "term": "Nightly check",
+   "def": "A job that compares the notices saved as served with the letters printed and sends an event for any gap. A reconciliation, run at 02:00 in the lab."
+  },
+  {
+   "term": "Reconciliation",
+   "def": "Comparing two records of the same thing and acting on the differences."
+  },
+  {
+   "term": "Write mode (in the lab)",
+   "def": "The lab's choice of how the case system makes its two writes: commit then publish, publish then commit, two-phase commit, or an outbox with a relay or CDC."
+  },
+  {
+   "term": "Letters after the deadline (in the lab)",
+   "def": "Letters printed at or after 23:00, which miss the run to the late counter and so the midnight deadline."
+  },
+  {
+   "term": "Order service",
+   "def": "In a shop's systems, the program that takes and records orders."
+  },
+  {
+   "term": "PI1.3 (SOC 2)",
+   "def": "The processing integrity criterion in the AICPA's 2017 Trust Services Criteria about system processing being complete, accurate and timely as authorized."
+  }
+ ],
+ "atWork": "Find a place in your systems where one action saves a record and then tells another system. A common one: an order service that commits the order, then publishes \"order placed\" for the email service, and a few customers never get their confirmation after a broker restart, though their orders exist. Read-only access is enough. In the code, find the commit and the publish: which comes first, and what happens when the second fails? Is the failure only logged, or is something left in the database that says a message is still owed? If there's an outbox already, how often does its relay run, what alarms on the oldest unsent row, and do the consumers skip repeats by id? If it uses change data capture, who watches the replication slot's retained log? This is The Logbook's write-ahead log put to a second use. If your company is pursuing a SOC 2 report with processing integrity in scope, criterion PI1.3 covers system processing being complete, accurate and timely as authorized, and where a record such as a served notice is relied on as proof something was sent, an outbox, a dedup table and a reconciliation that alerts are the kind of evidence an auditor asks for. Build them in now rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "dual-write-problem",
+    "title": "Dual-write problem"
+   },
+   {
+    "id": "transactional-outbox",
+    "title": "Transactional outbox"
+   },
+   {
+    "id": "change-data-capture",
+    "title": "Change data capture"
+   }
+  ],
+  "strings": [
+   {
+    "from": "dual-write-problem",
+    "to": "transactions",
+    "label": "one DB only"
+   },
+   {
+    "from": "dual-write-problem",
+    "to": "two-phase-commit",
+    "label": "rarely on offer"
+   },
+   {
+    "from": "dual-write-problem",
+    "to": "transactional-outbox",
+    "label": "one transaction"
+   },
+   {
+    "from": "transactional-outbox",
+    "to": "change-data-capture",
+    "label": "or read the log"
+   },
+   {
+    "from": "change-data-capture",
+    "to": "write-ahead-logs",
+    "label": "reads the WAL"
+   },
+   {
+    "from": "transactional-outbox",
+    "to": "at-least-once",
+    "label": "sends again"
+   },
+   {
+    "from": "dual-write-problem",
+    "to": "message-queues",
+    "label": "the broker half"
+   },
+   {
+    "from": "change-data-capture",
+    "to": "event-sourcing",
+    "label": "next case"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s4e08-r1",
+   "kind": "free",
+   "prompt": "Your sign-up service saves each new account in PostgreSQL, commits, and then publishes an \"account created\" event that the email service turns into a welcome email. After a broker failover last night, a few users have accounts but never got the email, and the only trace is an error line in the service's log. Why did it happen, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "Two writes to two systems: the commit succeeded and the publish failed while the broker was down, and nothing kept a note that the event was still owed",
+     "match": [
+      "publish failed",
+      "broker was down",
+      "between the commit",
+      "after the commit",
+      "dual write",
+      "dual-write",
+      "two writes",
+      "never retried",
+      "still owed",
+      "only logged"
+     ]
+    },
+    {
+     "idea": "Write the account and an outbox row for the event in the same database transaction",
+     "match": [
+      "outbox",
+      "same transaction",
+      "one transaction",
+      "single transaction",
+      "same database transaction"
+     ]
+    },
+    {
+     "idea": "A relay or change data capture publishes from the outbox until confirmed, at least once, so the email service skips repeats by event id",
+     "match": [
+      "relay",
+      "change data capture",
+      "debezium",
+      "until confirmed",
+      "at least once",
+      "at-least-once",
+      "event id",
+      "dedup",
+      "skip repeats"
+     ]
+    }
+   ],
+   "model": "The service makes two writes to two systems, a commit to PostgreSQL and a publish to the broker, with nothing tying them together. During the failover the commits succeeded and the publishes failed; the error was only logged, and nothing in the database says those events are still owed, so nothing will ever send them. Swapping the order wouldn't help: publish first and a failed commit sends a welcome for an account that doesn't exist. Instead, write the account and an outbox row for its event in the same transaction, so both commit or neither does. A relay polls the outbox and publishes each row until the broker confirms, or change data capture such as Debezium reads the new rows from the write-ahead log. Both deliver at least once, so the email service should record each event id it has handled and skip repeats. Alarm on the age of the oldest unsent outbox row."
+  },
+  {
+   "id": "s4e08-r2",
+   "kind": "mcq",
+   "prompt": "A service publishes an event first and then commits the change to its database. The broker accepts the event, and then the database refuses the commit. What happens?",
+   "options": [
+    "Nothing: the broker withdraws the event when the commit fails.",
+    "The event goes out for a change that was never saved, and nothing calls it back.",
+    "The change is saved anyway, because the event already went.",
+    "The consumer waits until the commit succeeds before acting."
+   ],
+   "answer": 1,
+   "why": "The broker and the database don't share a transaction, so the broker knows nothing about the refused commit. Consumers act on an event describing a change that doesn't exist, as notice 14's letter went out for a matter closed at 20:30. Publishing first only swaps a lost event for an event about nothing."
+  },
+  {
+   "id": "s4e08-r3",
+   "kind": "free",
+   "prompt": "Your team fixed lost events with an outbox table and a polling relay that marks each row sent after the broker confirms. Since then, a few customers get the same shipping notice twice, always around broker restarts. Nothing is lost any more. Why the doubles, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The broker stored the event but the confirm was lost in the restart, so the relay, never marking the row sent, published it again: the outbox delivers at least once",
+     "match": [
+      "confirm was lost",
+      "confirm never",
+      "lost confirm",
+      "never confirmed",
+      "no confirm",
+      "acknowledgement was lost",
+      "at least once",
+      "at-least-once",
+      "sent again",
+      "publishes again"
+     ]
+    },
+    {
+     "idea": "The consumer records each event id it has handled and skips any it has already seen",
+     "match": [
+      "event id",
+      "message id",
+      "skip",
+      "already handled",
+      "already processed",
+      "dedup",
+      "idempoten"
+     ]
+    },
+    {
+     "idea": "Keep those ids durably, outside the consumer's memory, for longer than any resend",
+     "match": [
+      "durabl",
+      "a table",
+      "database table",
+      "outside the consumer",
+      "survives a restart",
+      "longer than"
+     ]
+    }
+   ],
+   "model": "The relay can't tell a lost event from a lost confirm. When the broker restarts with a publish in flight, it may already have stored the event, but its confirm never reaches the relay, so the row stays unsent and the relay publishes it again on its next poll. The outbox gives at least once, not exactly once, and that is the right trade: nothing lost. Fix it at the consumer: record each event id once its notice is sent, check before sending, and skip any id already recorded. Keep the ids in a database table, not the consumer's memory, so a restart can't wipe them, and keep them longer than any resend could arrive. Don't try to stop the relay resending; that would bring back lost events."
+  },
+  {
+   "id": "s4e08-r4",
+   "kind": "mcq",
+   "prompt": "How does Debezium's PostgreSQL connector find new outbox rows without polling the table?",
+   "options": [
+    "It runs a SELECT on the table every second.",
+    "The broker asks the database for new rows every minute.",
+    "It reads committed changes from the write-ahead log through logical decoding and a replication slot.",
+    "The application sends it a copy of every row it writes."
+   ],
+   "answer": 2,
+   "why": "PostgreSQL implements logical decoding by decoding the write-ahead log into row changes, and a replication slot remembers how far the reader has got. Debezium reads that stream and records the log position of each event, so it picks up committed outbox rows with no queries against the table. The cost: the slot holds log on disk while the connector is down."
+  },
+  {
+   "id": "s4e08-r5",
+   "kind": "mcq",
+   "prompt": "Why is a two-phase commit across a database and a message broker rarely the answer to the dual-write problem?",
+   "options": [
+    "It is slower than a single commit but otherwise has no drawbacks.",
+    "It only works when the broker and database run on one machine.",
+    "It loses messages whenever the coordinator is fast.",
+    "Most brokers can't take part, and where one can, every save waits on the broker and can stick if the coordinator fails."
+   ],
+   "answer": 3,
+   "why": "Every participant has to prepare and wait for the coordinator, and most brokers don't support that: microservices.io lists \"2PC is not an option\" among the outbox pattern's forces, and RabbitMQ's transactions cover only its own publishes and acks. Where it is available, the database's saves become only as available as the broker, and a coordinator lost mid-way can leave participants stuck."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. The outbox has held: every served notice since has had its letter, and the mail room skips the odd repeat. But on a Friday evening the relay process stopped at 19:10, and nothing restarted it. The case system kept saving notices and outbox rows as if nothing had happened. Every notice marked served after 19:10, ten of them, sat in the outbox, and at 23:00 I walked nine letters to the late counter. Caspian found the relay dead on Monday morning. The ten letters went out then, all after their deadlines. Nobody lost a record. Nobody was told.",
+  "prompt": "Reply to OP. The outbox kept every notice, so why were ten letters late, and what should Caspian add?",
+  "keyIdeas": [
+   {
+    "idea": "The outbox kept the rows safe, but nothing watched it: alarm on the age of the oldest unsent outbox row or on the count waiting",
+    "match": [
+     "oldest unsent",
+     "age of the oldest",
+     "alarm",
+     "alert",
+     "monitor",
+     "unsent rows",
+     "rows waiting",
+     "nothing watched"
+    ]
+   },
+   {
+    "idea": "Run the relay so it comes back by itself: supervised and restarted automatically, or a standby that takes over, with only one sending at a time",
+    "match": [
+     "restart it",
+     "restarts it",
+     "automatically",
+     "supervis",
+     "standby",
+     "second relay",
+     "take over",
+     "takes over",
+     "health check"
+    ]
+   },
+   {
+    "idea": "Check served notices against printed letters before the 23:00 run, so a gap is caught while there's still time",
+    "match": [
+     "before the run",
+     "before 23:00",
+     "before the deadline",
+     "before the 23:00",
+     "reconcil",
+     "check served"
+    ]
+   }
+  ],
+  "model": "The outbox did its job: no notice was lost, all ten rows were waiting. What was missing is anyone noticing that they were waiting. A relay is one more process, and when it stops, a lost letter has become a late one with no deadline in sight. Add an alarm on the age of the oldest unsent outbox row, alerting someone when it's more than a few minutes old in the evening, and on the number of rows waiting. Run the relay under something that restarts it when it dies, with a health check, or with a standby relay that takes over, making sure only one sends at a time so the order holds. And move the comparison of served notices against printed letters to before the 23:00 run, say 22:30, so a stopped relay is caught while the late counter is still open."
+ },
+ "next": "Next, Replay the Night: a courthouse stenographer's tapes, and event sourcing, where the events are the record and every view of it can be rebuilt by replaying them.",
+ "sources": [
+  {
+   "title": "Chris Richardson, microservices.io: Pattern: Transactional outbox (how to atomically update the database and send messages to a message broker; 2PC is not an option; store the message in the database and a separate process, the message relay, sends it; the relay might publish a message more than once, so a consumer must be idempotent)",
+   "url": "https://microservices.io/patterns/data/transactional-outbox.html"
+  },
+  {
+   "title": "Debezium Documentation: Outbox Event Router (the outbox pattern exchanges data safely and reliably between services; capture changes in an outbox table and apply the outbox event router SMT; the id column can be used to remove duplicate messages)",
+   "url": "https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html"
+  },
+  {
+   "title": "Debezium Documentation: Frequently Asked Questions (applications see every event at least once; some messages may be duplicated during recovery)",
+   "url": "https://debezium.io/documentation/faq/"
+  },
+  {
+   "title": "PostgreSQL Documentation: Logical Decoding Concepts (logical decoding decodes the contents of the write-ahead log; replication slots prevent removal of required resources even with no connection using them)",
+   "url": "https://www.postgresql.org/docs/current/logicaldecoding-explanation.html"
+  },
+  {
+   "title": "Debezium Documentation: Debezium connector for PostgreSQL (reads changes produced by a logical decoding output plug-in; records the WAL position for each event)",
+   "url": "https://debezium.io/documentation/reference/stable/connectors/postgresql.html"
+  },
+  {
+   "title": "RabbitMQ Documentation: Reliability Guide (publisher confirms; retransmit messages not acknowledged after a connection failure; a confirmation may never reach the producer, so consumers must deduplicate or be idempotent)",
+   "url": "https://www.rabbitmq.com/docs/reliability"
+  },
+  {
+   "title": "RabbitMQ Documentation: Broker Semantics (transactions are closer to batching than ACID; AMQP transactions only apply to publishes and acks)",
+   "url": "https://www.rabbitmq.com/docs/semantics"
+  },
+  {
+   "title": "AICPA & CIMA: 2017 Trust Services Criteria (With Revised Points of Focus, 2022) (the criteria for Security, Availability, Processing Integrity, Confidentiality and Privacy used in SOC 2 reports)",
+   "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+  },
+  {
+   "title": "Linford & Co: What is Processing Integrity and Who Needs it in their SOC 2? (PI1.3, data is processed completely, accurately, and timely as authorized; processing integrity is optional, Security is required)",
+   "url": "https://linfordco.com/blog/processing-integrity"
+  }
+ ]
+}
