@@ -1,0 +1,890 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-14) main-session review: \"Thursday night\" so the rain clearly falls on night 4; the 03:00 timeline now matches the diagram format (three-part gaps, segments on every row)",
+  "v1.0.0 (2026-10-14) first version"
+ ],
+ "id": "s5e12",
+ "season": 5,
+ "n": 12,
+ "title": "Leaks",
+ "setting": "a basement that keeps flooding",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "memory-leaks",
+  "garbage-collection",
+  "profiling"
+ ],
+ "prerequisites": [
+  "s5e06",
+  "s1e07"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/sump_shift_florizel",
+  "flair": "Part 1",
+  "age": "7h",
+  "votes": 2741,
+  "title": "I'm the night engineer at a pumping station. Our alarm log has a hole at 03:00 that grows two seconds every night. On the fourth night the water came through it.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Florizel, night engineer at Quillmere pumping station. We pump the town's rainwater to the river. Below us is a basement pump room that has flooded twice. A small device in the well beside it measures the water and radios what it finds: a sensor. Each measurement is a reading."
+   },
+   {
+    "t": "p",
+    "text": "Nine sensors report to a program that runs all the time on the control-room computer: the monitoring service. Zygmunt wrote it in Java, a common programming language. If the well passes its high-water line, it buzzes my pager, and I start the spare pump before the pump room floods."
+   },
+   {
+    "t": "p",
+    "text": "The high-water sensor sends a message every 2 seconds. Its radio holds each one until the service answers \"got it\", an answer called an acknowledgement. After 6 seconds without one, the radio deletes the message for good. When the water crosses the line, the sensor sends one alarm message, once, in place of a reading. Only that message sounds the alarm."
+   },
+   {
+    "t": "p",
+    "text": "A running program keeps its work in the computer's memory, its short-term working space. In Java, the part where a program keeps its data is called the heap."
+   },
+   {
+    "t": "p",
+    "text": "Java tidies the heap by itself. In its biggest tidy, a full collection, it first pauses the program. Then it marks everything it can reach by following links from what the program is using. Last, it frees the rest, like a cleaner who keeps whatever someone still holds. The tidier is called the garbage collector."
+   },
+   {
+    "t": "p",
+    "text": "On Monday at 14:00 Zygmunt started a new version. Before, a dropped radio link made a small guard program restart the whole service. Now the service reconnects just that link. Our big pumps start at 23:00, and their electrical noise drops the links 25 times by 02:00, every night."
+   },
+   {
+    "t": "p",
+    "text": "Each reconnect gets a new listener: a small piece of the program signed up to hear every reading from that link, like a name on a mailing list. The service keeps its list of listeners in one place, called the bus."
+   },
+   {
+    "t": "p",
+    "text": "Each listener keeps its own buffer, the last hour of its sensor's readings: 8 MB (megabytes, room for about 8 million letters). This code runs on every reconnect; the note says what never happens:"
+   },
+   {
+    "t": "log",
+    "text": "void onReconnect(Sensor s) {\n    bus.addListener(new ReadingListener(s));  // never removed\n}"
+   },
+   {
+    "t": "p",
+    "text": "At 03:00:00 a nightly report starts and grabs much memory at once, so the full collection runs then. Each line below is one night: its days, the pause, memory still in use after it, and messages the radio deleted:"
+   },
+   {
+    "t": "log",
+    "text": "night 1  Mon-Tue  3 s    800 MB  none\nnight 2  Tue-Wed  5 s  1,000 MB  none\nnight 3  Wed-Thu  7 s  1,200 MB  03:00:00\nnight 4  Thu-Fri  9 s  1,400 MB  03:00:00, 03:00:02"
+   },
+   {
+    "t": "p",
+    "text": "A message sent during the pause waits until it ends. On night 3 the 03:00:00 reading waited 7 seconds; the radio had already deleted it. Nobody noticed. On Thursday night it rained hard, and the water crossed the line at 03:00:02. That message was the alarm. It waited 7 seconds. The 03:00:04 reading got through, but an ordinary reading sounds nothing."
+   },
+   {
+    "t": "beat",
+    "text": "A hole at 03:00. Two seconds wider every night."
+   },
+   {
+    "t": "p",
+    "text": "My pager never buzzed. At 06:00 Ermengarde, on the morning round, found the pump-room floor ankle-deep. Nobody was hurt. What should Zygmunt change before the next rain?"
+   },
+   {
+    "t": "evidence",
+    "label": "alarm_log_0300.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Twelve seconds from 03:00:00 on each of four nights. The service is paused from 03:00:00 for 3 seconds on night 1, 5 on night 2, 7 on night 3 and 9 on night 4, and answers messages again after that. On night 4 the alarm message sent at 03:00:02 waits until the radio gives up at 03:00:08, one second before the pause ends.",
+     "start": "03:00:00",
+     "seconds": 12,
+     "ticksEvery": 2,
+     "rows": [
+      {
+       "label": "Night 1",
+       "segments": [
+        [
+         3,
+         12,
+         "ok"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         3,
+         "paused 3 s"
+        ]
+       ]
+      },
+      {
+       "label": "Night 2",
+       "segments": [
+        [
+         5,
+         12,
+         "ok"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         5,
+         "paused 5 s"
+        ]
+       ]
+      },
+      {
+       "label": "Night 3",
+       "segments": [
+        [
+         7,
+         12,
+         "ok"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         7,
+         "paused 7 s"
+        ]
+       ]
+      },
+      {
+       "label": "Night 4",
+       "segments": [
+        [
+         9,
+         12,
+         "ok"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         9,
+         "paused 9 s"
+        ]
+       ]
+      },
+      {
+       "label": "Alarm, night 4",
+       "gaps": [
+        [
+         2,
+         8,
+         "waiting, then deleted"
+        ]
+       ],
+       "segments": []
+      }
+     ],
+     "markers": [
+      {
+       "t": 2,
+       "label": "alarm sent",
+       "tone": "bad"
+      },
+      {
+       "t": 9,
+       "label": "pause ends",
+       "tone": "warn"
+      }
+     ]
+    },
+    "caption": "03:00:00 to 03:00:12 on each night. The pause grows by 2 seconds a night. On night 4 the alarm sent at 03:00:02 waits 6 seconds with no answer and the radio deletes it at 03:00:08, one second before the service wakes."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 158,
+   "age": "6h",
+   "text": "The collector keeps whatever it can still reach by following links from the parts in use. Anything still on a list counts as in use, whether or not anything will ever look at it again. Memory a program keeps holding after it is done with it is called a leak. And a full collection's pause usually grows with how much there is to follow. So, questions. After each 03:00 collection, how much memory was still in use, night by night? Does it ever go back down? And how many sensors are there, against how many listeners?",
+   "replies": [
+    {
+     "author": "u/sump_shift_florizel",
+     "op": true,
+     "points": 61,
+     "age": "5h",
+     "text": "It never goes down: 800 MB on Tuesday, 1,000, 1,200, then 1,400 on Friday, 200 more each night, of the 4,096 MB Java may use. Zygmunt doesn't know how to count listeners. On Friday he took a heap snapshot: a file listing everything in the heap at one moment, item by item. Java calls each item an object. It lists millions of objects, and he doesn't know what to look for."
+    }
+   ]
+  },
+  {
+   "author": "u/more_heap_gottfried",
+   "points": 94,
+   "age": "5h",
+   "text": "It's running out of memory; give it more. Memory climbs every night, so the service is simply too small now that nine sensors reconnect. Java only lets the heap grow to a set limit, called the heap size, fixed when the service starts. Yours is 4,096 MB. Double it to 8,192 and put the memory in the computer to match. Memory is cheap. A flooded pump room isn't."
+  },
+  {
+   "author": "u/sweep_hourly_teodolinda",
+   "points": 72,
+   "age": "4h",
+   "text": "The pause is long because a whole day's rubbish gets cleared at once. Java lets a program ask for a collection whenever it likes, with one line: System.gc(). That's calling the garbage collector by hand. Call it every hour and each tidy has only an hour's worth to clear. Small and often beats one big one at 03:00."
+  },
+  {
+   "author": "u/fresh_start_clotilde",
+   "points": 55,
+   "age": "3h",
+   "text": "We had a service at work whose memory climbed all week. Now a timer restarts it every evening, before the busy part of the night. Stopping and starting the program throws the whole heap away, so nothing can build up for more than a day. Not pretty, but it has run like that for years and nobody gets paged."
+  }
+ ],
+ "reply": {
+  "prompt": "The next rain could come any night, and the memory in use climbs 200 MB a night. What should Zygmunt change? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Double the computer's memory and the heap size, so the leak takes twice as long to fill it.",
+    "tone": "bad",
+    "verdict": "A bigger room, the same flood",
+    "part2": "Zygmunt set the heap size to 8,192 MB and restarted the service on a Monday at 14:00. The pauses that week came back exactly as before: 3 seconds, 5, 7, then 9 on the fourth night, because the old listeners were all still in use as far as the collector could tell. We replayed Thursday's rain in the sim: the alarm at 03:00:02 waited 7 seconds and was deleted again. The only change is the night memory runs out: night 38 instead of night 18.",
+    "senior": "A bigger heap gives a leak more room; it doesn't stop it. The pause comes from following everything still in use, and the old listeners are still in use as far as the collector can see, so the 03:00 pause grows by 2 seconds a night whatever the heap size. More memory only moves the crash further away, and makes the night it finally comes worse."
+   },
+   {
+    "text": "Compare two heap snapshots a night apart, and remove each listener when its sensor drops.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Zygmunt kept Friday's snapshot and took a second on Saturday at 03:30, while I watched the level screen myself. He opened both in a tool that compares them. One kind of object had grown: ReadingListener, 109 to 134, 25 more, holding 872 MB to 1,072 MB, 200 MB more. Everything else, 528 MB, was the same. Each one was held by the bus's list. He added a step that runs when a link drops: take that link's listener off the bus. With nothing pointing at it, the collector frees it and its 8 MB. The next week: 9 listeners every night, 600 MB in use, a 1 second pause at 03:00, nothing deleted. In the sim, Thursday's alarm sounds at 03:00:02.",
+    "senior": "In a language with a garbage collector, a leak is something still reachable that will never be used again. Find it by measuring, not guessing: two heap snapshots a day apart show what grew and what is holding it. Then cut the link at its source: whatever signs a listener up must take it off when the thing it listens to goes away. The pause shrinks because there is less to follow."
+   },
+   {
+    "text": "Restart the monitoring service every evening at 22:00, so its memory starts fresh each night.",
+    "tone": "warn",
+    "verdict": "Hides it, until a stormy night",
+    "part2": "From Monday a timer restarted the service at 22:00 every evening. Every 03:00 pause was 3 seconds, and the replayed alarm sounded at 03:00:03. A month later a thunderstorm dropped the links 75 times between 23:00 and 02:00. By 03:00 those listeners held 600 MB, the pause was 7 seconds, and the 03:00:00 reading was deleted. In the sim, 100 reconnects give 9 seconds, and the alarm at 03:00:02 is lost again.",
+    "senior": "A nightly restart caps the leak at one night's worth, which buys real time and is a fair stopgap. But the leak is still there, and its size now depends on how many times the links drop in one night: a stormy night grows it just as four calm nights did. The restart is also a short gap of its own every evening, and it hides the growth from the very numbers that would show it."
+   },
+   {
+    "text": "Call the garbage collector by hand every hour, so it never has a big heap to clear at once.",
+    "tone": "bad",
+    "verdict": "Nothing there it may free",
+    "part2": "Zygmunt added a timer that calls System.gc() on the hour. On the fourth night the 03:00 pause was 9 seconds, the same as before, and now there were 23 more like it through the day. Each collection found the same old listeners still on the bus's list, so it could free none of them, and each had just as much to follow. In the sim, Thursday's alarm is deleted again.",
+    "senior": "A collection can only free what nothing reaches. The old listeners are on the bus's list, so every collection, by hand or not, keeps them and has to follow them all. The pause is spent on what is kept, not on the rubbish, so collecting more often doesn't shorten it; here it just adds a 9 second pause every hour."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s5e12",
+  "title": "Run the week at Quillmere, night by night",
+  "lede": "You're Zygmunt, from Monday at 14:00, when the new version starts: 9 sensors, 9 listeners on the bus, 600 MB in use, a heap size of 4,096 MB. Each night the links drop and come back 25 times between 23:00 and 02:00, and each reconnect adds a listener with its own 8 MB buffer. At 03:00:00 the full collection pauses the service: 1 second, plus 1 second for every 100 MB the old listeners hold. The high-water sensor sends every 2 seconds and its radio waits 6 seconds for an acknowledgement: a message is kept if it waits 6 seconds or less, and deleted if it waits longer. On night 4 the water crosses the line at 03:00:02. Pick a fix, the reconnects a night and the radio's wait, then run the nights and compare heap snapshots.",
+  "tryThis": "Try this: run the nights as built. Nights 1 and 2 pause 3 and 5 seconds and lose nothing. Night 3 pauses 7 and deletes the 03:00:00 reading. Night 4 pauses 9 and deletes the 03:00:02 alarm. Compare snapshots on night 4: 84 listeners to 109, 200 MB more. Now try each fix and run to night 4. Double the heap: still 9 seconds. Restart at 22:00: 3 seconds, until you set 100 reconnects. Garbage collection every hour: 9 seconds, 24 times a day. Remove listeners: 1 second and 9 listeners every night. Last, with no fix, give the radio 10 seconds: the alarm survives, 7 seconds late."
+ },
+ "explain": {
+  "oneLine": "Nothing was wrong with the pumps or the sensor. Every reconnect added a listener and none was ever removed, so the old ones stayed reachable and the collector could not free them. The 03:00 full collection had 200 MB more to follow each night, its pause grew from 3 to 9 seconds, and on the fourth night it outlasted the radio's 6 second wait just as the one alarm message was sent.",
+  "steps": [
+   {
+    "title": "Every reconnect left a listener behind.",
+    "text": "Here is what happened on each reconnect. First the link dropped; the old Sensor object stopped getting anything. Then the link came back, and the service made a fresh Sensor object for it. Next onReconnect made a new ReadingListener with its own 8 MB buffer and put it on the bus. Nothing took the old listener off. What went wrong: the old one stayed on the bus's list for good, holding its buffer. At 25 reconnects a night that is 25 x 8 = 200 MB a night: 9 listeners on Monday, 34 by Tuesday, 109 by Friday. This is a common shape of leak, called the lapsed listener: a listener that signed up and was never signed off."
+   },
+   {
+    "title": "Reachable is not the same as needed.",
+    "text": "The garbage collector does not know what the program will use later. It works in steps. First it starts from the roots: what running code is using right now, and long-lived things such as the bus. Next it follows every link from those, marking each object it reaches. Then it frees everything left unmarked. What can go wrong: an object you will never use again, but that something still points to, is marked and kept. The old listeners are exactly that. The bus is in use, its list points to them, and they point to their buffers. So no collector can free them, however often it runs. In a garbage-collected language, a leak is something reachable that is never used again."
+   },
+   {
+    "title": "The pause grows with what is still in use.",
+    "text": "The report at 03:00:00 needs a lot of fresh memory at once, so the full collection runs then. In a full collection the program waits while the collector marks everything still in use, so the pause grows with that, not with the rubbish. At Quillmere it measured 1 second plus 1 second for each 100 MB the old listeners held: 3, 5, 7 and 9 seconds on nights 1 to 4. Modern collectors such as G1 (Java's usual default) and ZGC do most of their marking while the program keeps running, so their pauses are usually far shorter. But a full collection, the fallback when the heap fills, still stops everything, and the work of following a leak still grows every night."
+   },
+   {
+    "title": "A pause becomes a loss at the 6 second line.",
+    "text": "The sensor sends at 03:00:00, 03:00:02, 03:00:04 and on. A message sent during the pause is answered when the pause ends, so its wait is the end of the pause less its send time. Above 6 seconds the radio deletes it. Night 1 (3 s) and night 2 (5 s): the longest wait is 3 and 5 seconds, so nothing is lost, only a gap in the log. Night 3 (7 s): the 03:00:00 reading waits 7 and is deleted; the 03:00:02 one waits 5 and is kept. Night 4 (9 s): 03:00:00 waits 9 and 03:00:02 waits 7, so both go, and 03:00:02 was the alarm. The 03:00:04 reading waits 5 and gets through, but the service only sounds the alarm on the alarm message, so it stayed quiet."
+   },
+   {
+    "title": "Finding it: two snapshots, a night apart.",
+    "text": "One heap snapshot (in Java, a heap dump) is a photo of a room: it shows what is there, not what is new. Take two a day apart, after a full collection, and compare them by kind of object. On a running Java service, the jcmd command writes one. Here only ReadingListener grows, 25 a night and 200 MB with it, and the tool shows the path that keeps each one: the bus's list of listeners. Before even that, the plainest sign is memory still in use after each full collection: if it climbs every day under the same work, something is leaking."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 320,
+   "aria": "The fix. A sensor link drops and comes back 25 times a night. When it drops, the service's onDisconnect step takes that link's listener off the bus, so the bus holds 9 listeners and 72 MB every night. The old listener is unreachable, so the garbage collector frees it and its 8 MB. The 03:00 collection has less to follow: a 1 second pause, nothing deleted.",
+   "nodes": [
+    {
+     "id": "link",
+     "label": "Sensor link",
+     "sub": "drops, comes back",
+     "meta": "25 times a night",
+     "x": 110,
+     "y": 80,
+     "w": 170,
+     "h": 72,
+     "shape": "box"
+    },
+    {
+     "id": "svc",
+     "label": "onDisconnect",
+     "sub": "removeListener(old)",
+     "meta": "new one on reconnect",
+     "x": 370,
+     "y": 80,
+     "w": 190,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "bus",
+     "label": "Bus",
+     "sub": "9 listeners",
+     "meta": "72 MB every night",
+     "x": 630,
+     "y": 80,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "gc",
+     "label": "Garbage collector",
+     "sub": "frees the old one",
+     "meta": "8 MB back each time",
+     "x": 630,
+     "y": 240,
+     "w": 180,
+     "h": 72,
+     "shape": "box"
+    },
+    {
+     "id": "pause",
+     "label": "03:00 collection",
+     "sub": "1 s pause",
+     "meta": "nothing deleted",
+     "x": 350,
+     "y": 240,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "link",
+     "to": "svc",
+     "label": "drop"
+    },
+    {
+     "from": "svc",
+     "to": "bus",
+     "label": "remove"
+    },
+    {
+     "from": "bus",
+     "to": "gc",
+     "label": "unreachable"
+    },
+    {
+     "from": "gc",
+     "to": "pause",
+     "label": "less to trace"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the next rain. When a link drops, its listener comes off the bus, so the collector can free it. The bus holds 9 listeners and 72 MB every night, and in the sim the 03:00 pause stays at 1 second and the alarm at 03:00:02 sounds on time.",
+  "fix": {
+   "title": "The fix: measure what grew, then sign listeners off",
+   "text": "First, prove it: take a heap snapshot on two nights after the 03:00 collection, jcmd <process id> GC.heap_dump, and compare them in Eclipse MAT or VisualVM. Only ReadingListener grows, 25 and 200 MB a night, held by the bus. Then sign each listener off when its link ends: keep the listener for each link, and in onDisconnect call bus.removeListener(listener) before the link is forgotten. Add a check that would have caught this: a count of listeners on the bus, which should equal the 9 sensors, and memory in use after each full collection, which should stay flat. In the sim: 9 listeners, 600 MB, a 1 second pause, and the alarm on time."
+  },
+  "limits": [
+   "The alarm is edge-triggered: the sensor sends it once, as the level crosses the line, and only that message sounds it. One lost message, from a pause, a radio fault or a restart, loses the alarm. A safer service is also level-triggered: it sounds the alarm for any ordinary reading above the line.",
+   "Removing listeners only works if every way a link can end runs onDisconnect. A link that dies without telling anyone leaves its listener behind; a bus that holds listeners weakly, or a check for dead links, covers that case.",
+   "Modern collectors such as G1 and ZGC keep most pauses short, and a bigger heap delays the trouble. Neither fixes a leak: the leaked objects still fill the heap, and a full collection still has to follow them all."
+  ],
+  "tradeoff": {
+   "head": [
+    "Fix",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "No fix (as built)",
+     "Nothing to change.",
+     "200 MB a night; pauses 3, 5, 7, 9 s; the alarm lost on night 4."
+    ],
+    [
+     "Double the heap",
+     "Memory runs out on night 38, not 18.",
+     "The same pauses: 9 s on night 4, the alarm lost."
+    ],
+    [
+     "Restart every evening at 22:00",
+     "Caps the leak at one night: 3 s every calm night.",
+     "A stormy night still grows it: 75 reconnects, 7 s; 100, 9 s."
+    ],
+    [
+     "Garbage collection every hour",
+     "Easy to add.",
+     "Frees nothing reachable: 9 s on night 4, and 24 pauses a day."
+    ],
+    [
+     "Remove each listener when its link drops",
+     "9 listeners, 600 MB, 1 s pause, every night.",
+     "Every way a link can end must run onDisconnect."
+    ],
+    [
+     "Radio waits 10 s (alongside a fix)",
+     "Survives a 9 s pause; the alarm comes 7 s late.",
+     "Hides the leak; the pause keeps growing."
+    ]
+   ]
+  },
+  "seniorTake": "A garbage collector frees what nothing can reach, not what you have finished with. So in Java, Python, Go or JavaScript you leak by keeping a link you forgot: a listener never signed off, a cache with no limit, a list that only grows. Watch memory still in use after each full collection; if it climbs under the same work, take two heap snapshots apart and let the difference name the culprit and what holds it. Fix the link at its source. A bigger heap, a nightly restart or a better collector buys time, and that can be the right call for a week, but say so out loud and keep the ticket open. And notice the second lesson: a pause is only harmless until something else is waiting with a timer. Design alarms so that one lost message can't silence them.",
+  "realWorld": [
+   {
+    "title": "Oracle: what a memory leak is in Java",
+    "text": "Oracle's troubleshooting guide says: \"A memory leak occurs when an application unintentionally holds references to Java objects or classes, preventing them from being garbage collected.\" It adds that these objects \"can grow in memory over time, eventually filling up the entire Java heap or Metaspace, causing frequent garbage collections and eventual process termination\".",
+    "source": 0
+   },
+   {
+    "title": "Oracle: watch the live set after a full collection",
+    "text": "\"For detecting memory leaks, it is important to monitor the live set of the application that is, the amount of Java heap space or Metaspace being used after a full garbage collection. If the live set increases over time after the application has reached a stable state and is under a stable load, that could be a strong indication of a memory leak.\" The live set is what is still in use, Quillmere's 800 to 1,400 MB.",
+    "source": 0
+   },
+   {
+    "title": "Oracle: heap dumps, and how to take one",
+    "text": "\"Heap dumps are the most important data to troubleshoot memory leaks. Heap dumps can be collected using jcmd, jmap, JConsole tools, and the -XX:+HeapDumpOnOutOfMemoryError Java option\". The guide's example is jcmd <process id/main class> GC.heap_dump filename=heapdump.dmp. It also suggests a sequence of heap histograms, counts of objects by kind, to \"see a trend\".",
+    "source": 0
+   },
+   {
+    "title": "Oracle: what the garbage collector does",
+    "text": "Oracle's tuning guide lists the collector's jobs, among them: it \"Determines which parts of that memory is still in use by the application\" and \"Reclaims the unused memory for reuse by the application.\" Still in use is decided by reach, not by need.",
+    "source": 1
+   },
+   {
+    "title": "Oracle: G1 marks what is reachable, and a full collection stops the world",
+    "text": "In G1, Java's usual default, \"Concurrent marking determines all currently reachable (live) objects in the old generation regions\". As a backup, \"if the application runs out of memory while gathering liveness information, G1 performs an in-place stop-the-world full heap compaction (Full GC) like other collectors\", and Oracle warns that a full collection \"might be very slow.\"",
+    "source": 2
+   },
+   {
+    "title": "OpenJDK: ZGC pauses don't grow with the heap",
+    "text": "The OpenJDK wiki says ZGC does its work \"without stopping the execution of application threads for more than a millisecond\", and that \"Pause times are independent of the heap size that is being used.\" Short pauses would have saved Quillmere's alarm, but not its memory: the leak still grows.",
+    "source": 3
+   },
+   {
+    "title": "Eclipse Memory Analyzer",
+    "text": "Its project page calls it \"a fast and feature-rich Java heap analyzer that helps you find memory leaks\", and says it can \"analyze productive heap dumps with hundreds of millions of objects\".",
+    "source": 4
+   },
+   {
+    "title": "The lapsed listener problem (encyclopedia summary)",
+    "text": "Wikipedia's article, not a primary source, calls it \"a common source of memory leaks for object-oriented programming languages\", and among \"the most common ones for garbage collected languages.\" It says the observer pattern \"requires both explicit registration and explicit deregistration\", and \"The leak happens when an observer fails to unsubscribe from the subject when it no longer needs to listen.\" Holding listeners by weak references is one way to prevent it.",
+    "source": 5
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Can you leak memory in a garbage-collected language?",
+    "How would you find a memory leak?",
+    "What causes long GC pauses?"
+   ],
+   "answer": "Yes. A garbage collector frees objects nothing can reach, so a leak there is an object that is still reachable but will never be used again: a listener never unregistered, a cache with no size limit, a static list that only grows. To find one, I'd first watch the live set, the heap still in use after each full collection; if it climbs under steady load, that's a strong sign. Then I'd take two heap dumps some time apart, with jcmd GC.heap_dump, and compare them in Eclipse MAT or VisualVM: which class grew, and what path from the roots keeps it alive. Long pauses usually come from a big live set, because marking and copying work on what is kept, not on the garbage, and a stop-the-world full collection is the worst case; allocation bursts that force one, and a heap too small for the live set, make it worse. G1 and ZGC shorten pauses a lot, and a bigger heap delays a leak, but neither fixes it. A story I'd tell: a pumping station's Java monitor added a listener on every sensor reconnect and never removed one. That leaked 200 MB a night, the 03:00 full collection grew from 3 to 9 seconds, and on the fourth night the pause outlasted the sensor's 6 second acknowledgement wait just as it sent its one alarm message. Two snapshots a night apart showed only the listeners growing, and removing each on disconnect brought the pause back to 1 second."
+  }
+ },
+ "terms": [
+  {
+   "term": "Quillmere pumping station",
+   "def": "The station in this story. It pumps the town's rainwater to the river. Its basement pump room has flooded twice."
+  },
+  {
+   "term": "Sensor",
+   "def": "A small device that measures something and sends what it finds, like a thermometer that can phone in. Quillmere has nine, one of them in the well by the pump room."
+  },
+  {
+   "term": "Reading",
+   "def": "One measurement a sensor sends. The high-water sensor sends one every 2 seconds."
+  },
+  {
+   "term": "High-water line",
+   "def": "The level in the well that must not be passed. When the water crosses it, the sensor sends one alarm message."
+  },
+  {
+   "term": "Alarm message",
+   "def": "The one message the sensor sends, once, when the water crosses the high-water line, in place of a reading. Only this message sounds the alarm."
+  },
+  {
+   "term": "Monitoring service",
+   "def": "Zygmunt's program that runs all the time on the control-room computer, takes in the nine sensors' readings and sounds the alarm."
+  },
+  {
+   "term": "Java",
+   "def": "A common language for writing programs. Java programs run with a built-in garbage collector, so the programmer never frees memory by hand."
+  },
+  {
+   "term": "Acknowledgement",
+   "def": "A short \"got it\" answer sent back for each message. The sensor's radio waits up to 6 seconds for one, then deletes the message and never sends it again."
+  },
+  {
+   "term": "Memory",
+   "def": "A computer's short-term working space, where a running program keeps what it is working on. Fast, and emptied when the program stops."
+  },
+  {
+   "term": "Heap",
+   "def": "The part of memory where a Java program keeps its data, such as listeners and their buffers. The garbage collector tidies it."
+  },
+  {
+   "term": "Heap size",
+   "def": "The most memory Java may use for the heap, fixed when the program starts. Quillmere's is 4,096 MB."
+  },
+  {
+   "term": "MB",
+   "def": "Short for megabyte: about a million bytes, room for about a million letters of plain text."
+  },
+  {
+   "term": "GB",
+   "def": "Short for gigabyte: 1,024 MB. Quillmere's heap size, 4,096 MB, is 4 GB."
+  },
+  {
+   "term": "Garbage collector",
+   "def": "The part of Java that frees memory by itself: it keeps everything it can reach from what is in use and frees the rest, like a cleaner who bins only what nobody holds."
+  },
+  {
+   "term": "Full collection",
+   "def": "The garbage collector's biggest tidy, of the whole heap, with the program paused. At Quillmere it runs at 03:00:00 when the report starts."
+  },
+  {
+   "term": "Pause (GC pause)",
+   "def": "The time a program stands still while the collector works. Nothing is answered. GC is short for garbage collection."
+  },
+  {
+   "term": "Reachable",
+   "def": "Can be found by following links from what the program is using now. The collector keeps everything reachable, needed or not."
+  },
+  {
+   "term": "Roots",
+   "def": "Where the collector starts following links: what running code is using now, and long-lived things such as the bus."
+  },
+  {
+   "term": "Memory leak",
+   "def": "Memory a program keeps holding after it is done with it. With a garbage collector, it is something still reachable that will never be used again."
+  },
+  {
+   "term": "Live set",
+   "def": "Everything still in use after a full collection. At Quillmere: 800 MB on Tuesday morning, 1,400 MB on Friday."
+  },
+  {
+   "term": "Listener",
+   "def": "A small piece of a program signed up to be told each time something happens, like a name on a mailing list. Here, one per sensor link."
+  },
+  {
+   "term": "Observer pattern",
+   "def": "The design pattern of parts signing up to be told when something happens (s5e06). Listeners are observers."
+  },
+  {
+   "term": "Lapsed listener",
+   "def": "A listener that signed up and was never signed off. It stays on the list and keeps whatever it points to in memory."
+  },
+  {
+   "term": "Bus",
+   "def": "The place in the service that keeps the list of listeners and passes each reading to them."
+  },
+  {
+   "term": "Buffer",
+   "def": "A store kept in memory. Each ReadingListener keeps its own: the last hour of its sensor's readings, 8 MB."
+  },
+  {
+   "term": "Object",
+   "def": "A bundle of data kept together in a program's memory, such as one listener or one Sensor."
+  },
+  {
+   "term": "Sensor object",
+   "def": "The service's object for one live radio link. Each reconnect makes a fresh one; the old one is dead but still pointed to."
+  },
+  {
+   "term": "Reconnect",
+   "def": "A radio link dropping and coming back. At Quillmere, 25 a night between 23:00 and 02:00, when the big pumps start."
+  },
+  {
+   "term": "onReconnect",
+   "def": "The step in the service that runs when a link comes back. It adds a new listener to the bus."
+  },
+  {
+   "term": "onDisconnect",
+   "def": "The step in the service that runs when a link drops. The fix makes it take that link's listener off the bus."
+  },
+  {
+   "term": "addListener",
+   "def": "The bus's call for signing a listener up. The service called it on every reconnect."
+  },
+  {
+   "term": "removeListener",
+   "def": "The bus's call for taking a listener off. Before the fix, the service never called it."
+  },
+  {
+   "term": "ReadingListener",
+   "def": "Zygmunt's listener class: one per link, each with its own 8 MB buffer."
+  },
+  {
+   "term": "Heap snapshot (heap dump)",
+   "def": "A file listing everything in the heap at one moment, object by object. Two taken apart show what grew. Java calls it a heap dump."
+  },
+  {
+   "term": "Heap histogram",
+   "def": "A short count of the objects in the heap by kind, with their sizes. A series of them shows which kind keeps growing."
+  },
+  {
+   "term": "jcmd",
+   "def": "A command that comes with Java for asking a running Java program to do things, such as GC.heap_dump to write a heap dump."
+  },
+  {
+   "term": "Process id",
+   "def": "A process is one running copy of a program; its process id is the number the computer gives it, used to tell jcmd which one."
+  },
+  {
+   "term": "Eclipse MAT",
+   "def": "The Eclipse Memory Analyzer, a free tool that opens Java heap dumps, counts objects by kind, compares dumps and shows what holds an object in memory."
+  },
+  {
+   "term": "VisualVM",
+   "def": "A free tool for watching a running Java program's memory and threads, and for taking and opening heap dumps."
+  },
+  {
+   "term": "System.gc()",
+   "def": "A line of Java that asks for a garbage collection now. It can only free what is unreachable."
+  },
+  {
+   "term": "G1 and ZGC",
+   "def": "Two of Java's garbage collectors. G1 is the usual default; both do most marking while the program runs, so pauses are usually short."
+  },
+  {
+   "term": "Stop-the-world",
+   "def": "A collection during which every part of the program is paused. A full collection is one."
+  },
+  {
+   "term": "Weak reference",
+   "def": "A link the collector ignores when deciding what to keep. A bus that holds listeners weakly lets dead ones be freed."
+  },
+  {
+   "term": "Metaspace",
+   "def": "A second area of Java's memory, for the descriptions of classes rather than objects. It can leak too."
+  },
+  {
+   "term": "Old generation",
+   "def": "The part of a Java heap for objects that have lasted a while, like the old listeners. G1 marks it while the program runs."
+  },
+  {
+   "term": "Edge-triggered",
+   "def": "An alarm sent once, at the moment a line is crossed. Lose that one message and it never sounds. A level-triggered one sounds for every reading above the line."
+  },
+  {
+   "term": "Cache",
+   "def": "A store of copies kept to save fetching them again. One with no limit on its size is a common leak."
+  },
+  {
+   "term": "Thread",
+   "def": "A line of work inside a running program. A collector that stops the world pauses all of them."
+  },
+  {
+   "term": "A1.1 (SOC 2)",
+   "def": "A SOC 2 availability criterion: the company maintains, monitors and evaluates current processing capacity and use of system components."
+  },
+  {
+   "term": "SOC 2",
+   "def": "An audit report, written by an outside checker, on a company's controls against the AICPA's Trust Services Criteria."
+  }
+ ],
+ "atWork": "Look for a service whose memory climbs until a nightly or weekly restart hides it. It is a common pattern: nobody decided to leak, the restart came first as a stopgap, and the growth stopped showing on any chart. Check three things. Memory still in use after each full collection, over several days of the same work: flat is fine, a steady climb is a leak. The longest garbage-collection pauses, and anything that waits on the service with its own timer, such as a device, a queue or a check that the service is alive, which a pause can outlast. And every place code signs something up, a listener or a cache entry, and where it signs it off. If you find growth, take two heap dumps apart (jcmd GC.heap_dump on Java) and compare them. Standards: if your company reports against SOC 2, criterion A1.1 expects it to maintain, monitor and evaluate current processing capacity and use of system components; memory after each full collection is exactly that kind of measure, so build the alert in now rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "memory-leaks",
+    "title": "Memory leaks"
+   },
+   {
+    "id": "garbage-collection",
+    "title": "Garbage collection"
+   },
+   {
+    "id": "profiling",
+    "title": "Profiling"
+   }
+  ],
+  "strings": [
+   {
+    "from": "memory-leaks",
+    "to": "observer",
+    "label": "lapsed listener"
+   },
+   {
+    "from": "garbage-collection",
+    "to": "memory",
+    "label": "frees the heap"
+   },
+   {
+    "from": "garbage-collection",
+    "to": "memory-leaks",
+    "label": "can't free these"
+   },
+   {
+    "from": "profiling",
+    "to": "memory-leaks",
+    "label": "two snapshots"
+   },
+   {
+    "from": "garbage-collection",
+    "to": "acknowledgements",
+    "label": "pauses beat timers"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s5e12-r1",
+   "kind": "free",
+   "prompt": "Your team runs a Java service that takes orders from a few dozen shops over connections that stay open. Its memory after each full garbage collection rises about 150 MB a day, and its pauses get longer every day until the Sunday restart. A teammate wants to raise the heap size from 2 GB to 6 GB. What is probably going on, and what would you do?",
+   "keyIdeas": [
+    {
+     "idea": "Memory still in use after a full collection keeps growing, so something is still reachable that will never be used: a leak",
+     "match": [
+      "still reachable",
+      "still referenced",
+      "holds references",
+      "holding references",
+      "still points",
+      "never removed",
+      "never released",
+      "keeps a reference"
+     ]
+    },
+    {
+     "idea": "A bigger heap only delays it; the pauses still grow with what is kept",
+     "match": [
+      "only delays",
+      "just delays",
+      "delays it",
+      "buys time",
+      "postpones",
+      "live set",
+      "still grow",
+      "grow with"
+     ]
+    },
+    {
+     "idea": "Take two heap snapshots apart and compare what grew and what holds it, then remove the reference at its source",
+     "match": [
+      "two heap",
+      "two snapshots",
+      "two dumps",
+      "heap dump",
+      "heap snapshot",
+      "what grew",
+      "compare them",
+      "what holds it"
+     ]
+    }
+   ],
+   "model": "Memory still in use after a full collection should stay flat under the same work; here it climbs, so something is still reachable that will never be used again, most likely one object per connection or order that is never removed, such as a listener or a cache entry. Raising the heap only delays it: the leak fills 6 GB later instead of 2, and the pauses still grow with the live set, because a full collection has to follow everything that is kept. I'd take two heap dumps a day apart with jcmd GC.heap_dump, compare them in Eclipse MAT or VisualVM to see which kind of object grew and what path keeps it reachable, and fix that reference at its source, for example removing a listener when its connection closes. Then I'd add an alert on memory after each full collection."
+  },
+  {
+   "id": "s5e12-r2",
+   "kind": "mcq",
+   "prompt": "Which objects can Java's garbage collector free?",
+   "options": [
+    "Any object the program will never use again",
+    "Objects that nothing in use still points to, directly or through others",
+    "The oldest objects first, whenever the heap is full",
+    "Any object at all, once System.gc() is called"
+   ],
+   "answer": 1,
+   "why": "The collector follows links from what is in use and keeps everything it reaches; it cannot know what you will use later. Quillmere's old listeners were never used again but were still on the bus's list, so no collection, by hand or not, could free them."
+  },
+  {
+   "id": "s5e12-r3",
+   "kind": "mcq",
+   "prompt": "A sensor sends a message every 2 seconds from 03:00:00 and its radio deletes any message not acknowledged within 6 seconds. A 9 second pause starts at 03:00:00, and messages sent during it are answered when it ends. Which are deleted?",
+   "options": [
+    "None: each is answered when the pause ends",
+    "Only the 03:00:00 one",
+    "The 03:00:00 and 03:00:02 ones",
+    "Every message sent during the pause"
+   ],
+   "answer": 2,
+   "why": "The pause ends at 03:00:09. The 03:00:00 message waits 9 seconds and the 03:00:02 one 7, both over 6, so both are deleted. The 03:00:04 one waits 5, the 03:00:06 one 3 and the 03:00:08 one 1, so they are kept. On Quillmere's fourth night, 03:00:02 was the alarm."
+  },
+  {
+   "id": "s5e12-r4",
+   "kind": "mcq",
+   "prompt": "Why did calling the garbage collector every hour leave the 03:00 pause at 9 seconds?",
+   "options": [
+    "The hourly collections ran at the wrong times",
+    "The pause comes from following what is kept, and the old listeners were still kept",
+    "Java ignores System.gc() while a report is running",
+    "Collecting often makes each collection slower"
+   ],
+   "answer": 1,
+   "why": "A collection's work is following everything still reachable. The leaked listeners were on the bus's list, so every collection kept them and had to follow them all: 800 MB of them on the fourth night, a 9 second pause, now with 23 more like it each day."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. Listeners come off the bus now, and every 03:00 pause was 1 second all spring. On 2 August Zygmunt sped up the weekly report: the service now keeps every reading in a map, a lookup table in memory, by sensor and time, so the Saturday report doesn't have to fetch them again. The report only ever looks back seven days. Memory in use after the 03:00 collection was 640 MB on the first night and has risen 40 MB every night since. Last night, the 30th, it was 1,800 MB, the 03:00 pause was 13 seconds, and four readings were deleted. The alarm log has a hole at 03:00 again.",
+  "prompt": "Reply to OP. What is growing, why can't the garbage collector free it, and how should the map be kept?",
+  "keyIdeas": [
+   {
+    "idea": "Readings older than seven days stay in the map though the report never uses them; nothing ever takes them out",
+    "match": [
+     "never removed",
+     "never taken out",
+     "never evicted",
+     "nothing removes",
+     "no limit",
+     "unbounded",
+     "grows forever",
+     "older than seven",
+     "older than 7"
+    ]
+   },
+   {
+    "idea": "The map is in use and points to every reading, so they are all reachable and the collector must keep them",
+    "match": [
+     "still reachable",
+     "points to",
+     "references",
+     "still referenced",
+     "holds them"
+    ]
+   },
+   {
+    "idea": "Bound the map: drop entries older than seven days, or cap its size, and check with two snapshots",
+    "match": [
+     "evict",
+     "expire",
+     "size limit",
+     "maximum size",
+     "cap its size",
+     "drop entries",
+     "remove entries",
+     "two snapshots"
+    ]
+   }
+  ],
+  "model": "The map is a leak with a nicer name: a cache with no limit. Every reading goes in and nothing removes it, so readings older than seven days stay though the report never looks at them. The map is in use and points to every entry, so they are all still reachable and the collector must keep them and follow them in every full collection: 40 MB more a night, 1,800 MB and a 13 second pause by the 30th night, the same arithmetic as the listeners. Bound it: evict entries older than seven days when new ones go in, or use a cache with a size limit and expiry, and after a week memory should level off at about 600 + 7 x 40 = 880 MB. Check it the same way as before, with two snapshots a night apart: the map should stop growing."
+ },
+ "next": "Next, Field Report: The Delivery Machine: the Netflix TechBlog archive, and how a company turned shipping its code into pipelines that build, test and release every change the same way, every time.",
+ "sources": [
+  {
+   "title": "Oracle, Java SE 21 Troubleshooting Guide: Troubleshoot Memory Leaks (a memory leak occurs when an application unintentionally holds references; monitor the live set after a full garbage collection; heap dumps are the most important data; jcmd GC.heap_dump)",
+   "url": "https://docs.oracle.com/en/java/javase/21/troubleshoot/troubleshooting-memory-leaks.html"
+  },
+  {
+   "title": "Oracle, Java SE 21 HotSpot Virtual Machine Garbage Collection Tuning Guide: Introduction to Garbage Collection Tuning (what a garbage collector does)",
+   "url": "https://docs.oracle.com/en/java/javase/21/gctuning/introduction-garbage-collection-tuning.html"
+  },
+  {
+   "title": "Oracle, Java SE 21 Garbage Collection Tuning Guide: Garbage-First (G1) Garbage Collector (concurrent marking of reachable objects; stop-the-world Full GC as a backup, which might be very slow)",
+   "url": "https://docs.oracle.com/en/java/javase/21/gctuning/garbage-first-g1-garbage-collector1.html"
+  },
+  {
+   "title": "OpenJDK Wiki, ZGC: Main (pauses of no more than a millisecond; pause times independent of heap size)",
+   "url": "https://wiki.openjdk.org/display/zgc/Main"
+  },
+  {
+   "title": "Eclipse Foundation, Eclipse Memory Analyzer (MAT) project page (a Java heap analyzer that helps you find memory leaks)",
+   "url": "https://eclipse.dev/mat/"
+  },
+  {
+   "title": "Wikipedia, Lapsed listener problem (encyclopedia summary, not a primary source)",
+   "url": "https://en.wikipedia.org/wiki/Lapsed_listener_problem"
+  },
+  {
+   "title": "Linford & Co: Availability Trust Services Criteria in a SOC 2 Audit (A1.1: the entity maintains, monitors, and evaluates current processing capacity and use of system components)",
+   "url": "https://linfordco.com/blog/availability-soc-2-trust-service-principle/"
+  }
+ ]
+}
