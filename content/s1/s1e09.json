@@ -1,5 +1,5 @@
 {
-  "_changelog": ["v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words", "v1.0.1 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores", "v1.0.0 (2026-10-06) first version"],
+  "_changelog": ["v1.2.0 (2026-10-14) process pass: every process explained as its steps where it first appears (standard rule 12)", "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words", "v1.0.1 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores", "v1.0.0 (2026-10-06) first version"],
   "id": "s1e09",
   "season": 1,
   "n": 9,
@@ -20,7 +20,7 @@
       { "t": "p", "text": "I'm the deputy recorder for Larkmoor County. I work nights, scanning deeds, the papers that say who owned which land, some going back to 1840. Until March, everything the office knew lived in one enormous spreadsheet, a big grid of boxes on a computer, that Mr. Abernethy kept for forty years. When he retired, the county hired a contractor to move it into a database. That's a program built to store records and find them fast, like a filing cabinet that can search itself. It runs on a server, a computer whose job is answering requests." },
       { "t": "p", "text": "She split it into three drawers: residents, deeds and visits to our reading room. Each drawer is called a table. A table has fixed columns, the facts every record has, like name and street. Each record is one row across them, like one folder in the drawer." },
       { "t": "p", "text": "Every row gets a number that never changes, like the number on a folder. That number is called its primary key. A visit doesn't copy the visitor's name. It stores their resident number instead, like a slip that says *see folder 112*. A number that points at a row in another table is called a foreign key." },
-      { "t": "p", "text": "Every night at 3:00 AM the system builds the reading-room report: every visit since March, with the visitor's name. It takes 19 seconds. Abernethy's spreadsheet showed the same list instantly. The contractor opened the database's log, its diary of every question it's asked. Each question is called a query. Each line shows the time, the query word for word, and how many rows came back. SELECT * FROM visits means fetch every visit. WHERE id = 112 means only resident 112:" },
+      { "t": "p", "text": "Every night at 3:00 AM the system builds the reading-room report: every visit since March, with the visitor's name. It gathers the visits, adds each visitor's name, then prints the list. It takes 19 seconds. Abernethy's spreadsheet showed the same list instantly. The contractor opened the database's log, its diary of every question it's asked. Each question is called a query. Each line shows the time, the query word for word, and how many rows came back. SELECT * FROM visits means fetch every visit. WHERE id = 112 means only resident 112:" },
       { "t": "log", "text": "03:00:00.004  SELECT * FROM visits;                        4811 rows\n03:00:00.008  SELECT name FROM residents WHERE id = 112;   1 row\n03:00:00.012  SELECT name FROM residents WHERE id = 7;     1 row\n03:00:00.016  SELECT name FROM residents WHERE id = 13;    0 rows\n03:00:19.248  report done: 4812 queries" },
       { "t": "p", "text": "One question per visit. Something opens a folder for every visit, one at a time, every night at three. And then there's 13. On 212 lines of the report the name is blank. Every one is resident 13, at 3:07 AM. We have no resident 13. Abernethy's card index skips from 12 to 14. The reading room is locked at 3:07. I've checked." },
       { "t": "beat", "text": "Someone keeps signing in as a person we never filed." },
@@ -55,14 +55,14 @@
       "author": "u/grey_pager",
       "points": 84,
       "age": "6h",
-      "text": "Count the questions. 4,811 visits, 4,812 queries. One for the list, then one more for every row in it. Code that repeats the same step for each item is called a loop. Asking once for a list and then once per item is called the N+1 problem: N items, plus 1. Each query is quick. But each one is a round trip, a question sent to the database and its answer coming back, and they happen one after another. Like walking to the cabinet 4,811 times for one folder each. There's a better way, called a join: one query that pairs rows from two tables, each visit with its resident, inside the database. Then ask your contractor what writes those 3:07 visits.",
+      "text": "Count the questions. 4,811 visits, 4,812 queries. One for the list, then one more for every row in it. Code that repeats the same step for each item is called a loop. Asking once for a list and then once per item is called the N+1 problem: N items, plus 1. Each query is quick. But each one is a round trip, a question sent to the database and its answer coming back, and they happen one after another. Like walking to the cabinet 4,811 times for one folder each. There's a better way, called a join: one query that pairs rows from two tables inside the database. It takes each visit, finds the resident row with the same number, and puts the two side by side. Then the whole list comes back in one trip. Then ask your contractor what writes those 3:07 visits.",
       "replies": [
         {
           "author": "u/deputy_recorder_pru",
           "op": true,
           "points": 30,
           "age": "5h",
-          "text": "She says the badge reader on the reading-room door, the box you swipe your ID card at, adds a visit every time a badge is swiped. She's finding out whose badge files as 13."
+          "text": "She says the badge reader on the reading-room door, the box you swipe your ID card at, adds a visit every time a badge is swiped. It reads the card's number, then writes a new row into the visits table with that number and the time. She's finding out whose badge files as 13."
         }
       ]
     },
@@ -70,7 +70,7 @@
       "author": "u/sql_after_dark",
       "points": 52,
       "age": "5h",
-      "text": "Those lines are written in SQL, short for structured query language: the language you ask a database things in. It reads like a request slip. SELECT picks the columns, FROM picks the table, WHERE keeps only the rows you want, ORDER BY sorts them, and INSERT adds a row. When you rewrite that report as a join, choose the kind carefully. An inner join keeps only visits whose resident exists. A left join keeps every visit, and leaves the name empty when there's no match. SQL's word for that empty value is NULL. And a database can check every foreign key as a row is written, refusing a number that points at nobody. Ask whether yours has foreign key checks turned on."
+      "text": "Those lines are written in SQL, short for structured query language: the language you ask a database things in. It reads like a request slip. SELECT picks the columns, FROM picks the table, WHERE keeps only the rows you want, ORDER BY sorts them, and INSERT adds a row. When you rewrite that report as a join, choose the kind carefully. An inner join keeps only visits whose resident exists. A left join keeps every visit, and leaves the name empty when there's no match. SQL's word for that empty value is NULL. And a database can check every foreign key as a row is written. First it takes the number in the new row. Then it looks for that number in the other table. If it finds it, the row is saved; if not, the row is refused with an error. Ask whether yours has foreign key checks turned on."
     },
     {
       "author": "u/microfiche_mo",
@@ -137,11 +137,11 @@
       },
       {
         "title": "The report made 4,812 round trips.",
-        "text": "It ran one query for the list of visits. Then, in a loop, it ran one more for each visitor's name: 1 + N queries, the N+1 problem. Each was quick. But each is a round trip, there and back to the database, plus a little work: about 4 ms (thousandths of a second) here. 4,812 of them, one after another, take 19 seconds. A join does the matching inside the database instead. SELECT visits.visited_at, residents.name FROM visits LEFT JOIN residents ON residents.id = visits.resident_id is one query and one round trip. A batched lookup works too. Fetch the visits, then every name at once with WHERE id IN (...), which means any id in this list: two queries in all."
+        "text": "It ran one query for the list of visits. Then, in a loop, it ran one more for each visitor's name: 1 + N queries, the N+1 problem. Every one of those is a round trip with the same steps. First the report sends a query to the database. Then the database finds the row and does a little work. Then the answer travels back. Only then does the next query start. Each was quick: about 4 ms (thousandths of a second) here. But 4,812 of them, one after another, take 19 seconds, and every new visit adds another trip. A join does the matching inside the database instead. SELECT visits.visited_at, residents.name FROM visits LEFT JOIN residents ON residents.id = visits.resident_id is one query and one round trip. The database reads each visit, finds the resident row with the same id, and sends every pair back together. A batched lookup works too. First fetch the visits. Then fetch every name at once with WHERE id IN (...), which means any id in this list. Then the code matches each visit to its name itself: two queries in all."
       },
       {
         "title": "Inner or left decides what happens to 13.",
-        "text": "An inner join keeps only pairs that match, so every visit by resident 13 would vanish from the report without a word. A left join keeps every visit and fills the missing name with NULL, SQL's empty value. That's what a report that must account for every row needs. The rows exist because nothing checked them. The contractor built the database on SQLite, a small, popular database program. SQLite only checks foreign keys when each connection, each program's open line to the database, turns the check on. And the badge reader on the reading-room door had been set to file every staff badge as resident 13."
+        "text": "Both joins look at each visit in turn and search residents for a matching id. They differ in what they do when the search finds nothing. An inner join keeps only pairs that match, so every visit by resident 13 would vanish from the report without a word. A left join keeps every visit and fills the missing name with NULL, SQL's empty value. That's what a report that must account for every row needs. The rows exist because nothing checked them. A foreign key check runs as each row is written. First the database reads the new visit's resident_id. Then it looks for that id in residents. If the id is there, the visit is saved. If not, the write fails and the program that sent it gets an error. The contractor built the database on SQLite, a small, popular database program. SQLite only runs that check when each connection, each program's open line to the database, turns it on. Nothing turned it on, so every visit was saved unchecked. And the badge reader on the reading-room door had been set to file every staff badge as resident 13."
       }
     ],
     "diagram": {
@@ -214,19 +214,19 @@
   "terms": [
     { "term": "Database table", "def": "One kind of record in a database, like residents or visits, laid out in columns and rows. Like one drawer of a filing cabinet." },
     { "term": "Rows and columns", "def": "A column is a field every record has, like name or street. A row is one record, one value per column, like one folder in the drawer." },
-    { "term": "Primary key", "def": "A column whose value identifies each row: unique, never empty, never changed. Other tables point at a row by its primary key." },
-    { "term": "Foreign key", "def": "A column that holds another table's primary key, like visits.resident_id holding a resident's id. Declared as a constraint, it can stop rows that point at nothing." },
-    { "term": "Constraint", "def": "A rule the database enforces on its data, such as \"this value must be unique\" or \"this id must exist in residents\". Breaking it makes the write fail." },
-    { "term": "Referential integrity", "def": "The guarantee a foreign key gives: every reference points at a row that really exists." },
-    { "term": "SQL", "def": "Structured Query Language: the standard language for asking a relational database for data and changing it. Used by PostgreSQL, SQLite, MySQL and many more." },
-    { "term": "Query", "def": "In a database, one request written in SQL, such as a SELECT, and its answer. Each query from an app is usually its own round trip." },
-    { "term": "SELECT and FROM", "def": "The SQL that reads data. SELECT names the columns you want, FROM names the table. SELECT * means every column." },
+    { "term": "Primary key", "def": "A column whose value names each row, like a folder number: no two the same, never empty, never changed. Other tables point at a row by this number." },
+    { "term": "Foreign key", "def": "A column that holds another table's row number, like visits.resident_id holding a resident's id: a slip saying see folder 112. With checks on, the database refuses a number that points at no row." },
+    { "term": "Constraint", "def": "A rule the database enforces on its data, such as \"no two rows may share this number\" or \"this id must exist in residents\". A write that breaks the rule is refused." },
+    { "term": "Referential integrity", "def": "The promise a foreign key check gives: every number that points at another row points at a row that really exists. Like every see-folder slip naming a real folder." },
+    { "term": "SQL", "def": "Short for structured query language: the language you use to ask a database for data or to change it. It reads like a request slip. PostgreSQL, SQLite, MySQL and many others use it." },
+    { "term": "Query", "def": "One request to a database, written in SQL, such as a SELECT, and its answer. Each query a program sends is usually its own round trip, there and back." },
+    { "term": "SELECT and FROM", "def": "The SQL words that read data. SELECT names the columns you want, FROM names the table. SELECT * means every column." },
     { "term": "WHERE clause", "def": "The part of a query that keeps only the rows you want, like WHERE street = 'Coldwater Lane'." },
     { "term": "ORDER BY", "def": "The part of a query that sorts the result, like ORDER BY name. DESC sorts largest first." },
     { "term": "INSERT INTO", "def": "The SQL that adds a new row: INSERT INTO visits (resident_id, visited_at) VALUES (7, '2026-10-06 03:30')." },
-    { "term": "GROUP BY", "def": "The part of a query that sorts rows into groups by a column's value, so a function like COUNT(*) gives one answer per group." },
-    { "term": "COUNT(*) function", "def": "An aggregate function, one that turns many rows into one answer, that counts rows. With GROUP BY it counts the rows in each group." },
-    { "term": "Aggregate function", "def": "A function that turns many rows into one result, like COUNT, SUM, AVG, MAX or MIN." },
+    { "term": "GROUP BY", "def": "The part of a query that sorts rows into piles by a column's value, so COUNT(*) gives one answer for each pile." },
+    { "term": "COUNT(*) function", "def": "The SQL that counts rows. On its own it counts the whole table; with GROUP BY it counts each pile. It is an aggregate function: many rows in, one answer out." },
+    { "term": "Aggregate function", "def": "A piece of SQL that turns many rows into one answer, like COUNT (how many), SUM (the total), AVG (the average), MAX (the largest) or MIN (the smallest)." },
     { "term": "Join", "def": "A query that combines rows from two tables, pairing them by a rule such as residents.id = visits.resident_id, in one round trip. Like clipping each visit slip to its folder in one go." },
     { "term": "Inner join", "def": "A join that keeps only pairs that match on both sides. Written JOIN or INNER JOIN. Rows with no match disappear from the result." },
     { "term": "Left join", "def": "A join that keeps every row of the left table. Where there's no match on the right, the right side's columns are NULL. Also called a left outer join." },
@@ -236,20 +236,20 @@
     { "term": "Batched query", "def": "Fetching many related rows in one query, such as every visitor's name with WHERE id IN (...), instead of one query each." },
     { "term": "Loop (code)", "def": "Code that repeats the same steps once for every item in a list, such as once per visit." },
     { "term": "Index", "def": "A sorted lookup list a database keeps for a column, like the index at the back of a book, so it can find matching rows without reading the whole table." },
-    { "term": "ORM", "def": "Object-relational mapper: a library that turns rows into objects in your code and writes the SQL for you. It can quietly hide an N+1 loop." },
+    { "term": "ORM", "def": "Short for object-relational mapper: a ready-made library that writes the SQL for you and hands rows to your code as ready-to-use records. It can quietly hide an N+1 loop." },
     { "term": "Eager loading", "def": "Telling an ORM to fetch related rows up front, with a join or one batched query, instead of one query per item later." },
-    { "term": "Ruby on Rails", "def": "A popular web framework, a ready-made toolkit for building web apps, written in the Ruby language. Active Record is its ORM." },
-    { "term": "Active Record", "def": "Ruby on Rails' ORM. Its includes method turns on eager loading." },
+    { "term": "Ruby on Rails", "def": "A popular ready-made toolkit for building websites, written in the Ruby programming language. Active Record is its ORM, the part that writes SQL for you." },
+    { "term": "Active Record", "def": "The part of Ruby on Rails that writes SQL for you, its ORM. Its includes command turns on eager loading, fetching related rows up front." },
     { "term": "Python", "def": "A popular programming language, often used for web apps and data work." },
-    { "term": "Django", "def": "A popular web framework for Python. Its ORM offers select_related (a join) and prefetch_related (a batched query) to avoid N+1." },
-    { "term": "SQLite", "def": "A small, popular SQL database engine that keeps a whole database in one file, or in memory. This case's sim runs it in your browser." },
-    { "term": "sql.js", "def": "SQLite compiled to JavaScript so it can run inside a web browser. The sim uses it." },
+    { "term": "Django", "def": "A popular ready-made toolkit for building websites in Python. Its ORM offers select_related (a join) and prefetch_related (a batched query) to avoid N+1." },
+    { "term": "SQLite", "def": "A small, popular database program that speaks SQL and keeps a whole database in one file, or in memory. This case's sim runs it in your browser." },
+    { "term": "sql.js", "def": "SQLite translated into JavaScript, the language web browsers run, so it can work inside a web page. The sim uses it." },
     { "term": "Database connection", "def": "One open line between a program and its database. Some settings, like SQLite's foreign key checks, apply per connection." },
     { "term": "PRAGMA foreign_keys", "def": "The SQLite command that turns foreign key checks on (= ON) or off for the current connection. They are off by default." },
     { "term": "Query log", "def": "A list a database can keep of every query it receives, with times. It shows N+1 loops plainly." },
-    { "term": "pg_stat_statements", "def": "A PostgreSQL add-on that keeps a tally for every shape of query, including calls, how many times it ran." },
+    { "term": "pg_stat_statements", "def": "A PostgreSQL add-on that keeps a tally for every kind of query, with its values swapped for placeholders. Its calls column shows how many times each one ran." },
     { "term": "Placeholder ($1)", "def": "A stand-in for a value in a query, like WHERE id = $1. Tools group queries that differ only in such values." },
-    { "term": "CloudWatch Database Insights", "def": "An Amazon monitoring screen for databases run by Amazon RDS. It shows how busy the database is, and lets you split that by SQL statement, waits, machines or users." },
+    { "term": "CloudWatch Database Insights", "def": "An Amazon monitoring screen for databases that Amazon RDS, Amazon's service that runs databases for you, looks after. It shows how busy the database is, split by SQL statement, waits, machines or users." },
     { "term": "Schema", "def": "The design of a database: its tables, their columns, and the keys and constraints between them." },
     { "term": "Badge reader", "def": "The box by a door that reads an ID badge. This one also adds a row to the visits table each time a badge is swiped." },
     { "term": "Deed", "def": "A legal paper recording who owns a piece of land. A county records office keeps them." },

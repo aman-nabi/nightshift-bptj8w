@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.2.0 (2026-10-14) process pass: every process explained as its steps where it first appears (standard rule 12)",
     "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
     "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.1 (2026-10-06) review fixes: sim.tryThis now says switch on the database, sign in again, then restart (the earlier restart had already wiped 7f3a, so restarting again taught the opposite lesson); the case now covers 401 Unauthorized for a missing or invalid session and 403 Forbidden for not allowed (RFC 9110 sections 15.5.2 and 15.5.4) in explain.steps[2], the fix and the interview answer, with new terms, and the sim answers 401 instead of 404 to PUT and DELETE with no valid session; steps[0] says the letters usually travel over a TCP connection from case 3, which can carry many letters one after another (RFC 9112 section 9.3); steps[3] notes that real session IDs are long and random, at least 64 bits of randomness by OWASP's advice, unlike the easy-to-guess 7f3a; new terms 401 Unauthorized, 403 Forbidden, OWASP and Bit, the Session ID term updated, and RFC 9112 and the OWASP Session Management Cheat Sheet added to sources",
@@ -27,8 +28,8 @@
       { "t": "p", "text": "Then comes a path saying which page it's about, like /requests. Then headers: extra lines on the envelope, each a name and a value." },
       { "t": "p", "text": "The website writes back a letter called a response. On top is a status code, a number saying how it went: 200 means fine, 404 means *no such page*, 503 means *not now, try later*. Under it is the body, the letter itself." },
       { "t": "p", "text": "\"The website remembers nothing between letters,\" Bram said. \"Every one arrives as if from a stranger.\" All it sees is the IP address the letter came from, the sender's number on the internet. So when a guest signs in, proving once who they are, the website gives the tablet a cookie: a claim ticket with a number on it, like sid=7f3a." },
-      { "t": "p", "text": "The website keeps the matching note: *7f3a is room 412*. That note is called a session. It lives in the website's memory, the working space a running program keeps its notes in. The tablet shows its ticket on every letter after that." },
-      { "t": "p", "text": "Since Monday, this is my printer around three in the morning. Each line shows the time, the method and path, the status code, then what the slip said. A restart means the website is switched off and on again. Retry-After: 30 is a header meaning *try again in 30 seconds*:" },
+      { "t": "p", "text": "The website keeps the matching note: *7f3a is room 412*. That note is called a session. It lives in the website's memory, the working space a running program keeps its notes in. The tablet shows its ticket on every letter after that. Each time, the website reads the number, finds the matching note, and knows the room." },
+      { "t": "p", "text": "Since Monday, this is my printer around three in the morning. Each line shows the time, the method and path, the status code, then what the slip said. A restart means the website is switched off and on again: it stops, stays off for a moment, then starts fresh. Retry-After: 30 is a header meaning *try again in 30 seconds*, so the tablet waits, then sends the letter again:" },
       { "t": "log", "text": "02:59:41  POST /requests  200  ROOM 412  extra blanket\n03:00:00  website restarts (every night)\n03:00:12  POST /requests  503  Retry-After: 30\n03:00:44  POST /requests  200  ROOM ???  extra blanket\n03:00:51  POST /requests  200  ROOM ???  extra blanket\n03:00:58  POST /requests  200  ROOM ???  is anyone there" },
       { "t": "p", "text": "Bram checked the website's log, the diary it writes of every letter. Same tablet. Same ticket, sid=7f3a, on every one of those letters. Room 412 is Mr. Okafor, who has stayed with us for nine years and has never once been called ???. After three, the website looks at his ticket as if it has never seen it before." },
       { "t": "beat", "text": "A letter with no return address, from a man I can see on the guest list." },
@@ -77,7 +78,7 @@
       "author": "u/front_desk_fiona",
       "points": 38,
       "age": "2h",
-      "text": "My last hotel had this, except ours forgot guests at random all day. Turned out there were two copies of the website, and each one only remembered the guests who had signed in on it."
+      "text": "My last hotel had this, except ours forgot guests at random all day. Turned out there were two copies of the website, and each one only remembered the guests who had signed in on it. A guest signed in on one copy and got a ticket. Their next letter might go to the other copy, which had no note for that ticket, so they were a stranger there."
     },
     {
       "author": "u/packet_ghost",
@@ -130,7 +131,7 @@
     "steps": [
       {
         "title": "HTTP is letters, not a phone call.",
-        "text": "HTTP is the language web browsers, apps and websites use. A client, the program that asks, sends a request: a method, a path, headers, and sometimes a body. The server sends back a response: a status code, headers and a body. Then it's over. The letters usually travel over a TCP connection like the ones in case 3: an open line, set up with a three-call handshake. The tablet can keep that line open and send letter after letter over it, so it doesn't pay for a new handshake every time. HTTP is still stateless, meaning it remembers nothing. Each request has to make sense on its own. The server remembers nothing about the last one unless someone builds that memory on top."
+        "text": "HTTP is the language web browsers, apps and websites use. A client, the program that asks, sends a request: a method, a path, headers, and sometimes a body. The server reads it, does the work, and sends back a response: a status code, headers and a body. The client reads the status code first to see how it went. Then it's over. If no response comes, the client usually waits a while, then gives up or sends the letter again. The letters usually travel over a TCP connection like the ones in case 3: an open line, set up with a three-call handshake. The tablet can keep that line open and send letter after letter over it, so it doesn't pay for a new handshake every time. HTTP is still stateless, meaning it remembers nothing. Each request has to make sense on its own. The server remembers nothing about the last one unless someone builds that memory on top."
       },
       {
         "title": "Methods say what you want.",
@@ -142,7 +143,7 @@
       },
       {
         "title": "A cookie is a claim ticket. A session is the coat.",
-        "text": "To remember a guest, the website sends a Set-Cookie header (sid=7f3a) after sign-in. The tablet keeps it and sends it back in a Cookie header on every later request to that site. The cookie is just a ticket number, called the session ID. What the ticket means, *7f3a is room 412*, lives on the server side in a session. Both halves are needed. Without the cookie, the website can't tell who you are, and a cookie with no matching session is no better. And 7f3a is far too easy to guess: four characters like that allow only 65,536 tickets. Real session IDs are long random strings of letters and numbers. OWASP, a web security project, says they need at least 64 bits of randomness. A bit is the smallest piece of computer data, a 0 or a 1. That much randomness means nobody can guess another guest's ticket."
+        "text": "To remember a guest, the website sends a Set-Cookie header (sid=7f3a) after sign-in. The tablet keeps it and sends it back in a Cookie header on every later request to that site. The cookie is just a ticket number, called the session ID. What the ticket means, *7f3a is room 412*, lives on the server side in a session. On each request, the website reads the ticket number from the Cookie header and looks it up among its sessions. If it finds a match, it knows the guest. If not, the request is treated as a stranger's. Both halves are needed. Without the cookie, the website can't tell who you are, and a cookie with no matching session is no better. And 7f3a is far too easy to guess: four characters like that allow only 65,536 tickets. Real session IDs are long random strings of letters and numbers. OWASP, a web security project, says they need at least 64 bits of randomness. A bit is the smallest piece of computer data, a 0 or a 1. That much randomness means nobody can guess another guest's ticket."
       },
       {
         "title": "The website kept its sessions in memory.",

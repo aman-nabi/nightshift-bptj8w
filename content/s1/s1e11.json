@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.2.0 (2026-10-14) process pass: every process explained as its steps where it first appears (standard rule 12)",
     "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
     "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.1 (2026-10-06) review fixes: option C and the fix print the request id on every ticket so the printer skips a repeat (a slow printer can print the first try as well as the retry), and keep waiting orders in a durable queue, not the order API's memory; limits cover both (limit 2 is new, the two logging limits merge into limit 3); 'servers' becomes 'waitstaff'; the narrator Sol, a name s1e10 also uses, is renamed Otis (u/grill_side_otis) everywhere, sim included; new term Durable queue and an AWS Builders' Library source on safe retries",
@@ -23,7 +24,7 @@
     "title": "I cook nights at a 24-hour diner. Every night around 3:07, one order goes into the system and never reaches my kitchen.",
     "blocks": [
       { "t": "p", "text": "I work the grill at the Lantern, a 24-hour diner off Route 9, midnight to eight. The waitstaff take orders on tablets, small touch-screen computers. Each tablet sends the order to a small program that Rafi, the owner's nephew, runs in the cloud, on computers he rents over the internet. That program is the order API. An API, short for application programming interface, is a program's front desk that other programs send requests to. The order API tells the kitchen printer to print a ticket, the paper slip I cook from." },
-      { "t": "p", "text": "So three programs pass each order along, like a relay. Rafi calls each one a service. A ticket prints, I cook it." },
+      { "t": "p", "text": "So three programs pass each order along, like a relay. The tablet hands it to the order API. The order API passes it to the printer. The printer prints it. Rafi calls each one a service. A ticket prints, I cook it." },
       { "t": "p", "text": "Three nights running, the same thing. Around 3 AM the bar crowd leaves, the room goes quiet, and a woman sits down in Booth 6. Black coffee, lemon pie. Pearl taps it in. The tablet shows *Sent to kitchen* with a green check. No ticket prints. Pearl comes back twenty minutes later and I'm standing at an empty rail." },
       { "t": "p", "text": "The woman never complains. She waits with her hands folded, watching the kitchen door. The next order, anybody's, prints fine." },
       { "t": "p", "text": "Rafi says every program keeps a diary where it writes one line for everything it does, with the time at the front. That diary is called a log. He gave me read access, so I can look but not change anything, and went to bed. The tablet's log has her order. The line shows the time, a word for how serious it is, which tablet, what it did, a short tag for this order, the answer it got back, and how long that took, in ms (thousandths of a second):" },
@@ -64,7 +65,7 @@
       "author": "u/grey_pager",
       "points": 64,
       "age": "6h",
-      "text": "Two things. Rafi's order API writes its times in UTC, short for Coordinated Universal Time. It's the one clock servers (computers that answer requests) keep, so logs from different places line up. Your diner is four hours behind it. Your 3:07 is its 07:07. And that req=7f3a on the tablet's line is like a cloakroom ticket stapled to the order. It's called a request id. The tablet sends it in a header, a labelled note riding along with the order, so every service that touches the order can write the same tag. Search all three logs for 7f3a instead of a time. Read every level while you're at it, not just the loud one.",
+      "text": "Two things. Rafi's order API writes its times in UTC, short for Coordinated Universal Time. It's the one clock servers (computers that answer requests) keep, so logs from different places line up. Your diner is four hours behind it. Your 3:07 is its 07:07. And that req=7f3a on the tablet's line is like a cloakroom ticket stapled to the order. It's called a request id. The tablet makes the tag and sends it in a header, a labelled note riding along with the order. Each service that touches the order writes the tag in its own log, then passes it on with the order. Search all three logs for 7f3a instead of a time. Read every level while you're at it, not just the loud one.",
       "replies": [
         {
           "author": "u/grill_side_otis",
@@ -79,13 +80,13 @@
       "author": "u/fryer_basket_fran",
       "points": 29,
       "age": "5h",
-      "text": "Waitress at a truck stop two counties over. Our kitchen printer goes into sleep mode if nobody prints for a while, to save power. The first ticket after a quiet spell always comes out slow. Never lost one, though."
+      "text": "Waitress at a truck stop two counties over. Our kitchen printer goes into sleep mode if nobody prints for a while, to save power. Then the next ticket wakes it up. It takes a few seconds to get ready, and only then does it print. So the first ticket after a quiet spell always comes out slow. Never lost one, though."
     },
     {
       "author": "u/packet_ghost",
       "points": 17,
       "age": "4h",
-      "text": "Every log line has a level, which says how loud it is, like the volume on a fire alarm. DEBUG for tiny details, INFO for normal events, WARN for \"something went wrong but I carried on\", ERROR for \"this failed\". Those ERRORs fire every five minutes all night, and the pie only vanishes once. Loud isn't the same as guilty. And when a program asks another for something, it only waits so long before giving up. That limit is called a timeout. Find out what the order API's is."
+      "text": "Every log line has a level, which says how loud it is, like the volume on a fire alarm. DEBUG for tiny details, INFO for normal events, WARN for \"something went wrong but I carried on\", ERROR for \"this failed\". Those ERRORs fire every five minutes all night, and the pie only vanishes once. Loud isn't the same as guilty. And when a program asks another for something, it only waits so long before giving up. It sends the request and starts a clock. If the answer comes first, it carries on. If the clock runs out first, it stops waiting and gives up. That limit is called a timeout. Find out what the order API's is."
     }
   ],
   "reply": {
@@ -144,7 +145,7 @@
       },
       {
         "title": "Why only Booth 6, and only around 3 AM.",
-        "text": "The printer goes to sleep after 20 minutes without a ticket and takes about 8 seconds to wake. The last ticket printed at 02:41:05, so it fell asleep at 03:01:05, and by 03:07 it had been idle 26 minutes. Booth 6 was always the first order after the bar crowd left, so hers always hit a sleeping printer, and her order woke it up for everyone else. The ERRORs every five minutes were the order API failing to send its metrics, numbers about how it was doing, to a stats server, a computer that collects them. That server answered 503, \"not available right now\". Real, but they fired all night while other orders printed fine."
+        "text": "The printer goes to sleep after 20 minutes without a ticket and takes about 8 seconds to wake. The last ticket printed at 02:41:05, so it fell asleep at 03:01:05, and by 03:07 it had been idle 26 minutes. Booth 6 was always the first order after the bar crowd left, so hers always hit a sleeping printer, and her order woke it up for everyone else. Here is how her order went missing, step by step. First the order API asked the printer to print and started its 5-second clock. Then the printer, woken by that request, began its 8-second wake-up. Then the clock ran out before the printer could answer. So the API gave up, dropped the ticket and wrote only a WARN. Any slow answer, not just a sleeping printer, would break the same step. The ERRORs every five minutes were the order API failing to send its metrics, numbers about how it was doing, to a stats server, a computer that collects them. That server answered 503, \"not available right now\". Real, but they fired all night while other orders printed fine."
       },
       {
         "title": "The method: reproduce, narrow down, guess, check.",
@@ -170,7 +171,7 @@
     "caption": "Read top to bottom. The order API tells the tablet 201 Created, \"got it\", before the ticket exists, then asks the printer. The printer is asleep and needs about 8 seconds. The API waits 5, writes a warning line and throws the ticket away at 07:07:17Z, which is 03:07:17 diner time. The printer is ready at 03:07:20 with nothing to print.",
     "fix": {
       "title": "The fix: never drop an order quietly",
-      "text": "The order API writes every order onto a waiting list kept on disk, not just in its own memory, so a restart can't wipe it. Think of a spike of paper tickets rather than orders kept in your head. That list is called a durable queue. Each order stays there until the printer confirms the ticket. When a print fails, the API tries again a few times, waiting a little longer each time. Each new try is a retry, and each failed try is written as a WARN. Every ticket carries its request id, and the printer remembers the ids it has printed and skips a repeat. That matters because a printer that was only slow may print the first try as well as the retry. If it still can't print, the API writes one ERROR with the request id and raises an alert, an automatic message that reaches a person. The tablet shows *printed* only after the printer confirms, and *not printed yet* until then. Then fix the logs that hid it. Every line in every service gets a UTC timestamp and the request id. A lost order is an ERROR, not a WARN. And the stats ERRORs get fixed or turned down, so ERROR means \"look at me\" again."
+      "text": "The order API writes every order onto a waiting list kept on disk, not just in its own memory, so a restart can't wipe it. Think of a spike of paper tickets rather than orders kept in your head. That list is called a durable queue. Each order stays there until the printer confirms the ticket. When a print fails, the API tries again a few times, waiting a little longer each time. Each new try is a retry, and each failed try is written as a WARN. So each order usually goes: saved to the list, sent to the printer, tried again if no answer, then taken off the list once the printer says it printed. Every ticket carries its request id, and the printer remembers the ids it has printed and skips a repeat. That matters because a printer that was only slow may print the first try as well as the retry. If it still can't print, the API writes one ERROR with the request id and raises an alert, an automatic message that reaches a person. The tablet shows *printed* only after the printer confirms, and *not printed yet* until then. Then fix the logs that hid it. Every line in every service gets a UTC timestamp and the request id. A lost order is an ERROR, not a WARN. And the stats ERRORs get fixed or turned down, so ERROR means \"look at me\" again."
     },
     "limits": [
       "Trying again only helps if the printer comes back. If it's out of paper or unplugged, the order waits forever, so a person has to be told: an alert, or a red banner on the tablet. And an order kept only in the order API's memory isn't really kept: a restart or crash wipes it. Waiting orders belong in a durable queue, a waiting list stored where a restart can't erase it.",
@@ -212,7 +213,7 @@
     }
   },
   "terms": [
-    { "term": "Log", "def": "A program's diary: a file or stream where it writes one line for each thing it does, with the time first. Each service keeps its own." },
+    { "term": "Log", "def": "A program's diary: a file where it writes one line for each thing it does, with the time first. Each service keeps its own." },
     { "term": "Log line", "def": "One entry in a log, usually a timestamp, a level, the program that wrote it, and a message." },
     { "term": "Service", "def": "One program in a system that does one job and talks to the others, like the tablets, the order API or the kitchen printer." },
     { "term": "Cloud", "def": "Computers you rent from a company such as Amazon and use over the internet, instead of machines in your own building." },
@@ -223,7 +224,7 @@
     { "term": "Timestamp", "def": "The date and time written at the start of a log line, saying when it happened." },
     { "term": "UTC", "def": "Coordinated Universal Time, the one clock engineers use so timestamps from anywhere line up. A Z at the end of a time, like 07:07:12Z, means UTC." },
     { "term": "Local time", "def": "The time on the clocks where you are. The Lantern's is four hours behind UTC, so 03:07 at the diner is 07:07 UTC." },
-    { "term": "RFC 3339", "def": "The internet's standard format for timestamps, like 2026-10-06T07:07:12Z: date first, then time, then Z for UTC or an offset like -04:00." },
+    { "term": "RFC 3339", "def": "One of the internet's rule documents, called RFCs. It sets the standard way to write a time, like 2026-10-06T07:07:12Z: date first, then time, then Z for UTC or a gap from UTC like -04:00." },
     { "term": "Log level", "def": "How loud a log line is. Common levels, quietest first: DEBUG, INFO, WARN, ERROR. Tools can show only the lines at or above a level." },
     { "term": "DEBUG", "def": "The quietest level: small details for whoever is fixing the program. Often switched off unless someone turns it on." },
     { "term": "INFO", "def": "The level for normal events, like an order received or a ticket printed." },
@@ -235,7 +236,7 @@
     { "term": "Request id", "def": "A short tag stuck on one request, like req=7f3a, and passed along in a header so every service that handles it writes the same tag. Like a cloakroom ticket that follows your coat." },
     { "term": "Correlation id", "def": "Another name for a request id: the tag that lets you line up, or correlate, every log line about one request across services." },
     { "term": "Trace", "def": "The whole journey of one request through every service, lined up by its id." },
-    { "term": "Access log", "def": "A log with one line per request a server answered: the time, the method, the path, the status code and how long it took." },
+    { "term": "Access log", "def": "A log with one line per request a server answered: the time, the kind of request (method), which part was asked (path), the numbered answer (status code) and how long it took." },
     { "term": "Sleep mode", "def": "A power-saving state a device enters after sitting idle. It takes a few seconds to wake. The Lantern's printer sleeps after 20 idle minutes and wakes in about 8 seconds." },
     { "term": "Idle", "def": "Not doing anything. The printer counts idle time from its last ticket." },
     { "term": "Heartbeat", "def": "A small message a device writes or sends on a schedule to say it's still alive, like a tablet's battery check." },
@@ -251,9 +252,9 @@
     { "term": "Triage", "def": "Deciding how bad a problem is and what to do first, often stopping the damage before you know the cause." },
     { "term": "Alert", "def": "An automatic message that tells a person something important failed, like a ticket that still hasn't printed." },
     { "term": "SRE", "def": "Site reliability engineering: Google's name for engineers who keep large systems running, and the title of a book Google published about it." },
-    { "term": "OpenTelemetry", "def": "An open standard and set of tools for logs, metrics and traces. Its log model names the levels TRACE, DEBUG, INFO, WARN, ERROR and FATAL." },
-    { "term": "Syslog", "def": "An old, standard way for programs and devices to send log lines. Its standard, RFC 5424, defines eight levels, from Emergency down to Debug." },
-    { "term": "Trace Context", "def": "A W3C standard for passing a request's id between services in a header called traceparent, so different tools agree on the format." },
+    { "term": "OpenTelemetry", "def": "A free, shared set of rules and tools for logs, metrics (numbers about a program) and traces (one request's journey). It names the levels TRACE, DEBUG, INFO, WARN, ERROR and FATAL." },
+    { "term": "Syslog", "def": "An old, standard way for programs and devices to send log lines to one place. Its rule document, RFC 5424, sets eight levels, from Emergency down to Debug." },
+    { "term": "Trace Context", "def": "A W3C standard for passing a request's id between services in a header, a labelled note on the request, called traceparent, so different tools agree on how to write it." },
     { "term": "W3C", "def": "The World Wide Web Consortium, the group that publishes many web standards." },
     { "term": "CloudWatch Logs", "def": "Amazon's service for collecting and storing logs from your programs and from AWS services." },
     { "term": "Log group", "def": "In CloudWatch Logs, a named collection of logs, usually one per service." },

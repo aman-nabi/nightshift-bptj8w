@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
     "v1.0.3 (2026-10-10) QA: the Time to detect term says one timeout, not timeouts, matching step 3",
     "v1.0.2 (2026-10-10) Season 2 review fixes: shorter option B so length no longer gives the answer away; a hanging server adds the health check timeout once, not to each miss, and the sim lede says a check to a frozen room misses at once; tighter match fragments in r1, r4 and the cold case so wrong answers stop scoring; L4, client-side picking, passive checks and nginx's failed attempt worded to match the sources; managed load balancer claim trimmed and RFC 5798 and the CloudWatch metrics page added; ELB 2012 timeline and deregistration delay naming corrected; AWS defaults scoped to instance and IP targets; unused terms removed or written into the text",
     "v1.0.1 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
@@ -43,11 +44,11 @@
     "blocks": [
       {
         "t": "p",
-        "text": "I'm the night auditor at the Vesper Hotel: 96 rooms, a brass revolving door and, after midnight, just me at the desk. Late guests check themselves in at two kiosks in the lobby. The kiosks, our booking website and the key-card machine all run on four small servers in the old luggage room."
+        "text": "I'm the night auditor at the Vesper Hotel: 96 rooms, a brass revolving door and, after midnight, just me at the desk. Late guests check themselves in at two kiosks, touch screens in the lobby. The kiosks, our booking website and the key-card machine all run on four small servers in the old luggage room. Servers are the computers that answer every request a kiosk or website sends."
       },
       {
         "t": "p",
-        "text": "Cas, the contractor who set them up in 2019, named them after the four rooms on our first floor: room-11, room-12, room-13 and room-14. In front of them sits a fifth machine he calls the Doorman. It's a load balancer: it sends each request to the next room in turn, 11, 12, 13, 14, then 11 again. Cas calls that round robin. At night about 48 requests arrive each second, so each room gets 12, and each can finish 20."
+        "text": "Cas, the contractor who set them up in 2019, named them after the four rooms on our first floor: room-11, room-12, room-13 and room-14. In front of them sits a fifth machine he calls the Doorman. It's a load balancer: a machine that takes every request and passes it to one of the servers, so no one server gets them all. Ours sends each request to the next room in turn, 11, 12, 13, 14, then 11 again. Cas calls that round robin. At night about 48 requests arrive each second, so each room gets 12, and each can finish 20."
       },
       {
         "t": "p",
@@ -68,7 +69,7 @@
       },
       {
         "t": "p",
-        "text": "Cas's dashboard, which I can read but not change, said the same thing all night:"
+        "text": "Cas's dashboard, which I can read but not change, said the same thing all night. Each line shows the time, then either which machine wrote it and what happened, or the totals: requests arriving, served and failed each second, the p95 wait, and each room's share. The p95 is the wait that 95 of every 100 guests stayed within, and ms means thousandths of a second. A timeout means the Doorman gave up waiting for an answer:"
       },
       {
         "t": "log",
@@ -76,7 +77,7 @@
       },
       {
         "t": "p",
-        "text": "Cas came in at six. Room-13's machine had frozen at 1:47 and answered nothing after that. The Doorman never knew. It never asks a room whether anyone is in. It just kept sending every fourth guest to a door that wouldn't open. The slips name the room, Cas says, so he can tell which one failed."
+        "text": "Cas came in at six. Room-13's machine had frozen at 1:47: still switched on, but answering nothing. The Doorman never knew. It never asks a room whether anyone is in. It just kept sending every fourth guest to a door that wouldn't open. The slips name the room, Cas says, so he can tell which one failed."
       },
       {
         "t": "beat",
@@ -224,7 +225,7 @@
       "author": "u/grey_pager",
       "points": 96,
       "age": "6h",
-      "text": "Your Doorman has a list and a turn order, and nothing else. A load balancer can learn that a room is gone in two ways. An active health check: every few seconds it asks each room a small question, usually GET /health, and expects 200 OK back. How often it asks is the interval. The threshold is how many misses in a row before it stops sending guests to that room, and how many answers in a row before it lets the room back in. A passive check watches real requests fail instead. Now the arithmetic: if it asks every 10 seconds and gives up after 3 misses, how long can a frozen room keep swallowing guests? And at 12 a second, how many guests is that?",
+      "text": "Your Doorman has a list and a turn order, and nothing else. A load balancer can learn that a room is gone in two ways. The first is an active health check, a regular knock on every door. Every few seconds it asks each room a small question, usually GET /health. GET is the kind of request that asks to read a page, and /health is a page that exists just for this. It expects 200 OK back, the code for \"all fine.\" How often it asks is the interval. The threshold is how many misses in a row before it stops sending guests to that room, and how many answers in a row before it lets the room back in. The second way is a passive check, which watches real requests fail instead. Now the arithmetic: if it asks every 10 seconds and gives up after 3 misses, how long can a frozen room keep swallowing guests? And at 12 a second, how many guests is that?",
       "replies": [
         {
           "author": "u/night_audit_nell",
@@ -239,14 +240,14 @@
       "author": "u/late_checkout_lou",
       "points": 58,
       "age": "5h",
-      "text": "Ask Cas whether all four rooms run at the same speed. Round robin assumes they do. Least connections sends each new request to the room with the fewest requests still in progress, so a slow room, which stays busy longer, gets fewer. Weighted round robin does it by hand: each room gets a weight, and a room with weight 2 gets twice the share of a room with weight 1.",
+      "text": "Ask Cas whether all four rooms run at the same speed. Round robin assumes they do. Least connections sends each new request to the room with the fewest requests still in progress, meaning started but not yet answered. A slow room stays busy longer, so it gets fewer. Weighted round robin does it by hand: each room gets a weight, and a room with weight 2 gets twice the share of a room with weight 1.",
       "replies": [
         {
           "author": "u/night_audit_nell",
           "op": true,
           "points": 21,
           "age": "4h",
-          "text": "They don't, on Wednesdays. The weekly backup runs on room-14 from 2 to 4 AM, and while it runs that room finishes about 4 requests a second instead of 20. Cas says guests who land there wait about ten seconds, and once its line of 40 is full, the rest get a 503."
+          "text": "They don't, on Wednesdays. The weekly backup, a spare copy of all our records, runs on room-14 from 2 to 4 AM. It reads every record, one after another, and writes each one to another disk. While it runs, that room finishes about 4 requests a second instead of 20. Cas says guests who land there wait about ten seconds. Once its line of 40 is full, the rest get a 503, the too-busy code."
         }
       ]
     },
@@ -254,45 +255,45 @@
       "author": "u/two_am_deploy",
       "points": 41,
       "age": "4h",
-      "text": "Once Cas has checks, he'll also take rooms out on purpose, for updates. Don't just switch one off: every request it's halfway through dies with it. Drain it first. Tell the load balancer to stop sending it new requests, let the ones already inside finish, then remove it. That's connection draining. Most load balancers let you set the longest they'll wait. AWS calls it the deregistration delay."
+      "text": "Once Cas has checks, he'll also take rooms out on purpose, for updates. Don't just switch one off: every request it's halfway through dies with it. Drain it first, like closing a shop door but serving the customers already inside. Tell the load balancer to stop sending it new requests, let the ones already inside finish, then remove it. That's connection draining. Most load balancers let you set the longest they'll wait. AWS, Amazon's cloud, calls that wait the deregistration delay."
     },
     {
       "author": "u/revolving_door_rhys",
       "points": 37,
       "age": "3h",
-      "text": "Cas is right to worry about the Doorman itself. One machine in front of four is your new single point of failure: if it stops, the rooms are fine and nobody can reach them. Run two. One works and one stands by, and they share one address, so when the first stops answering, the standby takes the address over within seconds. Or rent a managed load balancer, which the cloud company runs as several machines in different zones for you."
+      "text": "Cas is right to worry about the Doorman itself. One machine in front of four is your new single point of failure, the one part whose failure stops everything. If it stops, the rooms are fine and nobody can reach them. Run two. One works and one stands by, and they share one address. The working one tells the standby \"I'm alive\" every second. If those messages stop for a few seconds, the standby takes the address over, and guests reach it instead. Or rent a managed load balancer. The cloud company runs it for you as several machines, in different availability zones: separate buildings with their own power."
     }
   ],
   "reply": {
     "prompt": "Cas has until next weekend. What should he change? Part 2 follows your advice.",
     "options": [
       {
-        "text": "Add a fifth room. If one room stops answering, the other four can carry the night, and only one guest in five is affected instead of one in four.",
+        "text": "Add a fifth room. If one room stops answering, the other four can carry the night, and only one guest in five is hit, not one in four.",
         "tone": "bad",
         "verdict": "More rooms, same blind doorman",
         "part2": "Cas added room-15 on Thursday. On Sunday at 2:41 AM room-12 froze. The Doorman kept sending it every fifth request, about 10 a second, until Cas came in at six. Eleven guests came to the desk with slips that said ROOM 12 IS NOT ANSWERING. The other four rooms were barely busy. Nobody had asked whether any of them were alive either. They just were.",
         "senior": "More servers make each failure a smaller slice, but they don't make the load balancer notice. Without a health check, a dead server keeps its full share until a person removes it, however many healthy ones stand beside it."
       },
       {
-        "text": "Turn on health checks (GET /health every 10 seconds, out after 3 misses, back after 3 answers), switch to least connections, drain before removals, and pair the Doorman.",
+        "text": "Health checks (GET /health every 10 seconds, out after 3 misses, back after 3), least connections, drain first, two Doormen.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "Cas set it up on Thursday, with a second Doorman standing by. On Sunday at 2:41:05 AM room-12 froze. The Doorman asked it at 2:41:10, :20 and :30, heard nothing three times, and took it out at 2:41:30, 25 seconds after it froze. In those 25 seconds about 300 requests failed and one guest came to the desk. Then the other three rooms took 16 a second each, 80% busy with a p95 of 1,250 ms, and nobody else noticed. Cas restarted room-12 at 3:05; it answered three checks in a row and was back before 3:06. On Wednesday least connections gave the backup room about 3 requests a second instead of 12, and nobody got a 503. On Saturday he drained room-11 for an update: the 8 requests it was in the middle of finished, and not one failed. He took the room names off the slips, too. Last night at 4:10 the standby Doorman took over the address for two seconds, then gave it back. Cas checked. Neither machine had restarted.",
-        "senior": "A load balancer is only as good as its list. Health checks keep the list honest within a time you chose, at most the interval times the threshold, here 30 seconds. Least connections steers guests away from a slow room, draining makes planned removals free, and two doormen sharing one address mean the front door isn't the next single point of failure."
+        "senior": "A load balancer is only as good as its list. Health checks keep the list honest within a time you chose: at most the interval times the threshold, here 30 seconds. Least connections steers guests away from a slow room. Draining makes planned removals free. And two doormen sharing one address mean the front door isn't the next single point of failure."
       },
       {
-        "text": "Keep the Doorman as it is, but make the kiosks and the website retry: if a room doesn't answer within 10 seconds, send the same request again. The guests who pressed retry all got in.",
+        "text": "Keep the Doorman, but make the kiosks retry: if a room doesn't answer in 10 seconds, send the request again. Retrying got guests in.",
         "tone": "warn",
         "verdict": "Trade-off: guests get in, slowly",
         "part2": "Cas added automatic retries. On Sunday at 2:41 AM room-12 froze. No slips came out of the kiosks. Instead, every fourth guest watched a spinner for ten seconds before the retry went to the next room and worked. The Doorman still sent room-12 its 12 requests a second until six. At 2:52 a guest came to the desk with two receipts: room-12 had charged her card just before it froze, and the retry charged it again.",
-        "senior": "Retrying on another server is a real tool, and it's what a passive health check builds on. On its own it hides the dead room instead of removing it: every guest who lands there still waits out the full timeout, and a retried POST can run twice unless it's idempotent."
+        "senior": "Retrying on another server is a real tool, and it's what a passive health check builds on. On its own it hides the dead room instead of removing it. Every guest who lands there still waits out the full timeout. And a retried POST, a request that changes something like a payment, can run twice unless it's idempotent: safe to repeat."
       },
       {
-        "text": "Set up an alert that wakes Cas when a room stops answering, so he can take it out of the Doorman's list by hand within minutes.",
+        "text": "Set up an alert that wakes Cas when a room stops answering, so he takes it off the Doorman's list by hand within minutes.",
         "tone": "warn",
         "verdict": "Trade-off: someone has to wake up",
         "part2": "Cas set up the alert. On Sunday at 2:41 AM room-12 froze, and his phone rang at 2:42. He woke on the third call, logged in at 2:59 and took room-12 out of the list at 3:01. Twenty minutes at 12 failed requests a second is about 14,000 failed requests, and eleven guests at the desk. On Wednesday the alert never rang at all. Room-14 was answering, just slowly, and round robin kept giving it a quarter of the guests.",
-        "senior": "Alerts are for people and health checks are for machines. A person takes minutes, and at 3 AM often many; a load balancer takes seconds. Keep the alert so someone fixes the room, but let the load balancer steer around it first."
+        "senior": "Alerts are for people and health checks are for machines. A person takes minutes, and at 3 AM often many. A load balancer takes seconds. Keep the alert so someone fixes the room, but let the load balancer steer around it first."
       }
     ]
   },
@@ -303,27 +304,27 @@
     "tryThis": "Try this: with health checks off and room 13 picked, press Room stops answering. 12 requests a second fail and room-13 keeps a quarter of the share, as on Sunday. Reset, turn health checks on (every 10 seconds, 3 in a row) and stop room 13 again: the time to detect is never more than 30 seconds, and the failed total stops climbing. Revive it and count three answers before it's back. Then turn on the Wednesday backup under round robin, and switch to least connections. Try weighted round robin with 2:1:1:1. Last, drain and remove one room, then stop another, and compare the failed total."
   },
   "explain": {
-    "oneLine": "Nothing haunted Room 13. A server froze, and the load balancer in front of it never checked whether its servers were alive, so for over four hours it kept sending a quarter of all requests to a machine that couldn't answer.",
+    "oneLine": "Nothing haunted Room 13. A server froze, and the load balancer in front of it never checked whether its servers were alive. So for over four hours it kept sending a quarter of all requests to a machine that couldn't answer.",
     "steps": [
       {
         "title": "A load balancer is a doorman with a list.",
-        "text": "With a load balancer in front, clients don't pick a server. They connect to one address, the load balancer's, and it chooses a server from its list for each new connection or request, passes the request on and carries the answer back. That's what lets you add, remove or replace servers without telling anyone. Load balancers come in two kinds, named after layers of the OSI model, a standard way to describe a network as seven layers. A layer 4 (L4) load balancer works at the transport layer. It sees TCP connections, addresses and ports, picks a server once per connection and passes the bytes through without reading them: fast, and fine for any protocol that runs over TCP or UDP. A layer 7 (L7) load balancer works at the application layer. It reads each HTTP request, so it can send /api to one set of servers and /images to another, look at headers and cookies, and choose a server per request. To read HTTPS it has to decrypt it, so it holds the certificate and does more work per request. The Doorman is L7: it hands out requests, not connections."
+        "text": "With a load balancer in front, clients, the phones and kiosks sending requests, don't pick a server. They connect to one address, the load balancer's. For each new connection or request, it chooses a server from its list, passes the request on and carries the answer back. That's what lets you add, remove or replace servers without telling anyone. Load balancers come in two kinds. They're named after layers of the OSI model, short for Open Systems Interconnection. It's a standard way to describe a network as seven layers, from cables at the bottom to apps at the top. A layer 4 (L4) load balancer works at the transport layer, where TCP and UDP, the two ways of sending data, live. It sees connections, addresses and ports, a machine's numbered doors. It picks a server once per connection and passes the bytes through without reading them. That's fast, and it works for anything that runs over TCP or UDP. A layer 7 (L7) load balancer works at the application layer, where HTTP, the web's request language, lives. It reads each HTTP request. So it can send /api to one set of servers and /images to another, look at headers and cookies (labels and small notes on each request), and choose a server per request. To read HTTPS, the locked form of HTTP, it has to decrypt, or unlock, it. So it holds the site's certificate, its proof of identity, and does more work per request. The Doorman is L7: it hands out requests, not connections."
       },
       {
         "title": "How it chooses: four algorithms.",
-        "text": "Round robin hands requests out in turn. It's simple and even, and right when servers are alike and requests cost about the same. Weighted round robin gives each server a weight and a share to match: weights 2, 1, 1 and 1 send 40% to the first server and 20% to each of the others. Use it when servers differ in a way you know in advance, like one bigger machine. Least connections sends each new request to the server with the fewest requests in progress. A slow server stays busy longer, so it's picked more rarely, and nobody has to set anything: on Wednesday it would have given the backup room 3 requests a second instead of 12, and the other rooms 15 each. On AWS the same idea is called least outstanding requests. At large scale there's a catch: many load balancers each see only their own counts, and comparing every server for every request takes time. Random with two choices picks two servers at random and sends the request to the one with fewer in progress. It sounds lazy, but it gets most of the benefit."
+        "text": "The rule a load balancer uses to choose is called its algorithm. Round robin hands requests out in turn. It's simple and even. It's right when servers are alike and requests cost about the same. Weighted round robin gives each server a weight, a number that sets its share. Weights 2, 1, 1 and 1 send 40% to the first server and 20% to each of the others. Use it when servers differ in a way you know in advance, like one bigger machine. Least connections sends each new request to the server with the fewest requests in progress. A slow server stays busy longer, so it's picked less often, and nobody has to set anything. On Wednesday it would have given the backup room 3 requests a second instead of 12, and the other rooms 15 each. On AWS the same idea is called least outstanding requests. At large scale there's a catch. Big sites run many load balancers, and each sees only its own counts. And comparing every server for every request takes time. Random with two choices picks two servers at random and sends the request to the one with fewer in progress. It sounds lazy, but it gets most of the benefit."
       },
       {
         "title": "Health checks: knocking on every door.",
-        "text": "In the last case, Nils had to take a dead server out of the list by hand. A load balancer without health checks does exactly that: it keeps a dead server's full share until a person removes it, which here meant 12 requests a second for over four hours. An active health check asks every server a small question on a timer, usually GET /health, and counts the answers. Enough misses in a row, the unhealthy threshold, and the server is out of service; enough answers in a row, the healthy threshold, and it's back. The worst case is easy to work out. If a server dies just after a check, the first miss comes a full interval later, so it's out at most the interval times the threshold later: 10 seconds times 3 is 30. If it dies just before a check, it's out after 20. A server that hangs instead of refusing adds the health check timeout once, to the last miss. Until then its share keeps failing, so detection has a price: about 12 a second for 25 seconds is 300 requests. A passive health check learns from real traffic instead: by default nginx marks a server unavailable for 10 seconds after one failed attempt to reach it (a connection error or timeout; error replies such as 500 count only if you configure them). Shorter intervals and lower thresholds notice sooner, but they also throw out a server that was only slow for a moment, let it back, and throw it out again."
+        "text": "In the last case, Nils had to take a dead server out of the list by hand. A load balancer without health checks works the same way. It keeps a dead server's full share until a person removes it. Here that meant 12 requests a second for over four hours. An active health check runs in steps. First, on a timer, it asks every server a small question, usually GET /health; if /health tests too little, a broken server still passes. Next, it waits for an answer, up to its timeout; a server that hangs uses up the whole wait. Then it counts answers and misses in a row. Enough misses in a row, called the unhealthy threshold, and the server is out of service. Enough answers in a row, the healthy threshold, and it's back. The worst case is easy to work out. Say a server dies just after a check. The first miss comes a full interval later. So it's out at most the interval times the threshold later: 10 seconds times 3 is 30. If it dies just before a check, it's out after 20. Some servers hang: they stay connected but say nothing. A server that hangs, instead of refusing, adds the health check timeout once, to the last miss. That timeout is how long a check waits for an answer. Until the server is out, its share keeps failing, so detection has a price: about 12 a second for 25 seconds is 300 requests. A passive health check learns from real traffic instead. nginx, a popular free web server often used as a load balancer, works this way by default. It marks a server unavailable for 10 seconds after one failed attempt to reach it, meaning a connection error or a timeout. Error replies such as 500 count only if you set them to. Shorter intervals and lower thresholds notice sooner. But they also throw out a server that was only slow for a moment, let it back, and throw it out again."
       },
       {
         "title": "Taking a server out on purpose: drain it first.",
-        "text": "Switching a server off cuts every request it's in the middle of. Draining takes it out gently: the load balancer stops sending it new requests, waits for the ones in progress to finish, and only then takes it off the list, after which the server can stop with a graceful shutdown. At the Vesper a room at 12 requests a second has about 8 in progress, each answered within a second or so, so a drain takes almost no time. The wait has a ceiling, the deregistration delay, for requests and connections that run long, like a big upload or a WebSocket, and whatever is still running when it ends is cut. Draining is for removals you plan, like an update or scaling in. A crash gives no warning, which is why you need health checks as well."
+        "text": "Switching a server off cuts every request it's in the middle of. Draining takes it out gently. The load balancer stops sending it new requests and waits for the ones in progress to finish. Only then does it take the server off the list. After that, the server can stop with a graceful shutdown, finishing its work before it exits. At the Vesper, a room at 12 requests a second has about 8 in progress, each answered within a second or so. So a drain takes almost no time. The wait has a ceiling, the deregistration delay, for requests and connections that run long. A big upload is one. A WebSocket is another: a connection that stays open so both sides can send messages at any time. Whatever is still running when the delay ends is cut. Draining is for removals you plan, like an update or scaling in, which means removing servers. A crash gives no warning, which is why you need health checks as well."
       },
       {
         "title": "The doorman can be the single point of failure.",
-        "text": "Put one load balancer in front of four servers and you've moved the single point of failure to the front door: if it stops, every server is fine and nobody can reach them. There are two usual answers. A pair: two load balancers, one active and one standing by, share a virtual IP address, an address that can move between machines. They exchange heartbeats, and if the active one goes quiet, the standby claims the address within seconds. Or a managed load balancer: the cloud company runs it as several machines, at least one in each availability zone you enable, adds more as traffic grows, and clients find them through DNS. Either way it's still one shared part. A bad configuration change, or a fault in the service that manages it, reaches every server behind it at once."
+        "text": "Put one load balancer in front of four servers and you've moved the single point of failure to the front door. If it stops, every server is fine and nobody can reach them. There are two usual answers. The first is a pair. Two load balancers, one active and one standing by, share a virtual IP address: an address that can move between machines. Taking over happens in steps. First, the active one sends heartbeats, small I'm-alive messages, about once a second. Next, the standby notices when about three in a row are missing; if the messages are only delayed, it may take over from a machine that was fine. Then the standby claims the address and tells the network where it now lives; until the network hears, a few requests still go to the old machine. Last, it starts handing out requests; if its list of servers is out of date, it can send guests to the wrong rooms. The second is a managed load balancer. The cloud company runs it for you as several machines, at least one in each availability zone you turn on, and adds more as traffic grows. Clients find them through DNS, the internet's phone book. Either way it's still one shared part. A bad change to its settings, or a fault in the service that manages it, reaches every server behind it at once."
       }
     ],
     "diagram": {
@@ -474,15 +475,15 @@
         }
       ]
     },
-    "caption": "The fix, drawn at 2:41:30 on the next Sunday. Doorman A holds the hotel's one address, and Doorman B watches it, ready to take the address over. Room-12 froze and missed three checks in a row, so A has taken it out: it still asks it GET /health every 10 seconds, but sends it no guests. The other three rooms take 16 requests a second each, 80% busy. When room-12 answers three checks in a row, it goes back in.",
+    "caption": "The fix, drawn at 2:41:30 on the next Sunday. Doorman A holds the hotel's one address, and Doorman B watches it, ready to take the address over. Room-12 froze and missed three checks in a row, so A has taken it out. A still asks it GET /health every 10 seconds, but sends it no guests. The other three rooms take 16 requests a second each, 80% busy. When room-12 answers three checks in a row, it goes back in.",
     "fix": {
       "title": "The fix: check every door, choose by load, drain before removing, and never one doorman",
-      "text": "Turn on active health checks against a cheap /health that proves the server itself can answer: every 10 seconds, out after 3 misses in a row, back after 3 answers. Work out the cost before choosing the numbers: at most 30 seconds to notice, with the dead server's share failing until then. Pick the algorithm for the servers you actually have: round robin when they're alike, least connections when speeds or request costs vary, weights when you know the difference in advance. Drain before every planned removal, with a deregistration delay longer than your slowest normal request. Run the load balancer as a pair sharing one address, or use a managed one across at least two availability zones. Keep the alert as well, so a person repairs what the load balancer steers around. And take server names off public error pages: guests don't need them, and attackers like a map."
+      "text": "Turn on active health checks against a cheap /health page that proves the server itself can answer. Check every 10 seconds, take a server out after 3 misses in a row, and bring it back after 3 answers. Work out the cost before choosing the numbers: at most 30 seconds to notice, with the dead server's share failing until then. Pick the algorithm for the servers you actually have. Use round robin when they're alike, least connections when speeds or request costs vary, and weights when you know the difference in advance. Drain before every planned removal, with a deregistration delay longer than your slowest normal request. Run the load balancer as a pair sharing one address, or use a managed one across at least two availability zones. Keep the alert as well, so a person repairs what the load balancer steers around. And take server names off public error pages. Guests don't need them, and attackers like a map."
     },
     "limits": [
-      "A health check only knows what it asks. A /health that answers 200 OK while the server can't reach its database passes, and guests still fail. Make it ask about every dependency instead, a deep health check, and one slow database fails every server's check at once, so the load balancer throws out all of them. AWS's Application Load Balancer fails open when that happens, sending traffic to every target anyway, but a simpler load balancer like the Doorman may serve nobody.",
-      "Detection is never instant, and the dead server's share fails until the last missed check. A server that answers errors in a millisecond instead of hanging is worse for least connections: it always looks idle, so it attracts more requests, not fewer. Only a health check, active or passive, takes it off the list.",
-      "Moving requests between servers assumes any server can answer any request. If a guest's sign-in lives in one server's memory, a request sent to another server forgets them, and draining or ejecting that server signs everyone on it out. That's the next case."
+      "A health check only knows what it asks. Say the server can't reach its database, but /health still answers 200 OK. The check passes, and guests still fail. Now make it ask about every dependency, everything the server needs, which is called a deep health check. Then one slow database fails every server's check at once, and the load balancer throws out all of them. AWS's Application Load Balancer fails open when that happens: it sends traffic to every server anyway. A simpler load balancer like the Doorman may serve nobody.",
+      "Detection is never instant, and the dead server's share fails until the last missed check. A server that answers errors in a millisecond, instead of hanging, is worse for least connections. It always looks idle, so it attracts more requests, not fewer. Only a health check, active or passive, takes it off the list.",
+      "Moving requests between servers assumes any server can answer any request. Say a guest's sign-in lives in one server's memory. A request sent to another server forgets them. And draining or throwing out that server signs everyone on it out. That's the next case."
     ],
     "tradeoff": {
       "head": [
@@ -518,46 +519,46 @@
         ]
       ]
     },
-    "seniorTake": "Name both choices, with numbers. The algorithm decides who gets the next request; the health check decides who's on the list, and the list matters more: round robin over healthy servers beats the cleverest algorithm over a list with a dead server on it. Use round robin when servers and requests are alike and least connections when they aren't. Choose the interval and threshold on purpose, multiply them to get the worst-case time to notice, and multiply again by the dead server's share to know what it costs. Keep /health honest but shallow, drain before every planned removal, and make sure the load balancer itself is at least two of something.",
+    "seniorTake": "Name both choices, with numbers. The algorithm decides who gets the next request. The health check decides who's on the list, and the list matters more. Round robin over healthy servers beats the cleverest algorithm over a list with a dead server on it. Use round robin when servers and requests are alike, and least connections when they aren't. Choose the interval and threshold on purpose. Multiply them to get the worst-case time to notice, and multiply again by the dead server's share to know what it costs. Keep /health honest but shallow, testing only the server itself. Drain before every planned removal. And make sure the load balancer itself is at least two of something.",
     "realWorld": [
       {
         "title": "How an AWS Application Load Balancer checks its targets",
-        "text": "AWS calls the servers behind its load balancers targets. For EC2 instance and IP targets, an Application Load Balancer sends each one a health check every 30 seconds by default (the interval can be 5 to 300 seconds), and a check with no answer within 5 seconds, the default timeout, fails. After 2 failures in a row, the default unhealthy threshold, it takes the target out of service; after 5 successes in a row, the default healthy threshold, it puts the target back. So with the defaults, a frozen target can keep its share for up to about a minute, and a recovered one waits about two and a half minutes to return. Each load balancer node checks every target itself. If every target fails its checks at the same time, the load balancer fails open and sends traffic to all of them anyway.",
+        "text": "AWS calls the servers behind its load balancers targets. Its Application Load Balancer is its L7 kind. For targets that are EC2 instances (rented servers) or plain IP addresses, it sends each one a health check every 30 seconds by default. The interval can be set from 5 to 300 seconds. A check with no answer within 5 seconds, the default timeout, fails. After 2 failures in a row, the default unhealthy threshold, it takes the target out of service. After 5 successes in a row, the default healthy threshold, it puts the target back. So with the defaults, a frozen target can keep its share for up to about a minute. A recovered one waits about two and a half minutes to return. The load balancer is really several machines, called nodes, and each node checks every target itself. If every target fails its checks at the same time, the load balancer fails open: it sends traffic to all of them anyway.",
         "source": 0
       },
       {
         "title": "Algorithms and draining on an Application Load Balancer",
-        "text": "Round robin is the default routing algorithm for an Application Load Balancer's targets. Least outstanding requests, which picks the target with the fewest requests in progress, and weighted random are the alternatives, one at a time. When you deregister a target, it enters the draining state: the load balancer stops sending it new requests and waits for the deregistration delay, 300 seconds by default, so requests already in progress can finish. If the target has no requests in progress and no open connections, deregistration completes at once. If the target closes a connection before the delay is over, the client gets a 500-level error.",
+        "text": "Round robin is the default routing algorithm for an Application Load Balancer's targets. There are two alternatives, and you pick one at a time. Least outstanding requests picks the target with the fewest requests in progress. Weighted random spreads requests in random order. When you deregister a target, taking it off the list, it enters the draining state. The load balancer stops sending it new requests and waits for the deregistration delay, 300 seconds by default, so requests already in progress can finish. If the target has no requests in progress and no open connections, it's removed at once. If the target closes a connection before the delay is over, the client gets a 500-level error, the family of codes meaning the server failed.",
         "source": 1
       },
       {
         "title": "An Application Load Balancer reads requests",
-        "text": "AWS's Application Load Balancer works at the application layer, the seventh layer of the OSI model. Its listener rules can send requests to different targets by the path in the URL, the hostname, HTTP headers and methods, query parameters or source IP addresses, so one load balancer can sit in front of several services, each with its own health checks.",
+        "text": "AWS's Application Load Balancer works at the application layer, the seventh layer of the OSI model. Its listener rules are if-then rules for incoming requests. They can send requests to different targets by many details. These include the path in the web address, the site name, HTTP headers and methods, query parameters (the part after a ?) or the source IP address, the address a request came from. So one load balancer can sit in front of several services, each with its own health checks.",
         "source": 3
       },
       {
         "title": "A Network Load Balancer reads connections",
-        "text": "AWS's Network Load Balancer works at the fourth layer of the OSI model and, AWS says, can handle millions of requests per second. It doesn't read requests. For TCP it picks a target with a flow hash of the protocol, the source and destination IP addresses and ports, and the TCP sequence number, and keeps each connection on that one target for the life of the connection. A client's separate connections can land on different targets.",
+        "text": "AWS's Network Load Balancer works at the fourth layer of the OSI model. AWS says it can handle millions of requests per second. It doesn't read requests. For TCP, it picks a target with a flow hash: a quick sum worked out from the connection's details. Those details are the protocol, both ends' IP addresses and ports, and the TCP sequence number, the starting count for the connection. It keeps each connection on that one target for the life of the connection. A client's separate connections can land on different targets.",
         "source": 4
       },
       {
         "title": "A managed load balancer is many machines",
-        "text": "When you enable an availability zone for an AWS load balancer, Elastic Load Balancing creates a load balancer node in that zone, and an Application Load Balancer must have at least two zones enabled. Clients find the nodes through DNS: Amazon's DNS servers return the nodes' IP addresses with a TTL of 60 seconds, so the addresses can change quickly, and Elastic Load Balancing scales the load balancer as traffic changes.",
+        "text": "Elastic Load Balancing is AWS's load balancer service. When you turn on an availability zone for one of its load balancers, it creates a load balancer node, one of its machines, in that zone. An Application Load Balancer must have at least two zones turned on. Clients find the nodes through DNS. Amazon's DNS servers hand out the nodes' IP addresses with a TTL, a keep-it-for timer, of 60 seconds. So the addresses can change quickly, and Elastic Load Balancing grows or shrinks the load balancer as traffic changes.",
         "source": 2
       },
       {
         "title": "nginx: weights, least connections and passive checks",
-        "text": "nginx is a widely used web server that is often run as a load balancer. By default it spreads requests over the servers in an upstream block with weighted round robin: with weights 5, 1 and 1, every 7 requests go 5 to the first server and one to each of the others. Its least_conn method picks the server with the fewest active connections, taking weights into account, and random two picks two servers at random and then the one with fewer active connections. The free version checks passively: by default, one failed attempt within 10 seconds (max_fails=1, fail_timeout=10s) marks a server unavailable for 10 seconds. Periodic active health checks are part of its commercial subscription.",
+        "text": "nginx is a widely used web server that is often run as a load balancer. In its settings, the servers it passes requests to are listed in an upstream block. By default it spreads requests over them with weighted round robin. With weights 5, 1 and 1, every 7 requests go 5 to the first server and one to each of the others. Its least_conn method picks the server with the fewest active connections, taking weights into account. Its random two method picks two servers at random, then the one with fewer active connections. The free version checks passively. By default, one failed attempt within 10 seconds (max_fails=1, fail_timeout=10s) marks a server unavailable for 10 seconds. Active health checks on a timer come only with its paid version, the commercial subscription.",
         "source": 5
       },
       {
         "title": "The power of two random choices",
-        "text": "In 2001 Michael Mitzenmacher published an analysis of what he called the supermarket model in IEEE Transactions on Parallel and Distributed Systems: customers arrive at n servers, and each one picks d servers at random and waits at the one with the fewest customers. He found that d = 2 choices gives an exponential improvement over d = 1 in the expected time a customer spends in the system, while d = 3 is only a constant factor better than d = 2. It's the idea behind random-with-two-choices methods like nginx's random two.",
+        "text": "In 2001 Michael Mitzenmacher, a computer scientist, published a study of what he called the supermarket model. It appeared in IEEE Transactions on Parallel and Distributed Systems, a research journal. Customers arrive at n servers, like checkouts. Each customer picks d of them at random and waits at the one with the fewest customers. He found that d = 2 choices gives an exponential improvement over d = 1 in the expected time a customer spends in the system: a gain far bigger than double. Going on to d = 3 is only a constant factor better than d = 2, a much smaller step. It's the idea behind random-with-two-choices methods like nginx's random two.",
         "source": 6
       },
       {
         "title": "When the managed load balancer breaks: AWS, December 24, 2012",
-        "text": "AWS's own summary describes a maintenance process that was run against the production ELB state data by mistake at 12:24 PM PST on December 24, 2012, in the US-East Region, deleting a portion of the ELB state data. Running load balancers kept handling requests at first, but the ones the control plane then changed were set up wrongly, and at the peak 6.8% of running ELB load balancers were affected, with errors and degraded performance for customers' applications. Almost all affected load balancers were restored by 10:30 AM PST on December 25, and AWS announced the service was operating normally at 12:05 PM PST. AWS then changed access to that data so that changes need specific change management approval. Many machines remove the single box, not every shared failure.",
+        "text": "ELB is short for Elastic Load Balancing. AWS keeps records of how every customer's load balancer is set up, called the ELB state data. AWS's own summary describes a maintenance job that was run against the live ELB state data by mistake. It ran at 12:24 PM PST (Pacific time) on December 24, 2012, in the US-East Region, AWS's group of data centers in Virginia. It deleted part of the ELB state data. Running load balancers kept handling requests at first. But the control plane, the part of AWS that changes load balancers' settings, then set some of them up wrongly. At the peak, 6.8% of running ELB load balancers were affected, with errors and slow performance for customers' applications. Almost all affected load balancers were restored by 10:30 AM PST on December 25, and AWS announced the service was operating normally at 12:05 PM PST. AWS then changed access to that data, so that changes need specific change management approval, a formal review before anyone touches it. Many machines remove the single box, not every shared failure.",
         "source": 7
       }
     ],
@@ -566,7 +567,7 @@
         "Where does the load balancer sit in your URL shortener, and what happens when one of the redirect servers dies?",
         "Round robin or least connections? How quickly does your load balancer notice a dead server, and what does that cost?"
       ],
-      "answer": "Draw it in one line. Clients find the service through DNS and reach a load balancer that is itself redundant, a pair or a managed one across at least two availability zones. It spreads requests over identical redirect servers, which look up short codes in a shared store. Make it L7: it holds the certificate for HTTPS and can send /api, where new links are created, to a different set of servers than the redirects. Then name the choices with numbers. Redirects are small and alike, so round robin is fine, or least connections if some requests, like creating links, cost much more. Active health checks on a shallow /health every 10 seconds, out after 2 or 3 misses: a dead server is noticed within 20 to 30 seconds, and with ten servers, a tenth of requests fail until then. Redirects are GETs, so they can be retried safely on another server. Drain servers on every deploy. Then say what limits you next: the shared store, which later cases this season cover."
+      "answer": "Draw it in one line. Clients find the service through DNS and reach a load balancer that has a backup of its own: a pair, or a managed one across at least two availability zones. It spreads requests over identical redirect servers, which look up short codes in a shared store. Make it L7. It holds the certificate for HTTPS, and can send /api, where new links are created, to a different set of servers than the redirects. Then name the choices with numbers. Redirects are small and alike, so round robin is fine. Use least connections if some requests, like creating links, cost much more. Run active health checks on a shallow /health every 10 seconds, out after 2 or 3 misses. A dead server is noticed within 20 to 30 seconds, and with ten servers, a tenth of requests fail until then. Redirects are GETs, which only read, so they can be retried safely on another server. Drain servers on every deploy, each time new code goes live. Then say what limits you next: the shared store, which later cases this season cover."
     }
   },
   "terms": [
@@ -708,7 +709,7 @@
     },
     {
       "term": "Listener",
-      "def": "The part of a load balancer that waits for connections on one port and protocol, such as HTTPS on port 443."
+      "def": "The part of a load balancer that waits for connections on one port, a numbered door, using one protocol, such as HTTPS on port 443."
     },
     {
       "term": "Listener rule",
@@ -720,7 +721,7 @@
     },
     {
       "term": "Transport layer",
-      "def": "Layer 4 of the OSI model, where TCP and UDP carry data between programs, identified by addresses and ports."
+      "def": "Layer 4 of the OSI model, where TCP and UDP carry data between programs, found by their addresses and ports."
     },
     {
       "term": "Application layer",
@@ -748,7 +749,7 @@
     },
     {
       "term": "Flow hash",
-      "def": "A way to pick a server from the details of a connection, such as its protocol, addresses, ports and sequence number, so the whole connection goes to the same server."
+      "def": "A quick sum worked out from a connection's details, such as its protocol, addresses, ports and sequence number, used to pick a server so the whole connection goes to the same one."
     },
     {
       "term": "Load balancer node",
@@ -851,7 +852,7 @@
       "def": "A CloudWatch metric for an AWS load balancer: how many of a target group's targets are passing their health checks."
     }
   ],
-  "atWork": "Open the EC2 console for your team's production account (read-only access is enough), go to Target Groups and pick the one in front of a service you know. On the Health checks tab, read the protocol, the path, the interval, the timeout and both thresholds. Multiply the interval by the unhealthy threshold: that's how long a dead target can keep its share. Multiply it by the healthy threshold: that's how long a fixed one waits to come back. Then ask what the path actually tests, only the server or everything behind it. On the Attributes tab, read the load balancing algorithm and the deregistration delay, and compare the delay with your slowest normal request. On the Targets tab, check each target's health status and look for any that are draining or unhealthy. Last, open the load balancer itself, count the availability zones it's enabled in, and look at its HealthyHostCount in CloudWatch for the last week: any dips nobody mentioned?",
+  "atWork": "Open the EC2 console, AWS's control screen for rented servers, in your team's production account, the one real customers use. Read-only access is enough. Go to Target Groups, AWS's lists of servers behind a load balancer, and pick the one in front of a service you know. On the Health checks tab, read the protocol, the path, the interval, the timeout and both thresholds. Multiply the interval by the unhealthy threshold: that's how long a dead target can keep its share. Multiply it by the healthy threshold: that's how long a fixed one waits to come back. Then ask what the path actually tests: only the server, or everything behind it? On the Attributes tab, read the load balancing algorithm and the deregistration delay. Compare the delay with your slowest normal request. On the Targets tab, check each target's health status, and look for any that are draining or unhealthy. Last, open the load balancer itself and count the availability zones it's turned on in. In CloudWatch, AWS's monitoring service, look at its HealthyHostCount, the number of healthy targets, for the last week. Any dips nobody mentioned?",
   "board": {
     "cards": [
       {
@@ -923,7 +924,7 @@
     {
       "id": "s2e02-r1",
       "kind": "free",
-      "prompt": "Your API runs on 6 EC2 instances behind an Application Load Balancer with the default health checks: every 30 seconds, out after 2 failures in a row. At 3 PM one instance freezes while 600 requests a second arrive. Roughly how long until the load balancer stops sending it requests, how many requests fail meanwhile, and what would you change?",
+      "prompt": "Your API, the service your apps send requests to, runs on 6 EC2 instances, rented AWS servers. In front sits an Application Load Balancer, AWS's L7 load balancer, with the default health checks: every 30 seconds, out after 2 failures in a row. At 3 PM one instance freezes while 600 requests a second arrive. Roughly how long until the load balancer stops sending it requests, how many requests fail meanwhile, and what would you change?",
       "keyIdeas": [
         {
           "idea": "Up to about a minute: the interval times the unhealthy threshold, 30 s times 2",
@@ -982,7 +983,7 @@
           ]
         }
       ],
-      "model": "Up to about a minute. With a 30-second interval and an unhealthy threshold of 2, the frozen instance is taken out between 30 and 60 seconds after it freezes, plus the 5-second timeout on the last check, because it hangs instead of refusing. Until then it keeps a sixth of the traffic, about 100 requests a second, so up to roughly 6,000 requests fail. I'd shorten that, for example a 10-second interval with a threshold of 2, which notices within 20 seconds at the cost of more checks and a bit more risk of throwing out an instance that was only slow for a moment. I'd make sure /health tests the instance itself, let clients or the load balancer retry idempotent requests on another instance, and keep an alert so a person fixes the frozen one."
+      "model": "Up to about a minute. With a 30-second interval and an unhealthy threshold of 2, the frozen instance is taken out between 30 and 60 seconds after it freezes. Add the 5-second timeout on the last check, because it hangs instead of refusing. Until then it keeps a sixth of the traffic, about 100 requests a second, so up to roughly 6,000 requests fail. I'd shorten that, for example a 10-second interval with a threshold of 2, which notices within 20 seconds. The cost is more checks, and a bit more risk of throwing out an instance that was only slow for a moment. I'd make sure /health tests the instance itself. I'd let clients or the load balancer retry idempotent requests, the ones safe to repeat, on another instance. And I'd keep an alert so a person fixes the frozen one."
     },
     {
       "id": "s2e02-r2",
@@ -1013,7 +1014,7 @@
     {
       "id": "s2e02-r4",
       "kind": "free",
-      "prompt": "At 2 PM you need to patch one of four servers behind a load balancer. A teammate says: just stop it, the health checks will take it out within 30 seconds. What do you tell them?",
+      "prompt": "At 2 PM you need to patch one of four servers behind a load balancer, installing a fix on it. A teammate says: just stop it, the health checks will take it out within 30 seconds. What do you tell them?",
       "keyIdeas": [
         {
           "idea": "Stopping it cuts the requests in progress, and its share fails until the checks notice",
@@ -1069,7 +1070,7 @@
           ]
         }
       ],
-      "model": "Not like that. Health checks are for failures you didn't plan. If you just stop it, every request it's working on is cut, and for up to 30 seconds the load balancer keeps sending it a quarter of the traffic, which all fails. Drain it instead: deregister it so the load balancer sends it nothing new, wait for the requests in progress to finish, which the deregistration delay caps, then stop it with a graceful shutdown. First check the other three can carry its share at 2 PM. After patching, register it again and let it pass its health checks before it takes traffic."
+      "model": "Not like that. Health checks are for failures you didn't plan. If you just stop it, every request it's working on is cut. And for up to 30 seconds the load balancer keeps sending it a quarter of the traffic, which all fails. Drain it instead. Deregister it, taking it off the list, so the load balancer sends it nothing new. Wait for the requests in progress to finish, which the deregistration delay caps. Then stop it with a graceful shutdown. First check the other three can carry its share at 2 PM. After patching, register it again and let it pass its health checks before it takes traffic."
     },
     {
       "id": "s2e02-r5",
@@ -1086,7 +1087,7 @@
     }
   ],
   "coldCase": {
-    "update": "UPDATE, 5 months later. After a guest's key card failed at 2 AM, Cas made /health check everything: the reservations database, the payment service and the key-card machine. On Friday at 11:40 PM the payment service went slow for two minutes. Every room failed its health check three times in a row, so the Doorman took all four out, and for nearly two minutes the website answered 503 to everyone, even guests who only wanted to look at photos of the rooms. All four rooms were running fine the whole time.",
+    "update": "UPDATE, 5 months later. After a guest's key card failed at 2 AM, Cas made /health check everything: the reservations database, the payment service that takes card payments, and the key-card machine. On Friday at 11:40 PM the payment service went slow for two minutes. Every room failed its health check three times in a row, so the Doorman took all four out, and for nearly two minutes the website answered 503 to everyone, even guests who only wanted to look at photos of the rooms. All four rooms were running fine the whole time.",
     "prompt": "Reply to OP. What went wrong, and how should /health be written?",
     "keyIdeas": [
       {
@@ -1129,7 +1130,7 @@
         ]
       }
     ],
-    "model": "The rooms didn't fail; the payment service did, and every room's health check depended on it, so all four failed their checks together and the Doorman took the whole hotel out. A health check should answer one question: should this server get requests? Keep /health shallow: the program is running and can answer. Watch the database and the payment service with their own monitoring and alerts, and let the pages that need payment fail on their own, quickly, while room photos keep working. Some load balancers, like AWS's Application Load Balancer, fail open when every target fails at once and send traffic to all of them on the bet that the checks are wrong. The Doorman doesn't, so Cas should know which kind he has."
+    "model": "The rooms didn't fail; the payment service did. Every room's health check depended on it, so all four failed their checks together, and the Doorman took the whole hotel out. A health check should answer one question: should this server get requests? Keep /health shallow: the program is running and can answer. Watch the database and the payment service with their own monitoring and alerts. Let the pages that need payment fail on their own, quickly, while room photos keep working. Some load balancers, like AWS's Application Load Balancer, fail open when every target fails at once. They send traffic to all of them, on the bet that the checks are wrong. The Doorman doesn't, so Cas should know which kind he has."
   },
   "next": "Next, Nobody Remembers You: a coat check where every guest hands over a coat and gets a ticket, and every time they come back to the counter, nobody has ever seen them before.",
   "sources": [
