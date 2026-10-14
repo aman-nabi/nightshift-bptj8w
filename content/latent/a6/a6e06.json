@@ -1,0 +1,929 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-15) main-session review: the ranger is now Morag (Nuala sits inside a5e07's Fionnuala)",
+  "v1.0.0 (2026-10-15) first version, completed, from latent-season6-bible-v1.0.2.md row a6e06 and writer brief a6e06-v1.0.0.md. OpenTelemetry GenAI conventions read 15 October 2026: prompt version has a standard attribute (gen_ai.prompt.version, Development); documents found and cost have none, so both are custom fields here."
+ ],
+ "id": "a6e06",
+ "season": 6,
+ "n": 6,
+ "title": "Watching It Think",
+ "setting": "a ranger station at a forest campsite",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "llm-observability",
+  "traces",
+  "spans",
+  "prompt-versions"
+ ],
+ "prerequisites": [
+  "a3e01",
+  "a1e03",
+  "a6e02",
+  "a5e05",
+  "s6e05"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/pitch_lamp_morag",
+  "flair": "Part 1",
+  "age": "4h",
+  "votes": 3384,
+  "title": "I'm the night ranger at a forest campsite. At 21:47 our text assistant told pitch 31 that fires are allowed in the stone rings. The rings were dug up in 2021, and there's a fire ban tonight. Every screen says it did fine.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Morag, the night ranger at Gorsemoor Wood, a forest campsite with 60 pitches, the marked spots where tents go. Campers text us questions, and an assistant texts back. Its replies come from a program that reads text and writes text back, called a language model."
+   },
+   {
+    "t": "p",
+    "text": "Mr Kowalczyk, our part-time developer, built it in March. Every text goes through two steps. First, a search: a program looks through the site handbook and tonight's notices and picks the five passages closest to the question, like a librarian pulling five pages. Second, the model is sent those passages, a fixed note telling it how to answer, and the camper's text, and writes the reply from them."
+   },
+   {
+    "t": "p",
+    "text": "The model reads text in small pieces of words, called tokens. With five passages, each answer sends it about 4,300 tokens. That fixed note, called the standing instructions, and the camper's text alone are about 300. The model takes about 0.9 seconds, plus 0.6 for every 1,000 tokens sent."
+   },
+   {
+    "t": "p",
+    "text": "The search has a time limit, called a timeout: if no passages come back within 2 seconds, the app stops waiting. In the seven months since March, every search has come back in about 0.3 seconds, and it never once hit the limit."
+   },
+   {
+    "t": "p",
+    "text": "Our log, the record the app keeps, has one line per answer: the time, the pitch, the status and the total time. Status says ok, or error if something broke."
+   },
+   {
+    "t": "p",
+    "text": "The dashboard is a screen of live charts in the office. It shows the error rate, the share of answers that ended in an error, and the average time an answer takes."
+   },
+   {
+    "t": "p",
+    "text": "At 23:00, on my round, I found a fire at pitch 31, in a ring of stones the family had laid where an old stone ring used to be. The rings were dug up in 2021. A fire ban has been in force since 18:00; it's in tonight's notices. Nobody was hurt. The father showed me his phone. Each line shows the time, who wrote, and what."
+   },
+   {
+    "t": "log",
+    "text": "21:47  pitch 31   Can we have a campfire tonight?\n21:47  assistant  Yes! Fires are allowed in the stone rings after 8 PM."
+   },
+   {
+    "t": "p",
+    "text": "At 20:38 pitch 44 asked the same thing and was told no. Here are six of the evening's twelve log lines: time, pitch, status, total time."
+   },
+   {
+    "t": "log",
+    "text": "20:06  pitch 12  ok  3.78 s\n20:38  pitch 44  ok  3.78 s\n21:04  pitch 19  ok  3.08 s\n21:47  pitch 31  ok  3.08 s\n22:18  pitch 40  ok  3.08 s\n22:34  pitch 22  ok  3.78 s"
+   },
+   {
+    "t": "beat",
+    "text": "Every line says ok. The dashboard stayed green all night, and from 21:00 the answers got faster."
+   },
+   {
+    "t": "p",
+    "text": "Mr Kowalczyk came in at midnight. The company that runs our search had moved it to a new machine at 21:00; they'd emailed last week. Their own page shows each search took 2.3 to 2.8 seconds until 22:30. Then he found one line in the app he wrote: when the search times out, the app carries on with an empty list and asks the model anyway."
+   },
+   {
+    "t": "evidence",
+    "label": "gorsemoor_evening_20_to_23.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Morag's drawing of the evening, 20:00 to 23:00. Top row: the search, about 0.3 seconds until 21:00, 2.3 to 2.8 seconds from 21:00 to 22:30, then 0.3 seconds again. Middle row: our log's status, ok all evening. Bottom row: tokens sent to the model, 4,300 per answer except from 21:00 to 22:30, when every answer sent 300. Markers: pitch 44 told no at 20:38; the search moved at 21:00; pitch 31 told yes at 21:47; fast again at 22:30.",
+     "start": "20:00:00",
+     "seconds": 10800,
+     "ticksEvery": 1800,
+     "rows": [
+      {
+       "label": "Search time",
+       "segments": [
+        [
+         0,
+         3600,
+         "ok"
+        ],
+        [
+         3600,
+         9000,
+         "bad"
+        ],
+        [
+         9000,
+         10800,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "Log status",
+       "segments": [
+        [
+         0,
+         10800,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "Tokens sent",
+       "gaps": [
+        [
+         3600,
+         9000,
+         "300 each, not 4,300"
+        ]
+       ],
+       "segments": [
+        [
+         0,
+         3600,
+         "ok"
+        ],
+        [
+         9000,
+         10800,
+         "ok"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 2280,
+       "label": "told no",
+       "tone": "ok"
+      },
+      {
+       "t": 3600,
+       "label": "moved",
+       "tone": "warn"
+      },
+      {
+       "t": 6420,
+       "label": "told yes",
+       "tone": "bad"
+      },
+      {
+       "t": 9000,
+       "label": "fast again",
+       "tone": "ok"
+      }
+     ]
+    },
+    "caption": "Drawn from our log, the search company's page and the model provider's usage page, which lists every request with its tokens. Searches took about 0.3 seconds until 21:00, then 2.3 to 2.8 seconds until 22:30. Every log line says ok. The six answers from 21:04 to 22:18 each sent the model 300 tokens; every other answer sent 4,300."
+   },
+   {
+    "t": "p",
+    "text": "Nothing we kept could show which step failed. The forecast is dry again next week, and the ban comes back. What should we change?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/gradient_ghost",
+   "points": 174,
+   "age": "3h",
+   "text": "Nothing in the wood was whispering to that family. Your app has the shape of a3e01's seance: look things up first, then write from what was found. The model knows nothing about Gorsemoor except what the app sends it each time, and what it read in training: the huge pile of text it learned from before anyone used it. Two questions. How many tokens did the 21:47 answer send, and the 20:38 one? And where could a model have read about stone rings after 8 PM?",
+   "replies": [
+    {
+     "author": "u/pitch_lamp_morag",
+     "op": true,
+     "points": 69,
+     "age": "2h",
+     "text": "The provider's usage page lists every request. 20:38: 4,300 tokens sent. 21:47: 300. Every request from 21:04 to 22:18 sent 300. And our 2019 handbook was on the website until 2022. Page 4: \"Fires in the stone rings only, after 8 PM.\""
+    },
+    {
+     "author": "u/gradient_ghost",
+     "points": 88,
+     "age": "2h",
+     "text": "Two words you may want. The record of one answer from start to finish, like a parcel's tracking page, is called a trace. Each step inside it gets its own entry, with its start, its length and what it found; that entry is a span. Dead Letter s6e05, Three Pillars, met both at a security desk. Whether they help here is your call."
+    }
+   ]
+  },
+  {
+   "author": "u/all_green_eamonn",
+   "points": 121,
+   "age": "3h",
+   "text": "I watch systems for a living. Nothing errored, and latency, the time each answer takes, improved by 0.7 seconds. By every measure the system was healthy; the camper misread a friendly reply. If you want to catch a real failure, alert on the error rate. It's the first signal every monitoring guide teaches, and the moment it rises, the ranger hears.",
+   "replies": [
+    {
+     "author": "u/pitch_lamp_morag",
+     "op": true,
+     "points": 33,
+     "age": "2h",
+     "text": "The reply on his phone starts with \"Yes!\""
+    }
+   ]
+  },
+  {
+   "author": "u/keep_every_word_hildur",
+   "points": 58,
+   "age": "2h",
+   "text": "Keep everything. Every question and every reply, word for word, forever. Storage is cheap. When something goes wrong, you scroll back and read exactly what it told whom.",
+   "replies": [
+    {
+     "author": "u/pitch_lamp_morag",
+     "op": true,
+     "points": 21,
+     "age": "1h",
+     "text": "Mr Kowalczyk likes this. He says it's one setting."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "The fire ban comes back next week. What should Gorsemoor change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Alert the ranger whenever the error rate rises, so a failing assistant is caught at once.",
+    "tone": "bad",
+    "verdict": "No errors to count",
+    "part2": "Mr Kowalczyk set an alert to text my phone whenever the error rate passes 1%. We replayed tonight in the sim. The alert never fired: 0 errors in 12 answers, because the code catches the timeout and marks the answer ok. At 21:47 pitch 31 was still told \"Yes! Fires are allowed in the stone rings after 8 PM.\", in 3.08 seconds, and the log line still said ok.",
+    "senior": "Errors are one signal, and the worst failures of a feature built on a language model often raise none: a step that quietly hands on nothing, and a model that answers fluently anyway. Keep an error-rate alert for crashes, but also watch each answer's shape: how many passages the search found, how many tokens went in, why the model stopped. Here one line of code turned a timeout into an empty list and called it success. Make that path visible in a trace, count it, and decide what it should do."
+   },
+   {
+    "text": "Save every full question and answer forever, so any bad reply can be read back later.",
+    "tone": "bad",
+    "verdict": "Every word, no steps",
+    "part2": "Mr Kowalczyk switched the log to keep every question and reply in full, forever. We replayed tonight. The record held 24 messages from one evening, each with the pitch it came from. The 21:47 line read: \"Q: Can we have a campfire tonight? A: Yes! Fires are allowed in the stone rings after 8 PM. ok 3.08 s\". It showed what was said, which the father's phone already showed. Nothing in it said the search had found 0 passages, no alert could check that, and pitch 31 was still told yes.",
+    "senior": "Full text answers \"what did it say\"; it doesn't answer \"which step went wrong\". For that each step needs its own record: passages found, tokens, timing, finish reason. And keeping every message forever stores campers' own words with no end date. OpenTelemetry's GenAI conventions keep instructions, inputs and outputs off by default: instrumentations SHOULD NOT capture them by default, but SHOULD provide an option for users to opt in. Record the steps by default; turn text capture on only for a stated reason and a short, stated time, with access limited."
+   },
+   {
+    "text": "Raise the search step's time limit to ten seconds, so a slow search still returns text.",
+    "tone": "warn",
+    "verdict": "Fixes tonight, keeps the silent path",
+    "part2": "Mr Kowalczyk raised the search's time limit to 10 seconds. We replayed tonight: every slow search finished, and at 21:47 pitch 31 got 5 passages and \"No. A fire ban is in force tonight, from 18:00. Gas stoves only.\", in 6.08 seconds. Answers from 21:00 to 22:30 averaged 6.03 seconds. Then we played a worse night, with the search silent for the same 90 minutes. Every answer waited 10 seconds, then came from memory: at 21:47, yes again, after 11.08 seconds. Every log line still said ok.",
+    "senior": "A longer limit fixes the cause you saw and keeps the path that hid it: when the search fails for any reason, the app still carries on with no passages and answers anyway, now after a longer wait. Set the limit from measured search times, by all means. Then decide what happens when it passes: refuse, say so, and count it. A time limit says how long to wait; it says nothing about what to do when the wait ends."
+   },
+   {
+    "text": "Record each step of every answer as a trace, and refuse when search finds nothing.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Mr Kowalczyk recorded every answer as a trace: one span for the search (passages found, time taken) and one for the model (which model, which version of the standing instructions, tokens in and out, why it stopped), with no message text. When the search finds nothing, the app now sends no request to the model and replies \"I can't check the site rules right now. Please call the ranger on the number at the gate.\" He also set an alert on zero passages. We replayed tonight. The alert texted me at 21:04, pitch 19: 0 passages found. At 21:47 pitch 31 got the refusal after 2.00 seconds, and the father would have rung me. On the worse night, the same: the alert at 21:04, the refusal at 21:47.",
+    "senior": "Record one answer as a trace and each step as a span with its own facts. For a search step: documents found and time taken. For a model call: model, prompt version, input and output tokens, finish reason, and cost worked out from the tokens. Then alert on the shape of a request, not only on errors: zero documents, or input tokens falling from about 4,300 to 300, both fire at 21:04, 43 minutes before pitch 31 asked. Make the empty case honest: with nothing to read, say so and hand over to a person, which is a6e02's degrading honestly. Keep campers' words out of traces by default, as OpenTelemetry's GenAI conventions advise."
+   }
+  ]
+ },
+ "sim": {
+  "module": "a6e06",
+  "title": "Replay the evening in a trace viewer",
+  "lede": "You're Morag, replaying 20:00 to 23:00 with no texts answered yet. No real model runs here: every number comes from the evening's twelve texts and stated rules. Each answer sends the model 250 tokens of standing instructions, the camper's text with its pitch and time (counted as 50) and 800 for each passage found, five at most: 4,300 with five, 300 with none. A search takes 0.3 seconds; from 21:00 to 22:30 tonight it takes 2.3 to 2.8 seconds, and on the worse night it never answers in that window. The app waits up to the time limit, then carries on with no passages or refuses at once with no model call. The model, which the provider calls m2, takes 0.9 seconds plus 0.6 for every 1,000 tokens sent; each reply's tokens out are stated. Cost, kept in the trace as a custom field: $3 per million tokens sent, $15 per million written. Every answer's status is ok, because the code catches the timeout.",
+  "tryThis": "Try this: press Run the evening. Every answer is ok, 3.78 s before 21:00 and 3.08 s from 21:00 to 22:30, and 21:47 got 0 passages, 300 tokens and \"Yes!\". Switch the record to a trace and read the 21:47 search step: timed out at 2.00 s, 0 passages. Set the alert to zero passages: 21:04. Switch the record back to status only and watch the alert lose the fact it needs. Then play each reply, and the worse night."
+ },
+ "explain": {
+  "oneLine": "Nothing on the dashboard was lying; it just couldn't see inside an answer. From 21:00 to 22:30 every search took longer than its 2-second limit, the code carried on with no passages, and the model answered from training, where the 2019 handbook still allowed fires in the stone rings. Fewer tokens made those answers faster, and every one was marked ok.",
+  "steps": [
+   {
+    "title": "One answer, step by step.",
+    "text": "Every camper's text runs in steps. First the app sends the text to the search, which looks through the handbook and tonight's notices and returns the five closest passages, 4,000 tokens. Second it builds the request: the standing instructions (250 tokens), the text with its pitch and time (about 50) and the passages. Third the model writes the reply from them, in 0.9 seconds plus 0.6 for every 1,000 tokens sent. Last the reply goes back by text. Before 21:00 that was 0.3 + 3.48 = 3.78 seconds, with the fire ban among the passages. This is a3e01's pipeline: look things up, then write from what was found. What can go wrong: any step can hand the next one less than it needs, and the next step carries on."
+   },
+   {
+    "title": "Why every screen stayed green.",
+    "text": "The search has a 2-second time limit. In steps: first the app asks the search; second, if no answer comes within 2 seconds, it stops waiting; third, Mr Kowalczyk's code catches that timeout and carries on with an empty list instead of raising an error. That is a silent failure: a step fails and nothing says so. From 21:00 to 22:30 every search took 2.3 to 2.8 seconds, so all six answers in that window went to the model with no passages: 300 tokens instead of 4,300. With nothing to read, the model answered from training, which included the 2019 handbook, online until 2022. Every answer was marked ok, so the error rate stayed at 0%. And sending 300 tokens is quicker than 4,300: 2.0 + 1.08 = 3.08 seconds against 3.78. The failure made the dashboard look better. This case is \"we could not see which step failed\"; a6e08 is a prompt changed with no version, a6e09 a model that changed under the app. What can go wrong: a log that keeps only status and total time can't see inside an answer."
+   },
+   {
+    "title": "A trace, and a span for each step.",
+    "text": "A trace records one answer from start to finish; each step inside it is a span, with its own start, length and facts. Dead Letter s6e05 met traces in general; here is what is new for a model. The search span records how many passages came back and how long it took. OpenTelemetry's GenAI conventions call this a retrieval operation and offer gen_ai.retrieval.top_k for how many were asked for, but no attribute for how many came back, so Gorsemoor records that as its own custom field. The model span records gen_ai.request.model, gen_ai.prompt.version (which version of the standing instructions), gen_ai.usage.input_tokens, gen_ai.usage.output_tokens and gen_ai.response.finish_reasons, why the model stopped. All are marked Development, not yet stable. Cost has no standard attribute either: work it out from the tokens and the price list ($0.0011 at 21:47: 300 tokens in, 14 out) and store it as a custom field. What can go wrong: a trace with no count of passages would still have hidden tonight."
+   },
+   {
+    "title": "Alert on the shape of an answer, and refuse when there's nothing to read.",
+    "text": "Errors are not the only sign of trouble. Each answer has a usual shape: five passages, about 4,300 tokens in, finish reason stop. An alert on zero passages, or on tokens sent falling under 1,000, fires at 21:04, on the first slow search, 43 minutes before pitch 31 asked. Then decide what the empty case does. In steps: first the search times out or finds nothing; second the app sends no request to the model; third it replies \"I can't check the site rules right now. Please call the ranger on the number at the gate.\", in 2.00 seconds; fourth the alert texts the ranger. This is a6e02's degrading honestly: say what you can't do instead of guessing. What can go wrong: an alert that fires on every small blip is soon ignored, so if one empty search is normal, alert on a share over a few minutes."
+   },
+   {
+    "title": "Why the quick fixes miss, and what not to record.",
+    "text": "An error-rate alert never fires: 0 errors in 12 answers. A 10-second limit fixes tonight (21:47 gets 5 passages and the ban, in 6.08 seconds), but on a night when the search never answers, every answer waits 10 seconds and then guesses: 11.08 seconds, and yes again at 21:47. Keeping every message forever stores 24 messages from one evening, each tied to a pitch, and still shows only what was said. OpenTelemetry's conventions say instrumentations SHOULD NOT capture instructions, inputs and outputs by default, but SHOULD provide an option for users to opt in. So the trace keeps counts, times and versions, not campers' words. Build Night G8 builds the general mechanism: metrics, structured logs and request ids. What can go wrong: text capture switched on for one night's debugging and never switched off."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 760,
+   "h": 380,
+   "aria": "The fix. A camper's text goes to the search, recorded as a span with passages found and time taken. A check asks whether any passages came back. With 5 found, the request goes to the model, recorded as a span with the model, prompt v4, tokens in and out and why it stopped. With 0 found, the app refuses, tells the camper to call the ranger and alerts the ranger. Both spans go into one trace per answer, with no message text.",
+   "nodes": [
+    {
+     "id": "text",
+     "label": "Camper's text",
+     "sub": "pitch 31, 21:47",
+     "x": 100,
+     "y": 70,
+     "w": 160,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "search",
+     "label": "Search span",
+     "sub": "passages found",
+     "meta": "time taken",
+     "x": 330,
+     "y": 70,
+     "w": 200,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "trace",
+     "label": "Trace",
+     "sub": "one per answer",
+     "meta": "no message text",
+     "x": 610,
+     "y": 70,
+     "w": 200,
+     "h": 72,
+     "shape": "db",
+     "tone": "ok"
+    },
+    {
+     "id": "check",
+     "label": "Any passages?",
+     "sub": "zero means stop",
+     "x": 330,
+     "y": 200,
+     "w": 200,
+     "h": 60,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "model",
+     "label": "Model span",
+     "sub": "model, prompt v4",
+     "meta": "tokens, why it stopped",
+     "x": 610,
+     "y": 200,
+     "w": 220,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "refuse",
+     "label": "Refuse and alert",
+     "sub": "call the ranger",
+     "x": 330,
+     "y": 320,
+     "w": 200,
+     "h": 60,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "text",
+     "to": "search",
+     "label": "text"
+    },
+    {
+     "from": "search",
+     "to": "check"
+    },
+    {
+     "from": "check",
+     "to": "model",
+     "label": "5 found"
+    },
+    {
+     "from": "check",
+     "to": "refuse",
+     "label": "0 found",
+     "dy": 0,
+     "anchor": "start",
+     "dx": 8
+    },
+    {
+     "from": "search",
+     "to": "trace",
+     "dash": true,
+     "tone": "muted"
+    },
+    {
+     "from": "model",
+     "to": "trace",
+     "dash": true,
+     "tone": "muted"
+    }
+   ]
+  },
+  "caption": "Read from the top left. A camper's text goes to the search, whose span records passages found and time taken. If none came back, the app refuses, tells the camper to call the ranger and alerts the ranger, in 2.00 seconds. If five came back, the model writes the reply, and its span records the model, prompt v4, tokens in and out and why it stopped. Both spans land in one trace per answer, with no message text.",
+  "fix": {
+   "title": "The fix: a trace per answer, an alert on its shape, and a refusal when there's nothing to read",
+   "text": "Record every answer as a trace with a span for each step. The search span keeps passages found and time taken; the model span keeps the model, the prompt version, tokens in and out, the finish reason and the cost worked out from the tokens. Keep campers' words out by default. Alert on the shape of an answer: zero passages, or tokens sent falling far below the usual 4,300. Change the one line that carried on with an empty list: when the search times out or finds nothing, send no request to the model, reply \"I can't check the site rules right now. Please call the ranger on the number at the gate.\" and alert the ranger. Then set the time limit from measured search times, and ask the search company to warn before the next move, so a slow warm-up happens in daylight."
+  },
+  "limits": [
+   "A refusal is honest but still unhelpful. On a night with a long search failure, every camper is told to call the ranger, so the ranger's phone becomes the fallback and needs to be answered.",
+   "Traces cost something to keep and someone has to read them. Counts and times are small; turn on message text only for a stated reason and a short, stated time.",
+   "An alert on shape catches the failures you thought of: zero passages, a drop in tokens. A search that returns five wrong passages has the right shape, and only checking answers against known questions (evals) catches it."
+  ],
+  "tradeoff": {
+   "head": [
+    "Plan",
+    "Tonight's 21:47",
+    "A worse night",
+    "What it costs or risks"
+   ],
+   "rows": [
+    [
+     "As built: status and time only",
+     "0 passages, \"Yes!\", 3.08 s, logged ok",
+     "The same",
+     "Can't see inside an answer; a failure looks faster."
+    ],
+    [
+     "Error-rate alert",
+     "Never fires: 0 errors in 12",
+     "Never fires",
+     "Catches crashes, not a step that quietly hands on nothing."
+    ],
+    [
+     "Every message kept forever",
+     "24 messages kept; still \"Yes!\"",
+     "The same",
+     "Campers' words kept with no end date; still no steps."
+    ],
+    [
+     "10-second search limit",
+     "5 passages, \"No.\", 6.08 s",
+     "\"Yes!\" after 11.08 s",
+     "Slower answers; the silent path stays."
+    ],
+    [
+     "Trace, refuse on zero, zero-passage alert",
+     "Alert at 21:04; refusal at 2.00 s",
+     "The same",
+     "Every camper told to ring the ranger during a long failure."
+    ]
+   ]
+  },
+  "seniorTake": "Monitor an LLM feature, a feature built on a large language model, by what each answer is made of, not only whether it errored or how long it took. Record every answer as a trace with a span per step: for retrieval, documents found and time taken; for the model call, model, prompt version, input and output tokens, finish reason and cost. Use the OpenTelemetry GenAI attribute names where they exist, and know they are still marked Development. Alert on a request's shape: zero documents, a sudden drop in input tokens, a jump in cut-off answers. Find every place your code catches a failure and carries on, and make it either refuse honestly or count as an error, because a silent fallback makes a broken answer look healthy and often faster. And keep personal text out of traces by default: the conventions make it opt-in for good reason.",
+  "realWorld": [
+   {
+    "title": "OpenTelemetry GenAI conventions: status Development",
+    "text": "The OpenTelemetry Semantic Conventions for Generative AI, in the open-telemetry/semantic-conventions-genai repository, define spans, events and metrics for generative AI operations, from model calls to agents. The index page and the client inference page are both marked Status: Development, so names can still change; check the version you build against.",
+    "source": 0
+   },
+   {
+    "title": "The model call's span: model, tokens, finish reasons",
+    "text": "The client inference page says the span name SHOULD be {gen_ai.operation.name} {gen_ai.request.model}. Its attributes include gen_ai.request.model, gen_ai.response.model, gen_ai.usage.input_tokens (the number of tokens used in the GenAI input), gen_ai.usage.output_tokens and gen_ai.response.finish_reasons (an array of reasons the model stopped generating tokens), all marked Development. error.type, set only if the operation ended in an error, is Stable. No attribute records cost.",
+    "source": 1
+   },
+   {
+    "title": "Prompt name and version have standard attributes",
+    "text": "The same page lists gen_ai.prompt.name, the name of the prompt that uniquely identifies it, and gen_ai.prompt.version, the version of the prompt template used. The version is conditionally required when a prompt name is set and a version is available. Both are Development.",
+    "source": 1
+   },
+   {
+    "title": "Retrieval spans: what was asked for, not what came back",
+    "text": "The spans page defines a retrieval operation, with the span name {gen_ai.operation.name} {gen_ai.data_source.id}. It records gen_ai.retrieval.top_k, the maximum number of documents the retriever was asked to return, and gen_ai.retrieval.documents, the documents retrieved, as Opt-In. There is no attribute for the count returned, which is why this case keeps passages found as a custom field.",
+    "source": 2
+   },
+   {
+    "title": "Message content is off by default",
+    "text": "On capturing instructions, inputs and outputs, the spans page says they are considered sensitive and often large, that recording them in telemetry may be problematic, and that OpenTelemetry instrumentations SHOULD NOT capture them by default, but SHOULD provide an option for users to opt in. gen_ai.output.messages is Opt-In, with a warning that it is likely to contain sensitive information including user data.",
+    "source": 2
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How would you monitor an LLM feature?",
+    "What goes in a span for a model call?",
+    "How do you catch a silent retrieval failure?"
+   ],
+   "answer": "I start by recording each request as a trace with a span per step, because errors and latency alone miss the worst failures: a step that returns nothing while the model answers fluently, often faster. For retrieval the span holds documents found and time taken. For the model call it holds the model, the prompt version, input and output tokens, the finish reason, and cost worked out from the tokens; I use the OpenTelemetry GenAI names like gen_ai.usage.input_tokens and gen_ai.response.finish_reasons, knowing they are still marked Development, and add custom fields for document count and cost, which have no standard attribute. Then I alert on the shape of requests: zero documents, a sudden drop in input tokens, a rise in finish reasons other than stop. To catch a silent retrieval failure I search the code for every catch that carries on with an empty result, and make it refuse honestly and count, or fail loudly. Finally, I keep prompts and replies out of traces by default, since they often hold personal data, and switch capture on only for a stated reason and a short time."
+  }
+ },
+ "terms": [
+  {
+   "term": "Night ranger",
+   "def": "The person who looks after a campsite overnight: rounds, questions, emergencies. Morag at Gorsemoor Wood."
+  },
+  {
+   "term": "Pitch",
+   "def": "A marked spot at a campsite where one group puts up its tent. Gorsemoor Wood has 60."
+  },
+  {
+   "term": "Fire ban",
+   "def": "An order that no open fires may be lit, usually in dry weather. Gorsemoor's has been in force since 18:00 and is in tonight's notices."
+  },
+  {
+   "term": "Stone ring",
+   "def": "A circle of stones for a campfire. Gorsemoor's were dug up in 2021, but the 2019 handbook, online until 2022, still allowed fires in them after 8 PM."
+  },
+  {
+   "term": "Site handbook",
+   "def": "The campsite's rules and directions. The current one says no open fires; the 2019 one did not."
+  },
+  {
+   "term": "Language model",
+   "def": "A program that reads text and writes text back, one likely piece at a time, like a phone's next-word suggestions grown huge (a1e03)."
+  },
+  {
+   "term": "LLM",
+   "def": "Short for large language model: a language model trained on a huge amount of text."
+  },
+  {
+   "term": "Training",
+   "def": "How a model learned: by reading a huge pile of text before it was ever used. What it read can include old pages, like Gorsemoor's 2019 handbook."
+  },
+  {
+   "term": "Token",
+   "def": "A small piece of text, often part of a word, like a tile in a word game. Models read and write in tokens (a1e03)."
+  },
+  {
+   "term": "Input tokens",
+   "def": "Every token a request sends the model: instructions, the camper's text, passages. 4,300 with five passages, 300 with none."
+  },
+  {
+   "term": "Output tokens",
+   "def": "The tokens the model writes back. The 21:47 reply was 14."
+  },
+  {
+   "term": "Standing instructions",
+   "def": "The fixed note sent with every request telling the model what to do and how, also called the system prompt. Gorsemoor's: 250 tokens, version 4."
+  },
+  {
+   "term": "Search",
+   "def": "The step that looks through the handbook and notices and returns the passages closest to the question, like a librarian pulling pages. Also called retrieval (a3e01)."
+  },
+  {
+   "term": "Passage",
+   "def": "A short piece of the handbook or notices, about 800 tokens here. The search returns the five closest to the question."
+  },
+  {
+   "term": "RAG",
+   "def": "Retrieval-augmented generation: look up passages first, then have the model write from them (a3e01)."
+  },
+  {
+   "term": "Timeout",
+   "def": "A time limit on waiting for an answer. Gorsemoor's search has 2 seconds; after that the app stops waiting (a6e02)."
+  },
+  {
+   "term": "Log",
+   "def": "A record a program keeps of what it did, one line per event. Gorsemoor's kept only time, pitch, status and total time."
+  },
+  {
+   "term": "Status",
+   "def": "A short word saying whether something worked: ok, or error. Every answer at Gorsemoor said ok."
+  },
+  {
+   "term": "Dashboard",
+   "def": "A screen of live charts that shows how a system is doing at a glance (s6e05)."
+  },
+  {
+   "term": "Error rate",
+   "def": "The share of requests that ended in an error. Gorsemoor's stayed at 0% all night (s6e05)."
+  },
+  {
+   "term": "Latency",
+   "def": "How long something takes, here one answer from text in to reply out. Gorsemoor's fell from 3.78 to 3.08 seconds tonight."
+  },
+  {
+   "term": "Alert",
+   "def": "A message sent to a person when a measure crosses a line you chose, so they can act."
+  },
+  {
+   "term": "Trace",
+   "def": "The record of one request from start to finish, like a parcel's tracking page, made of spans (s6e05)."
+  },
+  {
+   "term": "Span",
+   "def": "One step inside a trace, with its start, length and facts: for a search, passages found; for a model call, tokens and why it stopped (s6e05)."
+  },
+  {
+   "term": "Observability",
+   "def": "How well you can tell what a system is doing inside from what it records (s6e05)."
+  },
+  {
+   "term": "LLM observability",
+   "def": "Observability for features built on language models: traces of each answer with spans for retrieval and model calls, and alerts on what each answer is made of."
+  },
+  {
+   "term": "OpenTelemetry",
+   "def": "An open standard and set of tools for recording traces, metrics and logs in one shared format (s6e05)."
+  },
+  {
+   "term": "Semantic conventions",
+   "def": "OpenTelemetry's agreed names for what a span records, so every tool reads the same fields the same way."
+  },
+  {
+   "term": "Attribute",
+   "def": "One named fact on a span, such as gen_ai.usage.input_tokens = 300."
+  },
+  {
+   "term": "Development (status)",
+   "def": "OpenTelemetry's mark for conventions that may still change. Every gen_ai attribute named here carries it."
+  },
+  {
+   "term": "Custom field",
+   "def": "A fact you record under your own name because no standard attribute exists. Gorsemoor's: passages found, and cost."
+  },
+  {
+   "term": "Finish reason",
+   "def": "Why the model stopped writing: stop when it finished, length when it hit the most it may write. Recorded as gen_ai.response.finish_reasons."
+  },
+  {
+   "term": "Prompt version",
+   "def": "A number naming which version of the standing instructions an answer used, so a change shows next to the answers it changed. gen_ai.prompt.version."
+  },
+  {
+   "term": "Shape of a request",
+   "def": "What an answer is made of: passages found, tokens in and out, finish reason. A sudden change shows trouble even with no error."
+  },
+  {
+   "term": "Silent failure",
+   "def": "A step that fails without raising an error, so everything after it carries on as if all were well. Gorsemoor's search timed out into an empty list."
+  },
+  {
+   "term": "Degrading honestly",
+   "def": "When part of a system fails, saying what it can't do instead of guessing (a6e02). Here: \"call the ranger\"."
+  },
+  {
+   "term": "Personal data",
+   "def": "Anything that identifies a person, such as a name, phone number or what they wrote. Campers' texts are personal data."
+  },
+  {
+   "term": "Opt-in",
+   "def": "Off unless someone deliberately turns it on. OpenTelemetry makes recording message text opt-in."
+  },
+  {
+   "term": "Eval",
+   "def": "A test that runs known questions through a model feature and checks the answers (a5e05)."
+  },
+  {
+   "term": "Build Night G8",
+   "def": "The course's hands-on build of metrics, structured logs and request ids."
+  },
+  {
+   "term": "ISO/IEC 27001:2022",
+   "def": "The international standard for information security management. Annex A controls A.8.15 (logging) and A.8.16 (monitoring activities)."
+  },
+  {
+   "term": "GDPR",
+   "def": "The EU's General Data Protection Regulation. Article 32 asks for security of processing suited to the risk."
+  },
+  {
+   "term": "PDPA",
+   "def": "Singapore's Personal Data Protection Act, which governs collecting, using and keeping personal data."
+  },
+  {
+   "term": "DPTM",
+   "def": "Singapore's Data Protection Trustmark, a certification run by IMDA for organisations with sound data protection practices."
+  }
+ ],
+ "atWork": "Look for a RAG assistant, one that looks things up and then writes, whose retrieval can fail without an error. It is a common pattern: a search call wrapped in a catch that returns an empty list, a vector store that times out under load, a filter that suddenly matches nothing. The tell is that answers get faster and cheaper as they get worse, because the model is sent less. Ask four things. Can you open one answer and see each step: documents found, time taken, model, prompt version, tokens in and out, finish reason? What does the code do when retrieval returns nothing, and would anyone know? Which alerts watch the shape of a request rather than only errors and latency? And what personal text lands in your logs and traces, and for how long? Build Night G8 builds the general mechanism of metrics, structured logs and request ids. Standards-readiness note: if your organisation is certified to ISO/IEC 27001:2022 or working toward it, Annex A control A.8.15 (logging) expects logs that record activities and faults to be produced, kept and protected, and A.8.16 (monitoring activities) expects systems to be watched for unusual behaviour; a trace per answer and shape alerts support both. If prompts or traces hold personal data, GDPR Article 32 (security of processing) applies where you process EU residents' data, and in Singapore the PDPA, and a DPTM assessment, look for collecting and keeping only what is needed. Keeping message text out of traces by default is far cheaper than finding it in a year of logs at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "llm-observability",
+    "title": "LLM observability"
+   },
+   {
+    "id": "traces",
+    "title": "Traces"
+   },
+   {
+    "id": "spans",
+    "title": "Spans"
+   },
+   {
+    "id": "prompt-versions",
+    "title": "Prompt versions"
+   }
+  ],
+  "strings": [
+   {
+    "from": "llm-observability",
+    "to": "observability",
+    "label": "for model calls"
+   },
+   {
+    "from": "traces",
+    "to": "rag",
+    "label": "one per answer"
+   },
+   {
+    "from": "spans",
+    "to": "tokens",
+    "label": "tokens in and out"
+   },
+   {
+    "from": "spans",
+    "to": "timeouts",
+    "label": "timed out, empty"
+   },
+   {
+    "from": "llm-observability",
+    "to": "pii-in-prompts",
+    "label": "no text by default"
+   },
+   {
+    "from": "prompt-versions",
+    "to": "system-prompts",
+    "label": "which instructions"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "a6e06-r1",
+   "kind": "free",
+   "prompt": "Your company's support assistant looks up help articles, then asks a model to answer from them. Since Tuesday customers say its answers about refunds are vague or out of date. The error rate is 0%, and the average response time fell from 4.1 to 2.6 seconds. What might be happening, and what would you record and alert on?",
+   "keyIdeas": [
+    {
+     "idea": "The lookup step is quietly returning nothing, and the model answers without sources, which is also why it got faster",
+     "match": [
+      "returns nothing",
+      "returning nothing",
+      "no documents",
+      "zero documents",
+      "empty list",
+      "empty result",
+      "nothing found",
+      "no articles",
+      "zero articles",
+      "silently",
+      "no sources"
+     ]
+    },
+    {
+     "idea": "Record each request as a trace with a span per step: documents found, timing, tokens, model",
+     "match": [
+      "each step",
+      "per step",
+      "span for",
+      "spans",
+      "a trace",
+      "traces"
+     ]
+    },
+    {
+     "idea": "Alert on the shape of a request: zero documents or a sudden drop in input tokens",
+     "match": [
+      "input tokens",
+      "tokens sent",
+      "token count",
+      "drop in tokens",
+      "fewer tokens",
+      "alert on zero",
+      "zero results"
+     ]
+    }
+   ],
+   "model": "The speed-up is the clue. If the article lookup is timing out or matching nothing, and the code carries on with an empty list, the model answers from what it learned in training: vaguer, sometimes out of date, and quicker, because it is sent far fewer tokens. Nothing raises an error, so the error rate stays at 0%. Record each request as a trace, with a span per step: for the lookup, documents found and time taken; for the model, which model, prompt version, input and output tokens and finish reason. Then alert on the shape of a request, zero documents or a sudden drop in input tokens, and make the empty case refuse honestly instead of guessing."
+  },
+  {
+   "id": "a6e06-r2",
+   "kind": "mcq",
+   "prompt": "At Gorsemoor, searches took 2.3 to 2.8 seconds from 21:00 to 22:30 against a 2-second limit, and the code carried on with no passages. Which alert would have fired first, and when?",
+   "options": [
+    "Error rate over 1%, at 21:04",
+    "Zero passages found, at 21:04",
+    "Average time over 4 seconds, at 21:47",
+    "None: nothing was wrong until 23:00"
+   ],
+   "answer": 1,
+   "why": "The first text after 21:00 came at 21:04 from pitch 19, and its search timed out with 0 passages, so a zero-passage alert fires then, if each answer's trace records passages found. The error rate stayed at 0%, and the average time fell from 3.78 to 3.08 seconds."
+  },
+  {
+   "id": "a6e06-r3",
+   "kind": "free",
+   "prompt": "A teammate wants to store every full prompt and model reply, permanently, to debug a chatbot that answers customers. What would you record by default instead, and why?",
+   "keyIdeas": [
+    {
+     "idea": "Record each step's facts: model, prompt version, input and output tokens, finish reason, documents found, timing",
+     "match": [
+      "prompt version",
+      "finish reason",
+      "input tokens",
+      "output tokens",
+      "token counts",
+      "which model",
+      "documents found"
+     ]
+    },
+    {
+     "idea": "Message text holds personal data, so it stays off by default and is opt-in",
+     "match": [
+      "personal data",
+      "opt-in",
+      "opt in",
+      "off by default",
+      "not by default",
+      "sensitive"
+     ]
+    },
+    {
+     "idea": "When text is captured, keep it briefly and for a stated reason",
+     "match": [
+      "short time",
+      "short period",
+      "retention",
+      "delete after",
+      "few days",
+      "expire",
+      "stated reason"
+     ]
+    }
+   ],
+   "model": "Full text tells you what was said, not which step went wrong, and it fills storage with customers' personal data. By default I'd record a trace per request with a span per step: documents found and time for retrieval; which model, prompt version, input and output tokens and finish reason for the model call. OpenTelemetry's GenAI conventions make message content opt-in for exactly this reason. When a bug needs the text, turn capture on for a stated reason and a short time, with access limited, and delete it after."
+  },
+  {
+   "id": "a6e06-r4",
+   "kind": "mcq",
+   "prompt": "The model takes 0.9 s plus 0.6 s per 1,000 tokens sent. A normal search takes 0.3 s and the model is sent 4,300 tokens. Tonight the search hits its 2.0 s limit and the model is sent 300 tokens. What is each answer's total time?",
+   "options": [
+    "3.78 s normally, 3.08 s tonight",
+    "3.78 s normally, 5.78 s tonight",
+    "3.48 s normally, 1.08 s tonight",
+    "3.08 s normally, 3.78 s tonight"
+   ],
+   "answer": 0,
+   "why": "Normally 0.3 + 0.9 + 0.6 x 4.3 = 0.3 + 3.48 = 3.78 s. Tonight 2.0 + 0.9 + 0.6 x 0.3 = 2.0 + 1.08 = 3.08 s. The broken answers were 0.7 s faster, which is why the average-time chart looked better."
+  },
+  {
+   "id": "a6e06-r5",
+   "kind": "mcq",
+   "prompt": "Why record the prompt version in each model call's span?",
+   "options": [
+    "So the provider bills the right price",
+    "So a change to the standing instructions shows up next to the answers it changed",
+    "So the model remembers earlier versions",
+    "So the search returns more passages"
+   ],
+   "answer": 1,
+   "why": "Answers can change because the instructions changed. With gen_ai.prompt.version on every span, you can split answers by version and see the change at once. Changing prompts safely is a6e08's subject."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 8 months later. The traces, the refusal and the zero-passage alert work: on a night in April a search hiccup at 20:12 sent three refusals and one alert, and I rang those pitches back. In May, to keep replies short, Mr Kowalczyk lowered the most the model may write per reply from 200 tokens to 16. Since then campers say replies stop mid-sentence: \"Quiet hours are 22:30 to 07:00, and generators must be\". The dashboard is green and no alert has fired. Last night's traces: 52 answers, every one with 5 passages and about 4,300 tokens sent; 11 of them show 16 tokens out and finish reason length.",
+  "prompt": "Reply to OP. What is happening, and what should change?",
+  "keyIdeas": [
+   {
+    "idea": "The model hit the new 16-token cap and was cut off before finishing",
+    "match": [
+     "cut off",
+     "cut short",
+     "hit the limit",
+     "hit the cap",
+     "limit was reached",
+     "ran out of room",
+     "stopped early",
+     "truncat"
+    ]
+   },
+   {
+    "idea": "Alert on the share of answers whose finish reason isn't stop",
+    "match": [
+     "isn't stop",
+     "not stop",
+     "other than stop",
+     "share of",
+     "alert when",
+     "alert on the"
+    ]
+   },
+   {
+    "idea": "Raise the cap to what complete replies need, and ask for short replies in the instructions instead",
+    "match": [
+     "raise the cap",
+     "raise it",
+     "back to 200",
+     "short replies",
+     "shorter replies",
+     "ask for brief",
+     "in the instructions"
+    ]
+   }
+  ],
+  "model": "The finish reason is the clue. Stop means the model finished; length means it hit the most it may write, now 16 tokens, and was cut off mid-sentence. Nothing errored and the passages were fine, so no alert could see it: the trace recorded it, but nothing watched that field. Alert on the share of answers whose finish reason is other than stop, say above a few percent in an hour. Then raise the cap back toward 200, or to just above the longest complete replies, and if you want shorter answers, ask for brief replies in the standing instructions and note the new prompt version, so the change shows next to the answers it changed."
+ },
+ "next": "Next, Too Many Questions: an admissions hotline on results night, and limits counted in tokens: queues, and holding traffic back when a model's provider can take only so much at once.",
+ "sources": [
+  {
+   "title": "OpenTelemetry, Semantic Conventions for Generative AI (open-telemetry/semantic-conventions-genai), docs/gen-ai/README.md, read 15 October 2026: Status: Development; conventions for Generative AI operations across spans, events and metrics",
+   "url": "https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/README.md"
+  },
+  {
+   "title": "OpenTelemetry, Semantic Conventions for GenAI, Client inference (docs/gen-ai/client-inference.md), read 15 October 2026: Status: Development; span name {gen_ai.operation.name} {gen_ai.request.model}; gen_ai.request.model, gen_ai.usage.input_tokens, gen_ai.usage.output_tokens, gen_ai.response.finish_reasons, gen_ai.prompt.name, gen_ai.prompt.version, all Development; error.type Stable; no cost attribute",
+   "url": "https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/client-inference.md"
+  },
+  {
+   "title": "OpenTelemetry, Semantic Conventions for GenAI, spans (docs/gen-ai/gen-ai-spans.md), read 15 October 2026: retrieval span {gen_ai.operation.name} {gen_ai.data_source.id}; gen_ai.retrieval.top_k; gen_ai.retrieval.documents Opt-In; gen_ai.output.messages Opt-In; OpenTelemetry instrumentations SHOULD NOT capture them by default, but SHOULD provide an option for users to opt in",
+   "url": "https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md"
+  },
+  {
+   "title": "ISO/IEC 27001:2022, Information security management systems, Requirements: Annex A controls A.8.15 logging and A.8.16 monitoring activities",
+   "url": "https://www.iso.org/standard/27001"
+  },
+  {
+   "title": "GDPR Article 32, Security of processing, read 15 October 2026",
+   "url": "https://gdpr-info.eu/art-32-gdpr/"
+  },
+  {
+   "title": "PDPC Singapore, Personal Data Protection Act overview, read 15 October 2026",
+   "url": "https://www.pdpc.gov.sg/overview-of-pdpa/the-legislation/personal-data-protection-act"
+  },
+  {
+   "title": "IMDA Singapore, Data Protection Trustmark (DPTM) Certification, read 15 October 2026",
+   "url": "https://www.imda.gov.sg/how-we-can-help/data-protection-trustmark-certification"
+  }
+ ]
+}
