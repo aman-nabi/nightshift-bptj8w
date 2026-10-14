@@ -1,0 +1,799 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-15) first version"
+  ],
+  "id": "s6e18",
+  "season": 6,
+  "n": 18,
+  "title": "Field Report: Monkeys in Production",
+  "setting": "the Netflix TechBlog archive",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "chaos-engineering-at-the-source",
+    "chaos-monkey-randomly-shutting-down-production-instances",
+    "wider-simian-army",
+    "building-confidence-by-breaking-things-on-purpose"
+  ],
+  "prerequisites": [
+    "s1e10",
+    "s2e03",
+    "s3e12",
+    "s6e11"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/print_run_ilaria",
+    "flair": "Field Report",
+    "age": "3h",
+    "votes": 3047,
+    "title": "I print school photos on the night shift. Our lab copied Chaos Monkey from a Netflix post from 2011. Tonight 1,800 photos the tablets call uploaded are on no machine at all.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm Ilaria, night technician at Dunmallet, a school-photography lab. By day our photographers shoot class photos in schools. At 02:00 I start the night run; by 07:00 the prints are packed."
+      },
+      {
+        "t": "p",
+        "text": "Our programs run on servers: computers we rent over the internet from a cloud company. I'll call them machines."
+      },
+      {
+        "t": "p",
+        "text": "They work in groups of identical copies, each group doing one job. Two web machines run the site where parents order prints. Two print machines feed the printers. Three upload machines, upload-1 to upload-3, take photos from the photographers' tablets."
+      },
+      {
+        "t": "p",
+        "text": "An upload goes in three steps. Each tablet is set to one upload machine and sends it each photo. The machine saves the photo on its own disk, the storage built into that one machine. Then it answers the tablet, and a tick appears: uploaded."
+      },
+      {
+        "t": "p",
+        "text": "The night run has two steps. First a copy job moves every upload machine's photos into shared storage: one big store that every machine can reach, what this board calls object storage. Then I print from there."
+      },
+      {
+        "t": "p",
+        "text": "Last summer our developers, Yorick and Gotthard, copied an idea from a printout by my screen: \"The Netflix Simian Army\", The Netflix Tech Blog, 19 July 2011. It describes Chaos Monkey, \"a tool that randomly disables our production instances\". Production is the real system customers use. An instance is one rented machine."
+      },
+      {
+        "t": "p",
+        "text": "The post's comparison is a flat tire: better to \"poke a hole in your tire once a week in your driveway on a Sunday afternoon\" than meet one on the freeway at night. So Netflix runs it \"in the middle of a business day, in a carefully monitored environment with engineers standing by\"."
+      },
+      {
+        "t": "p",
+        "text": "Ours is the bot, a program that does a job by itself. Each weekday, in working hours, it picks one machine at random in each group and kills it: switches it off and throws its disk away. Within two minutes the cloud company starts a fresh, empty copy in its place. Its settings, each line a name, then its value:"
+      },
+      {
+        "t": "log",
+        "text": "groups  upload, web, print\npick    1 machine per group, at random\ndays    Monday to Friday\nhours   08:00 to 17:00"
+      },
+      {
+        "t": "p",
+        "text": "It ran every weekday from July, when nobody uploads. Nothing went wrong. Photo season opened on Wednesday. That day the bot killed upload-1 at 09:31; the first photo arrived at 10:05."
+      },
+      {
+        "t": "p",
+        "text": "On Thursday Ramunas shot three schools, sending each from the car park: Corriemoor by 10:10, Brackenrigg by 11:40, Gattonside by 12:50. At 13:52 the bot killed upload-2. Yorick and Gotthard watched a fresh upload-2 answer at 13:54 and went back to work."
+      },
+      {
+        "t": "p",
+        "text": "At 02:00 the copy job printed its report first. Each line: time, machine, photos copied, schools:"
+      },
+      {
+        "t": "log",
+        "text": "Fri 02:00  upload-1  1,440 copied  Ashtonleigh, Thornreave\nFri 02:00  upload-2      0 copied\nFri 02:00  upload-3  1,290 copied  Kelderholm, Mossfallow"
+      },
+      {
+        "t": "beat",
+        "text": "Thursday's booking sheet lists seven schools. The report has four. Ramunas's tablet shows a tick beside every photo, all 1,800: Corriemoor 600, Brackenrigg 720, Gattonside 480. They are nowhere: not in shared storage, not on any upload machine."
+      },
+      {
+        "t": "evidence",
+        "label": "upload_2_thursday.png",
+        "diagram": {
+          "type": "timeline",
+          "w": 740,
+          "aria": "Thursday 08:00 to Friday 03:00. Ramunas's tablet sends Corriemoor from 09:50 to 10:10, Brackenrigg from 11:16 to 11:40 and Gattonside from 12:34 to 12:50, 1,800 photos, all ticked uploaded. The old upload-2 holds them on its own disk until the bot kills it at 13:52. A fresh, empty upload-2 answers from 13:54. At 02:00 the copy job copies 0 photos from upload-2.",
+          "start": "08:00:00",
+          "seconds": 68400,
+          "ticksEvery": 7200,
+          "rows": [
+            {
+              "label": "Tablet 2 sends",
+              "segments": [
+                [
+                  6600,
+                  7800,
+                  "ok"
+                ],
+                [
+                  11760,
+                  13200,
+                  "ok"
+                ],
+                [
+                  16440,
+                  17400,
+                  "ok"
+                ]
+              ],
+              "gaps": []
+            },
+            {
+              "label": "upload-2 (old)",
+              "segments": [
+                [
+                  0,
+                  21120,
+                  "ok"
+                ]
+              ],
+              "gaps": [
+                [
+                  21120,
+                  68400,
+                  "killed, disk gone"
+                ]
+              ]
+            },
+            {
+              "label": "upload-2 (fresh)",
+              "segments": [
+                [
+                  21240,
+                  68400,
+                  "warn"
+                ]
+              ],
+              "gaps": [
+                [
+                  0,
+                  21240,
+                  "not started"
+                ]
+              ]
+            }
+          ],
+          "markers": [
+            {
+              "t": 21120,
+              "label": "13:52 killed",
+              "tone": "bad"
+            },
+            {
+              "t": 64800,
+              "label": "0 copied",
+              "tone": "bad"
+            }
+          ]
+        },
+        "caption": "Redrawn from the bot's log, the tablet and the copy job's report. Green on the tablet row: Ramunas sending Corriemoor, Brackenrigg and Gattonside, 1,800 photos, all ticked by 12:50. The old upload-2 kept them on its own disk until the bot killed it at 13:52. The fresh upload-2, amber, answered from 13:54 with an empty disk, so at 02:00 the copy job found 0."
+      },
+      {
+        "t": "p",
+        "text": "Nobody deleted them. The bot followed its settings, and the tablets showed what they were told. Yorick says the three schools will let us reshoot, once. The bot's hours start again at 08:00. What should we change before then?"
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 129,
+      "age": "2h",
+      "text": "Two words, then questions. A machine is stateless when it keeps nothing of its own between one job and the next, as in the coat-check case on this board, so a fresh copy can take its place. A stateful machine keeps something no other copy has. Now your night. The post's first paragraph asks for a design \"where individual components can fail without affecting the availability of the entire system\". At 13:51, which of your seven machines could fail that way, and which could not? Between 10:10 and 13:52, in how many places did a Corriemoor photo exist? When the tick appeared on Ramunas's tablet, what had actually happened, and where? And the post's engineers stood by to address any problems: at 13:52, what was your lab watching?",
+      "replies": [
+        {
+          "author": "u/print_run_ilaria",
+          "op": true,
+          "points": 48,
+          "age": "1h",
+          "text": "Yorick pulled the bot's log. Before Thursday, every upload machine it killed had an empty disk: all summer nobody uploaded, and on Wednesday it struck before the first photo. He found an older note too. In 2024 upload-3's disk failed on its own one Sunday, a hardware fault at the cloud company. It held nothing that day."
+        }
+      ]
+    },
+    {
+      "author": "u/exclude_stateful_wilhelmus",
+      "points": 91,
+      "age": "2h",
+      "text": "You don't point a chaos monkey at stateful boxes; exclude them and move on. Every team I've run keeps a list of machines the monkey may never touch: anything holding data nobody else has. Web and print are the monkey's job, and it's doing it. Take the three upload machines off its list tonight, keep releasing it on the rest in working hours, reshoot three schools, done. Nobody needs to rebuild anything."
+    },
+    {
+      "author": "u/lab_dev_gotthard",
+      "points": 74,
+      "age": "1h",
+      "text": "Gotthard, one of the two developers. What we built is called chaos engineering: breaking things on purpose, in small doses and with people watching, to learn how a system fails before it fails on its own. The post lists eight such tools; we copied only Chaos Monkey. Its Chaos Gorilla \"simulates an outage of an entire Amazon availability zone\": an availability zone is one of a cloud company's separate buildings, with its own power, so that is every machine in a building at once. We kept working hours on purpose, and at 13:52 we were watching. We watched the wrong thing: the fresh machine answered, so our screen stayed green. Nobody counted photos."
+    },
+    {
+      "author": "u/after_hours_eithne",
+      "points": 55,
+      "age": "1h",
+      "text": "Keep the monkey on every group and move its hours instead. Right after the 02:00 copy job, every upload disk is empty, so a kill at three in the morning costs nothing. Same random picks, same fresh copies, no photo at risk, and nobody has to stop work to watch a machine come back. Isn't that the point of a bot?"
+    }
+  ],
+  "reply": {
+    "prompt": "The bot's hours start again at 08:00. What should Dunmallet change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Take the three upload machines off the bot's list, so it never kills one holding photos.",
+        "tone": "warn",
+        "verdict": "Trade-off: safe from the bot, not from the disk",
+        "part2": "Yorick took the upload group off the bot's list on Friday morning. In the sim, Thursday replayed that way loses nothing: the bot kills web-1 at 10:48 and print-2 at 15:17, both plain copies, and at 02:00 the copy job moves all 4,530 photos and every one prints. But each upload machine still holds the only copy of every photo it takes in, all day. Release the monkey by hand on upload-2 at 13:52, standing in for a disk that fails on its own, as upload-3's did in 2024, and the same 1,800 are gone while the tablets still show them uploaded. The bot stopped finding the weakness; nothing removed it.",
+        "senior": "Excluding a stateful group from chaos testing is common, and sometimes right for a while, but it is a note to fix the group, not a fix. Machines and disks fail by themselves, and they don't read the bot's list. The monkey's job is to find what can't survive a lost machine; when it finds one, change that machine so it can, then let the monkey back in."
+      },
+      {
+        "text": "Run the bot at night, after the 02:00 copy job, when the upload disks are empty.",
+        "tone": "bad",
+        "verdict": "Kills that teach nobody",
+        "part2": "Gotthard moved the bot's hours to 02:30 to 05:00. In the sim, Thursday replayed: the 02:00 run copies all 4,530 photos and prints them, then the bot kills web-1 at 02:41, upload-2 at 03:22 and print-2 at 04:15, each with nothing on its disk. Nothing lost, and three kills nobody watched. In daytime the upload machines are as fragile as before: release the monkey by hand on upload-2 at 13:52 and 1,800 photos go. The bot now tests the hours when the lab has nothing to lose, and never the hours when it does.",
+        "senior": "Netflix ran Chaos Monkey in working hours with engineers standing by so that people would see the weaknesses and fix them. A kill at an hour when nothing is at stake and nobody is looking proves only that empty machines restart. Chaos testing is worth its risk when it hits the system in the state it is really in, with someone ready to act on what it shows."
+      },
+      {
+        "text": "Save each photo to shared storage before saying uploaded; then let the bot run.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Gotthard changed the upload machines on Friday: each photo goes straight into shared storage, and only when the store says saved does the tablet get its tick. A tablet whose machine is down keeps its photos and sends them when a fresh one answers. In the sim, Thursday replayed: the bot kills upload-2 at 13:52 with 0 photos on its disk, nothing is lost, and at 02:00 the copy job has nothing to move because all 4,530 are already stored; all 4,530 print. Release the monkey on all seven machines as well: still nothing lost. Ramunas reshot the three schools on Monday, and the bot killed an upload machine that afternoon while Yorick counted photos.",
+        "senior": "Make the machine replaceable, then let the monkey prove it every day. A tick should mean the photo is somewhere that outlives any one machine, so the upload group becomes stateless like the others and a fresh copy is as good as the old one. Keep the bot in working hours, and watch what matters to the customer, photos stored, not just whether a machine came back."
+      },
+      {
+        "text": "Turn the bot off for photo season, and run it again in the summer when it is quiet.",
+        "tone": "bad",
+        "verdict": "Tested only when nothing is at stake",
+        "part2": "Yorick switched the bot off on Friday. In the sim, Thursday replayed with the bot off: no kills, all 4,530 photos copied and printed. But no machine was tested all season. Release the monkey by hand on upload-2 at 13:52, a disk failing in October rather than a bot, and 1,800 photos go, exactly as before. Next summer the bot will run again while nobody uploads and find nothing, as it found nothing this summer.",
+        "senior": "Switching chaos testing off in the busy season keeps it for the months when the system carries no load and holds no data, so it can only tell you that an idle system survives. The failures it exists to find still come in the busy months, from disks and power instead of the bot."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s6e18",
+    "title": "Run a game day on Dunmallet's machines",
+    "lede": "You're Ilaria, replaying Thursday 15 October from 08:00 to Friday 06:00. Seven machines: upload-1 to upload-3, web-1 and web-2, print-1 and print-2. Each tablet sends 30 photos a minute (1,800 an hour) to its one upload machine. Tablet 1 to upload-1: Ashtonleigh 750 (09:40 to 10:05), Thornreave 690 (13:07 to 13:30). Tablet 2, Ramunas's, to upload-2: Corriemoor 600 (09:50 to 10:10), Brackenrigg 720 (11:16 to 11:40), Gattonside 480 (12:34 to 12:50). Tablet 3 to upload-3: Kelderholm 660 (10:38 to 11:00), Mossfallow 630 (14:09 to 14:30). The bot's log for Thursday: web-1 at 10:48, upload-2 at 13:52, print-2 at 15:17; in night hours (02:30 to 05:00) it picks the same machines at 02:41, 03:22 and 04:15. A killed machine's disk is thrown away, and a fresh, empty copy answers two minutes later; a tablet keeps its photos while its machine is down. At 02:00 the copy job moves every upload disk into shared storage, then the print run prints. Set where a photo is saved before the tick, which groups the bot may pick and its hours, release the monkey on any machine, or press New day for random picks.",
+    "tryThis": "Try this: press Next event eight times to reach 13:52: upload-2 dies holding 1,800 photos, and the tablets still show them uploaded. Play on: at 02:00 the copy job copies 0 from upload-2, and 2,730 of 4,530 photos print. Reset and try each idea. Upload machines off the bot's list: nothing lost, until you release the monkey on upload-2 at 13:52 by hand. The bot at night: nothing lost, three kills nobody watched. The bot off: no kills at all. Save to shared storage before the tick: the 13:52 kill finds an empty disk and all 4,530 print. Then press New day and release the monkey wherever you like."
+  },
+  "explain": {
+    "oneLine": "Nothing was taken. Chaos Monkey assumes every machine is a replaceable copy, and Dunmallet's upload machines weren't: each kept the only copy of the day's photos on its own disk until 02:00. The tick on the tablet meant \"on one disk\", the bot killed that machine at 13:52 as it was built to, and the cloud company threw the disk away with it. The fresh upload-2 was a perfect copy of a machine with nothing on it.",
+    "steps": [
+      {
+        "title": "Chaos Monkey, at the source.",
+        "text": "In 2011 Netflix described Chaos Monkey as \"a tool that randomly disables our production instances\". The reason was the flat tire: you find out whether your spare is inflated by changing a tire on purpose in your driveway, not on the freeway at night. Netflix ran it \"in the middle of a business day, in a carefully monitored environment with engineers standing by\", so that \"next time an instance fails at 3 am on a Sunday, we won't even notice.\" The steps, as Dunmallet copied them: pick a group, pick one machine in it at random, switch it off, and let the cloud company start a fresh copy. What can go wrong: the tool finds every weakness it is pointed at, including ones nobody knew about, and it finds them at the price they really cost."
+      },
+      {
+        "title": "The precondition: every machine is a replaceable copy.",
+        "text": "The post's first paragraph sets the rule: design \"where individual components can fail without affecting the availability of the entire system\". In this course's words, a group the monkey may kill must be stateless: each machine keeps nothing that its copies or shared storage don't also have, so a fresh, empty copy is as good as the old one. Dunmallet's web and print machines were stateless. Its upload machines were stateful: from the first photo until 02:00, each held the only copy of every photo it had taken in. What can go wrong: a group can look like identical copies, the same program on the same size of machine, and still hold different data on every disk."
+      },
+      {
+        "title": "\"Uploaded\" must mean saved somewhere that survives.",
+        "text": "An upload goes in steps. The tablet sends the photo. The machine saves it. The machine answers. The tablet shows a tick. The tick is a promise, and it is only as good as the place the photo was saved; at Dunmallet it meant \"on one disk until 02:00\". The fix moves the save: write the photo to shared storage, wait until the store says saved, and only then answer. Object storage such as Amazon S3 usually keeps copies of each file in several availability zones, so no single machine or building holds the only one. What can go wrong: the answer now waits for the store, so a slow store makes slow uploads, and the tablet must keep each photo and send it again until it gets its answer."
+      },
+      {
+        "title": "The rest of the Simian Army.",
+        "text": "The post names eight. Chaos Monkey. Latency Monkey, which \"induces artificial delays\" between services to see whether the callers cope. Conformity Monkey, which shuts down instances that break best practices, for example ones \"that don’t belong to an auto-scaling group\", a group the cloud refills by itself. Doctor Monkey, which finds unhealthy instances. Janitor Monkey, which clears away unused resources. Security Monkey, which finds security problems. 10-18 Monkey, for problems with languages and regions. And Chaos Gorilla, which \"simulates an outage of an entire Amazon availability zone\". Each tries a different or bigger failure than one lost machine. What can go wrong: a team copies the smallest monkey, as Dunmallet did, and believes it has tested failures it never tried, such as a slow store or a whole building going dark."
+      },
+      {
+        "title": "Game days: break it on purpose, with everyone ready.",
+        "text": "A game day is a planned day when a team causes a failure on purpose and watches what happens. In steps: choose the failure and write down what you expect; tell everyone, and have the people who would fix it in the room; cause it, smallest first; watch the numbers customers care about, and stop if they go wrong; then write down what you learned and fix it. AWS's Well-Architected guide says game days \"simulate events in production-like environments to test systems, processes, and team responses\". Dunmallet's first game day should have been one upload machine killed by hand, with someone counting photos. What can go wrong: watching the machine instead of the customer's result, as at 13:52, when a fresh machine answering looked like success."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 320,
+      "aria": "The fix. Three tablets send each photo to an upload machine. The upload machine saves it into shared storage first and keeps nothing of its own, so any upload machine may die. The bot kills any machine on weekdays in working hours. The 02:00 print run reads every photo from shared storage.",
+      "nodes": [
+        {
+          "id": "tablets",
+          "label": "3 tablets",
+          "sub": "tick after saved",
+          "x": 95,
+          "y": 80,
+          "w": 150,
+          "h": 60,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "upload",
+          "label": "Upload machines",
+          "sub": "keep nothing",
+          "meta": "any may die",
+          "x": 340,
+          "y": 80,
+          "w": 180,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "shared",
+          "label": "Shared storage",
+          "sub": "every photo, at once",
+          "x": 625,
+          "y": 80,
+          "w": 170,
+          "h": 72,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "bot",
+          "label": "The bot",
+          "sub": "weekdays, 08:00 to 17:00",
+          "x": 340,
+          "y": 245,
+          "w": 200,
+          "h": 60,
+          "shape": "box",
+          "tone": "warn"
+        },
+        {
+          "id": "print",
+          "label": "02:00 print run",
+          "sub": "reads shared storage",
+          "x": 625,
+          "y": 245,
+          "w": 170,
+          "h": 60,
+          "shape": "box",
+          "tone": ""
+        }
+      ],
+      "edges": [
+        {
+          "from": "tablets",
+          "to": "upload",
+          "label": "photo"
+        },
+        {
+          "from": "upload",
+          "to": "shared",
+          "label": "save first",
+          "tone": "ok"
+        },
+        {
+          "from": "bot",
+          "to": "upload",
+          "label": "kills any",
+          "dash": true,
+          "tone": "bad"
+        },
+        {
+          "from": "shared",
+          "to": "print",
+          "label": "reads",
+          "tone": "muted"
+        }
+      ]
+    },
+    "caption": "The fix, drawn. A photo is saved into shared storage before the tablet shows its tick, so the upload machines keep nothing of their own and the bot may kill any of them. In the sim, Thursday replayed this way loses 0 photos and prints all 4,530.",
+    "fix": {
+      "title": "The fix: save first, then say uploaded",
+      "text": "Change the upload machines so each photo goes straight into shared storage, and the tablet gets its tick only when the store says saved. A tablet whose machine is down keeps its photos and sends them to the fresh copy. The 02:00 copy job then has nothing left to move, and the upload group becomes stateless like the web and print groups. Then keep the bot on every group, in working hours, and change what the developers watch at a kill: not \"did a fresh machine answer\" but \"did every photo the tablets ticked reach shared storage\". In the sim, Thursday replayed this way loses nothing at 13:52 or at any other kill, and all 4,530 photos print. Next, run a first game day by hand: one upload machine killed at a set time, with someone counting photos, before trying bigger failures like a slow store or a whole zone."
+    },
+    "limits": [
+      "Saving first makes every upload wait for shared storage. When the store is slow, ticks are slow, and a tablet must keep and resend photos until it gets its answer, or a dead battery becomes the new place photos are lost.",
+      "Shared storage is now the one place every photo depends on. It usually keeps copies in several availability zones, but the bot never tests it; a Latency Monkey style delay on the store is the next experiment.",
+      "Killing one machine at a time never tests a whole building going dark. If all three upload machines sit in one availability zone, Chaos Gorilla's failure would stop every upload at once, even with nothing lost."
+    ],
+    "tradeoff": {
+      "head": [
+        "What we do",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "As now: save on the machine's disk, bot on every group",
+          "The bot keeps proving web and print machines are copies.",
+          "Any upload kill after the first photo loses the day: 1,800 on Thursday."
+        ],
+        [
+          "Upload machines off the bot's list",
+          "No bot kill ever takes photos: 0 lost on Thursday.",
+          "A disk that fails on its own takes them anyway: 1,800 with a hand release at 13:52."
+        ],
+        [
+          "Bot at night, after the copy job",
+          "Every kill finds an empty disk: 0 lost.",
+          "Three kills nobody watched; daytime is as fragile as before."
+        ],
+        [
+          "Bot off for photo season",
+          "No kills, nothing lost on Thursday.",
+          "No machine tested in the months that matter."
+        ],
+        [
+          "Save to shared storage before the tick; bot on every group",
+          "Any machine may die: 0 lost, 4,530 printed.",
+          "Uploads wait for the store; shared storage is the new thing to test."
+        ]
+      ]
+    },
+    "seniorTake": "Chaos Monkey is a test of one promise: any machine in this group can die and nobody outside will notice. Before you let it loose, make the promise true. A machine the monkey may kill keeps nothing of its own, so its work survives in shared storage, a database or the next copy, and the answer it gives a customer, \"uploaded\", \"saved\", \"paid\", only goes out once the thing is somewhere that outlives the machine. Then run it the way Netflix described: in working hours, with people standing by who are watching what the customer gets, not just whether a fresh machine came back. Start smaller than you think, one machine killed by hand on a planned game day, and grow towards bigger failures, a slow dependency, a whole availability zone, one step at a time. When the monkey finds a group that can't survive it, the answer is to fix the group, not to hide it from the monkey: the monkey is the only failure that waits until you are watching.",
+    "realWorld": [
+      {
+        "title": "Netflix, The Simian Army (2011): Chaos Monkey",
+        "text": "Yury Izrailevsky and Ariel Tseitlin wrote that Netflix built Chaos Monkey, \"a tool that randomly disables our production instances to make sure we can survive this common type of failure without any customer impact.\" They ran it \"in the middle of a business day, in a carefully monitored environment with engineers standing by to address any problems\", so they could \"learn the lessons about the weaknesses of our system, and build automatic recovery mechanisms to deal with them.\"",
+        "source": 0
+      },
+      {
+        "title": "Netflix (2011): the design comes first",
+        "text": "The post's opening sets the precondition: \"we have to design a cloud architecture where individual components can fail without affecting the availability of the entire system.\" And then: \"just designing a fault tolerant architecture is not enough. We have to constantly test our ability to actually survive these \"once in a blue moon\" failures.\"",
+        "source": 0
+      },
+      {
+        "title": "Netflix (2011): the flat tire",
+        "text": "\"One way to make sure you can deal with a flat tire on the freeway, in the rain, in the middle of the night is to poke a hole in your tire once a week in your driveway on a Sunday afternoon and go through the drill of replacing it. This is expensive and time-consuming in the real world, but can be (almost) free and automated in the cloud.\"",
+        "source": 0
+      },
+      {
+        "title": "Netflix (2011): the rest of the army",
+        "text": "The post names Latency Monkey, which \"induces artificial delays\" between Netflix's services \"to simulate service degradation\"; Conformity Monkey, which shuts down instances \"that don’t belong to an auto-scaling group\"; Doctor Monkey, Janitor Monkey, Security Monkey and 10-18 Monkey; and Chaos Gorilla, which \"simulates an outage of an entire Amazon availability zone.\" It adds that \"Parts of the Simian Army have already been built, but much remains an aspiration\".",
+        "source": 0
+      },
+      {
+        "title": "Chaos Monkey's later open-source version",
+        "text": "Netflix's Chaos Monkey repository on GitHub, a later version than the 2011 post describes, says: \"Chaos Monkey randomly terminates virtual machine instances and containers that run inside of your production environment.\" and \"Exposing engineers to failures more frequently incentivizes them to build resilient services.\"",
+        "source": 1
+      },
+      {
+        "title": "AWS Well-Architected, REL12-BP05: Conduct game days regularly",
+        "text": "AWS's Reliability Pillar says: \"Game days simulate events in production-like environments to test systems, processes, and team responses.\" A game day, \"especially the first one, should involve all team members, and all stakeholders and participants should be informed in advance about the date, time, and simulated scenarios.\" Among its anti-patterns: \"You document your procedures, but your never exercise them.\"",
+        "source": 2
+      },
+      {
+        "title": "GDPR Article 32: testing is part of security",
+        "text": "Article 32(1) lists, among the measures for security of processing, \"the ability to restore the availability and access to personal data in a timely manner in the event of a physical or technical incident\" and \"a process for regularly testing, assessing and evaluating the effectiveness of technical and organisational measures\".",
+        "source": 4
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What is chaos engineering for?",
+        "What must be true of a machine before you let a monkey kill it?",
+        "How would you run your first experiment in production?"
+      ],
+      "answer": "Chaos engineering is breaking things on purpose, in small, controlled doses, to learn how a system fails before it fails on its own at a worse time. Netflix's 2011 post put it as a flat tire: practise changing it in your driveway on a Sunday afternoon, not on the freeway at night. Chaos Monkey randomly switches off production instances, and Netflix ran it in the middle of a business day with engineers standing by, so the weaknesses it found were seen and fixed. The wider Simian Army tried bigger failures: Latency Monkey added delays between services, and Chaos Gorilla simulated losing a whole availability zone. Before a monkey may kill a machine, the machine must be replaceable: stateless, keeping nothing that isn't also in shared storage, a database or its other copies, with anything it tells a customer, like \"uploaded\", only said once the data is somewhere that outlives it, and with something that starts a fresh copy by itself. My first experiment would be a game day: pick one machine in one group, write down what I expect customers to see, tell everyone, have the people who'd fix it watching, kill it by hand in working hours, watch the customer-facing numbers rather than just the machine's health, stop if they move, then write up what we learned and only then automate it and widen it. A story I'd tell: a photo lab copied Chaos Monkey onto upload machines that kept each photo on their own disk until a 02:00 copy job. The bot killed one at 13:52 and 1,800 photos the tablets had ticked as uploaded were gone. The fix was to save each photo to shared storage before the tick, then let the bot keep running."
+    }
+  },
+  "terms": [
+    {
+      "term": "Dunmallet",
+      "def": "The school-photography lab in this story: photographers shoot class photos by day, and a night run copies and prints them, packed by 07:00."
+    },
+    {
+      "term": "Server (machine)",
+      "def": "A computer that runs programs for other computers. Dunmallet rents its servers from a cloud company over the internet; Ilaria calls them machines."
+    },
+    {
+      "term": "Group (of machines)",
+      "def": "Identical copies of one machine doing one job. Dunmallet has three: two web machines, two print machines and three upload machines, upload-1 to upload-3."
+    },
+    {
+      "term": "Upload machine",
+      "def": "One of Dunmallet's three machines that take photos from the tablets. Each tablet is set to one of them. Before the fix, each kept photos on its own disk until 02:00."
+    },
+    {
+      "term": "Upload",
+      "def": "Sending a photo from a tablet to the lab. In steps: the tablet sends it, the machine saves it, the machine answers, the tablet shows a tick: uploaded."
+    },
+    {
+      "term": "Disk",
+      "def": "The storage built into one machine. When the bot kills a machine, the cloud company throws its disk away with it."
+    },
+    {
+      "term": "Copy job",
+      "def": "The first step of Dunmallet's 02:00 night run: it moves every upload machine's photos into shared storage and prints a report of what it copied."
+    },
+    {
+      "term": "Shared storage",
+      "def": "One big store every machine can reach, so nothing in it lives on any one machine. Dunmallet's is object storage, like a warehouse shared by every shop."
+    },
+    {
+      "term": "Bot",
+      "def": "A program that does a job by itself. Dunmallet's kills one random machine in each group every weekday between 08:00 and 17:00, copied from Chaos Monkey."
+    },
+    {
+      "term": "Kill (a machine)",
+      "def": "Switching a machine off for good. The cloud company throws its disk away and, within two minutes, starts a fresh, empty copy in its place."
+    },
+    {
+      "term": "Fresh copy",
+      "def": "A new machine started from the same setup to replace a killed one. It runs the same program but starts with an empty disk."
+    },
+    {
+      "term": "Chaos Monkey",
+      "def": "Netflix's tool, described in 2011, that randomly switches off production instances to check the system survives losing one, like a flat tire practised in the driveway."
+    },
+    {
+      "term": "Production",
+      "def": "The real, live system customers use, as opposed to a test copy. Netflix ran Chaos Monkey in production."
+    },
+    {
+      "term": "Instance",
+      "def": "One rented machine in a cloud. AWS calls its rented servers instances."
+    },
+    {
+      "term": "Simian Army",
+      "def": "The 2011 post's name for Netflix's family of failure-causing and checking tools: eight are named, from Chaos Monkey to Chaos Gorilla."
+    },
+    {
+      "term": "Latency Monkey",
+      "def": "A Simian Army tool that adds artificial delays between services, to see whether the services that call them cope with slow answers."
+    },
+    {
+      "term": "Conformity Monkey",
+      "def": "A Simian Army tool that shuts down instances not following best practices, for example ones that don't belong to an auto-scaling group."
+    },
+    {
+      "term": "Chaos Gorilla",
+      "def": "A Simian Army tool that simulates an outage of a whole Amazon availability zone: every machine in one building at once."
+    },
+    {
+      "term": "Auto-scaling group",
+      "def": "In AWS, a set of identical machines the cloud keeps at a set size by itself, starting a fresh one when one dies. Dunmallet's groups refill this way."
+    },
+    {
+      "term": "Availability zone",
+      "def": "One of a cloud company's separate buildings, or groups of them, in one region, with its own power and network."
+    },
+    {
+      "term": "Chaos engineering",
+      "def": "Breaking things on purpose, in small doses with people watching, to learn how a system fails before it fails on its own."
+    },
+    {
+      "term": "Game day",
+      "def": "A planned day when a team causes a failure on purpose, smallest first, with everyone told and the fixers watching, then writes down what it learned."
+    },
+    {
+      "term": "Stateless machine",
+      "def": "A machine that keeps nothing of its own between one job and the next, so a fresh copy can take its place. Dunmallet's web and print machines are."
+    },
+    {
+      "term": "Stateful machine",
+      "def": "A machine that keeps something no other copy has, like an upload machine holding the only copy of the day's photos on its own disk."
+    },
+    {
+      "term": "Release the monkey",
+      "def": "In the sim, killing a chosen machine by hand, now or at 13:52. It stands in for a machine or disk that fails on its own."
+    },
+    {
+      "term": "Virtual machine and container",
+      "def": "Two ways a cloud runs a program as a separate rented computer, a virtual machine imitating a whole computer and a container a lighter wrapper. Chaos Monkey's later version kills either."
+    },
+    {
+      "term": "AWS Fault Injection Service",
+      "def": "An AWS service that causes failures on purpose, such as stopping instances or adding delays, for chaos experiments and game days."
+    },
+    {
+      "term": "GDPR Article 8",
+      "def": "The EU data protection law's conditions for a child's consent to online services offered directly to a child: parental consent below 16, or a lower national age not below 13."
+    },
+    {
+      "term": "GDPR Article 32",
+      "def": "The EU data protection law's article on security of processing, including restoring personal data after an incident and regularly testing the measures."
+    },
+    {
+      "term": "PDPA and DPTM",
+      "def": "Singapore's Personal Data Protection Act, which asks organisations to protect personal data, and the Data Protection Trustmark, a certification for it."
+    }
+  ],
+  "atWork": "Look for groups of \"identical\" machines in your own systems that each hold something the others don't. It is a common pattern: upload or import servers that keep files on local disk until a batch job moves them, workers that keep a queue in memory, a cache warmed by hand, or one machine of a group that also runs the nightly job. For each group, ask four things. If any one machine vanished now, with its disk, what would be lost, and would anyone outside notice? Does every answer you give a customer, uploaded, saved, paid, go out only after the data is somewhere that outlives the machine? Does something start a fresh copy by itself, such as an AWS Auto Scaling group? And when you last broke one on purpose, who watched, and what did they watch: the machine's health, or the customer's result? If you already run chaos tests, list what is excluded and why; each exclusion is a weakness waiting for a disk to fail. Then plan a game day: one machine, killed by hand, in working hours, with someone counting what customers lose. AWS Fault Injection Service can cause such failures in AWS. Standards: children's photographs are personal data. If you hold them for customers in the EU, GDPR Article 32 (security of processing) applies, including the ability to restore availability after a technical incident and a process for regularly testing your measures, which a game day helps to evidence; Article 8 adds conditions only where an online service is offered directly to a child, as a parents' ordering site usually is not. In Singapore, the PDPA's protection obligation and the DPTM certification apply. In this story no photo reached a stranger; it simply ceased to exist, which is still a loss of availability to plan and test for from the first design.",
+  "board": {
+    "cards": [
+      {
+        "id": "chaos-engineering-at-the-source",
+        "title": "Chaos engineering at the source"
+      },
+      {
+        "id": "chaos-monkey-randomly-shutting-down-production-instances",
+        "title": "Chaos Monkey"
+      },
+      {
+        "id": "wider-simian-army",
+        "title": "The Simian Army"
+      },
+      {
+        "id": "building-confidence-by-breaking-things-on-purpose",
+        "title": "Breaking it on purpose"
+      }
+    ],
+    "strings": [
+      {
+        "from": "chaos-engineering-at-the-source",
+        "to": "chaos-engineering",
+        "label": "the 2011 post"
+      },
+      {
+        "from": "chaos-monkey-randomly-shutting-down-production-instances",
+        "to": "stateless-services",
+        "label": "kill only copies"
+      },
+      {
+        "from": "chaos-monkey-randomly-shutting-down-production-instances",
+        "to": "object-storage",
+        "label": "save it first"
+      },
+      {
+        "from": "chaos-monkey-randomly-shutting-down-production-instances",
+        "to": "autoscaling-policies",
+        "label": "a fresh copy"
+      },
+      {
+        "from": "wider-simian-army",
+        "to": "availability-zones",
+        "label": "Chaos Gorilla"
+      },
+      {
+        "from": "building-confidence-by-breaking-things-on-purpose",
+        "to": "game-days",
+        "label": "people watching"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s6e18-r1",
+      "kind": "free",
+      "prompt": "Your team wants to switch on a tool that kills one random server a day in production. One group of servers receives customers' file uploads and keeps each file on its own disk until a nightly job moves it to central storage. A colleague says to leave that group off the tool's list. What do you do before switching the tool on?",
+      "keyIdeas": [
+        {
+          "idea": "Make the upload servers stateless: save each file to shared, durable storage before confirming the upload",
+          "match": [
+            "shared storage",
+            "object storage",
+            "durable storage",
+            "stateless",
+            "before confirming",
+            "before acknowledging",
+            "before replying",
+            "before saying",
+            "save it first",
+            "write it first"
+          ]
+        },
+        {
+          "idea": "Leaving the group off the list only hides the weakness; servers and disks fail on their own anyway",
+          "match": [
+            "fail anyway",
+            "fails anyway",
+            "fail on their own",
+            "fails on its own",
+            "hides the",
+            "hide the",
+            "disks fail",
+            "disk fails",
+            "will fail"
+          ]
+        },
+        {
+          "idea": "Turn the tool on in working hours with people watching, starting small, as a game day",
+          "match": [
+            "working hours",
+            "business hours",
+            "business day",
+            "people watching",
+            "engineers watching",
+            "someone watching",
+            "game day",
+            "start small",
+            "one server first"
+          ]
+        }
+      ],
+      "model": "Don't take the group off the list; that only hides the weakness, because a disk or a server will fail anyway, on its own and at a worse time. First make the upload servers stateless: save each file to shared storage, such as object storage, before confirming the upload to the customer, so no file lives only on one server's disk. Then switch the tool on in working hours with people watching, and start small: one server first, killed by hand on a game day, with someone checking that every confirmed upload is still there, not just that a fresh server came back."
+    },
+    {
+      "id": "s6e18-r2",
+      "kind": "mcq",
+      "prompt": "According to Netflix's 2011 post, when did they run Chaos Monkey?",
+      "options": [
+        "At 3 am on a Sunday, when few customers are watching",
+        "In the middle of a business day, in a carefully monitored environment with engineers standing by",
+        "Only in a test copy, never in production",
+        "Once a year, on one planned day"
+      ],
+      "answer": 1,
+      "why": "The post runs it \"in the middle of a business day, in a carefully monitored environment with engineers standing by to address any problems\", so the weaknesses it finds are seen and fixed, and a real failure at 3 am on a Sunday goes unnoticed."
+    },
+    {
+      "id": "s6e18-r3",
+      "kind": "mcq",
+      "prompt": "What must be true of a group of machines before a tool may kill any one of them at random?",
+      "options": [
+        "Each machine keeps nothing the others or shared storage lack, so a fresh copy can take its place",
+        "Each machine has a bigger disk than it needs",
+        "The machines are killed only at night",
+        "The group has at least ten machines"
+      ],
+      "answer": 0,
+      "why": "The precondition is replaceable, stateless machines: nothing of value lives only on one of them. Dunmallet's upload machines broke it, each holding the only copy of its photos until 02:00."
+    },
+    {
+      "id": "s6e18-r4",
+      "kind": "mcq",
+      "prompt": "Which member of the 2011 Simian Army simulates an outage of an entire availability zone?",
+      "options": [
+        "Chaos Monkey",
+        "Latency Monkey",
+        "Conformity Monkey",
+        "Chaos Gorilla"
+      ],
+      "answer": 3,
+      "why": "The post: Chaos Gorilla \"simulates an outage of an entire Amazon availability zone.\" Chaos Monkey disables single instances, Latency Monkey adds delays, and Conformity Monkey shuts down instances that break best practices."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. Every photo now goes into shared storage before the tablet shows its tick, and the bot kills one machine in each group every weekday, in working hours, with Yorick counting photos. Not one photo lost since October. Then in March the cloud company lost power in one of its buildings for 40 minutes, mid-morning. All three upload machines were in that building. They went down together, every tablet showed \"waiting\", and three photographers stood in school car parks for 40 minutes holding their photos. Nothing was lost, but the bot had never taken out more than one machine at a time.",
+    "prompt": "Reply to OP. What did the bot never test, and what should change?",
+    "keyIdeas": [
+      {
+        "idea": "Spread the upload machines across more than one availability zone, so one building's failure leaves the others",
+        "match": [
+          "more than one zone",
+          "several zones",
+          "different zones",
+          "across zones",
+          "other zones",
+          "each zone",
+          "second zone",
+          "multi-az",
+          "across availability"
+        ]
+      },
+      {
+        "idea": "Test a whole-zone failure on purpose, as Chaos Gorilla does, not only one machine at a time",
+        "match": [
+          "chaos gorilla",
+          "whole zone",
+          "entire zone",
+          "zone outage",
+          "zone at once",
+          "zone-sized",
+          "all of a zone"
+        ]
+      },
+      {
+        "idea": "Plan it as a game day: announced, watched, smallest first, with a write-up",
+        "match": [
+          "game day",
+          "rehearse",
+          "rehearsal",
+          "planned exercise",
+          "practice run",
+          "drill",
+          "write-up",
+          "written up"
+        ]
+      }
+    ],
+    "model": "The bot only ever proved that one machine at a time can die. All three upload machines sat in one availability zone, so losing that building took every one of them at once, a failure no single kill could show. Spread the upload machines across more than one zone, at least one in each, so a building going dark leaves the others taking photos; shared storage already keeps its copies in several zones. Then test it on purpose the way Chaos Gorilla does, a whole zone out at once, but as a game day: announced, with the photographers told, Yorick and Gotthard watching uploads, starting with the upload group alone and stopping if the tablets wait too long, then a write-up of what happened."
+  },
+  "next": "Next, Field Report: The Breaker at Scale: the Netflix TechBlog archive, and Hystrix: wrapping every call to another service so one slow one can't take the whole system down, with separate pools of helpers, circuit breakers, fallbacks and a hands-on game day.",
+  "sources": [
+    {
+      "title": "Yury Izrailevsky and Ariel Tseitlin, The Netflix Simian Army, The Netflix Tech Blog, 19 July 2011 (Chaos Monkey \"randomly disables our production instances\"; \"in the middle of a business day, in a carefully monitored environment with engineers standing by\"; the flat tire; Latency Monkey, Conformity Monkey, Doctor Monkey, Janitor Monkey, Security Monkey, 10-18 Monkey, Chaos Gorilla), read via the Internet Archive, 15 October 2026",
+      "url": "http://web.archive.org/web/20170320153733/http://techblog.netflix.com/2011/07/netflix-simian-army.html"
+    },
+    {
+      "title": "Netflix, chaosmonkey repository on GitHub, README (the later open-source version: \"randomly terminates virtual machine instances and containers that run inside of your production environment\"), read 15 October 2026",
+      "url": "https://github.com/Netflix/chaosmonkey"
+    },
+    {
+      "title": "AWS Well-Architected Framework, Reliability Pillar, REL12-BP05 Conduct game days regularly (\"Game days simulate events in production-like environments to test systems, processes, and team responses\"), read 15 October 2026",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_testing_resiliency_game_days_resiliency.html"
+    },
+    {
+      "title": "GDPR, Article 8, Conditions applicable to child's consent in relation to information society services (the text of the regulation), read 15 October 2026",
+      "url": "https://gdpr-info.eu/art-8-gdpr/"
+    },
+    {
+      "title": "GDPR, Article 32, Security of processing (32(1)(c) restoring availability after an incident; 32(1)(d) regularly testing the measures), read 15 October 2026",
+      "url": "https://gdpr-info.eu/art-32-gdpr/"
+    },
+    {
+      "title": "PDPC Singapore, Data Protection Obligations under the PDPA, including the Protection Obligation (named only), read 15 October 2026",
+      "url": "https://www.pdpc.gov.sg/overview-of-pdpa/the-legislation/personal-data-protection-act/data-protection-obligations"
+    },
+    {
+      "title": "IMDA Singapore, Data Protection Trustmark (DPTM) Certification (named only), read 15 October 2026",
+      "url": "https://www.imda.gov.sg/how-we-can-help/data-protection-trustmark-certification"
+    }
+  ]
+}
