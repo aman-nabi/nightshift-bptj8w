@@ -1,0 +1,938 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-14) first version"
+ ],
+ "id": "a5e07",
+ "season": 5,
+ "n": 7,
+ "title": "Evaluating Agents",
+ "setting": "a maze trial",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "agent-evals",
+  "task-success",
+  "trajectories",
+  "cost-per-task"
+ ],
+ "prerequisites": [
+  "a4e01",
+  "a4e08",
+  "a5e01",
+  "a5e05",
+  "a1e06",
+  "a1e01"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_lead_fionnuala",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 3871,
+  "title": "I'm night lead for an airline's rebooking agent. Tonight one passenger typed the same request three times and got three different answers. Before launch it scored 85%.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Fionnuala, night lead at Kestrelway, a small airline. When a passenger misses a connecting flight, our rebooking agent tries to put them on the next one. An agent, remember, is a language model, a program that writes text, working in steps until a job is done."
+   },
+   {
+    "t": "p",
+    "text": "At each step it picks a tool, a small program it's allowed to use, and reads what comes back. Ours has four: find the booking, read our rules, search flights, rebook. Every step goes into the trace, the run's record of what it did."
+   },
+   {
+    "t": "p",
+    "text": "Three weeks ago, before launch, Mr Hebden had us build a test we call the maze trial: 20 stranded passengers, each a maze with one right exit. The exit is the right flight, with no fee when the delay was ours. We ran it once, on a night shift. A grader, a small program that marks each run, read the agent's last message for a confirmed booking. 17 of 20. 85%. He signed it off."
+   },
+   {
+    "t": "p",
+    "text": "Tonight at 22:41 Mrs Henshilwood wrote to us from Dublin airport. Our late flight had made her miss her connection to Lyon. She typed: \"I missed my connection in Dublin because your flight was late. Please put me on the next flight to Lyon, with no fee.\""
+   },
+   {
+    "t": "p",
+    "text": "She sent those same words three times. Each pair of lines below is one try: the time and the agent's last message, then what her booking held afterwards."
+   },
+   {
+    "t": "log",
+    "text": "22:41  I'm sorry, no seats are available on any flight to Lyon.\n       booking: unchanged\n22:58  You're rebooked on the 09:40 to Lyon tomorrow. A £75 change fee applies.\n       booking: 09:40, £75 charged\n23:20  You're rebooked on the 06:10 to Lyon tomorrow, with no fee.\n       booking: 06:10, fee £0"
+   },
+   {
+    "t": "p",
+    "text": "Mr Ternan at our Dublin desk could see free seats on the 06:10, so she tried again. Then the fee made her try a third time. Our rules waive it when the delay is ours. I refunded the £75 myself."
+   },
+   {
+    "t": "beat",
+    "text": "One passenger, one request, three answers. And a test that said it worked."
+   },
+   {
+    "t": "p",
+    "text": "So I ran the maze trial again, on our test copy of the booking system, where nothing reaches real passengers. It had kept the records the launch run left behind. I ran each task seven more times, eight runs in all. Then I checked each run's end state: what the booking record held when the agent stopped, not what it said."
+   },
+   {
+    "t": "p",
+    "text": "Checked that way, the launch run was 15 of 20, not 17. Twice the agent had said \"You're rebooked\" over a wrong booking or none. Over all eight runs, only 7 of the 20 tasks came out right every time."
+   },
+   {
+    "t": "p",
+    "text": "Task T07 is a missed Dublin connection to Lyon. Its eight runs gave her three answers, and one more. In run 6 the rebook tool answered \"error: seat no longer held, nothing changed\", and the agent told the passenger \"You're rebooked\" anyway."
+   },
+   {
+    "t": "p",
+    "text": "Each run took 5 to 7 steps. A step sends the model about 8,000 tokens, the pieces of text models are billed by, and gets about 400 back: $0.03 at our rate. All 160 runs cost $24.96."
+   },
+   {
+    "t": "evidence",
+    "label": "maze_trial.png",
+    "diagram": {
+     "type": "arch",
+     "w": 760,
+     "h": 290,
+     "aria": "Fionnuala's drawing of tonight. The launch run, graded by the last message: 17 of 20. The same run checked against the booking record: 15 of 20. All eight runs checked the same way: 7 of 20 tasks right every time. Below, task T07, Dublin to Lyon, runs R N W R R S R W, right in 4 of 8 runs.",
+     "nodes": [
+      {
+       "id": "launch",
+       "label": "Launch run",
+       "sub": "last message: 17/20",
+       "x": 110,
+       "y": 70,
+       "w": 180,
+       "h": 60,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "record",
+       "label": "Same run, record",
+       "sub": "15 of 20 right",
+       "x": 380,
+       "y": 70,
+       "w": 200,
+       "h": 60,
+       "shape": "box",
+       "tone": "bad"
+      },
+      {
+       "id": "eight",
+       "label": "Eight runs, record",
+       "sub": "all 8 right: 7 of 20",
+       "x": 640,
+       "y": 70,
+       "w": 200,
+       "h": 60,
+       "shape": "box",
+       "tone": "bad"
+      },
+      {
+       "id": "t07",
+       "label": "T07, Dublin to Lyon",
+       "sub": "R N W R R S R W",
+       "meta": "right in 4 of 8 runs",
+       "x": 380,
+       "y": 210,
+       "w": 280,
+       "h": 72,
+       "shape": "box",
+       "tone": "accent"
+      }
+     ],
+     "edges": [
+      {
+       "from": "launch",
+       "to": "record",
+       "label": "check"
+      },
+      {
+       "from": "record",
+       "to": "eight",
+       "label": "8 runs"
+      },
+      {
+       "from": "record",
+       "to": "t07",
+       "dash": true,
+       "tone": "muted"
+      }
+     ]
+    },
+    "caption": "Drawn tonight. The launch run, graded by the last message: 17 of 20. The same run, checked against the booking record: 15 of 20. All eight runs, checked the same way: 7 of 20 tasks right every time. T07, Dublin to Lyon: R N W R R S R W. R is the 06:10 with no fee, N is no seats, W is the 09:40 with the £75 fee, and S is \"You're rebooked\" with nothing changed. Right in 4 of 8 runs."
+   },
+   {
+    "t": "p",
+    "text": "Mr Hebden wants one number for the board by morning, to say whether it's safe. What should we measure, and how?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/gradient_ghost",
+   "points": 168,
+   "age": "5h",
+   "text": "Nothing at Dublin airport is haunted, though a booking that says yes and holds nothing comes close. Your trace, the record of every step, has another name when people test agents: the trajectory, the whole path of tool calls and results one run took. Two questions. In T07's trajectories, what did the agent do differently in the runs that went wrong? And Mrs Henshilwood asked once and expected one right answer. Of your eight runs, which one would have been hers?",
+   "replies": [
+    {
+     "author": "u/night_lead_fionnuala",
+     "op": true,
+     "points": 61,
+     "age": "4h",
+     "text": "Runs 3 and 8 read our change-fee rule instead of the missed-connection rule, and booked the 09:40. Run 2 searched today's date four times, when the next flight was tomorrow. Run 6's rebook came back with an error it never mentioned. Any of the eight could have been hers. The grader that signed us off would have passed seven of them."
+    }
+   ]
+  },
+  {
+   "author": "u/pass_at_k_quintrell",
+   "points": 97,
+   "age": "4h",
+   "text": "Every benchmark, the public tests everyone compares agents on, reports pass@k. Give the agent k tries at each task, and count the task passed if any one try succeeds. Coding benchmarks have done it for years. Three tries is generous and normal. By your own booking records, 19 of your 20 tasks came out right within three tries. That's 95%.",
+   "replies": [
+    {
+     "author": "u/night_lead_fionnuala",
+     "op": true,
+     "points": 33,
+     "age": "4h",
+     "text": "There's a paper on airline agents that counts it the other way round."
+    },
+    {
+     "author": "u/pass_at_k_quintrell",
+     "points": 41,
+     "age": "3h",
+     "text": "pass^k: all k tries must succeed. Nobody ships against that. It makes every agent look broken. Report the 95% and give passengers a try-again button."
+    }
+   ]
+  },
+  {
+   "author": "u/dublin_desk_ternan",
+   "points": 74,
+   "age": "3h",
+   "text": "I was at the Dublin desk. The 06:10 had free seats on my screen while her phone said there were none. She asked me if the machine was lying to her, and I didn't know what to say. Your day team's message tonight says the fix is the temperature, the setting for how much chance goes into the model's word choices. Turn it to zero and it answers the same way every time."
+  }
+ ],
+ "reply": {
+  "prompt": "Mr Hebden wants one number for the board by morning. What should Fionnuala measure and report? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Report pass@3: give each task three tries, and count it passed if any one try succeeds.",
+    "tone": "bad",
+    "verdict": "The best of three, sold as one",
+    "part2": "I reported pass@3, checked against the booking record: 95%, 19 of 20. Mr Hebden put it on the board's first slide, and nobody asked what it meant. The same runs read the other way: only 11 of the 20 tasks came out right in all three tries, 55%. And a passenger gets one try, not the best of three. The launch run, checked against the record, got 15 of 20 right. The next night Mr Ternan had another passenger at the desk, holding a phone that said there were no seats. There is no best of three at a gate at midnight.",
+    "senior": "pass@k counts a task as solved if any of k tries succeeds. It fits when someone can keep the good try and throw the rest away, as when a coding benchmark tests each generated program; Chen and colleagues report code that way. A passenger gets whatever the one try did, fee and all. Anthropic's eval guide puts it plainly: pass@k for tools where one success matters, pass^k for agents where consistency is essential. And as k grows, pass@k rises while pass^k falls, so more tries make the headline look better while saying less about what a passenger gets."
+   },
+   {
+    "text": "Grade each run by reading the agent's last message to the passenger for a confirmed booking.",
+    "tone": "bad",
+    "verdict": "The grader that said yes",
+    "part2": "We kept the last-message grader and ran the trial eight times: 144 of 160 runs right, 90%. That looked like progress on 85%. It counted T07's run 6, \"You're rebooked\" over a booking that never changed, as a success. It counted the nine runs that charged a wrong £75 fee too. Fourteen of the 144 were wrong. The next \"You're rebooked\" passenger Mr Ternan met reached the gate with no seat on the flight.",
+    "senior": "A message is the agent's account of what it did, not what happened. Grade the end state: the booking record, the payment, the seat. τ-bench grades an agent by comparing the database at the end of each conversation with the expected state. Anthropic's eval guide gives this exact case: an agent might say your flight has been booked, but the outcome is whether a reservation exists. Read the message too, for tone and honesty, but never let it decide success."
+   },
+   {
+    "text": "Set the model's temperature to zero, so the same request always gets the same outcome.",
+    "tone": "warn",
+    "verdict": "Steadier, still wrong",
+    "part2": "Our day team set the temperature to zero, and I ran the maze trial eight more times. Checked against the booking record, 13 of the 20 tasks came out right in all eight runs, up from 7. But two tasks, T09 to Milan and T15 to Faro, were now wrong in all eight: the later flight and the £75 fee, every time. And T07 still said no seats in run 3, because it still searched today's date. In run 6 it still told a passenger \"You're rebooked\" over an error. Steadier, and steadily wrong in two places.",
+    "senior": "Turning the temperature down usually cuts variation, and here it did. It doesn't remove it: tool results and timing still differ from run to run, and Anthropic's glossary says even at temperature 0 the results will not be fully deterministic. On some newer models the setting can't be changed at all. And a consistent wrong answer is still wrong: two tasks went from sometimes right to never right. A lower temperature can be a sensible setting for an agent, but it isn't a measurement. Measure, change the setting, and measure again."
+   },
+   {
+    "text": "Run each task eight times against the booking record, and report how often all eight pass.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "I ran each of the 20 tasks eight times against the booking record and reported pass^8: 35%, 7 of 20 right every time. Beside it went the success rate over every run, 130 of 160, and the cost: $24.96 for 160 runs, $0.156 a try, $0.192 for each right booking. Mr Hebden took 35% to the board, not 85%. The trajectories said why. Every wrong booking had read the change-fee rule. Every no-seats run had searched today's date. Every said-rebooked run had an error back and never mentioned it. Before touching the model we fixed those three: the rules tool now returns the missed-connection rule when the delay is ours, the search starts from the next departure, and our code blocks \"You're rebooked\" unless the rebook tool said done. The maze trial now runs eight times on every change.",
+    "senior": "Judge an agent the way a passenger meets it: one try, and the result in the booking system. Grade the end state, not the message. Run every task several times, because the same request takes different paths, and report pass^k, the share of tasks right on every one of k tries, beside the plain success rate. τ-bench calls this reliability, and found agents far less consistent than one run suggests. Read the trajectories of the failures, because they say why. Track cost per task and per success, so a fix that adds steps shows up. And 20 tasks is a small sample: grow the set from real requests and complaints."
+   }
+  ]
+ },
+ "sim": {
+  "module": "a5e07",
+  "title": "Grade the maze trial: one run or eight",
+  "lede": "You're Fionnuala tonight, replaying the maze trial: 20 stranded passengers, each with one right exit, the right flight with no fee. No real model runs here: each task's outcome in each of 8 runs is stated, as the test copy recorded it. Run 1 is the launch run; runs 2 to 8 are tonight's. Each run ends one of four ways. R: the right booking. W: a wrong booking, the later flight with the £75 fee charged. S: the agent said \"You're rebooked\", but the rebook tool had answered with an error and nothing changed. N: it searched today's date and said there were no seats. The grader decides what counts as right. The last message counts R, W and S, because each says \"You're rebooked\"; the booking record, the end state, counts only R. With k runs per task, runs 1 to k are used. pass^1 counts the tasks right in run 1, pass^k the tasks right in all k runs, and pass@k the tasks right in at least one. Steps per run are stated: R, W and S take 5, N takes 7. A step sends about 8,000 tokens and gets 400 back; at $3 per million tokens in and $15 per million out, that is $0.03 a step. Cost per task is the total over 20 times k runs; cost per success is the total over the runs graded right. Temperature zero shows a second set of 160 stated runs at that setting; what zero does differs from model to model.",
+  "tryThis": "Try this: you open on the launch scorecard: one run, graded by the last message, 85% (17 of 20). Switch the grader to the booking record: 75% (15 of 20). Raise k to 8: pass^8 is 35% (7 of 20), while pass@8 reads 95% (19 of 20). Set k to 3 and read pass@3 and pass^3 side by side. Inspect T07, Dublin to Lyon: the 06:10, no seats, the 09:40 with the fee, and run 6's \"You're rebooked\" over an unchanged record, with each trajectory below. Switch back to the last message with k at 8 and watch run 6 count as right. Try temperature zero and find the two tasks that never come out right. Then play each reply under Play a plan."
+ },
+ "explain": {
+  "oneLine": "The agent didn't change tonight; the measurement finally did. One run, graded by what the agent said, scored 85%. Checked against the booking record, the same run was 75%, and over eight runs only 7 of 20 tasks came out right every time: pass^8, 35%.",
+  "steps": [
+   {
+    "title": "An agent's job ends in a record, not a sentence.",
+    "text": "Kestrelway's agent rebooks in five steps. First it finds the passenger's booking. Second it reads the rule that applies, here the one for a connection missed because of our delay. Third it searches for flights. Fourth it calls the rebook tool, which changes the booking record. Fifth it writes its last message to the passenger. Only the fourth step changes anything; the fifth is the agent's account of it. Grading by the end state works in steps too. When the run stops, read the booking record from the test copy. Compare it with that task's right exit: the right flight, fee £0. Mark the run right only if they match. What can go wrong: the account and the record disagree. In two launch runs the message said \"You're rebooked\" over a wrong booking or none, so the last-message grader said 17 of 20 where the record said 15."
+   },
+   {
+    "title": "One run is one sample.",
+    "text": "The same request can take a different path each time. A language model picks each word partly by chance, so one run reads the missed-connection rule and another reads the change-fee rule. Tools answer differently too: a seat that was free a moment ago is gone, and the rebook tool returns an error. Even the clock matters: late at night, one run searched today's date and found nothing. So measure in steps. First, run each task several times, k times, on a test copy reset before each run. Second, grade every run against the end state. Third, keep every outcome, not just a total. T07 ran eight times and came out four ways: the 06:10 four times, the 09:40 with the fee twice, no seats once, and \"You're rebooked\" over an error once. What can go wrong: eight runs are still a sample, and a failure that shows once in fifty runs may not show in eight."
+   },
+   {
+    "title": "pass@k and pass^k ask different questions.",
+    "text": "With k runs per task there are two ways to count a task. pass@k counts it if at least one of the k runs is right: can the agent do it at all? pass^k counts it only if all k runs are right: does it do it every time? From the maze trial, checked against the record: pass@3 is 19 of 20, 95%; pass^3 is 11 of 20, 55%; pass^8 is 7 of 20, 35%. As k grows, pass@k can only rise and pass^k can only fall. A coding benchmark reports pass@k because each program can be tested and the good try kept. A passenger can't keep the good try; she gets the one she got. τ-bench, a benchmark of airline and shop agents, estimates pass^k by averaging over every way of choosing k of the runs. The sim simply counts runs 1 to k, so you can check it by hand. At k of 8 out of 8 the two agree; at k = 1, τ-bench's version is the success rate over all runs, 130 of 160 here. What can go wrong: choosing the metric after seeing which one looks better."
+   },
+   {
+    "title": "Read the trajectories.",
+    "text": "A trajectory is the full path one run took: each step's tool call and what came back. The end state says whether a run failed; the trajectory says why. In T07's, the wrong bookings read the change-fee rule instead of the missed-connection rule. The no-seats run searched today's date four times. The said-rebooked run got \"error: seat no longer held, nothing changed\" and wrote \"You're rebooked\" anyway. Those are three different fixes: the rule the tool returns, the date the search starts from, and a check in the code that blocks \"You're rebooked\" unless the rebook tool said done. A few rules are worth grading straight from the trajectory: no fee charged when the delay was ours, and no success message after an error. What can go wrong: grading the exact order of tool calls. Anthropic's guide warns that this is brittle, because an agent can find another valid path. Grade the outcome, and use the path to explain it."
+   },
+   {
+    "title": "Count the cost, per task and per success.",
+    "text": "Every step is a model call. Each sends about 8,000 tokens and gets about 400 back. At $3 per million tokens in and $15 per million out, that is $0.03 a step. Right, wrong and said-rebooked runs took 5 steps, $0.15. No-seats runs took 7, $0.21, because the agent kept searching. The 160 runs took 832 steps and cost $24.96. That is $0.156 a try, and $0.192 for each run that left the right booking, because the failed runs cost money too. Cost per success is the number to compare when a fix adds steps, the same idea as the budgets in When It Goes in Circles. Public benchmarks such as τ-bench help compare models, but they are someone else's tasks, with a simulated customer and simplified rules. Your own task set, built from your own requests and complaints, is the one that tells you whether to launch. What can go wrong: a cheap agent that fails often can cost more per success than a dearer one that doesn't."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 290,
+   "aria": "The fix, drawn as a pipeline. The maze trial's 20 tasks are each run 8 times, 160 runs, on the test copy. Each run is graded by the booking record, the end state, not the words. The report shows pass^8, 7 of 20, and $0.192 a success. The trajectories of every run are kept and read to find why runs failed.",
+   "nodes": [
+    {
+     "id": "set",
+     "label": "Maze trial",
+     "sub": "20 tasks",
+     "x": 85,
+     "y": 90,
+     "w": 140,
+     "h": 60,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "runs",
+     "label": "Run each 8 times",
+     "sub": "160 runs",
+     "x": 265,
+     "y": 90,
+     "w": 160,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "grade",
+     "label": "Booking record",
+     "sub": "end state, not words",
+     "x": 460,
+     "y": 90,
+     "w": 170,
+     "h": 60,
+     "shape": "db",
+     "tone": "ok"
+    },
+    {
+     "id": "report",
+     "label": "Report",
+     "sub": "pass^8: 7 of 20",
+     "meta": "$0.192 a success",
+     "x": 650,
+     "y": 90,
+     "w": 150,
+     "h": 72,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "traces",
+     "label": "Trajectories",
+     "sub": "why runs failed",
+     "x": 460,
+     "y": 225,
+     "w": 170,
+     "h": 60,
+     "shape": "box",
+     "tone": "muted"
+    }
+   ],
+   "edges": [
+    {
+     "from": "set",
+     "to": "runs"
+    },
+    {
+     "from": "runs",
+     "to": "grade"
+    },
+    {
+     "from": "grade",
+     "to": "report"
+    },
+    {
+     "from": "runs",
+     "to": "traces",
+     "label": "kept",
+     "dash": true,
+     "tone": "muted"
+    }
+   ]
+  },
+  "caption": "Read left to right. The maze trial's 20 tasks each run 8 times on the test copy, 160 runs. Each run is graded by the booking record it leaves, not by what the agent said. The report gives pass^8, 7 of 20, beside the success rate over every run, 130 of 160, and $0.192 per success. Every trajectory is kept, and the failures' are read to find why.",
+  "fix": {
+   "title": "The fix: grade the booking record, run every task eight times, report pass^8 with the cost",
+   "text": "Grade every run by its end state: read the booking record when the run stops and compare it with the task's right exit, the right flight and the right fee. Run each of the 20 tasks eight times on a test copy reset before each run. Report pass^8, the share of tasks right in all eight runs, as the headline, with the success rate over every run beside it. Report the cost per task and per success with them. Read the trajectory of every failed run and fix the cause it shows: here the rule the tool returns, the date the search starts from, and a check that blocks \"You're rebooked\" unless the rebook tool said done. Grade a few hard rules from the trajectory too: no fee when the delay was ours, no success message after an error. Run the trial on every change, and keep adding tasks from real requests and complaints."
+  },
+  "limits": [
+   "Twenty tasks is a small sample. One task more or less moves pass^8 by 5 points, so say how many tasks a number rests on, and grow the set from real conversations, starting with every complaint.",
+   "The test copy isn't the night. Seats, times and tool errors there differ from the live system; the no-seats runs came from searching today's date late at night, which a daytime run may never show. Check a sample of real conversations against the booking record too.",
+   "An end-state check is necessary but not sufficient, as τ-bench's authors say of their own. A right booking reached by charging a fee and refunding it, or without the passenger agreeing, still passes the record check. Add a few rules read from the trajectory."
+  ],
+  "tradeoff": {
+   "head": [
+    "Plan",
+    "Tonight's number",
+    "What it hides",
+    "Runs and cost"
+   ],
+   "rows": [
+    [
+     "One run, last message (launch)",
+     "85% (17 of 20)",
+     "Two runs that said rebooked over a wrong record or none.",
+     "20 runs, $3.18"
+    ],
+    [
+     "One run, booking record",
+     "75% (15 of 20)",
+     "How often the same task changes its answer.",
+     "20 runs, $3.18"
+    ],
+    [
+     "pass@3, booking record",
+     "95% (19 of 20)",
+     "Only 11 of 20 were right all three times.",
+     "60 runs, $9.42"
+    ],
+    [
+     "Eight runs, last message",
+     "90% of runs (144 of 160)",
+     "14 runs that said rebooked over a wrong record or none.",
+     "160 runs, $24.96"
+    ],
+    [
+     "Temperature zero, pass^8",
+     "65% (13 of 20)",
+     "Two tasks wrong every time; T07 still varies.",
+     "160 runs, $24.30"
+    ],
+    [
+     "Eight runs, booking record, pass^8",
+     "35% (7 of 20)",
+     "Requests the set doesn't have: it is 20 tasks.",
+     "160 runs, $24.96"
+    ]
+   ]
+  },
+  "seniorTake": "Evaluate an agent by what it leaves behind, not what it says. Check the end state in the real system, the booking record here, against the expected state for each task. Run every task several times, because an agent's path changes from run to run, and report pass^k, the share of tasks right every time, beside the success rate over all runs. Use pass@k only where someone can keep the good try and discard the rest. Keep every trajectory and read the failures', because the end state tells you that a run failed and the trajectory tells you why. Count cost per task and per success, so a fix that adds steps shows up. Public benchmarks are useful for comparing models, but your own task set, grown from real requests and complaints, decides whether you launch.",
+  "realWorld": [
+   {
+    "title": "τ-bench: check the database, not the conversation",
+    "text": "Yao and colleagues' τ-bench (2024) tests agents that talk with a simulated user, a language model playing the customer, in retail and airline settings, using tools and following written rules. Its grading compares the end state: Our evaluation scheme compares the database state at the end of each episode with the ground truth expected state.",
+    "source": 0
+   },
+   {
+    "title": "τ-bench: pass^k, and agents that aren't consistent",
+    "text": "The paper says: We also propose a new metric (pass^k) to evaluate the reliability of agent behavior over multiple trials. It defines pass^k as the chance that all k trials of a task are successful, averaged across tasks, against the pass@k used for code generation. It reports that even state-of-the-art function calling agents (like gpt-4o) succeed on <50% of the tasks, and are quite inconsistent (pass^8 <25% in retail). On the airline tasks, gpt-4o's pass^1 was 35.2%.",
+    "source": 0
+   },
+   {
+    "title": "τ-bench's own limits",
+    "text": "The authors call their rule-based reward a necessary but not sufficient condition for a successful episode: an agent can reach the right database state while breaking a rule on the way. The user is simulated by a language model, and the two domains are simplified compared to real-world domains.",
+    "source": 0
+   },
+   {
+    "title": "Anthropic: the outcome is the reservation, not the message",
+    "text": "Anthropic's engineering post Demystifying evals for AI agents (January 2026) says: The outcome is the final state in the environment at the end of the trial. Its example: A flight-booking agent might say \"Your flight has been booked\" at the end of the transcript, but the outcome is whether a reservation exists in the environment's SQL database, the store of booking records the test runs against.",
+    "source": 1
+   },
+   {
+    "title": "Anthropic: pass@k for tools, pass^k for agents",
+    "text": "The same post defines pass@k as the likelihood that an agent gets at least one correct solution in k attempts, and pass^k as the probability that all k trials succeed. With a 75% per-trial success rate and 3 trials, all three succeed about 42% of the time. Its advice: pass@k for tools where one success matters, pass^k for agents where consistency is essential.",
+    "source": 1
+   },
+   {
+    "title": "Anthropic: trajectories, many trials, and cost per task",
+    "text": "The post says a transcript, also called a trace or trajectory, is the complete record of a trial, and: Because model outputs vary between runs, we run multiple trials to produce more consistent results. It advises to grade what the agent produced, not the path it took, and notes that latency, token usage, cost per task, and error rates can be tracked on a static bank of tasks.",
+    "source": 1
+   },
+   {
+    "title": "Codex and HumanEval: where pass@k comes from",
+    "text": "Chen and colleagues (2021) introduced HumanEval, a coding benchmark that checks generated programs with tests, and reported pass@k. Their model solves 28.8% of the problems with one sample, and they add that repeated sampling from the model is a surprisingly effective strategy: we solve 70.2% of our problems with 100 samples per problem. Code that a test can check suits pass@k; a passenger's one booking doesn't.",
+    "source": 2
+   },
+   {
+    "title": "Anthropic: temperature 0 is not fully deterministic",
+    "text": "Anthropic's glossary says lower temperatures result in more conservative and deterministic outputs, then: Even with temperature set to 0, the results will not be fully deterministic and identical inputs may produce different outputs across API calls, its separate requests to the service.",
+    "source": 3
+   },
+   {
+    "title": "Anthropic: some models no longer take a temperature",
+    "text": "Anthropic's model deprecations page lists temperature, top_p and top_k, three settings for how a model draws its next word, as deprecated on Claude 4.7 and later models: each returns a 400 error when set to a non-default value, and the page recommends prompting instead. On those models, turning the randomness down is not an option at all.",
+    "source": 4
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you evaluate an agent?",
+    "What is the difference between pass@k and pass^k?",
+    "Why check the end state and not the agent's answer?"
+   ],
+   "answer": "Start from a task set built from real requests, each with an expected end state: here a stranded passenger and the right booking, right flight and right fee. Run the agent on a test copy of the real systems, reset before each run, and grade each run by the state it leaves, not by its last message, because the message is the agent's account and can say rebooked when nothing changed. Run every task several times, because the same request takes different paths: a different rule read, a different date searched, a tool error. Then report two things. pass@k is the share of tasks where at least one of k runs succeeded; it fits when someone can keep the good try, as with code checked by tests. pass^k is the share where all k runs succeeded; it fits anything customer-facing, where a person gets one try. As k grows pass@k rises and pass^k falls, so I put pass^k beside the plain success rate and say how many tasks it rests on. I keep every trajectory, the full path of tool calls and results, and read the failures, because the end state says a run failed and the trajectory says why; a few hard rules, like no fee on our delay and no success message after an error, I grade from the trajectory directly. I track cost per task and per success, which ties to the agent's step and spend budgets. Public benchmarks like τ-bench help compare models, but they are simplified and someone else's; my own set, run on every change, decides the launch. Lowering temperature can steady an agent, but it doesn't make it deterministic, and a consistent wrong answer still fails."
+  }
+ },
+ "terms": [
+  {
+   "term": "Night lead",
+   "def": "The person in charge of a system overnight. Fionnuala is night lead for Kestrelway's rebooking agent."
+  },
+  {
+   "term": "Connecting flight",
+   "def": "A second flight a passenger changes onto at an airport on the way. Miss it, and the airline must find another way on."
+  },
+  {
+   "term": "Missed connection",
+   "def": "Arriving too late for a connecting flight. When the airline's own delay caused it, Kestrelway's rules rebook the passenger free."
+  },
+  {
+   "term": "Change fee",
+   "def": "What an airline charges to move a booking. Kestrelway's is £75, waived when the delay was its own."
+  },
+  {
+   "term": "Rebooking agent",
+   "def": "Kestrelway's agent that moves a stranded passenger onto the next flight, using tools to find the booking, read the rules, search flights and rebook."
+  },
+  {
+   "term": "Agent",
+   "def": "A language model working in a loop: at each step it picks an action, usually a tool call, reads what comes back, and goes on until it decides the job is done (a4e01)."
+  },
+  {
+   "term": "Language model",
+   "def": "A program that writes text one likely word at a time, like a phone's next-word suggestions grown huge (a1e01)."
+  },
+  {
+   "term": "Tool",
+   "def": "A small program an agent is allowed to use, such as search_flights or rebook. The agent asks for it; the code runs it and hands back the result."
+  },
+  {
+   "term": "Step",
+   "def": "One time round the agent's loop: one model call that picks one action, and what comes back (a4e01). Kestrelway's runs took 5 to 7 steps."
+  },
+  {
+   "term": "Trace",
+   "def": "The record of every step in one run: each tool call and what came back, kept like a ship's log (a4e01)."
+  },
+  {
+   "term": "Trajectory",
+   "def": "In evals, another name for a run's trace: the whole path of tool calls and results one run took. It shows why a run failed, not only that it did."
+  },
+  {
+   "term": "Maze trial",
+   "def": "Kestrelway's test for the agent: 20 stranded passengers, each a maze with one right exit, the right flight with the right fee."
+  },
+  {
+   "term": "Task",
+   "def": "One test case for an agent: a request and the end state it should leave. T07 is a missed Dublin connection to Lyon; its right exit is the 06:10, no fee."
+  },
+  {
+   "term": "Run",
+   "def": "One attempt by the agent at one task, from the request to its last message. Also called a trial or a try. Run 1 of each task was the launch run."
+  },
+  {
+   "term": "Grader",
+   "def": "A small program that marks each run right or wrong. Kestrelway's launch grader read the last message for a confirmed booking."
+  },
+  {
+   "term": "Last-message grader",
+   "def": "A grader that reads only what the agent finally said. It marked \"You're rebooked\" right even when the booking record hadn't changed."
+  },
+  {
+   "term": "Test copy",
+   "def": "A copy of the booking system where the agent can run without reaching real passengers. It is reset before each run and keeps each run's records."
+  },
+  {
+   "term": "Booking record",
+   "def": "What the airline's booking system holds for a passenger: which flight, and what was charged. It changes only when the rebook tool succeeds."
+  },
+  {
+   "term": "End state",
+   "def": "What the real system holds when the run stops, such as the booking record. Grading the end state checks what happened, not what the agent said."
+  },
+  {
+   "term": "Task success",
+   "def": "A run counts as a success when its end state matches the task's expected state: the right flight, the right fee."
+  },
+  {
+   "term": "Token",
+   "def": "A piece of text, often part of a word, that models read, write and are billed by (a1e01). A step here sends about 8,000 and gets about 400 back."
+  },
+  {
+   "term": "Benchmark",
+   "def": "A fixed set of tasks with known answers, used to compare models or methods on the same test (a4e01). τ-bench and HumanEval are public ones."
+  },
+  {
+   "term": "pass@k",
+   "def": "The share of tasks where at least one of k runs succeeded. It asks whether the agent can do the task at all. Kestrelway's pass@3: 19 of 20."
+  },
+  {
+   "term": "pass^k",
+   "def": "Said pass to the k: the share of tasks where all k runs succeeded. It asks whether the agent does the task every time. Kestrelway's pass^8: 7 of 20."
+  },
+  {
+   "term": "pass^1",
+   "def": "In the sim, the share of tasks right in run 1 alone, like the launch score. τ-bench's pass^1 is the success rate over all runs."
+  },
+  {
+   "term": "Success rate",
+   "def": "The share of all runs that succeeded. Kestrelway's, checked by the booking record over eight runs: 130 of 160."
+  },
+  {
+   "term": "Temperature",
+   "def": "A setting for how much chance goes into a model's word choices (a1e06). Lower means steadier; even 0 is not fully repeatable, and some newer models don't let you set it."
+  },
+  {
+   "term": "Deterministic",
+   "def": "Always giving the same output for the same input, like a calculator (a1e06). Providers say even temperature 0 is not fully deterministic."
+  },
+  {
+   "term": "Eval",
+   "def": "A test of what an AI system does: a task with a known right result and a rule that marks it (a1e01). Agent evals mark what the agent did."
+  },
+  {
+   "term": "Cost per task",
+   "def": "What one run at a task costs on average: the total over all runs counted. Kestrelway's: $24.96 over 160 runs, $0.156."
+  },
+  {
+   "term": "Cost per success",
+   "def": "The total cost over the runs that came out right, because failed runs cost money too. Kestrelway's: $24.96 over 130, $0.192."
+  },
+  {
+   "term": "Budget (per run)",
+   "def": "The most one run may use, enforced by your code: steps, money and time (a4e08). Cost per success shows when a fix spends more of it."
+  },
+  {
+   "term": "Tool error",
+   "def": "What a tool returns when it fails (a4e08). In T07's run 6 the rebook tool said nothing changed, and the agent said rebooked anyway."
+  },
+  {
+   "term": "τ-bench",
+   "def": "Said tau-bench: Yao and colleagues' 2024 benchmark of agents that serve a simulated customer in retail and airline settings, graded by the database's end state."
+  },
+  {
+   "term": "Simulated user",
+   "def": "A language model playing the customer in a benchmark, so tests can run without people. It may not talk the way real customers do."
+  },
+  {
+   "term": "Database",
+   "def": "The store where a system keeps its records, such as bookings. τ-bench checks its state at the end of each conversation."
+  },
+  {
+   "term": "Function calling",
+   "def": "A model asking your code to run a named tool with given inputs; another name for tool calls."
+  },
+  {
+   "term": "State-of-the-art",
+   "def": "The best available at the time."
+  },
+  {
+   "term": "HumanEval",
+   "def": "A coding benchmark from Chen and colleagues (2021): programming problems whose answers are checked by tests. They reported it as pass@k."
+  },
+  {
+   "term": "Sample (of a model)",
+   "def": "One answer drawn from a model. Drawing 100 samples means asking for 100 separate answers to the same problem."
+  },
+  {
+   "term": "Transcript",
+   "def": "Anthropic's word for a run's full record: outputs, tool calls, reasoning and results. Also called a trace or trajectory."
+  },
+  {
+   "term": "Episode",
+   "def": "τ-bench's word for one whole conversation between the agent and the simulated customer, from first message to last: one run."
+  },
+  {
+   "term": "Ground truth",
+   "def": "The answer known to be right, set in advance by people. In τ-bench, the database state each conversation should end in."
+  },
+  {
+   "term": "Domain",
+   "def": "The area of work a benchmark covers, with its own tools and rules. τ-bench has two: a shop (retail) and an airline."
+  },
+  {
+   "term": "Reward",
+   "def": "A benchmark's score for one episode. τ-bench's is rule-based: 1 if the end state matches, 0 if not."
+  },
+  {
+   "term": "GPT-4o",
+   "def": "One of OpenAI's language models in 2024, among those τ-bench tested."
+  },
+  {
+   "term": "Environment",
+   "def": "In an eval, the systems the agent acts on, such as a test copy of a booking system. Its final state is the outcome."
+  },
+  {
+   "term": "top_p, top_k",
+   "def": "Two more settings for how a model draws its next word, like temperature: keep only the likeliest words before the draw (a1e06)."
+  },
+  {
+   "term": "SQL database",
+   "def": "A database queried with SQL, the common language for asking a database for records."
+  },
+  {
+   "term": "400 error",
+   "def": "The code a web service sends back when it refuses the request itself, for example because of a setting the model doesn't accept (a1e06)."
+  },
+  {
+   "term": "API",
+   "def": "The agreed way programs ask a service for things, such as sending a model a question and getting its answer."
+  },
+  {
+   "term": "Latency",
+   "def": "How long a system takes to answer."
+  },
+  {
+   "term": "CI",
+   "def": "Short for continuous integration: a server that runs a project's checks automatically on every change, before it goes live (a5e05)."
+  },
+  {
+   "term": "ISO 9001:2015",
+   "def": "The international standard for quality management. Clause 9.1 covers monitoring, measurement, analysis and evaluation."
+  }
+ ],
+ "atWork": "Look for an agent at work that passed a demo and then failed in daily use. A common pattern: someone ran it once on a handful of tasks, read its replies, and saw them succeed. In daily use the same request sometimes works and sometimes doesn't, and some 'done' replies hide nothing done. Ask four things. Does the eval check the end state in the real system, the ticket closed or the record changed, rather than the reply? Does it run each task several times and report how often all of them succeed? Does someone read the trajectories of the failures? And does it report cost per task and per success? Standards-readiness note: if your organisation is certified to ISO 9001:2015, the international standard for quality management, or working toward it, clause 9.1 asks you to decide what needs monitoring and measuring, the methods that give valid results, and when results are analysed and evaluated. A score from one run, graded by the agent's own message, is hard to defend as a valid method for an agent whose output varies. A dated record of repeated runs graded by the end state is the kind of evidence an auditor looks for. Building it in from the first release is far cheaper than reconstructing it before an audit.",
+ "board": {
+  "cards": [
+   {
+    "id": "agent-evals",
+    "title": "Agent evals"
+   },
+   {
+    "id": "task-success",
+    "title": "Task success"
+   },
+   {
+    "id": "trajectories",
+    "title": "Trajectories"
+   },
+   {
+    "id": "cost-per-task",
+    "title": "Cost per task"
+   }
+  ],
+  "strings": [
+   {
+    "from": "agent-evals",
+    "to": "agents",
+    "label": "measures agents"
+   },
+   {
+    "from": "task-success",
+    "to": "agent-evals",
+    "label": "end state"
+   },
+   {
+    "from": "agent-evals",
+    "to": "why-answers-vary",
+    "label": "run eight times"
+   },
+   {
+    "from": "agent-evals",
+    "to": "golden-sets",
+    "label": "a task set"
+   },
+   {
+    "from": "trajectories",
+    "to": "agents",
+    "label": "the trace"
+   },
+   {
+    "from": "cost-per-task",
+    "to": "runaway-cost",
+    "label": "per success"
+   },
+   {
+    "from": "agent-evals",
+    "to": "regression-evals-in-ci",
+    "label": "every change"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "a5e07-r1",
+   "kind": "free",
+   "prompt": "Your company's IT helpdesk agent unlocks staff accounts using tools. Before launch it handled 10 of 10 test requests in one go, graded by reading its final reply for the word done. In daily use, staff keep finding their accounts still locked after it says done. What would you change about how it is evaluated?",
+   "keyIdeas": [
+    {
+     "idea": "Grade the end state in the account system, not the agent's reply",
+     "match": [
+      "end state",
+      "account system",
+      "actually unlocked",
+      "not the reply",
+      "not what it says",
+      "final state",
+      "check the account"
+     ]
+    },
+    {
+     "idea": "Run each request several times and report how often all runs succeed (pass^k)",
+     "match": [
+      "pass^k",
+      "every run",
+      "all runs",
+      "several times",
+      "eight times",
+      "all of its runs"
+     ]
+    },
+    {
+     "idea": "Read the trajectories of failed runs to find why, such as a tool error it ignored",
+     "match": [
+      "trajector",
+      "the trace",
+      "tool error",
+      "ignored the error",
+      "ignores an error",
+      "step by step"
+     ]
+    }
+   ],
+   "model": "Stop trusting the reply. Grade the end state: after each run, check the account system to see whether the account is actually unlocked, not what the agent says. Then run each request several times on a test copy, because the same request can take a different path each time, and report pass^k, how many requests succeed in every run, beside the success rate. Read the trajectories of the runs that failed, the tool calls and what came back: a tool error it ignored, or a wrong account looked up, tells you what to fix."
+  },
+  {
+   "id": "a5e07-r2",
+   "kind": "mcq",
+   "prompt": "Four tasks, each run 3 times and checked against the end state. Task A: right, right, right. Task B: right, wrong, right. Task C: wrong, wrong, right. Task D: wrong, wrong, wrong. What are pass@3 and pass^3?",
+   "options": [
+    "pass@3 75%, pass^3 25%",
+    "pass@3 25%, pass^3 75%",
+    "Both 50%",
+    "pass@3 100%, pass^3 25%"
+   ],
+   "answer": 0,
+   "why": "pass@3 counts a task if at least one of its 3 runs is right: A, B and C, 3 of 4, 75%. pass^3 counts it only if all 3 are right: A alone, 1 of 4, 25%. D was never right, so pass@3 can't be 100%."
+  },
+  {
+   "id": "a5e07-r3",
+   "kind": "free",
+   "prompt": "A colleague wants to report pass@5 for your customer-refund agent, because that's what coding benchmarks report. When does pass@k make sense, and what should you report for this agent instead?",
+   "keyIdeas": [
+    {
+     "idea": "pass@k fits when someone can keep the good try and discard the rest, as with code checked by tests",
+     "match": [
+      "keep the good",
+      "throw away",
+      "discard",
+      "checked by tests",
+      "one success matters",
+      "best of",
+      "pick the good"
+     ]
+    },
+    {
+     "idea": "A customer gets one attempt, so measure consistency: pass^k, every one of k attempts right",
+     "match": [
+      "pass^k",
+      "pass^5",
+      "all k",
+      "all five",
+      "every attempt",
+      "consistency"
+     ]
+    },
+    {
+     "idea": "pass@k rises as k grows while pass^k falls, so pass@k flatters an inconsistent agent",
+     "match": [
+      "flatter",
+      "rises",
+      "goes up",
+      "looks better",
+      "hides"
+     ]
+    }
+   ],
+   "model": "pass@k fits when someone can keep the good try and throw away the rest: a coding benchmark runs each program against tests, so one success matters. A customer asking for a refund gets whatever the one attempt did. So report pass^5, the share of refund tasks right in all five runs, which measures consistency, beside the success rate over all runs, each checked against the payment system. pass@k rises as k grows while pass^k falls, so pass@5 flatters an agent that is right only some of the time."
+  },
+  {
+   "id": "a5e07-r4",
+   "kind": "mcq",
+   "prompt": "An agent eval runs 20 tasks 8 times each: 160 runs, 832 steps at $0.03 a step. 130 of the runs leave the right booking record. What is the cost per success?",
+   "options": [
+    "$0.156",
+    "$0.192",
+    "$0.03",
+    "$1.248"
+   ],
+   "answer": 1,
+   "why": "832 steps at $0.03 is $24.96. Divided by the 130 runs that succeeded, that is $0.192 per success. $0.156 is per run (over all 160), $0.03 is one step, and $1.248 is per task over all eight of its runs."
+  },
+  {
+   "id": "a5e07-r5",
+   "kind": "mcq",
+   "prompt": "Kestrelway's launch run scored 17 of 20 with the last-message grader, and 15 of 20 when checked against the booking record. Why the gap?",
+   "options": [
+    "Two runs said \"You're rebooked\" over a wrong booking or none, and the last-message grader counted them",
+    "The booking records were checked at a different temperature",
+    "Two tasks ran out of steps before finishing",
+    "The record grader was stricter about the wording of the reply"
+   ],
+   "answer": 0,
+   "why": "In the launch run, T09 booked the later flight with the £75 fee and T14's rebook returned an error, yet both last messages said \"You're rebooked\". A grader that reads the message counts both; one that reads the booking record counts neither."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The maze trial has grown from real complaints, and it now runs eight times on every change, graded by the booking record. CI, the server that runs our checks on every change, starts it each afternoon, and pass^8 now reads 90%. But Mr Ternan at the Dublin desk still meets passengers who wrote to us close to midnight and were told there were no seats on a morning flight that had plenty.",
+  "prompt": "Reply to OP. Why does the trial miss the late-night no-seats answers, and what should change?",
+  "keyIdeas": [
+   {
+    "idea": "The trial always runs in the afternoon, so the agent never meets the late-night date confusion: the test conditions don't match the live ones",
+    "match": [
+      "time of day",
+      "never runs at night",
+      "never at night",
+      "conditions",
+      "clock",
+      "today's date",
+      "different time"
+    ]
+   },
+   {
+    "idea": "Add tasks that run with the test copy's clock set late at night",
+    "match": [
+      "set the clock",
+      "fixed clock",
+      "late-night tasks",
+      "night-time tasks",
+      "clock set late",
+      "freeze the clock",
+      "fake clock"
+    ]
+   },
+   {
+    "idea": "Also check a sample of real conversations against the booking record",
+    "match": [
+      "real conversations",
+      "live conversations",
+      "sample of real",
+      "check real",
+      "from the live",
+      "online"
+    ]
+   }
+  ],
+  "model": "The trial is only as wide as its conditions. CI runs it in the afternoon, so when a passenger says the next flight, today's date and tomorrow's never collide, and the agent's late-night mistake, searching today's date, never happens in the test. Pass^8 of 90% is true for afternoons. Add tasks that run with the test copy's clock set late at night, at 23:30 and 00:10, with the right exit on the next morning's flight. And keep checking a sample of real conversations against the booking record each week, so the live system tells you what the trial can't."
+ },
+ "next": "Next, One Door to Every Mind: a hotel concierge desk, and one front door to many AI model providers, with keys and limits on use.",
+ "sources": [
+  {
+   "title": "Shunyu Yao, Noah Shinn, Pedram Razavi and Karthik Narasimhan, τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains, arXiv 2406.12045, 2024, read 14 October 2026: compares the database state at the end of each episode with the ground truth expected state; We also propose a new metric (pass^k) to evaluate the reliability of agent behavior over multiple trials; succeed on <50% of the tasks, and are quite inconsistent (pass^8 <25% in retail); gpt-4o airline pass^1 35.2; reward a necessary but not sufficient condition; domains simplified compared to real-world domains",
+   "url": "https://arxiv.org/abs/2406.12045"
+  },
+  {
+   "title": "Anthropic Engineering, Mikaela Grace, Jeremy Hadfield, Rodrigo Olivares and Jiri De Jonghe, Demystifying evals for AI agents, 9 January 2026, read 14 October 2026: The outcome is the final state in the environment at the end of the trial; a flight-booking agent might say Your flight has been booked; pass@k and pass^k; pass@k for tools where one success matters, pass^k for agents where consistency is essential; transcript (also called a trace or trajectory); grade what the agent produced, not the path it took; cost per task",
+   "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+  },
+  {
+   "title": "Mark Chen, Jerry Tworek, Heewoo Jun and others, Evaluating Large Language Models Trained on Code, arXiv 2107.03374, 2021, read 14 October 2026: HumanEval; our model solves 28.8% of the problems; repeated sampling from the model is a surprisingly effective strategy; we solve 70.2% of our problems with 100 samples per problem",
+   "url": "https://arxiv.org/abs/2107.03374"
+  },
+  {
+   "title": "Anthropic, Claude Platform documentation, Glossary, read 14 October 2026: Temperature; Even with temperature set to 0, the results will not be fully deterministic and identical inputs may produce different outputs across API calls",
+   "url": "https://platform.claude.com/docs/en/about-claude/glossary"
+  },
+  {
+   "title": "Anthropic, Claude Platform documentation, Model deprecations, read 14 October 2026: temperature, top_p, top_k deprecated on Claude 4.7 and later models, returning a 400 error when set to a non-default value",
+   "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations"
+  },
+  {
+   "title": "ISO 9001:2015, Quality management systems, Requirements: clause 9.1, monitoring, measurement, analysis and evaluation",
+   "url": "https://www.iso.org/standard/62085.html"
+  }
+ ]
+}
