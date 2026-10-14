@@ -1,0 +1,841 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version. The story follows OpenAI's rate-limits guide (read 15 October 2026): a request counts against the token limit when it starts, at the larger of max_tokens and its estimated size. Every number comes from the sim's stated sizes: 1,200 in and 350 out per chat, 2,000 in and 250 out per summary request, a 600,000 token limit, caps of 800, 8,000 and 700. The summary job began in September, after last results night, so that night never met it; quiet nights since Tuesday at 02:00 count 160,000 + 400,000 = 560,000, under the limit."
+ ],
+ "id": "a6e07",
+ "season": 6,
+ "n": 7,
+ "title": "Too Many Questions",
+ "setting": "an admissions hotline on results night",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "rate-limits",
+  "queues",
+  "backpressure-for-model-traffic"
+ ],
+ "prerequisites": [
+  "a1e01",
+  "a1e03",
+  "a2e01",
+  "a6e02",
+  "s4e15",
+  "s6e03"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/results_line_mairead",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 3342,
+  "title": "I run the night shift on a university's admissions line. On results night our provider's page said we used our whole token limit every minute. The bill says we used under a fifth of it. Most students got \"busy, try again\".",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Mairead, night supervisor of the admissions line at Thorncroft University. Exam results went online at 21:00 tonight. Students who missed their place, or want a better one, contact us about the places still free. My staff take the phones. An assistant answers the chat."
+   },
+   {
+    "t": "p",
+    "text": "The assistant runs on a language model, a program that reads text and writes text back (a1e01). We rent it from a provider, a company that runs models and charges for their use."
+   },
+   {
+    "t": "p",
+    "text": "Models read and write in tokens, small pieces of text, often part of a word (a1e03). Each student's message goes to the model with our instructions and the list of courses with places: about 1,200 tokens in. A reply is about 350 tokens out. One message sent to the model, and its reply, is called a request."
+   },
+   {
+    "t": "p",
+    "text": "The provider caps how many tokens we may use in a minute. That is our token limit: 600,000 a minute. It belongs to our project, our account at the provider, which every request goes through. When the limit is used up, the provider refuses the request, and the chat shows the student \"busy, try again\"."
+   },
+   {
+    "t": "p",
+    "text": "Each request also carries an answer cap: the most tokens the model may write back, finished or not. The setting is called max_tokens (a2e01). Ours was 800. On Tuesday Szczepan, our developer, read that a reply stops dead at the cap, and raised it to 8,000 so no answer would ever be cut off. None ever had been."
+   },
+   {
+    "t": "p",
+    "text": "Last results night, a year ago, about 240 questions came in a minute and nobody was turned away. The nights since Tuesday have been quiet, about 20 a minute, and nothing looked wrong."
+   },
+   {
+    "t": "p",
+    "text": "Tonight 240 a minute came, as expected. \"Busy, try again\" started in the first minute. Most students tapped try again a minute later; if that was refused too, they gave up."
+   },
+   {
+    "t": "p",
+    "text": "Here are the first three minutes. Each line shows the minute, requests sent, answered and refused, then two numbers from the provider: tokens counted against our limit, and tokens on our bill."
+   },
+   {
+    "t": "log",
+    "text": "21:00  sent 240  answered 75  refused 165  counted 600,000  billed 116,250\n21:01  sent 405  answered 75  refused 330  counted 600,000  billed 116,250\n21:02  sent 480  answered 75  refused 405  counted 600,000  billed 116,250"
+   },
+   {
+    "t": "p",
+    "text": "It stayed like that. At 02:00 our summary job started, as it has every night since September: it turns the day's chats into notes for the admissions tutors, 200 requests a minute. The questions hadn't slowed. From then on, the chat answered 25 students a minute."
+   },
+   {
+    "t": "beat",
+    "text": "Until 02:00, every minute, the provider's page showed our limit full and the bill showed under a fifth of it used. Something was eating our tokens, and it wasn't the replies."
+   },
+   {
+    "t": "p",
+    "text": "I drew the first minute from the chat's record."
+   },
+   {
+    "t": "evidence",
+    "label": "first_minute_2100.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "The minute from 21:00:00 to 21:01:00. Questions arrive all minute, 240 of them. Questions are let in from 0 to 18.5 seconds; from 18.5 seconds to the end of the minute, 165 are refused with busy. The count against the limit climbs from 0 and is full at 18.5 seconds, when the 75th question brings it to 600,000.",
+     "start": "21:00:00",
+     "seconds": 60,
+     "ticksEvery": 10,
+     "rows": [
+      {
+       "label": "Questions (240)",
+       "gaps": [],
+       "segments": [
+        [
+         0,
+         60,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "Let in (75)",
+       "gaps": [
+        [
+         18.5,
+         60,
+         "165 refused: busy"
+        ]
+       ],
+       "segments": [
+        [
+         0,
+         18.5,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "Count to 600,000",
+       "gaps": [
+        [
+         18.5,
+         60,
+         "full"
+        ]
+       ],
+       "segments": [
+        [
+         0,
+         18.5,
+         "bad"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 18.5,
+       "label": "75th: limit full",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Drawn as if the 240 questions came evenly, one every quarter of a second. Each was counted at 8,000 when it started, so the 75th, 18.5 seconds in, brought the count to 75 x 8,000 = 600,000. The other 165 got busy, try again. Those 75 really used 75 x 1,550 = 116,250 tokens."
+   },
+   {
+    "t": "p",
+    "text": "The line is open until 08:00, and the second round of offers goes out this evening at 21:00. Szczepan is on his way in. What do we change before then?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/gradient_ghost",
+   "points": 188,
+   "age": "4h",
+   "text": "Nothing is eating your tokens. Your provider has two meters, and they measure different things. The bill counts what each request really read and wrote. The limit counts each request too, but not necessarily the same way or at the same moment. A rate limit is the most a project may send in a stretch of time, measured in requests a minute and in tokens a minute (a2e01). Look up exactly how your provider counts a request against the tokens a minute: when, and at what size. Then two questions. How long are your replies really? And how many students a minute can the limit hold under that count?",
+   "replies": [
+    {
+     "author": "u/results_line_mairead",
+     "op": true,
+     "points": 71,
+     "age": "4h",
+     "text": "Szczepan found it on the provider's rate-limits page. A request counts against the limit when it starts, at the larger of its max_tokens and its estimated size, which the provider works out from the length of the text we send. Ours is about 1,200. He also pulled last results night's replies: 99 in 100 were under 520 tokens, and the longest was 640."
+    },
+    {
+     "author": "u/gradient_ghost",
+     "points": 93,
+     "age": "3h",
+     "text": "Two words you may want. A queue is a line inside your own app where requests wait their turn and go out only when there is room, like numbered tickets at a deli counter. A retry is sending a refused request again (a6e02); the provider counts each try. Dead Letter s6e03, The Bouncer, is a companion on limits in general. Whether either belongs here is your call."
+    }
+   ]
+  },
+  {
+   "author": "u/pay_the_tier_brunhilde",
+   "points": 102,
+   "age": "4h",
+   "text": "The limit is simply too small for results night. You've got a whole year of school leavers hitting one chat in the same hour. Pay for a higher tier, the provider's bigger plan with bigger limits: two million tokens a minute and this never happens again. And leave the answer cap alone. Your developer was right; a student asking about their future deserves a whole answer.",
+   "replies": [
+    {
+     "author": "u/results_line_mairead",
+     "op": true,
+     "points": 38,
+     "age": "3h",
+     "text": "The provider's form for a higher limit says requests are reviewed within a few working days. Szczepan has a quicker idea. Every request goes out with our provider key, the secret code that tells the provider whose request it is. He could make five keys in two minutes, and wonders whether each gets its own 600,000."
+    }
+   ]
+  },
+  {
+   "author": "u/still_no_place_akosua",
+   "points": 64,
+   "age": "3h",
+   "text": "I was one of them, at 21:00. Busy, try again. I tapped it a minute later: busy. I gave up and rang, and the phones were engaged. Why doesn't the chat just keep trying for us, straight away, until it gets through? I'd have waited.",
+   "replies": [
+    {
+     "author": "u/results_line_mairead",
+     "op": true,
+     "points": 29,
+     "age": "2h",
+     "text": "I'm sorry. Szczepan says the app could resend each refused request by itself, at once, up to three more times before it shows busy."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "The second round of offers goes out at 21:00 this evening. What should Thorncroft change? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Set the answer cap to what replies need, and queue students at the rate allowed.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Szczepan set the answer cap to 700, above last year's longest reply of 640, and put a queue in the app in front of the provider. Each request now counts at its estimated size, 1,200, because that is larger than 700: 240 a minute count 288,000, under the limit, and up to 500 a minute would fit. The queue counts each request the same way before sending it and holds back anything that would go over. At 21:00 all 240 a minute were answered; nobody saw busy. The bill showed 372,000 a minute, more than the count, because the rule counts 1,200 for a request that uses 1,550. At 02:00 the chat was still busy when the summary job started. The queue sends the live chat first, so all 240 were answered and the job did 156 of its 200 a minute, falling 44 further behind each minute while the rush lasted. And if a minute ever brings 600, the sim shows 500 going out and the rest told their place: 300 waiting by the third minute, about a minute each.",
+    "senior": "On this provider the answer cap is part of your capacity, not just your reply length, because a request counts at the larger of its cap and its estimated size. Set the cap from what replies really need: here 99 in 100 under 520 and the longest 640, so 700, and each request counts 1,200 instead of 8,000. OpenAI's guide says to set max_tokens as close to your expected response size as possible. Then stop sending more than the limit can take: a queue in your own app that counts each request the same way, sends what fits, holds the rest with a set size and an honest message, and puts live chat ahead of batch work."
+   },
+   {
+    "text": "Ask the provider to raise the project's token limit to two million a minute, then wait.",
+    "tone": "warn",
+    "verdict": "Room to waste, days late",
+    "part2": "Szczepan filled in the provider's form on Friday morning. The second round of offers went out that evening on the old limit: 75 answered a minute again, 165 refused in the first minute, 405 a minute once the retries came in. The higher limit arrived the next Wednesday. At 2,000,000 a minute all 240 fit, counted 1,920,000 and billed 372,000: under a fifth of what each minute reserved was ever used. Then at 02:00 the summary job took its 400,000 first, leaving 1,600,000, and 1,600,000 / 8,000 = 200 students were answered a minute and 40 refused, every minute the job ran. We had paid for room to reserve tokens nobody uses.",
+    "senior": "Raising a limit is right when real use is near it. Here real use was under a fifth of the count: the tokens were reserved, not used, by a cap ten times what replies need. A higher limit buys more room to reserve, takes days to arrive, and still leaves live chat and the batch job fighting at 02:00. Fix what each request counts for first, then size the limit to real use, measured over a few busy nights."
+   },
+   {
+    "text": "Retry each refused request at once, so every student gets an answer as soon as possible.",
+    "tone": "bad",
+    "verdict": "Four refusals for one",
+    "part2": "Szczepan made the app resend each refused request at once, up to three more times, before showing busy. At 21:00 the provider still let 75 in a minute. By the time anyone was refused the minute's count was already full, so every resend was refused too. Refusals went from 165 a minute to 660: 735 requests sent for 240 students, and 165 students a minute still gave up, now after four refusals instead of one. The provider's page says unsuccessful requests contribute to the per-minute limit, so continuously resending can't win. We had turned one busy into four.",
+    "senior": "Retrying makes sense for a failure that may clear by itself, with longer waits between tries (a6e02). A full limit doesn't clear until the count frees up, so instant resends are only more refusals. OpenAI's guide warns that unsuccessful requests contribute to your per-minute limit and suggests backoff. Better still, hold the request in your own queue and send it when there is room, so the provider never has to refuse it."
+   },
+   {
+    "text": "Spread the chat across five provider keys, so each key has its own limit to use up.",
+    "tone": "bad",
+    "verdict": "Five doors, one room",
+    "part2": "Szczepan made four more provider keys and spread the requests across all five. At 21:00, 75 were answered and 165 refused; at 21:01, 405 sent and 330 refused; at 21:02, 480 sent and 405 refused, exactly as before. The provider's usage page showed all five keys inside the same project, drawing on the same 600,000 a minute. The keys changed who was knocking, not how big the room was.",
+    "senior": "OpenAI's guide says rate limits are defined at the organization level and at the project level, not user level. It doesn't mention keys, but a key is a way into a project, so another key draws on the same count. Know which level your provider's limits sit at before planning around them, and fix what each request counts for rather than looking for more doors."
+   }
+  ]
+ },
+ "sim": {
+  "module": "a6e07",
+  "title": "Run results night one minute at a time",
+  "lede": "You're Szczepan, replaying results night at Thorncroft one minute at a time. No real model runs here: every size is stated. A student's request is about 1,200 tokens in and 350 out, 1,550 really used. A summary job request is about 2,000 in and 250 out, answer cap 300; from 02:00 the job sends 200 a minute, first in line unless a queue puts the chat ahead. The project's token limit is 600,000 a minute and its request limit 5,000 a minute, never reached here; refused requests count toward the request limit. The counting rule follows OpenAI's page: each request counts when it starts, at the larger of its answer cap and its estimated size, taken here as its tokens in. The contrast rule counts only tokens really used, a simplification of Anthropic's separate input and output counts. The sim counts in whole minutes, each starting afresh; real providers measure the minute their own way. A refused student taps try again the next minute, once; a second refusal gives up. With the queue on, the app sends only what fits, holds the rest up to its size, and tells each student their place. Last results night, 99 in 100 replies were under 520 tokens, the longest 640. You open at 20:59, tonight's settings in place, nothing run.",
+  "tryThis": "Try this: press Run one minute three times and read 75 answered, 165 then 330 then 405 refused, 600,000 counted and 116,250 billed. Turn the summary job on to see 02:00: 25 answered. Play last results night (288,000 counted) and a quiet night (160,000). Then play each reply, and try the queue at 600 a minute, the job ahead of the chat, and the contrast counting rule."
+ },
+ "explain": {
+  "oneLine": "Nothing ate the tokens. This provider counts each request against the limit when it starts, at the larger of its answer cap and its estimated size. On Tuesday the cap went from 800 to 8,000, so every request counted 8,000 while using about 1,550: only 75 fit in a minute, using 116,250, and the other 165 students were told busy.",
+  "steps": [
+   {
+    "title": "Two meters: what is counted and what is billed.",
+    "text": "A rate limit counts two things at once: requests a minute and tokens a minute. Thorncroft's project may send 5,000 requests and 600,000 tokens a minute; on results night only the tokens ran out. The bill is a different meter: it charges for the tokens each request really read and wrote, 1,550 for a student's question. What can go wrong: the two meters disagree, and only one of them turns students away, so a team that watches only the bill sees nothing."
+   },
+   {
+    "title": "Counted at the start, at the larger of two sizes.",
+    "text": "This story follows OpenAI's rule. First a request arrives. Then the provider estimates its size from the length of the text sent, about 1,200 tokens here. Then it takes the larger of that and the request's max_tokens, the answer cap, and adds it to the minute's count. If the count would pass the limit, the request is refused. At a cap of 8,000 each request counted 8,000 and used 1,550, so 600,000 / 8,000 = 75 fit a minute, really using 75 x 1,550 = 116,250. What can go wrong: a setting chosen for answer length quietly decides how many people you can serve. And the rule cuts both ways: at a cap of 700 a request counts 1,200 but uses 1,550, so the bill can be larger than the count."
+   },
+   {
+    "title": "Set the answer cap from what replies need.",
+    "text": "Look at real replies before choosing. Last results night, 99 in 100 were under 520 tokens and the longest was 640, so a cap of 800 never cut one and a cap of 700 cuts none. Each request then counts at its estimated size, 1,200, so 600,000 / 1,200 = 500 fit a minute, more than twice results night's 240. OpenAI's guide says to set max_tokens as close to your expected response size as possible. What can go wrong: a cap set too tight cuts real answers mid-sentence. Count how often replies stop at the cap, and raise it on that evidence, not on fear."
+   },
+   {
+    "title": "Hold the overflow in your own queue.",
+    "text": "Refusals don't make demand go away; they come back as retries. Instead, first the app counts each request the way the provider does. Then it sends what fits in this minute's room. Then it holds the rest in a queue and tells each student their place. Holding work back before the busy part, instead of letting it be refused there, is backpressure (Dead Letter s4e15). Give the queue a set size, here 2,000 students, so it is a bounded queue, and beyond it say plainly that the line is full. At 600 a minute and a cap of 700, 500 go out each minute and 100 more wait: 300 by the third minute, about a minute's wait for the last. What can go wrong: a queue with no size only moves the pile into your own app, and a student told nothing assumes you're closed."
+   },
+   {
+    "title": "Live work goes ahead of batch work.",
+    "text": "The summary job is batch work: nobody is waiting on it. A student is live work. At 02:00 the job sends 200 requests a minute, each counted at 2,000, 400,000 in all. On the quiet nights since Tuesday the two fit together, 160,000 + 400,000 = 560,000, which is why nothing showed. Tonight, as built, the job went first and left 200,000: 25 students a minute at 8,000 each. With the queue and live chat first, the chat counts 288,000 and the job gets the rest, 156 of its 200 a minute, falling 44 further behind each minute while the rush lasts. With the job first instead, only 166 students a minute get through and 74 more wait each minute. What can go wrong: always serving the chat first can starve the job if the rush never ends, so watch how far behind it falls. Some providers also offer batch services with limits of their own, which may suit a job like this better."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 760,
+   "h": 300,
+   "aria": "The fix. The students' chat, 240 a minute with an answer cap of 700, and the summary job, 200 a minute from 02:00, both feed one queue in the app. The queue sends live chat first and holds up to 2,000 waiting, sending only what fits. It feeds the provider, whose project limit is 600,000 tokens a minute, with each chat request counted at 1,200.",
+   "nodes": [
+    {
+     "id": "chat",
+     "label": "Students' chat",
+     "sub": "240 a minute, cap 700",
+     "x": 110,
+     "y": 80,
+     "w": 180,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "job",
+     "label": "Summary job",
+     "sub": "200 a minute from 02:00",
+     "x": 110,
+     "y": 220,
+     "w": 180,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "queue",
+     "label": "Queue in the app",
+     "sub": "live chat first",
+     "meta": "up to 2,000 waiting",
+     "x": 380,
+     "y": 150,
+     "w": 190,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "provider",
+     "label": "Provider",
+     "sub": "600,000 tokens a minute",
+     "meta": "each chat counted 1,200",
+     "x": 635,
+     "y": 150,
+     "w": 190,
+     "h": 72,
+     "shape": "cloud",
+     "tone": ""
+    }
+   ],
+   "edges": [
+    {
+     "from": "chat",
+     "to": "queue"
+    },
+    {
+     "from": "job",
+     "to": "queue",
+     "dash": true,
+     "tone": "muted"
+    },
+    {
+     "from": "queue",
+     "to": "provider"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the second round of offers. The chat and the summary job both go through one queue in the app, which counts each request the way the provider does and sends only what fits in the minute: the chat first, each counted at 1,200, then the job. 240 x 1,200 = 288,000 for the chat; the job gets the rest of the 600,000.",
+  "fix": {
+   "title": "The fix: an answer cap from real replies, and a queue that sends what fits",
+   "text": "Set the answer cap from what replies really need: 700, above last year's longest reply of 640. Each chat request then counts at its estimated size, 1,200, so 240 a minute count 288,000 and up to 500 a minute fit. Put a queue in the app in front of the provider. It counts each request the way the provider does, sends only what fits in the minute, holds the rest up to 2,000 students, tells each student their place, and says plainly when it is full. It sends the live chat ahead of the summary job, which takes what is left. Watch three numbers every busy night: tokens counted, tokens billed, and how many replies stop at the cap."
+  },
+  "limits": [
+   "The sim counts in whole minutes that start afresh. Real providers may measure over shorter stretches or refill as they go; Anthropic's page says it uses a token bucket that refills continuously. A queue that sends a whole minute's room at once can still hit a limit enforced over seconds, so spread the releases through the minute.",
+   "The app's count is an estimate. The provider works out size from the text sent, and your app can't match that exactly, so keep some room under the limit and treat any refusal that still comes as a sign to slow the queue down.",
+   "A cap of 700 fits last year's replies. If the chat starts doing longer work, such as reading personal statements, measure again: a new kind of request needs its own cap and its own count."
+  ],
+  "tradeoff": {
+   "head": [
+    "Plan",
+    "Answered a minute, 21:00",
+    "Refused a minute",
+    "Counted",
+    "Billed",
+    "At 02:00, with the job"
+   ],
+   "rows": [
+    [
+     "Last results night (cap 800, before the summary job)",
+     "240",
+     "0",
+     "288,000",
+     "372,000",
+     "No job then"
+    ],
+    [
+     "Tonight (cap 8,000)",
+     "75",
+     "165, then 405 with retries",
+     "600,000",
+     "116,250",
+     "25 answered"
+    ],
+    [
+     "Token limit 2,000,000",
+     "240",
+     "0",
+     "1,920,000",
+     "372,000",
+     "200 answered, 40 refused"
+    ],
+    [
+     "Retry at once",
+     "75",
+     "660",
+     "600,000",
+     "116,250",
+     "25 answered, 860 refused"
+    ],
+    [
+     "Five provider keys",
+     "75",
+     "165, then 405 with retries",
+     "600,000",
+     "116,250",
+     "25 answered"
+    ],
+    [
+     "Cap 700 and a queue, live chat first",
+     "240",
+     "0",
+     "288,000",
+     "372,000",
+     "240 answered; job 156 of 200"
+    ],
+    [
+     "Cap 700 and a queue, job first",
+     "240",
+     "0",
+     "288,000",
+     "372,000",
+     "166 answered; 74 more wait each minute"
+    ]
+   ]
+  },
+  "seniorTake": "When a model provider refuses requests, look at two numbers before anything else: what the limit counted and what you really used. If they are far apart, the problem is how each request is counted, not the size of the limit. Providers count differently, so read your own provider's page: OpenAI's counts each request when it starts, at the larger of max_tokens and its estimated size, while Anthropic's counts output only as it is produced. On a provider like the first, the answer cap is a capacity setting, so set it from real replies. Then never send more than the limit can take: a bounded queue in your own app that counts requests the same way, sends what fits, tells people their place, and serves live work ahead of batch work. A higher limit, more keys or faster retries each look like more room; the first only helps once real use is near the limit, and the other two add none.",
+  "realWorld": [
+   {
+    "title": "OpenAI: how a request is counted",
+    "text": "Under Reduce the max_tokens to match the size of your completions, OpenAI's rate-limits guide says: Your rate limit is calculated as the maximum of max_tokens and the estimated number of tokens based on the character count of your request. Try to set the max_tokens value as close to your expected response size as possible.",
+    "source": 0
+   },
+   {
+    "title": "OpenAI: requests and tokens, by the minute",
+    "text": "The guide measures rate limits in RPM (requests per minute), RPD (requests per day), TPM (tokens per minute), TPD (tokens per day) and IPM (images per minute). Thorncroft hit TPM long before RPM.",
+    "source": 0
+   },
+   {
+    "title": "OpenAI: limits sit at organisation and project level",
+    "text": "The guide says rate limits are defined at the organization level and at the project level, not user level. It does not mention keys; a key is a way into a project, so another key draws on the same count.",
+    "source": 0
+   },
+   {
+    "title": "OpenAI: resending is counted too",
+    "text": "The guide says unsuccessful requests contribute to your per-minute limit, so continuously resending a request won't work, and describes exponential backoff: waiting briefly after an unsuccessful request, then increasing the delay.",
+    "source": 0
+   },
+   {
+    "title": "Anthropic: the contrast, output counted as produced",
+    "text": "Anthropic's rate-limits page says OTPM rate limits are evaluated in real time as output tokens are produced, counting only the actual tokens generated, and that max_tokens does not factor into OTPM. Input limits are estimated at the beginning of each request and adjusted during it. On that rule, Thorncroft's 8,000 cap would have cost no room.",
+    "source": 1
+   },
+   {
+    "title": "Anthropic: a token bucket, not a fixed minute",
+    "text": "The same page says the API uses the token bucket algorithm, so capacity is continuously replenished up to your maximum limit, rather than being reset at fixed intervals. Limits are set at the organization level, with optional lower limits per workspace.",
+    "source": 1
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do tokens-per-minute limits work?",
+    "How would you handle a spike to an LLM API?",
+    "How do you put live traffic ahead of batch?"
+   ],
+   "answer": "A provider usually limits a project in requests per minute and tokens per minute, and for model traffic the token limit is usually the one that bites first. The detail that matters is how a request is counted. OpenAI's guide counts it when it starts, at the larger of max_tokens and the estimated size of the input; Anthropic counts output only as it is produced. So on the first kind, max_tokens is a capacity setting: set it from real replies, a little above the longest, and compare tokens counted with tokens billed to catch waste. For a spike, I wouldn't let the provider do the refusing. I'd put a bounded queue in my own service that counts each request the way the provider does and sends only what fits in each window, spread through the window, holding the rest and telling users their place, with a clear full message past the queue's size. Retries go through the same queue with backoff, never straight back at a full limit, because refused requests can count too. For live against batch, I'd give live traffic priority in that queue and let batch work take what's left, watching how far behind it falls, or move it to the provider's batch service if there is one. Only after that would I ask for a higher limit, sized to real use."
+  }
+ },
+ "terms": [
+  {
+   "term": "Admissions line",
+   "def": "A university's phone and chat line for people applying for a place. Thorncroft's stays open all night on results night, staff on the phones and an assistant on the chat."
+  },
+  {
+   "term": "Results night",
+   "def": "The night exam results come out. Students who missed their place, or want a better one, ask universities about the places still free."
+  },
+  {
+   "term": "Language model",
+   "def": "A program that reads text and writes text back, one likely word at a time, like a phone's next-word suggestions grown huge (a1e01)."
+  },
+  {
+   "term": "Provider",
+   "def": "A company that runs language models and sells their use, billed by the token (a1e03)."
+  },
+  {
+   "term": "Token",
+   "def": "A small piece of text, often part of a word, that a model reads or writes (a1e03)."
+  },
+  {
+   "term": "Request",
+   "def": "One message sent to the model, with its instructions, and the reply that comes back. A Thorncroft chat request is about 1,200 tokens in and 350 out."
+  },
+  {
+   "term": "Project",
+   "def": "An account inside a provider that requests go through, with its own limits and bill. Thorncroft's chat and summary job share one."
+  },
+  {
+   "term": "Organisation",
+   "def": "A provider's top-level account, which owns projects and the bill. OpenAI sets limits at organisation and project level; Anthropic at organisation level, with optional workspace limits."
+  },
+  {
+   "term": "Rate limit",
+   "def": "The most a project may send in a stretch of time, counted in requests a minute and tokens a minute (a2e01). Requests over it are refused."
+  },
+  {
+   "term": "Token limit",
+   "def": "The tokens-a-minute part of a rate limit, also called TPM. Thorncroft's project: 600,000 tokens a minute."
+  },
+  {
+   "term": "Request limit",
+   "def": "The requests-a-minute part of a rate limit, also called RPM. Thorncroft's is 5,000 a minute, never reached on results night."
+  },
+  {
+   "term": "Answer cap (max_tokens)",
+   "def": "The most tokens a model may write in one reply, finished or not, set by max_tokens (a2e01). Thorncroft's was 800, then 8,000 from Tuesday; the fix is 700."
+  },
+  {
+   "term": "Estimated size",
+   "def": "The provider's guess at a request's tokens, worked out from the length of the text sent, before the model runs. About 1,200 for a Thorncroft chat request."
+  },
+  {
+   "term": "Counted tokens",
+   "def": "What the provider sets against the token limit when a request starts. On OpenAI's rule, the larger of the answer cap and the estimated size."
+  },
+  {
+   "term": "Billed tokens",
+   "def": "The tokens a request really read and wrote, which the bill charges for. 1,550 for a Thorncroft chat request."
+  },
+  {
+   "term": "Busy, try again",
+   "def": "What Thorncroft's chat shows a student when the provider refuses their request. Most tapped try again a minute later, once."
+  },
+  {
+   "term": "Retry",
+   "def": "Sending a refused or failed request again (a6e02). Worth it for failures that clear by themselves; the provider counts each try."
+  },
+  {
+   "term": "Backoff",
+   "def": "Waiting longer after each failed try before the next one, so retries don't pile onto a full limit (a6e02)."
+  },
+  {
+   "term": "Exponential backoff",
+   "def": "Backoff where each wait doubles: 1, 2, 4, 8 seconds (a6e02). OpenAI's guide describes it for requests refused by a rate limit."
+  },
+  {
+   "term": "Workspace",
+   "def": "Anthropic's name for a group inside an organisation that can be given lower limits of its own, so one team can't use up everyone's room."
+  },
+  {
+   "term": "Provider key",
+   "def": "The secret code sent with each request so the provider knows whose it is: the API key of a2e01. A key is a way into a project, not a limit of its own."
+  },
+  {
+   "term": "Tier",
+   "def": "A provider's plan for an account, which sets its limits (a2e01). Thorncroft's provider reviews a request for a higher limit within a few working days."
+  },
+  {
+   "term": "Queue",
+   "def": "A line inside your own app where requests wait their turn and go out when there is room, like numbered tickets at a deli counter."
+  },
+  {
+   "term": "Bounded queue",
+   "def": "A queue with a set maximum size (s4e15). Thorncroft's holds 2,000 students; beyond that, the chat says plainly that the line is full."
+  },
+  {
+   "term": "Backpressure",
+   "def": "Holding work back before the busy part, or telling senders to slow down, so the backlog can't grow without limit (s4e15)."
+  },
+  {
+   "term": "Place in the queue",
+   "def": "A waiting student's position, shown to them, with a rough wait: places ahead divided by how many go out a minute."
+  },
+  {
+   "term": "Live work",
+   "def": "Work a person is waiting on right now, such as a student's chat."
+  },
+  {
+   "term": "Batch work",
+   "def": "Work done in bulk with nobody waiting on each piece, such as the summary job. It can wait for room."
+  },
+  {
+   "term": "Summary job",
+   "def": "Thorncroft's overnight task, running since September: from 02:00 it turns the day's chats into notes for the tutors, 200 requests a minute, each about 2,000 tokens in."
+  },
+  {
+   "term": "Priority",
+   "def": "Which waiting work goes first. In Thorncroft's fixed queue, live chat first, then the summary job."
+  },
+  {
+   "term": "Starve",
+   "def": "To leave some work waiting a very long time, or for ever, because other work is always served first (s4e15)."
+  },
+  {
+   "term": "Token bucket",
+   "def": "A limiter that holds a stock of allowance, refilled at a steady rate; each request spends some, and with none left it is refused (s6e03). Anthropic's API uses one."
+  },
+  {
+   "term": "Batch service",
+   "def": "A provider's separate way to send bulk requests that finish later, with limits of its own. Anthropic's Message Batches API is one."
+  },
+  {
+   "term": "OpenAI",
+   "def": "An AI company that runs language models. Its rate-limits guide gives the counting rule this story follows."
+  },
+  {
+   "term": "Anthropic",
+   "def": "An AI company that runs the Claude models. Its rate-limits page counts output tokens only as they are produced: the contrast in this case."
+  },
+  {
+   "term": "LLM",
+   "def": "Short for large language model: a language model trained on a huge amount of text, the kind providers sell."
+  },
+  {
+   "term": "API",
+   "def": "Application programming interface: the agreed way one program asks another for something, like an order form at a counter (a2e01). Providers offer one for models."
+  },
+  {
+   "term": "Build Night G6",
+   "def": "The course's hands-on build of timeouts, retries with backoff and jitter, a circuit breaker and a token bucket."
+  },
+  {
+   "term": "ISO/IEC 27001:2022",
+   "def": "The international standard for information security management. Annex A control 8.6, capacity management, asks you to watch resource use and adjust it to today's and tomorrow's needs."
+  },
+  {
+   "term": "ISO 9001:2015",
+   "def": "The international standard for quality management. Clause 9.1 covers monitoring, measuring, analysing and evaluating how well a service performs."
+  }
+ ],
+ "atWork": "Look for a model feature behind a token limit whose output setting was chosen for safety rather than measured: a max_tokens of 4,000 or 8,000 on replies that are usually a few hundred tokens. It is a common pattern. On a provider that counts each request at the larger of max_tokens and its estimated size, that setting quietly shrinks how many requests fit, and the first sign is a busy day full of refusals while the bill looks small. Ask four things. How does our provider count a request against the limit, and when? What do our replies really need, and how often do they stop at the cap? Does anything in our own service hold requests back and send them at the rate the limit allows, or do we let the provider refuse them? And when live users and a batch job share one project, which goes first? Standards-readiness note: if your organisation is certified to ISO/IEC 27001:2022 or working toward it, Annex A control 8.6, capacity management, expects resource use to be monitored and adjusted to current and expected needs; a provider's token limit is one of those resources, and counted against billed tokens is the measure to watch. If you work to ISO 9001:2015, clause 9.1 expects you to decide what to monitor and measure; refusals per minute on a live line belong on that list. Building this in from the first design costs far less than finding it on results night. Build Night G6 builds the token bucket behind limits like these.",
+ "board": {
+  "cards": [
+   {
+    "id": "rate-limits",
+    "title": "Rate limits"
+   },
+   {
+    "id": "queues",
+    "title": "Queues"
+   },
+   {
+    "id": "backpressure-for-model-traffic",
+    "title": "Backpressure for model traffic"
+   }
+  ],
+  "strings": [
+   {
+    "from": "rate-limits",
+    "to": "tokens",
+    "label": "counted in tokens"
+   },
+   {
+    "from": "rate-limits",
+    "to": "retries",
+    "label": "resends count too"
+   },
+   {
+    "from": "queues",
+    "to": "backpressure-for-model-traffic",
+    "label": "hold, don't refuse"
+   },
+   {
+    "from": "rate-limits",
+    "to": "token-economics",
+    "label": "counted vs billed"
+   },
+   {
+    "from": "rate-limits",
+    "to": "versioning-prompts",
+    "label": "next: prompts"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "a6e07-r1",
+   "kind": "free",
+   "prompt": "Your support chatbot's provider allows your project 300,000 tokens a minute. Each request is about 1,000 tokens in and 200 out, and the code sets max_tokens to 4,000. At 100 requests a minute, about a quarter are refused, yet the bill shows only about 90,000 tokens a minute. What is going on, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "Each request is counted against the limit when it starts, at its max_tokens, not at what it really uses",
+     "match": [
+      "counted at",
+      "counts at",
+      "reserved",
+      "reserves",
+      "when it starts",
+      "at the start",
+      "up front",
+      "upfront"
+     ]
+    },
+    {
+     "idea": "Set max_tokens close to what replies really need",
+     "match": [
+      "lower max_tokens",
+      "reduce max_tokens",
+      "cut max_tokens",
+      "lower the answer cap",
+      "what replies need",
+      "what answers need",
+      "real replies",
+      "expected response"
+     ]
+    },
+    {
+     "idea": "Hold extra requests in your own queue and send them at the rate the limit allows",
+     "match": [
+      "queue",
+      "backpressure",
+      "hold them",
+      "hold the rest",
+      "rate the limit allows",
+      "send only what fits"
+     ]
+    }
+   ],
+   "model": "The provider counts each request against the limit when it starts, at the larger of max_tokens and its estimated size, so each one counts at 4,000, not the 1,200 it really uses. 300,000 / 4,000 = 75 fit a minute and 25 are refused, while those 75 really use 75 x 1,200 = 90,000. I'd lower max_tokens to what replies need, checked against real replies and set a little above the longest; then each request counts at about 1,000, its estimated size, and up to 300 fit a minute. And I'd put a queue in front that counts the same way and sends only what fits, so a spike waits its turn instead of being refused."
+  },
+  {
+   "id": "a6e07-r2",
+   "kind": "mcq",
+   "prompt": "A project's limit is 600,000 tokens a minute. The provider counts each request when it starts, at the larger of max_tokens and its estimated size. Each request is about 1,200 tokens in and uses about 1,550 in all. With max_tokens at 8,000, how many requests fit in a minute?",
+   "options": [
+    "500",
+    "75",
+    "387",
+    "600"
+   ],
+   "answer": 1,
+   "why": "Each request counts max(8,000, 1,200) = 8,000, so 600,000 / 8,000 = 75. 500 is the answer with a cap below 1,200, 387 would be counting the 1,550 really used, and 600 counts each request as 1,000."
+  },
+  {
+   "id": "a6e07-r3",
+   "kind": "free",
+   "prompt": "A chat assistant and a nightly batch job that writes product descriptions share one project's token limit. The job starts at 01:00 and sends as fast as it can. Since it was added, night-shift users of the chat see more refusals between 01:00 and 03:00. How would you share the limit between them?",
+   "keyIdeas": [
+    {
+     "idea": "Live chat goes first; the batch job only uses what is left",
+     "match": [
+      "live first",
+      "chat first",
+      "ahead of",
+      "priority",
+      "before the batch",
+      "what is left",
+      "what's left",
+      "leftover"
+     ]
+    },
+    {
+     "idea": "Send both through one queue in your own service at the rate the limit allows",
+     "match": [
+      "queue",
+      "rate the limit allows",
+      "only what fits",
+      "spare room",
+      "quieter hours",
+      "off-peak"
+     ]
+    },
+    {
+     "idea": "Watch how far behind the job falls, or move it to a separate batch service or time",
+     "match": [
+      "how far behind",
+      "falls behind",
+      "watch the backlog",
+      "separate batch",
+      "batch service",
+      "batch api",
+      "move the job"
+     ]
+    }
+   ],
+   "model": "Live chat has a person waiting; the job doesn't. I'd put both behind one queue in our own service that counts requests the way the provider does and sends only what fits each minute, chat first, with the job getting what is left. On a busy night the job falls behind and catches up when the chat quietens, so I'd watch how far behind it falls and alert if it won't finish by morning. If the provider offers a separate batch service with its own limits, the job may belong there instead."
+  },
+  {
+   "id": "a6e07-r4",
+   "kind": "mcq",
+   "prompt": "From 21:00 Thorncroft's provider page showed all 600,000 tokens counted every minute, while the bill showed about 116,000. Why?",
+   "options": [
+    "The provider billed those minutes wrongly",
+    "Students' retries were billed at a lower rate",
+    "Each request was counted at its 8,000 answer cap when it started, but really used about 1,550",
+    "The summary job used the rest of the limit"
+   ],
+   "answer": 2,
+   "why": "This provider counts each request at the larger of max_tokens and its estimated size when it starts. With a cap of 8,000, 75 requests filled the 600,000, and those 75 really used 75 x 1,550 = 116,250. The summary job only starts at 02:00."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 3 weeks later. Both later results nights went smoothly: answer cap 700, the queue in front, nobody refused. Now the admissions tutors want a second tool on the same project: a personal statement checker. Each request sends a student's whole statement and instructions, about 6,000 tokens in, and asks for about 400 out, with an answer cap of 1,000. They expect about 30 a minute, on the same nights the chat runs at 240.",
+  "prompt": "Reply to OP. How will the provider count the checker's requests, does everything fit, and what must the queue know?",
+  "keyIdeas": [
+   {
+    "idea": "Each checker request counts at its estimated size, about 6,000, because that is larger than its cap: 180,000 tokens a minute",
+    "match": [
+     "6,000 each",
+     "180,000 tokens",
+     "180,000 a minute",
+     "its estimated size",
+     "larger than its cap",
+     "larger than the cap"
+    ]
+   },
+   {
+    "idea": "With the chat's 288,000, that is 468,000 a minute, under the 600,000 limit",
+    "match": [
+     "468,000 tokens",
+     "468,000 a minute",
+     "under the limit",
+     "room left",
+     "within the limit"
+    ]
+   },
+   {
+    "idea": "The queue must count each kind of request by its own rule; the most chats that fit drops to 350 a minute",
+    "match": [
+     "350 a minute",
+     "350 chats",
+     "its own rule",
+     "each kind",
+     "per kind",
+     "fewer chats"
+    ]
+   }
+  ],
+  "model": "The provider counts each checker request when it starts, at the larger of its cap, 1,000, and its estimated size, about 6,000, so 6,000 each: its estimated size wins, and 30 a minute count 180,000 tokens a minute. The chat's 240 still count 288,000, so together 468,000 tokens a minute, under the limit with 132,000 room left. The queue must count each kind of request by its own rule, not assume 1,200 for everything: the most chats that fit beside the checker drops from 500 to 350 a minute, (600,000 - 180,000) / 1,200. Keep the chat first and the checker behind it, and since statements vary in length, count each one from its own size."
+ },
+ "next": "Next, Prompts Are Code: a print shop, and keeping prompts like code: versions, settings, careful rollouts and switches for prompt changes.",
+ "sources": [
+  {
+   "title": "OpenAI, API documentation, Rate limits, read 15 October 2026: limits measured in RPM, RPD, TPM, TPD and IPM; Rate limits are defined at the organization level and at the project level, not user level; Your rate limit is calculated as the maximum of max_tokens and the estimated number of tokens based on the character count of your request; Try to set the max_tokens value as close to your expected response size as possible; unsuccessful requests contribute to your per-minute limit, so continuously resending a request won't work.",
+   "url": "https://developers.openai.com/api/docs/guides/rate-limits"
+  },
+  {
+   "title": "Anthropic, Claude API documentation, Rate limits, read 15 October 2026: limits set at the organization level, with optional workspace limits; the token bucket algorithm, capacity continuously replenished; ITPM estimated at the beginning of each request and adjusted during it; OTPM evaluated in real time as output tokens are produced, counting only the actual tokens generated; max_tokens does not factor into OTPM; the Message Batches API has its own rate limits.",
+   "url": "https://platform.claude.com/docs/en/api/rate-limits"
+  },
+  {
+   "title": "ISO/IEC 27001:2022, Information security management systems, Requirements: Annex A control 8.6, capacity management",
+   "url": "https://www.iso.org/standard/27001"
+  },
+  {
+   "title": "ISO 9001:2015, Quality management systems, Requirements: clause 9.1, monitoring, measurement, analysis and evaluation",
+   "url": "https://www.iso.org/standard/62085.html"
+  }
+ ]
+}
