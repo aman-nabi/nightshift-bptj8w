@@ -1,0 +1,899 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-14) main-session review: the post now explains a process before the options use it; the ok option says waiting work instead of I/O waits",
+  "v1.0.0 (2026-10-14) first version"
+ ],
+ "id": "s5e10",
+ "season": 5,
+ "n": 10,
+ "title": "Threads, Processes, Coroutines",
+ "setting": "a circus with too many acts",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "concurrency-models-compared"
+ ],
+ "prerequisites": [
+  "s5e01",
+  "s5e03",
+  "s1e08",
+  "s1e07"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/ticket_wagon_jadwiga",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 2386,
+  "title": "I run the box office for a touring circus. We gave our seat-finder eight pairs of hands. On Friday it sold seats slower than it did with one.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Jadwiga, box-office manager of the Tarravane Circus. We play a new town every three weeks. Each town's tickets go on sale online at 19:00 on a Friday."
+   },
+   {
+    "t": "p",
+    "text": "When you pick a show on our site, your phone asks a program of ours for a picture of the best free seats, the seat map. A program that runs all the time and answers questions is called a service. Each question is called a request."
+   },
+   {
+    "t": "p",
+    "text": "Ignatz writes our software. He built the seat-map service in a popular language for writing programs, called Python. A running copy of a program is called a process."
+   },
+   {
+    "t": "p",
+    "text": "It runs on one machine. Its CPU, the chip that does the computing, has four cores: four smaller processors that can each work at the same moment."
+   },
+   {
+    "t": "p",
+    "text": "Finding seats is pure arithmetic. Each request takes about 120 ms (thousandths of a second) of CPU work and waits on nothing else. So one worker can answer about 8 requests a second."
+   },
+   {
+    "t": "p",
+    "text": "Inside a program, a line of work that does one task at a time is called a thread. A fixed set of threads that each take the next request from a shared line is a thread pool, like ticket windows each serving the next person."
+   },
+   {
+    "t": "p",
+    "text": "A request goes in steps. First it waits in line until a thread is free. Then that thread works out the best seats, about 120 ms of arithmetic. Last, it sends the seat map back and takes the next request."
+   },
+   {
+    "t": "p",
+    "text": "Until Wednesday the pool had one thread. Then Ignatz raised it to eight, \"two for each core, to use all four\". Here is his change. The first line sets how many threads the pool has; the last two say what each request runs:"
+   },
+   {
+    "t": "log",
+    "text": "pool = ThreadPoolExecutor(max_workers=8)   # was 1\ndef seat_map(show_id):\n    return best_seats(load_plan(show_id))  # about 120 ms of CPU"
+   },
+   {
+    "t": "p",
+    "text": "Thursday was an ordinary evening, about 3 requests a second. Every seat map came back in 0.12 seconds, as always."
+   },
+   {
+    "t": "p",
+    "text": "Three weeks ago, in Corvanne, the on-sale brought 12 requests a second for two minutes, 1,440 in all. Before that, no on-sale had passed about 6 a second. One thread couldn't keep up, and requests waited in a line called the queue. That's why Ignatz added threads."
+   },
+   {
+    "t": "p",
+    "text": "On Friday, Wexbury's on-sale brought the same: 12 a second from 19:00 to 19:02. We watch it on a screen of live numbers about the service, called the dashboard."
+   },
+   {
+    "t": "p",
+    "text": "It shows how many seat maps go out each second, called the throughput. It also shows how long the newest one waited from asking to answer, called the latency. Each line below is one on-sale at 19:02:00: the town, the threads, seat maps sent, requests waiting, sent a second, and the newest wait:"
+   },
+   {
+    "t": "log",
+    "text": "Corvanne  1 thread   1,000 sent  439 waiting  8.33/s  36.75 s\nWexbury   8 threads    895 sent  537 waiting  7.46/s  45.37 s"
+   },
+   {
+    "t": "beat",
+    "text": "Eight pairs of hands. Fewer seats sold."
+   },
+   {
+    "t": "p",
+    "text": "Wexbury's queue only emptied at 19:03:12, and the longest anyone waited was 72.30 seconds. Ignatz's log says each one now takes 1.06 seconds from the moment a thread picks it up, not 0.12. People sat watching a spinning wheel while we had more acts in the ring than ever."
+   },
+   {
+    "t": "p",
+    "text": "The next town's tickets go on sale in three weeks. What should Ignatz change?"
+   },
+   {
+    "t": "evidence",
+    "label": "onsale_dashboard_1902.png",
+    "diagram": {
+     "type": "arch",
+     "w": 740,
+     "h": 270,
+     "aria": "Two on-sales at 19:02:00, each with 1,440 requests asked at 12 a second. Corvanne, one thread at 0.12 s each: 1,000 seat maps sent, 439 waiting, 8.33 a second, newest wait 36.75 s. Wexbury, eight threads at 1.06 s each with a tenth of the time spent switching: 895 sent, 537 waiting, 7.46 a second, newest wait 45.37 s.",
+     "nodes": [
+      {
+       "id": "askC",
+       "label": "Corvanne",
+       "sub": "1,440 asked",
+       "meta": "12 a second",
+       "x": 110,
+       "y": 70,
+       "w": 180,
+       "h": 72,
+       "shape": "box"
+      },
+      {
+       "id": "poolC",
+       "label": "1 thread",
+       "sub": "0.12 s each",
+       "meta": "no switching",
+       "x": 370,
+       "y": 70,
+       "w": 180,
+       "h": 72,
+       "shape": "box"
+      },
+      {
+       "id": "sentC",
+       "label": "1,000 sent",
+       "sub": "8.33 a second",
+       "meta": "newest wait 36.75 s",
+       "x": 630,
+       "y": 70,
+       "w": 180,
+       "h": 72,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "askW",
+       "label": "Wexbury",
+       "sub": "1,440 asked",
+       "meta": "12 a second",
+       "x": 110,
+       "y": 200,
+       "w": 180,
+       "h": 72,
+       "shape": "box"
+      },
+      {
+       "id": "poolW",
+       "label": "8 threads",
+       "sub": "1.06 s each",
+       "meta": "a tenth switching",
+       "x": 370,
+       "y": 200,
+       "w": 180,
+       "h": 72,
+       "shape": "box",
+       "tone": "bad"
+      },
+      {
+       "id": "sentW",
+       "label": "895 sent",
+       "sub": "7.46 a second",
+       "meta": "newest wait 45.37 s",
+       "x": 630,
+       "y": 200,
+       "w": 180,
+       "h": 72,
+       "shape": "box",
+       "tone": "bad"
+      }
+     ],
+     "edges": [
+      {
+       "from": "askC",
+       "to": "poolC",
+       "label": "439 wait"
+      },
+      {
+       "from": "poolC",
+       "to": "sentC"
+      },
+      {
+       "from": "askW",
+       "to": "poolW",
+       "label": "537 wait",
+       "tone": "bad"
+      },
+      {
+       "from": "poolW",
+       "to": "sentW",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Both on-sales at 19:02:00, two minutes in, with the same 1,440 requests. One thread at Corvanne sent 1,000. Eight threads at Wexbury sent 895, each taking 1.06 seconds instead of 0.12, and 537 requests were still in the queue."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 142,
+   "age": "5h",
+   "text": "The standard Python program has a catch. It lets only one thread run Python code at a time, like one stove ring shared by every cook. That rule is called the global interpreter lock, the GIL. Passing the ring from one thread to the next costs a little time on every pass, and that is called switching. So, questions. While the queue was long, how busy was each core: one at 100%, all four at 25%, or all four at 100%? Does a request ever stop to wait for something, like a disk or another machine? And how much of the time went on switching?",
+   "replies": [
+    {
+     "author": "u/ticket_wagon_jadwiga",
+     "op": true,
+     "points": 51,
+     "age": "4h",
+     "text": "Ignatz checked. At both on-sales the four cores together did one core's worth of work, about 25% each. Nothing waits: the seating plans are kept in memory. He also ran a tool that shows where a program's time goes, called a profiler. It says about a tenth of Friday's went on switching."
+    },
+    {
+     "author": "u/grey_pager",
+     "points": 77,
+     "age": "4h",
+     "text": "Two more words, then. Waiting for a disk or a network is called I/O, short for input and output, and a thread waiting on I/O hands the GIL back while it waits. And one running copy of a program, with its own memory, is called a process. One program can start several of them."
+    }
+   ]
+  },
+  {
+   "author": "u/more_hands_pilar",
+   "points": 88,
+   "age": "4h",
+   "text": "Eight was too few. More threads is always more throughput. Look at that 1.06 seconds: each request is stuck behind seven others because only eight windows are open. I've run box offices for big tours, and when the line backs up you open more windows. Make it 32 and the line will move."
+  },
+  {
+   "author": "u/never_wait_klementyna",
+   "points": 63,
+   "age": "3h",
+   "text": "Threads are the old way. Python can let one thread put a request down whenever it has to wait, and pick up another. You mark the code that answers a request with the word async, and put await in front of anything slow. One thread runs all of it, taking the next ready request, running it, then taking the next, like one waiter serving every table. No switching between threads, and nothing ever sits waiting."
+  },
+  {
+   "author": "u/rewrite_it_dragomir",
+   "points": 47,
+   "age": "3h",
+   "text": "Python is the wrong tool for this. Go, another language for writing programs, has cheap threads that Go itself spreads across every core at once. They're called goroutines. No GIL anywhere. Rewrite the service in Go and this problem is gone for good.",
+   "replies": [
+    {
+     "author": "u/ticket_wagon_jadwiga",
+     "op": true,
+     "points": 22,
+     "age": "2h",
+     "text": "Ignatz has never written Go. best_seats has six years of our seating rules in it: wheelchair spaces, the pillars at Corvanne, families kept together."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "The next town's tickets go on sale in three weeks, at about 12 requests a second again. What should Ignatz change? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Raise the thread count from 8 to 32, so more seat maps are worked on at the same time.",
+    "tone": "bad",
+    "verdict": "More hands, the same one turn",
+    "part2": "Ignatz set max_workers=32. Three weeks later the on-sale brought 12 requests a second again. By 19:02 the service had sent 885 seat maps, 7.38 a second, ten fewer than Wexbury. Each one now took 4.21 seconds on average from pick-up to answer, because 32 threads were taking turns on the one GIL. The longest wait was 72.90 seconds. The four cores together still did one core's worth of work, and a tenth of it was still switching.",
+    "senior": "Threads add speed only when some of them would otherwise sit waiting. Here none of them wait: best_seats is 120 ms of arithmetic, and the GIL lets one thread do Python arithmetic at a time. So 32 threads share one turn instead of 8, each request spends four times as long in the pool, and the switching cost stays. The line is long because the work runs on one core, not because there are too few windows."
+   },
+   {
+    "text": "Rewrite the seat-map code with async and await, so the service never waits on anything.",
+    "tone": "bad",
+    "verdict": "Nothing to wait for",
+    "part2": "Ignatz rewrote seat_map with async and await. At 19:02 on the next on-sale, 1,000 seat maps had gone out, 8.33 a second, and 439 requests were waiting: exactly Corvanne's numbers. The longest wait was 52.88 seconds. There was nothing to await. best_seats is 120 ms of arithmetic, so the event loop ran each one from start to finish, one request at a time, on one core. It beat eight threads, because nothing was switching, but it was one thread again.",
+    "senior": "Async lets one thread overlap waiting: while one request waits on a disk or the network, the loop runs another. It does nothing for work that never waits. A request that is 120 ms of arithmetic holds the loop for 120 ms whatever keywords surround it, so async here is one thread with better manners. Use it when requests spend most of their time on I/O."
+   },
+   {
+    "text": "Put the seat-map work in a pool of processes, one per core; keep threads for waiting work.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Ignatz moved best_seats into ProcessPoolExecutor(max_workers=4): four processes, one per core, each with its own memory and its own GIL. A thread still takes each request in and sends the answer back. At the next on-sale every seat map came back in 0.12 seconds. By 19:02, 1,439 of the 1,440 had gone, and the last went out at 19:02:00. The four cores together did 1.44 cores' worth of work, and the pool could have managed 33.33 a second. One cost showed up: each process loads its own copy of the seating plans, so the plans now sit in memory four times.",
+    "senior": "In standard Python, threads can't run Python code on several cores at once, but processes can: each one has its own memory and its own GIL. So put the CPU work in a process pool sized to the cores, and keep threads, or async, for the parts that wait on I/O. The costs: processes don't share memory, so data is copied to them and the answer copied back, and anything shared must live somewhere else, such as a database."
+   },
+   {
+    "text": "Rewrite the seat-map service in Go, whose goroutines can run on every core at the same time.",
+    "tone": "warn",
+    "verdict": "It would work, later",
+    "part2": "Ignatz started the rewrite that night. Three weeks later the Go version still split families across rows in his tests, so the on-sale ran on eight threads again: 895 sent by 19:02 and a longest wait of 72.30 seconds. The Go version went live six weeks later. In the sim, four goroutines on four cores match a process pool exactly: 1,439 sent by 19:02, 0.12 seconds each.",
+    "senior": "Go is a good fit for this work: goroutines are cheap and run on every core, with no GIL. But a rewrite brings new bugs into six years of seating rules, in a language nobody on the team knows, before a fixed on-sale date. A process pool gives the same capacity in Python within days. Rewrite when the language really is the limit, not as a fix for one slow function."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s5e10",
+  "title": "Run Friday's on-sale with threads, processes, async and goroutines",
+  "lede": "You're Ignatz, replaying Friday at Wexbury from 19:00:00, before the first request. Requests arrive evenly, 12 a second for two minutes, 1,440 in all. Each needs some I/O wait (0 ms as built: the plans are in memory) and then CPU work (120 ms as built), on a machine with 4 cores. Pick the model. Threads and async take turns on one GIL, so only one runs Python at a time. Processes and goroutines can each use a core. When more workers need the CPU than can run at once, each gets a share, and part of the time goes on switching (10% as built). Pick N, the cores, the CPU and I/O per request, the switching cost, and 12 or 3 requests a second. Then step 10 seconds, run to 19:02, or run until the queue is empty.",
+  "tryThis": "Try this: press Run to 19:02 as built, 8 threads: 895 sent, 537 waiting, 7.46 a second, newest wait 45.37 s. Run until the line is empty: 19:03:12, longest wait 72.30 s, 1.06 s in service each. Pick 1 thread: 1,000 sent, 8.33 a second, empty at 19:02:52. Set switching to 0% with 8 threads: the line empties at 19:02:52, the same as 1 thread. Try 32 threads (885 sent) and async (1,000, the same as 1 thread). Then 4 processes: 1,439 sent by 19:02, every wait 0.12 s; 4 goroutines match it. Last, set CPU to 10 ms and I/O to 110 ms: now 8 threads keep up and 1 thread still doesn't."
+ },
+ "explain": {
+  "oneLine": "Nobody slowed the service down on purpose. The seat-map work is pure arithmetic in Python, and the GIL lets only one thread run Python at a time, so eight threads took turns on one core and lost a tenth of it to switching. Capacity fell from 8.33 seat maps a second to 7.50. The fix is to run the arithmetic in a pool of processes, one per core, and keep threads or async for the waiting.",
+  "steps": [
+   {
+    "title": "Eight threads, one turn.",
+    "text": "Here is what happens to a request in the thread pool. First it waits in the queue until a thread is free. Then the thread needs the GIL before it can run any Python, and only one thread can hold it. While it holds the GIL it works on best_seats; after a short turn it hands the GIL on, and another thread takes it. When the work is done it sends the seat map and takes the next request. What can go wrong: when every thread wants to compute, the GIL is the real queue. Eight threads on four cores still run Python one at a time, which is why the four cores did one core's worth of work, about 25% each."
+   },
+   {
+    "title": "Switching costs, and every request shares the turn.",
+    "text": "Each hand-over costs time: one thread is put to sleep, another is woken, and the data the new one needs often has to be fetched into the core again. Ignatz's profiler put it at about a tenth. So capacity fell from 1000 / 120 = 8.33 seat maps a second to 8.33 x 0.9 = 7.50. And with eight in the pool, each request gets an eighth of the turn: 8 x 0.12 / 0.9 = about 1.07 seconds from pick-up to answer, 1.06 on average in the sim. At 12 requests a second, the queue grew by about 4.5 a second instead of 3.7, so by 19:02 it held 537 instead of 439, and the longest wait was 72.30 seconds instead of 52.88."
+   },
+   {
+    "title": "Threads and async are for waiting.",
+    "text": "Threads earn their keep when requests wait on I/O. A thread waiting on a disk or the network hands back the GIL, so another can compute meanwhile. Async does the same on one thread: at each await, the event loop (one thread running ready tasks in turn) puts the request down and runs another that is ready. Set the sim to 10 ms of CPU and 110 ms of I/O per request, the same 0.12 seconds in total: one thread still manages only 8.33 a second, but eight threads, or async, send 1,439 by 19:02 with every wait 0.12 seconds. On Thursday, at 3 a second, the requests rarely overlapped, so eight threads looked as good as one. Work that is mostly waiting is called I/O-bound; work that is mostly computing is CPU-bound."
+   },
+   {
+    "title": "Processes for CPU work: their own memory, so they pass messages.",
+    "text": "A process pool starts several copies of the program, each with its own memory and its own GIL, so the operating system (the program in charge of the machine) can run one on each core. It works in steps. First, a thread takes a request and packs its arguments up as a message. Next, the pool sends that message to a free process, which runs best_seats on its own core. Then the process packs the seat map up and sends it back, and the thread answers. What can go wrong: packing and copying cost time, so it pays only when each job is big, like 120 ms; each process holds its own copy of the plans; and there is no shared memory to keep, say, a held-seats list in, so that must live elsewhere, such as a database. Threads share memory, which is fast and easy to get wrong; processes pass messages, which is slower and safer."
+   },
+   {
+    "title": "Goroutines: cheap threads on every core.",
+    "text": "Go has no GIL. Its goroutines are cheap enough to start thousands of, and Go spreads them across all the cores, so a Go seat-map service would match the process pool: in the sim, four goroutines on four cores send 1,439 by 19:02, 0.12 seconds each. They share memory like threads, so Go's advice is to hand data between them through channels, pipes that pass a value from one goroutine to another. Python is also changing: since 3.13 it can be built without the GIL, and from 3.14 that build is officially supported, but it is not the default, and some add-on packages aren't ready for it."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 380,
+   "aria": "The fix. Requests arrive at 12 a second. A receiving thread takes each one in and sends the answer back. It passes the seat-map work to a pool of four processes, one per core, each with its own memory and its own GIL, each taking 0.12 seconds a seat map. Capacity 33.33 a second; 1,439 of 1,440 sent by 19:02.",
+   "nodes": [
+    {
+     "id": "req",
+     "label": "Requests",
+     "sub": "12 a second",
+     "meta": "1,440 by 19:02",
+     "x": 90,
+     "y": 185,
+     "w": 140,
+     "h": 72,
+     "shape": "box"
+    },
+    {
+     "id": "thread",
+     "label": "Receiving thread",
+     "sub": "takes in, answers",
+     "meta": "I/O only",
+     "x": 330,
+     "y": 185,
+     "w": 160,
+     "h": 72,
+     "shape": "box"
+    },
+    {
+     "id": "p1",
+     "label": "Process 1, core 1",
+     "sub": "own memory, own GIL",
+     "x": 610,
+     "y": 50,
+     "w": 200,
+     "h": 50,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "p2",
+     "label": "Process 2, core 2",
+     "sub": "own memory, own GIL",
+     "x": 610,
+     "y": 140,
+     "w": 200,
+     "h": 50,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "p3",
+     "label": "Process 3, core 3",
+     "sub": "own memory, own GIL",
+     "x": 610,
+     "y": 230,
+     "w": 200,
+     "h": 50,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "p4",
+     "label": "Process 4, core 4",
+     "sub": "own memory, own GIL",
+     "x": 610,
+     "y": 320,
+     "w": 200,
+     "h": 50,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "req",
+     "to": "thread",
+     "label": "12 a second"
+    },
+    {
+     "from": "thread",
+     "to": "p1"
+    },
+    {
+     "from": "thread",
+     "to": "p2"
+    },
+    {
+     "from": "thread",
+     "to": "p3"
+    },
+    {
+     "from": "thread",
+     "to": "p4"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the next on-sale. A thread takes each request in and sends the answer back; the arithmetic goes to four processes, one per core, each with its own GIL. In the sim: capacity 33.33 a second, 1,439 of 1,440 sent by 19:02, every wait 0.12 seconds.",
+  "fix": {
+   "title": "The fix: a process pool for the arithmetic, threads for the waiting",
+   "text": "Keep a thread, or async, for taking requests in and sending answers out, the parts that wait. Hand best_seats to ProcessPoolExecutor(max_workers=4), one process per core; Python's default is the number of cores it can use. Pass in only what a process needs, the show id, and get back only the seat map, because everything sent between processes is copied. Load the seating plans once when each process starts, not per request. Check the cores during the next on-sale: four busy, not one. In the sim: capacity 33.33 a second, 1,439 sent by 19:02, every wait 0.12 seconds."
+  },
+  "limits": [
+   "Processes don't share memory. Each loads its own copy of the seating plans, and anything that must be shared, like seats being held, has to live outside them, such as in a database.",
+   "Sending work to a process copies it there and back. For small jobs of a few milliseconds the copying can cost more than it saves, so batch them or keep them on a thread.",
+   "A process pool only fixes CPU work. If a request also starts waiting on I/O inside the process, that process sits idle while it waits, and four processes become four slow workers."
+  ],
+  "tradeoff": {
+   "head": [
+    "Model",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "1 thread (Corvanne)",
+     "No switching: 8.33 a second, 0.12 s each.",
+     "One core's worth of work: 1,000 sent by 19:02, longest wait 52.88 s."
+    ],
+    [
+     "8 threads (Wexbury)",
+     "Easy to add; good for waiting on I/O.",
+     "One GIL: 7.46 a second, 895 sent, 1.06 s each, longest wait 72.30 s."
+    ],
+    [
+     "32 threads",
+     "Nothing gained.",
+     "885 sent, 4.21 s each, longest wait 72.90 s."
+    ],
+    [
+     "Async, one event loop",
+     "No thread switching; great when requests wait on I/O.",
+     "Arithmetic still runs one at a time: 1,000 sent, the same as 1 thread."
+    ],
+    [
+     "4 processes, one per core",
+     "Every core works: capacity 33.33, 1,439 sent, 0.12 s each.",
+     "No shared memory; data is copied; a copy of the plans per process."
+    ],
+    [
+     "Go, 4 goroutines",
+     "Same capacity as processes, and cheap shared memory.",
+     "A rewrite of six years of rules, in a language the team doesn't know."
+    ]
+   ]
+  },
+  "seniorTake": "Ask first whether the work waits or computes. Waiting work, on disks, networks and other services, wants many cheap waiters: threads or async, and in Python the GIL doesn't hurt because a waiting thread lets go of it. Computing work wants one worker per core and no more: in standard Python that means processes, because threads take turns on one GIL, and adding more only adds switching. Processes cost memory and copying, and they share nothing, so pass them small messages and keep shared state in a database. Goroutines give you both in one program, at the price of Go and of guarding shared memory yourself. And measure before you add hands: if four cores are doing one core's work, more threads will not help.",
+  "realWorld": [
+   {
+    "title": "Python glossary: the global interpreter lock",
+    "text": "The Python glossary defines it as \"The mechanism used by the CPython interpreter to assure that only one thread executes Python bytecode at a time.\" It adds that locking the whole interpreter comes \"at the expense of much of the parallelism afforded by multi-processor machines\", and that \"the GIL is always released when doing I/O.\" Bytecode is the simple instructions Python turns code into before running it.",
+    "source": 0
+   },
+   {
+    "title": "Python threading docs: processes for many cores, threads for I/O",
+    "text": "\"In CPython, due to the Global Interpreter Lock, only one thread can execute Python code at once\". The documentation goes on: \"If you want your application to make better use of the computational resources of multi-core machines, you are advised to use multiprocessing or concurrent.futures.ProcessPoolExecutor. However, threading is still an appropriate model if you want to run multiple I/O-bound tasks simultaneously.\"",
+    "source": 1
+   },
+   {
+    "title": "concurrent.futures: a pool of processes side-steps the GIL",
+    "text": "\"ProcessPoolExecutor uses the multiprocessing module, which allows it to side-step the Global Interpreter Lock but also means that only picklable objects can be executed and returned.\" Picklable means Python can pack the object up to send it to another process. If max_workers isn't given, \"it will default to os.process_cpu_count()\", the number of cores the program may use.",
+    "source": 2
+   },
+   {
+    "title": "asyncio: a fit for waiting work",
+    "text": "Python's asyncio documentation calls it \"a library to write concurrent code using the async/await syntax\", and says it \"is often a perfect fit for IO-bound and high-level structured network code.\"",
+    "source": 3
+   },
+   {
+    "title": "PEP 703: making the GIL optional",
+    "text": "PEP 703's abstract begins: \"CPython's global interpreter lock (“GIL”) prevents multiple threads from executing Python code at the same time. The GIL is an obstacle to using multi-core CPUs from Python efficiently.\" It proposed a build of Python with the GIL turned off, made with the setting --disable-gil.",
+    "source": 4
+   },
+   {
+    "title": "Python 3.13: the free-threaded build arrives, as an experiment",
+    "text": "Python 3.13's release notes said: \"CPython now has experimental support for running in a free-threaded mode, with the global interpreter lock (GIL) disabled. This is an experimental feature and therefore is not enabled by default.\"",
+    "source": 5
+   },
+   {
+    "title": "Python 3.14: officially supported, still not the default",
+    "text": "Python 3.14's release notes list \"Free-threaded Python is officially supported\" (PEP 779), and say \"The performance penalty on single-threaded code in free-threaded mode is now roughly 5-10%, depending on the platform and C compiler used.\" It is still a separate build you choose, not the standard one.",
+    "source": 6
+   },
+   {
+    "title": "Python's switch interval: the operating system picks who runs next",
+    "text": "Python's sys documentation says the thread switch interval \"determines the ideal duration of the “timeslices” allocated to concurrently running Python threads\", and that \"which thread becomes scheduled at the end of the interval is the operating system's decision.\"",
+    "source": 7
+   },
+   {
+    "title": "Effective Go: goroutines and channels",
+    "text": "\"A goroutine has a simple model: it is a function executing concurrently with other goroutines in the same address space.\" \"Goroutines are multiplexed onto multiple OS threads so if one should block, such as while waiting for I/O, others continue to run.\" And Go's rule for sharing: \"Do not communicate by sharing memory; instead, share memory by communicating.\"",
+    "source": 8
+   },
+   {
+    "title": "Go FAQ: more CPUs can slow a program down",
+    "text": "\"Sometimes adding more CPUs can slow a program down. In practical terms, programs that spend more time synchronizing or communicating than doing useful computation may experience performance degradation when using multiple OS threads.\" On cost: goroutines \"have little overhead beyond the memory for the stack, which is just a few kilobytes.\"",
+    "source": 9
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Threads or processes?",
+    "What is the GIL?",
+    "When does async help, and when doesn't it?"
+   ],
+   "answer": "It depends on whether the work waits or computes. Threads share one process's memory, so they're cheap to start and quick to share data, and easy to get wrong with races. Processes each have their own memory, so they're safer and heavier, and they talk by passing copies. The GIL, the global interpreter lock, is CPython's rule that one thread runs Python bytecode at a time; it's released during I/O. So in standard Python, threads help with I/O-bound work, like calling other services, and do nothing for CPU-bound work; for that I'd use a process pool, about one per core. Async helps when a request spends most of its time waiting: one thread overlaps thousands of waits on an event loop. It doesn't help, and can hurt, when a request is mostly computing, because the computing still runs one at a time and blocks the loop. A story I'd tell: a box office's seat-map service did 120 ms of Python arithmetic per request. Raising its thread pool from 1 to 8 dropped capacity from 8.33 to 7.50 a second, because the threads took turns on one GIL and lost a tenth to switching, and each request took about 1.06 seconds instead of 0.12. Four processes, one per core, raised capacity to 33.33 a second. Go's goroutines would also use every core, and Python 3.14 supports a build without the GIL, but neither is a change you make a few weeks before a deadline."
+  }
+ },
+ "terms": [
+  {
+   "term": "Tarravane Circus",
+   "def": "The touring circus in this story. It plays a new town every three weeks and sells each town's tickets online from 19:00 on a Friday."
+  },
+  {
+   "term": "Box office",
+   "def": "The part of a circus or theatre that sells tickets. Jadwiga manages Tarravane's."
+  },
+  {
+   "term": "On-sale",
+   "def": "The moment tickets for a town go on sale, when many people ask for seats at once. Corvanne's and Wexbury's each brought 12 requests a second for two minutes."
+  },
+  {
+   "term": "Corvanne and Wexbury",
+   "def": "The circus's last two towns. Corvanne's on-sale, three weeks ago, ran on one thread; Wexbury's, on Friday, on eight."
+  },
+  {
+   "term": "Python",
+   "def": "A popular language for writing programs. The standard program that runs Python code is called CPython."
+  },
+  {
+   "term": "Service",
+   "def": "A program that runs all the time and answers requests sent to it, like a ticket window that never closes."
+  },
+  {
+   "term": "Request",
+   "def": "One question sent to a service, here a phone asking for the best free seats for one show."
+  },
+  {
+   "term": "Seat-map service",
+   "def": "Ignatz's Python service that finds the best free seats for each request: about 120 ms of CPU work each, on a machine with four cores."
+  },
+  {
+   "term": "best_seats and load_plan",
+   "def": "The two steps seat_map runs. load_plan fetches a show's seating plan, kept in memory; best_seats does the arithmetic, about 120 ms of CPU."
+  },
+  {
+   "term": "Thread pool",
+   "def": "A fixed set of threads that each take the next job from a shared queue, like ticket windows each serving the next person in line."
+  },
+  {
+   "term": "ThreadPoolExecutor",
+   "def": "Python's built-in thread pool, from the concurrent.futures module. max_workers sets how many threads it has."
+  },
+  {
+   "term": "max_workers",
+   "def": "The setting for how many workers a Python pool has. Ignatz raised it from 1 to 8 on Wednesday."
+  },
+  {
+   "term": "Queue",
+   "def": "A line of jobs waiting their turn, first come, first served. It grows whenever jobs arrive faster than they are finished."
+  },
+  {
+   "term": "Dashboard",
+   "def": "A screen of live numbers about a service, such as seat maps sent, requests waiting and the newest wait."
+  },
+  {
+   "term": "Throughput",
+   "def": "How many jobs are finished per second. 8.33 seat maps a second with one thread; 7.46 with eight at Wexbury."
+  },
+  {
+   "term": "Latency",
+   "def": "How long one request waits from asking to answer, time in the queue included. At Wexbury it reached 72.30 seconds."
+  },
+  {
+   "term": "Switching",
+   "def": "Handing the turn to run from one thread to another. Each hand-over costs a little time, about a tenth of Friday's in all."
+  },
+  {
+   "term": "Profiler",
+   "def": "A tool that measures where a program's time goes, such as how much is spent on arithmetic and how much on switching."
+  },
+  {
+   "term": "Capacity",
+   "def": "The most jobs a service can finish per second while the queue is long. 8.33 for one thread, 7.50 for eight, 33.33 for four processes."
+  },
+  {
+   "term": "Process pool",
+   "def": "A fixed set of processes, each with its own memory, that take jobs from a queue. Python's is ProcessPoolExecutor. Often one process per core."
+  },
+  {
+   "term": "ProcessPoolExecutor",
+   "def": "Python's built-in process pool. It side-steps the GIL, but only objects Python can pack up and copy can be sent to and from it."
+  },
+  {
+   "term": "I/O-bound work",
+   "def": "Work that spends most of its time waiting on a disk, the network or another service. Threads and async help with it."
+  },
+  {
+   "term": "Async and await (Python)",
+   "def": "Python's way of writing code that waits without holding a thread: async marks a function, and await puts it down while something slow finishes."
+  },
+  {
+   "term": "asyncio",
+   "def": "Python's built-in library for async code. It runs an event loop on one thread."
+  },
+  {
+   "term": "Go",
+   "def": "A programming language whose goroutines run on every core. It has no GIL."
+  },
+  {
+   "term": "Shared memory",
+   "def": "Threads in one process reading and writing the same data. Fast, but two threads can change it at once unless it is guarded."
+  },
+  {
+   "term": "Message passing",
+   "def": "Workers that share nothing and send each other copies of data instead, like processes in a pool or goroutines using channels. Safer, but copying costs time."
+  },
+  {
+   "term": "Picklable",
+   "def": "An object Python can pack into bytes to send to another process and unpack there. Only these can go to and from a process pool."
+  },
+  {
+   "term": "PEP",
+   "def": "Python Enhancement Proposal: a numbered document that proposes a change to Python. PEP 703 made the GIL optional."
+  },
+  {
+   "term": "Concurrent",
+   "def": "Several tasks in progress over the same stretch of time, taking turns or running at once. Running at the same instant is called parallel."
+  },
+  {
+   "term": "Address space",
+   "def": "The memory one process can see. Goroutines in one Go program share one address space; processes each have their own."
+  },
+  {
+   "term": "Multiprocessing",
+   "def": "Python's built-in module for starting and talking to other processes. ProcessPoolExecutor is built on it."
+  },
+  {
+   "term": "Time in service (in the sim)",
+   "def": "From a worker picking a request up to its seat map going out; for async, from arrival, less its time waiting for the loop."
+  },
+  {
+   "term": "Cores' worth of work (in the sim)",
+   "def": "How busy the cores were together since 19:00, and how much of that was switching. One thread or eight: 1.00 of 4."
+  },
+  {
+   "term": "OS thread",
+   "def": "A thread the operating system itself runs and switches between cores. OS is short for operating system. Go runs its goroutines on a few of these."
+  },
+  {
+   "term": "Multiplexed",
+   "def": "Many things sharing a few carriers in turn, like many goroutines taking turns on a few OS threads."
+  },
+  {
+   "term": "Synchronizing",
+   "def": "Making threads or goroutines wait for each other, for example to take turns on shared data. Time spent on it is time not spent computing."
+  },
+  {
+   "term": "Database",
+   "def": "A program that stores data safely on disk and lets many programs read and change it, so they can share it without sharing memory."
+  },
+  {
+   "term": "Instance (AWS)",
+   "def": "A virtual machine rented from AWS, with a set number of vCPUs (virtual cores) and amount of memory."
+  },
+  {
+   "term": "Kilobyte",
+   "def": "About a thousand bytes. A byte is the space for one letter of plain text."
+  }
+ ],
+ "atWork": "Look for a Python service that does heavy computing per request, such as resizing images, building PDF reports or scoring data, and runs it in a thread pool. It is a common pattern: someone raises the thread count to use more cores, and the service gets slower. Check three things during a busy hour. How many cores are busy: if a 4-core machine shows one core's worth of work, the GIL is the limit. How much of each request is waiting on I/O and how much is computing: a profiler will tell you. And how the latency changed when the thread count went up. Move the computing into a process pool about the size of the cores, and keep threads or async for the waiting. On AWS, count the vCPUs (the virtual cores) of the instance or container, not the threads you start, and expect a container's memory to grow with each process. Standards: no standards note is needed for this case.",
+ "board": {
+  "cards": [
+   {
+    "id": "concurrency-models-compared",
+    "title": "Concurrency models compared"
+   }
+  ],
+  "strings": [
+   {
+    "from": "concurrency-models-compared",
+    "to": "threads",
+    "label": "one GIL in Python"
+   },
+   {
+    "from": "concurrency-models-compared",
+    "to": "processes",
+    "label": "own memory each"
+   },
+   {
+    "from": "concurrency-models-compared",
+    "to": "async-await",
+    "label": "for waiting work"
+   },
+   {
+    "from": "concurrency-models-compared",
+    "to": "event-loop",
+    "label": "one thread, a line"
+   },
+   {
+    "from": "concurrency-models-compared",
+    "to": "race-conditions",
+    "label": "shared memory risk"
+   },
+   {
+    "from": "concurrency-models-compared",
+    "to": "cpu",
+    "label": "one per core"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s5e10-r1",
+   "kind": "free",
+   "prompt": "Your team's Python service makes small preview pictures from uploaded photos: about 200 ms of arithmetic each, nothing to wait for, on an 8-core machine. Uploads peak at 30 a second. Last week someone raised its thread pool from 4 to 16 \"to use all the cores\", and at the peak the uploads now take longer than before. The machine's monitor shows one core's worth of work across the eight. What is going on, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The GIL lets one thread run Python at a time, so threads can't spread arithmetic over the cores",
+     "match": [
+      "interpreter lock",
+      "the gil",
+      "one thread at a time",
+      "only one thread",
+      "one at a time",
+      "take turns",
+      "takes turns"
+     ]
+    },
+    {
+     "idea": "More threads only add switching and make each job share the turn, so it got slower",
+     "match": [
+      "switching",
+      "overhead",
+      "context switch",
+      "hand-over",
+      "handing over",
+      "share the turn",
+      "slower, not faster"
+     ]
+    },
+    {
+     "idea": "Run the arithmetic in a process pool, about one per core, and keep threads for waiting",
+     "match": [
+      "process pool",
+      "processpoolexecutor",
+      "multiprocessing",
+      "processes",
+      "one per core"
+     ]
+    }
+   ],
+   "model": "The work is pure arithmetic, and in standard Python the global interpreter lock, the GIL, lets only one thread run Python at a time. So the 16 threads take turns on one core, which is why the monitor shows one core's worth of work. Adding threads added switching: every hand-over costs time, and each upload shares the turn with 15 others, so each takes longer. I'd move the preview work into a process pool, ProcessPoolExecutor with about one process per core, eight here. Each process has its own GIL, so all eight cores compute, roughly 8 x 5 = 40 a second against a peak of 30. I'd keep threads, or async, only for the parts that wait, like receiving the upload and saving the result, and pass each process just the photo it needs."
+  },
+  {
+   "id": "s5e10-r2",
+   "kind": "mcq",
+   "prompt": "In standard Python, with the GIL, which kind of work do extra threads usually speed up?",
+   "options": [
+    "Arithmetic that keeps a core busy, such as finding the best seats",
+    "Waiting on a disk, the network or another service",
+    "Both equally, as long as there are more cores than threads",
+    "Neither: the lock stops every thread but one"
+   ],
+   "answer": 1,
+   "why": "A thread that waits on I/O hands back the GIL, so another thread can run while it waits. Arithmetic never waits, so threads take turns on one GIL and only add switching. In the sim, 10 ms of CPU plus 110 ms of I/O lets 8 threads send 1,439 by 19:02, while 120 ms of CPU leaves them at 895."
+  },
+  {
+   "id": "s5e10-r3",
+   "kind": "mcq",
+   "prompt": "A Python service does 120 ms of arithmetic per request under the GIL. With 8 threads, a long queue and about a tenth of the time lost to switching, roughly how many requests a second can it finish?",
+   "options": [
+    "About 66, eight threads at 8.33 each",
+    "About 33, four cores at 8.33 each",
+    "About 7.5, one turn at 8.33 less a tenth",
+    "Exactly 8.33, the same as one thread"
+   ],
+   "answer": 2,
+   "why": "One request is 0.12 seconds of CPU, so one turn finishes 8.33 a second. The GIL gives eight threads one turn between them, and switching takes a tenth: 8.33 x 0.9 = 7.50. The sim shows 7.46 a second by 19:02 at Wexbury."
+  },
+  {
+   "id": "s5e10-r4",
+   "kind": "mcq",
+   "prompt": "When does rewriting a Python service with async and await help most?",
+   "options": [
+    "When each request spends most of its time waiting on the network or a disk",
+    "When each request does about 120 ms of arithmetic",
+    "When the machine has more cores than the service has threads",
+    "When requests must change the same data at the same time"
+   ],
+   "answer": 0,
+   "why": "Async lets one thread overlap waits: at each await the event loop runs another request. With nothing to wait for, as at Wexbury, it runs the arithmetic one request at a time, the same as one thread: 1,000 sent by 19:02 in the sim."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. The process pool carried every on-sale all winter: 0.12 seconds a seat map. Then in February our ticketing company asked us to check each seat with them before showing it, a call over the network that takes about 400 ms. Ignatz put the call inside seat_map, so each of the four processes makes it. At the March on-sale, 12 a second again, the dashboard showed 920 seat maps sent by 19:02, 516 requests waiting, 7.67 a second, and a newest wait of 43.27 seconds. The four cores together did 0.92 of a core's work.",
+  "prompt": "Reply to OP. Why is the process pool slow again when the cores are hardly working, and what should change?",
+  "keyIdeas": [
+   {
+    "idea": "Each process now sits waiting on the network call, so the four workers spend most of their time doing nothing",
+    "match": [
+     "sits waiting",
+     "sit waiting",
+     "waiting on the",
+     "blocked",
+     "held up",
+     "stuck waiting",
+     "doing nothing"
+    ]
+   },
+   {
+    "idea": "The limit is now waiting, not computing: the work has become mostly I/O",
+    "match": [
+     "i/o-bound",
+     "i/o bound",
+     "io-bound",
+     "not the cpu",
+     "not cpu",
+     "not computing",
+     "bottleneck"
+    ]
+   },
+   {
+    "idea": "Do the network call with threads or async outside the processes, and send only the arithmetic to the pool",
+    "match": [
+     "asyncio",
+     "async code",
+     "using async",
+     "threads for",
+     "thread pool",
+     "a thread",
+     "outside the process",
+     "before the process",
+     "only the arithmetic"
+    ]
+   }
+  ],
+  "model": "Each of the four processes now sits waiting on the 400 ms network call before its 120 ms of arithmetic, so a request ties up a process for about 0.52 seconds, and four processes can finish only about 4 / 0.52 = 7.7 a second, under the 12 that arrive. The cores are hardly working because the bottleneck is no longer computing; the work has become mostly I/O-bound, and a process is an expensive thing to have waiting. Keep the process pool for best_seats only. Make the call to the ticketing company outside the processes, with a thread pool or async, which can hold many waits at once, and send only the arithmetic to the pool. Then the pool is back to 120 ms jobs and the waits overlap."
+ },
+ "next": "Next, Branches: a family tree that keeps splitting, and how a team keeps separate lines of work on its code and brings them back together safely.",
+ "sources": [
+  {
+   "title": "Python documentation, Glossary: global interpreter lock (only one thread executes Python bytecode at a time; the GIL is always released when doing I/O; --disable-gil from 3.13)",
+   "url": "https://docs.python.org/3/glossary.html"
+  },
+  {
+   "title": "Python documentation, threading: Thread-based parallelism (CPython implementation detail: only one thread can execute Python code at once; use multiprocessing or ProcessPoolExecutor for multi-core; threading appropriate for I/O-bound tasks)",
+   "url": "https://docs.python.org/3/library/threading.html"
+  },
+  {
+   "title": "Python documentation, concurrent.futures: Launching parallel tasks (ProcessPoolExecutor side-steps the Global Interpreter Lock; only picklable objects; max_workers defaults to os.process_cpu_count())",
+   "url": "https://docs.python.org/3/library/concurrent.futures.html"
+  },
+  {
+   "title": "Python documentation, asyncio: Asynchronous I/O (a library to write concurrent code using async/await; a perfect fit for IO-bound code)",
+   "url": "https://docs.python.org/3/library/asyncio.html"
+  },
+  {
+   "title": "Sam Gross, PEP 703: Making the Global Interpreter Lock Optional in CPython (status Final; abstract)",
+   "url": "https://peps.python.org/pep-0703/"
+  },
+  {
+   "title": "Python documentation, What's New in Python 3.13: Free-threaded CPython (the free-threaded mode is experimental)",
+   "url": "https://docs.python.org/3/whatsnew/3.13.html"
+  },
+  {
+   "title": "Python documentation, What's New in Python 3.14 (free-threaded Python is officially supported, PEP 779; single-threaded penalty roughly 5-10%)",
+   "url": "https://docs.python.org/3/whatsnew/3.14.html"
+  },
+  {
+   "title": "Python documentation, sys: setswitchinterval (the ideal duration of the timeslices; which thread runs next is the operating system's decision)",
+   "url": "https://docs.python.org/3/library/sys.html"
+  },
+  {
+   "title": "The Go Authors, Effective Go: Concurrency (goroutines; multiplexed onto multiple OS threads; share memory by communicating)",
+   "url": "https://go.dev/doc/effective_go"
+  },
+  {
+   "title": "The Go Authors, Frequently Asked Questions: Why goroutines instead of threads? Why doesn't my program run faster with more CPUs?",
+   "url": "https://go.dev/doc/faq"
+  }
+ ]
+}
