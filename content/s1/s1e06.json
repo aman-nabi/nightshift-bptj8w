@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.2.1 (2026-10-14) grading fixes: r1 bare 409 fragment now with 409, model says or with 409 Conflict; cold case succeeded-before-retry idea gains reached the api, which the model contains; cold case bare 72 fragment now 72 copies",
     "v1.2.0 (2026-10-14) process pass: every process explained as its steps where it first appears (standard rule 12)",
     "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
     "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
@@ -323,9 +324,9 @@
         { "idea": "POST is not idempotent: each one creates a new order", "match": ["not idempotent", "each post", "every post", "creates a new", "new order each", "post creates", "twice creates", "post twice"] },
         { "idea": "The first request worked even though the client didn't see the answer", "match": ["first request", "already went through", "already worked", "succeeded", "reached the server", "timed out", "retry", "answer was lost", "response was lost", "got lost", "did arrive"] },
         { "idea": "Make the create safe to repeat: client-chosen ID with PUT, or an idempotency key", "match": ["idempotency key", "idempotency-key", "put", "client-generated", "client generated", "client-chosen", "client chosen", "unique id", "unique key", "request id"] },
-        { "idea": "Reject or recognise the repeat on the server", "match": ["reject", "409", "conflict", "already exists", "same result", "return the first", "dedup", "remember"] }
+        { "idea": "Reject or recognise the repeat on the server", "match": ["reject", "with 409", "conflict", "already exists", "same result", "return the first", "dedup", "remember"] }
       ],
-      "model": "Each POST means \"create a new order\", and POST isn't idempotent: it isn't safe to repeat. When the network is slow, the first request often reaches the server and succeeds, but the answer is lost or late. So the app or the user sends it again, and the server creates a second order. Fix it so the create is safe to repeat. The app makes up a unique ID for the order when the button is first pressed. Then it either sends PUT /v1/orders/{that id}, or sends the ID as an idempotency key with the POST. The server stores the key with the first result. It answers any repeat with that same result (or 409 Conflict) instead of creating another order."
+      "model": "Each POST means \"create a new order\", and POST isn't idempotent: it isn't safe to repeat. When the network is slow, the first request often reaches the server and succeeds, but the answer is lost or late. So the app or the user sends it again, and the server creates a second order. Fix it so the create is safe to repeat. The app makes up a unique ID for the order when the button is first pressed. Then it either sends PUT /v1/orders/{that id}, or sends the ID as an idempotency key with the POST. The server stores the key with the first result. It answers any repeat with that same result, or with 409 Conflict, instead of creating another order."
     },
     {
       "id": "s1e06-r2",
@@ -383,9 +384,9 @@
     "prompt": "Reply to OP. What happened, and what should Theo change?",
     "keyIdeas": [
       { "idea": "Retried POSTs created duplicate sales", "match": ["repeat", "double", "retried", "retries", "duplicate", "twice", "again", "copies", "extra sales"] },
-      { "idea": "The slow requests had actually succeeded before the retry", "match": ["already worked", "already went through", "succeeded", "reached the server", "first one worked", "first request", "timeout", "timed out", "went through", "didn't fail"] },
+      { "idea": "The slow requests had actually succeeded before the retry", "match": ["already worked", "already went through", "succeeded", "reached the server", "reached the api", "first one worked", "first request", "timeout", "timed out", "went through", "didn't fail"] },
       { "idea": "Give each sale a unique ID or idempotency key so repeats are recognised", "match": ["idempotency key", "idempotency-key", "unique id", "unique key", "put /v1/sales/", "put", "sale id", "request id", "receipt number"] },
-      { "idea": "Clean up the extra sales once", "match": ["clean up", "delete the", "remove the", "fix the extra", "72", "reconcile"] }
+      { "idea": "Clean up the extra sales once", "match": ["clean up", "delete the", "remove the", "fix the extra", "72 copies", "reconcile"] }
     ],
     "model": "Slow isn't failed. On Saturday many POSTs took longer than 2 seconds but still reached the API and created the sale, then the card reader retried and created it again: 72 extra sales. Give every sale a unique ID when the card reader starts it (the receipt number works) and either send PUT /v1/sales/{receipt number}, or send it as an idempotency key with the POST so the API returns the first result for a repeat instead of creating another sale. Then clean up the 72 copies once, using the receipt numbers to find them."
   },

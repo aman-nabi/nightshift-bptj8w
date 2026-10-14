@@ -1,0 +1,481 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-14) first version"
+ ],
+ "id": "s5e03",
+ "season": 5,
+ "n": 3,
+ "title": "The Event Loop",
+ "setting": "a one-waiter restaurant",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "async-await",
+  "event-loop",
+  "blocking-the-loop"
+ ],
+ "prerequisites": [
+  "s5e01",
+  "s4e02",
+  "s2e14",
+  "s2e13",
+  "s2e03",
+  "s2e02",
+  "s2e01",
+  "s1e11",
+  "s1e08",
+  "s1e07",
+  "s1e06",
+  "s1e05",
+  "s1e04",
+  "s1e03",
+  "s1e02",
+  "s1e01"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/saltmarrow_odalric",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 2641,
+  "title": "I manage a small restaurant. During Saturday's rush, every table's clock on the kitchen screen stopped at the same second, again and again.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "Saltmarrow has fourteen tables, no table 13, and I'm the manager. Everything runs through one server, a small computer under the bar that answers requests. The waiters' tablets send it every order. It runs Node.js, a program that runs code written in JavaScript, the language of web pages."
+   },
+   {
+    "t": "p",
+    "text": "The kitchen screen keeps one connection to the server open all night: a held line, like a phone call nobody hangs up. Down it, the server pushes each new order the moment it's taken. It also sends a tick every second, a tiny message with the time. Each tick moves on the clock beside every table, showing how long since they ordered."
+   },
+   {
+    "t": "p",
+    "text": "Our developer, Chidozie, says the server is like our one waiter: it does one job at a time. Each job, such as taking an order or sending a tick, is a short piece of code called a callback. The server runs them in turn, from one line. Most take under a millisecond, a thousandth of a second."
+   },
+   {
+    "t": "p",
+    "text": "Two weeks ago Chidozie added printed bills. A waiter taps Bill, and the server renders, or draws, the receipt as a PDF, a printable page, then sends it to the printer by the till. Here is the code. app.get says what to do when a tablet asks for /receipt/ and a table number. renderReceiptSync draws the page; res.send sends it back. Words after // are notes:"
+   },
+   {
+    "t": "log",
+    "text": "app.get(\"/receipt/:table\", (req, res) => {\n  const pdf = renderReceiptSync(req.params.table); // about 4 s of CPU\n  res.send(pdf);\n});"
+   },
+   {
+    "t": "p",
+    "text": "Sync is short for synchronous: the drawing runs from start to finish before the server does anything else. It is all work for the CPU, the chip that does the computing, about 4 seconds of it."
+   },
+   {
+    "t": "p",
+    "text": "On Saturday, between 21:30 and 21:40, six tables asked for their bills. Tables 4 and 11 asked together, at 21:35:40. In that same second Folasade, our waiter, sent table 9's order from her tablet. This is the kitchen screen's log. Each line shows when something arrived, what it was, and what it did to the table clocks:"
+   },
+   {
+    "t": "log",
+    "text": "21:35:39  tick   every table clock +1 s\n21:35:40  tick   every table clock +1 s\n21:35:48  order  table 9, sent 21:35:40\n21:35:48  tick   every table clock +8 s\n21:35:49  tick   every table clock +1 s"
+   },
+   {
+    "t": "p",
+    "text": "Every table's clock stopped at 21:35:40, all at once. Eight seconds later they all jumped forward together, and table 9's order arrived 8 seconds after Folasade sent it. The same happened at 21:31:20, 21:33:05, 21:37:52 and 21:39:15, for 4 seconds each time: five stops, and 19 ticks that never came at all."
+   },
+   {
+    "t": "beat",
+    "text": "The kitchen's busiest ten minutes, and its clocks kept standing still together."
+   },
+   {
+    "t": "p",
+    "text": "Nothing crashed, and every bill printed. Friday is fully booked. What should Chidozie change?"
+   },
+   {
+    "t": "evidence",
+    "label": "kitchen_screen_saturday.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Thirty seconds from 21:35:30. The server works normally until 21:35:40, is busy drawing the bills for tables 4 and 11 until 21:35:48, then works normally again. The kitchen clock ticks every second until 21:35:40, is frozen for 8 seconds, and ticks again from 21:35:48. Table 9's order is sent at 21:35:40 and reaches the kitchen at 21:35:48.",
+     "start": "21:35:30",
+     "seconds": 30,
+     "ticksEvery": 5,
+     "rows": [
+      {
+       "label": "Server",
+       "segments": [[0, 10, "ok"], [18, 30, "ok"]],
+       "gaps": [[10, 18, "2 bills, 8 s"]]
+      },
+      {
+       "label": "Kitchen clock",
+       "segments": [[0, 10, "ok"], [18, 30, "ok"]],
+       "gaps": [[10, 18, "frozen 8 s"]]
+      },
+      {
+       "label": "Table 9 order",
+       "segments": [[18, 30, "ok"]],
+       "gaps": [[10, 18, "waiting 8 s"]]
+      }
+     ],
+     "markers": [
+      {
+       "t": 10,
+       "label": "bills asked",
+       "tone": "bad"
+      },
+      {
+       "t": 18,
+       "label": "order arrives",
+       "tone": "warn"
+      }
+     ]
+    },
+    "caption": "Saturday, 21:35:30 to 21:36:00, from the kitchen screen's log. At 21:35:40 tables 4 and 11 ask for their bills and Folasade sends table 9's order. The server draws one bill, then the other, 8 seconds in all. No tick reaches the kitchen until 21:35:48, when table 9's order arrives and every table's clock jumps 8 seconds."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 152,
+   "age": "4h",
+   "text": "Chidozie's waiter picture is a good one. What he's describing is called the event loop, and it works in steps. First, something happens: an order arrives, or a timer is due. Next, its callback joins the line. Then the loop takes the first callback in line and runs it to the end. Then it takes the next. One thread runs all of it, one line of work inside the program. Now the clever part. When a callback needs to wait, say for an answer over the network, it asks, hands the waiting to the operating system, the program in charge of the machine, and finishes. The answer joins the line later as a new callback. That's non-blocking I/O, short for input and output: waiting costs the loop nothing. A callback that runs a long time is said to block the loop, and how late the loop gets to what's waiting in its line is called event-loop lag. So, your log. What was the loop doing from 21:35:40 to 21:35:48? Is drawing a page waiting, or working? Your kitchen screen's line is a held connection, and its heartbeats, the small stay-alive messages it needs, come from the same loop; they stalled too, though 8 seconds wasn't enough to drop the line. And how many cores, the CPU's separate processors, does that box have, and how busy was each during a freeze?",
+   "replies": [
+    {
+     "author": "u/saltmarrow_odalric",
+     "op": true,
+     "points": 58,
+     "age": "3h",
+     "text": "Chidozie checked. The box has 4 cores. During every freeze one core sat at 100% and the other three were nearly idle. Sending the finished page to the printer goes over the network, and that part never froze anything."
+    }
+   ]
+  },
+  {
+   "author": "u/just_await_ingvild",
+   "points": 94,
+   "age": "3h",
+   "text": "Node is async. That's the whole point of it. Mark the function async and await it. async marks a function that hands back a promise, a ticket for a result that comes later, and await pauses only that function until the ticket is ready. Meanwhile the loop goes back to the other tables. Two words, problem gone. People will tell you to reach for worker_threads, a way to run JavaScript on a second thread, a worker thread, inside the same program. You don't need it in Node; that's what async is for. I've shipped this pattern for years."
+  },
+  {
+   "author": "u/four_copies_hrafnkel",
+   "points": 71,
+   "age": "2h",
+   "text": "Or don't touch the code at all. Run four copies of the server, each its own process, one running copy of the program, behind a load balancer, a program that hands each request to the next copy in turn, called round robin. Your box has four cores; give each copy one. A receipt then stalls one copy, roughly a quarter of the tables. Node even ships a module for it, cluster. That's the standard way to use every core."
+  }
+ ],
+ "reply": {
+  "prompt": "Friday is fully booked. What should Chidozie change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Mark the receipt function async and await it, so it stops holding up the other tables' orders.",
+    "tone": "bad",
+    "verdict": "await doesn't move the work",
+    "part2": "Chidozie made the handler async, put await in front of the render, and replayed Saturday's ten minutes against it: the same ten orders, the same six bills. The kitchen clock stopped 5 times. At 21:35:40 it froze for 8.0 s, table 9's order arrived 8.0 s late, 19 ticks never came, and the worst loop lag was 8.0 s. Every number was exactly as on Saturday. Then he read why. An async function runs its body straight away, on the loop, until it reaches an await on something not yet ready. renderReceiptSync has nothing to wait for: it is 4 seconds of drawing, and it finishes before await even sees it. The await then waits for a result that is already there.",
+    "senior": "async and await change how you write waiting, not where work runs. They help when a callback waits on I/O, because the loop serves others during the wait. CPU work inside an async function still runs on the event loop, start to finish, and blocks it the whole time. The Node.js guide says the rule never to block the loop also applies to your awaits and your Promise.then calls."
+   },
+   {
+    "text": "Move to a server with a CPU twice as fast, so each receipt holds the line for two seconds, not four.",
+    "tone": "bad",
+    "verdict": "Shorter freezes, still freezes",
+    "part2": "Chidozie priced a box with a CPU twice as fast and replayed Saturday on it. Each bill took 2.0 s. The clock still stopped 5 times: the 21:35:40 pair froze it for 4.0 s, table 9's order came 4.0 s late, and 7 ticks never came. Then he replayed Friday's bookings. A party at table 14 wants four split bills; if they ask at 21:35:40 with tables 4 and 11, six bills run back to back. On the fast box the clock froze for 12.0 s and table 9's order came 12.0 s late, worse than Saturday on the old box. On the old box it would have been 24.0 s.",
+    "senior": "A faster CPU shortens each block but keeps its shape: one callback holds the loop and everything behind it waits. Blocks stack, too. Bills that arrive together run back to back, so one busy minute undoes the speed-up. A bigger machine, called scaling up or vertical scaling, helps when work is spread evenly, not when one job can freeze the line."
+   },
+   {
+    "text": "Run four copies of the server behind a load balancer, so a receipt stalls only a quarter of tables.",
+    "tone": "warn",
+    "verdict": "Smaller freezes, still the kitchen's",
+    "part2": "Chidozie ran four copies behind a load balancer that hands each request to the next copy in turn, and replayed Saturday. The kitchen screen's line is held by copy 1, so its ticks come from copy 1, and an order taken by another copy is passed to copy 1 to push. Copy 1 drew table 6's bill at 21:33:05 and table 11's at 21:35:40: two stops of 4.0 s, and 6 ticks missing. Table 9's order went to copy 2 and was taken at once, then waited 4.0 s for copy 1 to finish table 11's bill. The other copies froze too, for the bills of tables 2, 4, 1 and 8, and any tablet that reached one of them in those seconds waited. Fewer stops and shorter ones, but each one still stopped every table's clock at once.",
+    "senior": "Running copies, the cluster pattern, is a real way to use every core, and often worth doing for its own reasons. But it splits the freezes; it doesn't remove them. Each copy still blocks on its own receipts, and anything tied to one copy, like the kitchen screen's held connection, freezes whenever that copy does. Copies are separate processes, so nothing in one copy's memory is shared with another."
+   },
+   {
+    "text": "Render receipts in a worker thread, so the event loop goes straight back to taking orders.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Chidozie moved renderReceiptSync into a worker thread with a queue in front of it. Now the loop's part of a bill is two quick steps: hand the job to the worker, and later send the finished page. Replaying Saturday, the kitchen clock never stopped, no tick went missing, all 10 orders arrived the moment they were sent, and the worst loop lag was 0.0 s. Every bill printed. Table 11's took 8.0 s, because the one worker drew table 4's first, but only table 11 waited. With Friday's party, the last of table 14's four split bills waited 24.0 s in the worker's queue, and the kitchen never noticed. Chidozie also set an alert on loop lag.",
+    "senior": "Keep the loop for short callbacks and for waiting; send CPU work to worker threads, with a queue in front. The loop's cost per bill drops to handing over a job and sending the result. One worker draws bills one at a time, so a burst waits in the queue: size a small pool of workers to the spare cores, and cap the queue. Then measure event-loop lag, so the next slow callback shows up as a number before it shows up as frozen clocks."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s5e03",
+  "title": "Replay Saturday's rush on one event loop",
+  "lede": "You're Chidozie, replaying Saturday from 21:30:00, before the first order. Ten orders and six bill requests arrive at the times in the post; tables 4 and 11 ask together at 21:35:40, and table 9's order is sent in the same second, after them. The server runs one event loop with one line of callbacks, first come, first served. Taking an order, pushing it to the kitchen and a clock tick take 0 ms; a receipt drawn on the loop takes the render time you set (4 s on Saturday), halved on a CPU twice as fast. The tick is a timer due every second; at the same moment it goes first, and a tick missed during a freeze is not made up. async on the loop runs the same drawing on the same loop. A worker thread draws one bill at a time, first come, first served, and the loop hands it each job in 0 ms. With four copies, a load balancer sends each request to the next copy in turn, and the kitchen screen is connected to copy 1. Party night adds table 14's four split bills at 21:35:40. Loop lag here is the longest stretch a loop was busy without a break. Changing a setting rewinds to 21:30:00; press Next event, Play or To 21:40.",
+  "tryThis": "Try this: press Next event. At 21:31:24 the loop is free after table 2's bill: the clock jumped 21:31:20 to 21:31:24, and table 5's order came 2.0 s late. Press it twice more: tables 4 and 11 freeze the clock from 21:35:40 to 21:35:48, and table 9's order is 8.0 s late. Press To 21:40: 5 stops, 19 ticks missing, 3 of 10 orders late, loop lag 8.0 s. Pick async on the loop: every number the same. Twice as fast: longest gap 4.0 s, 7 ticks missing; add the party night: 12.0 s. Back on Saturday's six bills and today's box, pick four copies: 2 stops on copy 1, table 9's order 4.0 s late. A worker thread: no stops, no late orders, loop lag 0.0 s, and table 11's bill takes 8.0 s."
+ },
+ "explain": {
+  "oneLine": "Nothing froze the kitchen screen but a bill. The server runs every callback on one event loop, one at a time. Drawing a receipt was 4 seconds of CPU work on that loop, so ticks, orders and pushes waited behind it: 8 seconds when two bills came together.",
+  "steps": [
+   {
+    "title": "One loop, one callback at a time.",
+    "text": "Node.js runs your JavaScript on one thread, in a loop. First, something happens: a tablet sends an order, or a timer is due. Next, the callback for it joins a line. Then the loop takes the first callback in the line and runs it to the end. Only then does it take the next. Nothing can cut in while a callback runs, so a callback that takes long holds up everything behind it. The clock tick is a timer set with setInterval to repeat every second. Node's guide says a timer sets the earliest time its callback may run, not the exact time. So when the loop is busy, the tick runs late, once. In Node, a repeating timer that runs late doesn't make up the turns it missed, which is why every clock jumped 8 seconds at 21:35:48 instead of ticking eight times. In the sim, a tick, an order and a push each take 0 ms."
+   },
+   {
+    "title": "Waiting costs the loop nothing.",
+    "text": "Most of what a server does is wait: for the network, for the disk, for a database. Node doesn't let a callback wait on the loop. It goes in steps. First, the callback asks for the data and hands the waiting to the operating system. Next, the callback finishes, and the loop moves on to other callbacks. Then, when the answer arrives, a new callback joins the line to use it. This is non-blocking I/O, and it's why one thread can serve many tablets at once. Sending the PDF to the printer is a wait like this, which is why it never froze anything. What can go wrong: code that waits without handing it over, such as a function ending in Sync that reads a file, holds the loop for the whole wait."
+   },
+   {
+    "title": "Working holds the loop, async or not.",
+    "text": "Drawing a page is not waiting. It is CPU-bound work, the CPU doing sums, and there is nothing to hand to the operating system. So renderReceiptSync runs from start to finish on the loop, about 4 seconds. On Saturday it went in steps. At 21:35:40 the tick ran, then table 4's bill started. Table 11's bill, table 9's order and the next tick joined the line behind it. At 21:35:44 table 11's bill started. At 21:35:48 the order was pushed and the tick ran. Marking the function async doesn't change this. An async function runs its body at once, on the loop, until it reaches an await on something not yet finished. A promise only helps when the work behind it happens somewhere else. In the sim, async on the loop gives the same 5 stops and the same 8.0 s."
+   },
+   {
+    "title": "Move the work off the loop: a worker thread and a queue.",
+    "text": "A worker thread runs JavaScript on its own thread, usually on another core, next to the loop. The fix goes in steps. First, the loop's callback for a bill puts a job in a queue for the worker and finishes at once. Next, the worker takes the next job and draws the page, 4 seconds on its own core. Then it sends the finished page back as a message. Last, a short callback on the loop sends it to the printer. The loop never holds a bill for more than a moment. One worker draws one bill at a time, so table 11's waits behind table 4's; a pool of a few workers, about one per spare core, draws several at once. Copies of the whole server spread freezes rather than removing them, and a faster CPU only shortens them. Another way is to cut the work into small pieces and let the loop serve others between pieces, called partitioning; it suits short loops, not 4 seconds of drawing."
+   },
+   {
+    "title": "Measure the loop, and alert on it.",
+    "text": "Event-loop lag is how late the loop gets to things in its line. Node measures it for you with monitorEventLoopDelay from the perf_hooks module. It works in steps. First, it sets a timer to fire every 10 ms by default. Next, each time it fires, it records how late it was. Then it keeps those delays in a histogram, a count of how often each delay happened, in nanoseconds, billionths of a second. You read its largest value and percentiles, such as the 99th. Send those to your monitoring and alert when they rise above a limit you choose, well under what a person would notice. In the sim the worst loop lag was 8.0 s as built and 0.0 s with the worker thread. Clocks that stop together, and every request getting slow at once while one core sits at 100%, are the usual signs."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 280,
+   "aria": "The fix. Waiters' tablets send orders and bill requests to the event loop. The loop pushes orders and ticks to the kitchen screen at once. For a bill, the loop puts a job in the receipt queue; the worker thread takes the next job and draws it in about 4 seconds, then hands the finished page back to the loop, which sends it to the table printer.",
+   "nodes": [
+    { "id": "tabs", "label": "Waiters' tablets", "sub": "orders, bills", "x": 100, "y": 70, "w": 150, "h": 56, "shape": "box" },
+    { "id": "loop", "label": "Event loop", "sub": "orders, ticks: 0 ms", "x": 370, "y": 70, "w": 200, "h": 64, "shape": "box", "tone": "ok" },
+    { "id": "kitchen", "label": "Kitchen screen", "sub": "tick every 1 s", "x": 640, "y": 70, "w": 150, "h": 56, "shape": "box", "tone": "ok" },
+    { "id": "printer", "label": "Table printer", "x": 100, "y": 210, "w": 150, "h": 56, "shape": "box" },
+    { "id": "queue", "label": "Receipt queue", "sub": "first come, first served", "x": 370, "y": 210, "w": 200, "h": 56, "shape": "box" },
+    { "id": "worker", "label": "Worker thread", "sub": "about 4 s a bill", "x": 640, "y": 210, "w": 150, "h": 64, "shape": "box", "tone": "warn" }
+   ],
+   "edges": [
+    { "from": "tabs", "to": "loop", "label": "order, bill" },
+    { "from": "loop", "to": "kitchen", "label": "push, tick" },
+    { "from": "loop", "to": "queue", "label": "bill job" },
+    { "from": "queue", "to": "worker", "label": "next job" },
+    { "from": "worker", "to": "loop", "label": "PDF ready", "dash": true },
+    { "from": "loop", "to": "printer", "label": "send PDF" }
+   ]
+  },
+  "caption": "The fix. The event loop only takes orders, pushes them, ticks the clocks and hands out jobs, each in a moment. Bills wait in the receipt queue for the worker thread, which draws each one in about 4 seconds on its own core and hands the page back for the loop to send. Replayed on Saturday: no stops, no late orders, loop lag 0.0 s.",
+  "fix": {
+   "title": "The fix: draw receipts in a worker thread, and watch the loop",
+   "text": "Move renderReceiptSync into a worker thread created with worker_threads when the server starts, with a queue in front of it. The route's callback puts the job in the queue and returns at once; when the worker posts the finished page back, a short callback sends it to the printer. Keep the worker running rather than starting one per bill. With spare cores, use a small pool of workers, about one per spare core. Cap the queue, and tell the waiter when it is full. Then measure event-loop lag with monitorEventLoopDelay and alert on it. In the sim, Saturday then has no stops, 0 of 10 orders late and loop lag 0.0 s; table 11's bill takes 8.0 s, and on party night the last split bill waits 24.0 s in the queue while the kitchen clocks keep ticking."
+  },
+  "limits": [
+   "A worker thread needs a spare core to be truly separate. On a box with one core, the operating system takes turns between the loop and the worker, so the loop keeps running but bills take longer.",
+   "The queue moves the waiting to the bills. One worker draws one at a time, so a burst queues up: 24.0 s for the last split bill on party night. Cap the queue and add workers only up to the spare cores.",
+   "Data sent to a worker is copied by default, which costs time for big objects, and workers can't touch the loop's variables. Send small jobs, or transfer buffers, and keep each worker's task short and similar in size."
+  ],
+  "tradeoff": {
+   "head": ["Change", "Good", "Bad"],
+   "rows": [
+    ["As built: draw on the loop", "Simplest code.", "5 stops, 19 ticks missing, table 9 8.0 s late, loop lag 8.0 s."],
+    ["async and await around the render", "Two words.", "Identical: the drawing still runs on the loop."],
+    ["A CPU twice as fast", "No code change; freezes halve.", "Still 5 stops; bills that come together stack: 12.0 s on party night."],
+    ["Four copies behind a load balancer", "Uses every core; one copy's freeze leaves the others free.", "The kitchen's copy still freezes, 2 stops of 4.0 s; memory isn't shared between copies."],
+    ["Partition: draw in small pieces, letting others run between", "Stays on the loop; no threads.", "Slower overall, uses one core, and every piece must be kept short."],
+    ["Worker thread with a queue", "No stops, no late orders, loop lag 0.0 s.", "Bills queue in bursts; needs spare cores, a queue cap and copying data across."]
+   ]
+  },
+  "seniorTake": "In Node, the event loop is shared by every request, so the question for any callback is: how long does it run before it gives the loop back? Waiting is free, because non-blocking I/O hands it to the operating system. Working is not: CPU work holds the loop, and async and await don't move it anywhere. Keep each callback short, send heavy computing to a pool of worker threads behind a capped queue, and measure event-loop lag so you see the next slow callback before your users do. Copies and faster machines help with load in general; they don't fix one callback that freezes everything.",
+  "realWorld": [
+   {
+    "title": "The Node.js guide: one loop, and blocked threads",
+    "text": "The Node.js guide Don't Block the Event Loop (or the Worker Pool) says: \"Node.js runs JavaScript code in the Event Loop (initialization and callbacks), and offers a Worker Pool to handle expensive tasks like file I/O.\" And: \"If a thread is taking a long time to execute a callback (Event Loop) or a task (Worker), we call it \"blocked\".\" Then: \"While a thread is blocked working on behalf of one client, it cannot handle requests from any other clients.\"",
+    "source": 0
+   },
+   {
+    "title": "The guide: awaits count too",
+    "text": "It sets the rule: \"You should make sure you never block the Event Loop. In other words, each of your JavaScript callbacks should complete quickly.\" And it adds: \"This of course also applies to your await's, your Promise.then's, and so on.\" async does not move work off the loop.",
+    "source": 0
+   },
+   {
+    "title": "The guide: orchestrate, don't fulfil",
+    "text": "\"Remember, the Event Loop should orchestrate client requests, not fulfill them itself. For a complicated task, move the work off of the Event Loop onto a Worker Pool.\" On partitioning, cutting work into pieces that each run briefly on the loop, it warns: \"you won't benefit from multiple cores almost certainly available on your machine.\"",
+    "source": 0
+   },
+   {
+    "title": "The guide: even JSON can block",
+    "text": "JSON is a common text format for data. The guide calls JSON.parse and JSON.stringify \"other potentially expensive operations\" and gives an example of a 50MB string: \"It takes 0.7 seconds to stringify the object, 0.03 seconds to indexOf on the 50MB string, and 1.3 seconds to parse the string.\"",
+    "source": 0
+   },
+   {
+    "title": "The event loop and timers",
+    "text": "Node's page on the event loop says it \"is what allows Node.js to perform non-blocking I/O operations\", \"despite the fact that a single JavaScript thread is used by default\", by \"offloading operations to the system kernel whenever possible\". (The kernel is the core of the operating system.) On timers: \"A timer specifies the threshold after which a provided callback may be executed rather than the exact time a person wants it to be executed.\"",
+    "source": 1
+   },
+   {
+    "title": "worker_threads: for CPU work",
+    "text": "Node's documentation: \"The node:worker_threads module enables the use of threads that execute JavaScript in parallel.\" And: \"Workers (threads) are useful for performing CPU-intensive JavaScript operations. They do not help much with I/O-intensive work.\" On how to run them: \"In practice, use a pool of Workers for these kinds of tasks.\"",
+    "source": 2
+   },
+   {
+    "title": "monitorEventLoopDelay: measuring lag",
+    "text": "perf_hooks.monitorEventLoopDelay \"Creates a histogram object that samples and reports the event loop delay over time. The delays will be reported in nanoseconds.\" Its resolution option is \"The sampling rate in milliseconds for interval-based sampling\", with a default of 10. The histogram's max is \"The maximum recorded event loop delay.\"",
+    "source": 3
+   },
+   {
+    "title": "cluster: copies, not threads",
+    "text": "Node's cluster documentation: \"Clusters of Node.js processes can be used to run multiple instances of Node.js that can distribute workloads among their application threads.\" And: \"When process isolation is not needed, use the worker_threads module instead, which allows running multiple application threads within a single Node.js instance.\" It also warns that an application should not \"rely too heavily on in-memory data objects\".",
+    "source": 4
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How does the Node.js event loop work?",
+    "What blocks it?",
+    "How would you run CPU-heavy work in Node?"
+   ],
+   "answer": "Node runs your JavaScript on one thread, in an event loop. Things happen, such as a request arriving or a timer coming due, and each one's callback joins a line. The loop runs the first callback to the end, then the next, one at a time. Waiting doesn't happen on the loop: a callback asks for network or disk data, hands the waiting to the operating system and finishes, and the answer comes back later as a new callback. That's non-blocking I/O, and it's why one thread can serve many connections. What blocks the loop is any callback that runs a long time: CPU work such as drawing a PDF, resizing an image, parsing a huge JSON string or a heavy loop, plus the Sync versions of file calls. While it runs, every other request, timer and push waits, so everything slows down at once. async and await don't help, because an async function runs its body on the loop until it awaits something unfinished. For CPU-heavy work I'd use a small pool of worker threads, about one per spare core, with a capped queue in front, so the loop only hands out jobs and sends results. For short work you can partition it into small pieces. Running several copies with cluster or more machines spreads load but each copy can still freeze. And I'd measure event-loop lag with monitorEventLoopDelay and alert on its high percentiles."
+  }
+ },
+ "terms": [
+  { "term": "Saltmarrow", "def": "The restaurant in this story: fourteen tables, no table 13, one server under the bar that takes every order and runs the kitchen screen." },
+  { "term": "Kitchen screen", "def": "The screen in Saltmarrow's kitchen. It keeps one connection to the server open all night, gets each order pushed down it, and shows a clock for every table." },
+  { "term": "Tick (kitchen clock)", "def": "A tiny message the server sends the kitchen screen every second with the time. Each one moves every table's clock on. A tick that comes late makes the clocks jump." },
+  { "term": "Table clock", "def": "The timer beside each table on the kitchen screen, showing how long since that table ordered. It moves only when a tick arrives." },
+  { "term": "Bill", "def": "A table's receipt, asked for from a waiter's tablet and printed by the till. In the code it is drawn as a PDF by renderReceiptSync." },
+  { "term": "PDF", "def": "Short for portable document format: a file that holds a page laid out ready to print, the same on any machine." },
+  { "term": "Render", "def": "To draw a page, working out where every line and letter goes. Rendering a receipt is about 4 seconds of CPU work on Saltmarrow's box." },
+  { "term": "renderReceiptSync", "def": "Chidozie's function that draws a table's receipt as a PDF. Sync means it runs start to finish before anything else on the loop can run." },
+  { "term": "app.get and res.send", "def": "app.get says which code runs when a request for a path, such as /receipt/9, arrives; res.send sends the answer back to whoever asked." },
+  { "term": "Callback", "def": "A short piece of code handed over to be run later, when something happens: an order arrives, a timer is due, an answer comes back." },
+  { "term": "Event loop", "def": "How Node.js runs code: one thread takes the first callback in a line, runs it to the end, then takes the next. Like one waiter serving every table in turn." },
+  { "term": "Synchronous", "def": "Done from start to finish before the program moves on. A synchronous function holds the event loop for as long as it runs." },
+  { "term": "Non-blocking I/O", "def": "Waiting without holding the loop: a callback asks for network or disk data, hands the wait to the operating system and finishes; the answer returns as a new callback." },
+  { "term": "Operating system", "def": "The program in charge of the whole machine. It runs the other programs, shares out the CPU, and handles the network and disk for them." },
+  { "term": "Blocking the loop", "def": "Running one callback long enough that nothing else on the event loop can run until it finishes, such as 4 seconds of drawing." },
+  { "term": "CPU-bound work", "def": "Work limited by how fast the CPU computes, such as drawing pages or parsing big data. Waiting on the network or disk is I/O-bound instead." },
+  { "term": "Event-loop lag", "def": "How late the event loop gets to the callbacks waiting in its line. Near zero when every callback is short; as long as the longest block when one isn't." },
+  { "term": "async function", "def": "A JavaScript function marked async. It hands back a promise. Its body runs straight away, on the loop, until it reaches an await on something unfinished." },
+  { "term": "await", "def": "Pauses an async function until a promise is ready, letting the loop run other callbacks meanwhile. It saves nothing if the work itself runs on the loop." },
+  { "term": "Promise", "def": "A JavaScript object standing for a result that comes later, like a cloakroom ticket. Code can wait on it with await or .then." },
+  { "term": "Promise.then", "def": "The older way to say what to do when a promise is ready: promise.then(callback). Like await, it doesn't move work off the loop." },
+  { "term": "Worker thread", "def": "A second thread inside the same Node.js program that runs its own JavaScript, usually on another core. Made with the worker_threads module." },
+  { "term": "worker_threads", "def": "Node's built-in module for worker threads. Its documentation says they help CPU-intensive JavaScript and do not help much with I/O-intensive work." },
+  { "term": "Worker pool", "def": "A fixed set of worker threads, started once, that take jobs from a shared queue. Usually about one per spare core." },
+  { "term": "Receipt queue", "def": "The line of bill jobs waiting for the worker thread, first come, first served. Capping its length stops a burst from piling up without end." },
+  { "term": "Partitioning", "def": "Cutting a long job into small pieces that each run briefly on the loop, letting other callbacks run between them. Suits short jobs; uses one core." },
+  { "term": "Timer (setInterval)", "def": "setInterval runs a callback again and again, a set time apart. It can't run while the loop is busy, so it runs late, and missed turns aren't made up." },
+  { "term": "Module (Node)", "def": "A named part of Node.js, or of a program, that you load to use its functions, such as worker_threads or perf_hooks." },
+  { "term": "perf_hooks", "def": "Node's built-in module for measuring performance, how fast and how late things run inside a program." },
+  { "term": "monitorEventLoopDelay", "def": "A perf_hooks function that samples how late the event loop runs a timer, every 10 ms by default, and keeps the delays in a histogram in nanoseconds." },
+  { "term": "Histogram", "def": "A count of how often each value happened, such as how many times the loop was 1 ms late, 2 ms late, and so on. Max and percentiles are read from it." },
+  { "term": "Nanosecond", "def": "A billionth of a second. A millisecond, ms, is a million of them." },
+  { "term": "cluster (Node)", "def": "Node's built-in module for running several copies of a server, each its own process, sharing the incoming requests. Copies don't share memory." },
+  { "term": "Copy of the server", "def": "Another process running the same server program. Each has its own event loop and its own memory." },
+  { "term": "Round robin", "def": "Handing requests to copies in turn: the first to copy 1, the next to copy 2, and so on, then back to copy 1." },
+  { "term": "Vertical scaling", "def": "Making one machine bigger or faster instead of adding machines. Also called scaling up." },
+  { "term": "Kernel", "def": "The core of the operating system, the part that talks to the hardware, the network and the disks." },
+  { "term": "JSON", "def": "A common text format for data, such as {\"table\": 9}. JSON.parse turns the text into data a program can use; JSON.stringify turns data back into text." },
+  { "term": "Split bills", "def": "One table asking for several receipts, one per guest or group. On party night table 14 asks for four." },
+  { "term": "Party night (in the sim)", "def": "Saturday's six bills plus table 14's four split bills at 21:35:40, after tables 4 and 11 and before table 9's order." },
+  { "term": "Next event (in the sim)", "def": "Moves the sim to the next moment a loop comes free or a receipt prints, logging what happened." },
+  { "term": "Loop lag (in the sim)", "def": "The longest stretch any loop was busy without a break, about what monitorEventLoopDelay's max would show." }
+ ],
+ "atWork": "Look for a service, a program that answers requests, built on Node.js or another single-loop server, where one endpoint does heavy computing: resizing images, building a PDF or a report, parsing a large JSON upload, hashing passwords with slow settings, or a big loop over data in memory. It is a common pattern: one slow, CPU-heavy endpoint makes every other request slow at the same moments, even health checks. The signs are everything getting slower together, one CPU core at 100% while the others idle, and timers or heartbeats arriving in bursts. Do you measure event-loop lag today, for example with monitorEventLoopDelay sent to your monitoring, and alert on its high percentiles? Which endpoints run CPU work on the loop, and could they hand it to a worker pool behind a capped queue? Do any use async on code that never actually waits? Standards: none apply here; this is engineering work, not audit work.",
+ "board": {
+  "cards": [
+   { "id": "event-loop", "title": "Event loop" },
+   { "id": "blocking-the-loop", "title": "Blocking the loop" },
+   { "id": "async-await", "title": "Async/await" }
+  ],
+  "strings": [
+   { "from": "event-loop", "to": "threads", "label": "one thread" },
+   { "from": "blocking-the-loop", "to": "event-loop", "label": "freezes it" },
+   { "from": "async-await", "to": "blocking-the-loop", "label": "doesn't fix it" },
+   { "from": "blocking-the-loop", "to": "offloading-slow-work-to-a-background-queue", "label": "move it off" },
+   { "from": "event-loop", "to": "websockets", "label": "pushes stall" },
+   { "from": "blocking-the-loop", "to": "vertical-scaling", "label": "shorter, not gone" }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s5e03-r1",
+   "kind": "free",
+   "prompt": "Your team's Node.js API has a monthly report endpoint that loops over 200,000 rows in memory for about 3 seconds. Since it launched, at month end every other endpoint's slowest requests take about 3 seconds, health checks included, and the CPU graph shows one core full while the rest idle. A colleague wants to make the report function async. What is happening, and what would you do?",
+   "keyIdeas": [
+    {
+     "idea": "The report is CPU work on the single event loop, so while it runs no other callback can: it blocks every request",
+     "match": ["event loop", "blocks the loop", "blocking the loop", "single thread", "one thread", "nothing else runs", "everything else waits", "holds the loop", "on the loop"]
+    },
+    {
+     "idea": "async does not move CPU work off the loop; run it in a worker thread or pool, behind a queue",
+     "match": ["worker thread", "worker_threads", "worker pool", "pool of workers", "off the loop", "child process", "another thread", "separate thread"]
+    },
+    {
+     "idea": "Measure event-loop lag, for example with monitorEventLoopDelay, and alert on it",
+     "match": ["loop lag", "event-loop lag", "monitoreventloopdelay", "loop delay", "event loop delay", "perf_hooks"]
+    }
+   ],
+   "model": "The report is 3 seconds of CPU work, and Node runs every callback on one event loop, one thread, one at a time. While the loop works through the rows, nothing else runs: every other request, health checks included, waits behind it, which is why they all take about 3 seconds at once and only one core is busy. Making it async changes nothing, because an async function runs its body on the loop until it awaits something unfinished, and a loop over rows never does. Move the report into a worker thread, or a small pool of workers behind a capped queue, so the loop only hands over the job and sends the result. Then measure event-loop lag with monitorEventLoopDelay and alert on it, so the next one shows up before customers notice."
+  },
+  {
+   "id": "s5e03-r2",
+   "kind": "mcq",
+   "prompt": "A handler is written async (req, res) => { const pdf = renderReceiptSync(9); res.send(pdf); }, and the render is about 4 seconds of CPU. What happens to a clock tick due 1 second after the request arrives?",
+   "options": [
+    "It runs on time, because the async handler lets other callbacks in while the render runs",
+    "It runs about 3 seconds late, when the render has finished, because the render still runs on the event loop",
+    "It is cancelled, because async handlers stop timers until they finish",
+    "It runs on time on a different core, because Node spreads callbacks across cores"
+   ],
+   "answer": 1,
+   "why": "async changes nothing here. The handler's body runs straight away on the loop, and the render never awaits anything, so it holds the loop for the full 4 seconds. The tick due at 1 second can only run when the loop is free, about 3 seconds late. Node runs all your callbacks on one thread unless you use worker threads."
+  },
+  {
+   "id": "s5e03-r3",
+   "kind": "mcq",
+   "prompt": "Which of these blocks a Node.js server's main thread for its whole duration?",
+   "options": [
+    "Waiting 2 seconds for an answer from a database over the network",
+    "Waiting for a file to be read with the promise version of readFile",
+    "Parsing a 50 MB string with JSON.parse",
+    "A timer set to run a callback in 5 seconds"
+   ],
+   "answer": 2,
+   "why": "Waiting on the network or disk is handed to the operating system, so it costs the main thread nothing, and a timer just waits. Parsing is CPU work that runs to the end on the main thread; Node's guide gives about 1.3 seconds for parsing its 50MB example string."
+  },
+  {
+   "id": "s5e03-r4",
+   "kind": "mcq",
+   "prompt": "What does perf_hooks.monitorEventLoopDelay give you?",
+   "options": [
+    "A histogram of how late the event loop ran its sampling timer, in nanoseconds",
+    "The number of requests waiting in the load balancer's line",
+    "The share of time each core spent busy",
+    "A list of every callback that took longer than 10 ms, with its name"
+   ],
+   "answer": 0,
+   "why": "Node's documentation says it creates a histogram that samples and reports the event loop delay over time, in nanoseconds, with a sampling rate of 10 ms by default. You read its max and percentiles and alert on them. It doesn't name the callback; a profiler does that."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 3 months later. The receipt fix held: the kitchen clocks haven't frozen once during service. In June Chidozie added an end-of-night sales report. At 23:00 the server reads the day's orders file, about 60 MB, with await, then turns the text into totals by table and dish. On Thursday, at 23:00:00, every table's clock froze for 3 seconds while the last two tables were still eating, and an order for dessert arrived 3 seconds late. Chidozie says it can't be the report, because the read is awaited.",
+  "prompt": "Reply to OP. Why did the clocks freeze at 23:00, and what should Chidozie do?",
+  "keyIdeas": [
+   {
+    "idea": "The awaited read is fine: reading the file is I/O handed to the operating system, so it costs the loop nothing",
+    "match": ["read is fine", "reading is fine", "the read was fine", "non-blocking", "i/o", "doesn't block", "costs the loop nothing", "not the read"]
+   },
+   {
+    "idea": "Turning 60 MB of text into totals (JSON.parse and the summing) is CPU work on the loop, and it blocks everything for about 3 seconds",
+    "match": ["parse", "cpu work", "cpu-bound", "computing", "on the loop", "blocks the loop", "blocking the loop", "holds the loop"]
+   },
+   {
+    "idea": "Move the parsing and totals into the worker thread (or a separate job), or partition it into small pieces",
+    "match": ["worker thread", "the worker", "a worker", "worker_threads", "off the loop", "partition", "small pieces", "chunks", "separate process", "another thread"]
+   }
+  ],
+  "model": "The read isn't the problem. Reading the file with await is I/O: Node hands it to the operating system, and the loop serves the kitchen while it waits, so the read is fine. The trouble is what comes after. Turning 60 MB of text into data with JSON.parse, then summing it by table and dish, is CPU work, and it runs on the loop from start to finish. For those 3 seconds no tick, order or push could run, exactly like the receipts in March. Move the parse and the totals into the worker thread that already draws the receipts, or a separate job, and send back only the totals; or partition the work into small pieces so the loop can serve others between them. Keep watching event-loop lag: this freeze would have shown up there as a 3-second spike at 23:00."
+ },
+ "next": "Next, Shapes and Contracts: a puppet workshop, and classes and objects, interfaces, and composition over inheritance.",
+ "sources": [
+  {
+   "title": "Node.js Learn, Don't Block the Event Loop (or the Worker Pool) (Event Loop and Worker Pool; blocked threads; never block the Event Loop, also your awaits and Promise.then calls; orchestrate, not fulfill; partitioning; JSON.parse and JSON.stringify timings)",
+   "url": "https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop"
+  },
+  {
+   "title": "Node.js Learn, The Node.js Event Loop (non-blocking I/O despite a single JavaScript thread; offloading to the system kernel; a timer specifies a threshold, not an exact time)",
+   "url": "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick"
+  },
+  {
+   "title": "Node.js documentation, Worker threads (threads that execute JavaScript in parallel; useful for CPU-intensive operations, not much help with I/O-intensive work; use a pool of Workers)",
+   "url": "https://nodejs.org/api/worker_threads.html"
+  },
+  {
+   "title": "Node.js documentation, Performance measurement APIs: perf_hooks.monitorEventLoopDelay (histogram of event loop delay in nanoseconds; resolution default 10 ms; max, mean, percentile)",
+   "url": "https://nodejs.org/api/perf_hooks.html"
+  },
+  {
+   "title": "Node.js documentation, Cluster (clusters of Node.js processes; use worker_threads when process isolation is not needed; don't rely too heavily on in-memory data objects)",
+   "url": "https://nodejs.org/api/cluster.html"
+  }
+ ]
+}
