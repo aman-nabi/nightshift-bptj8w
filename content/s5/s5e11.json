@@ -1,0 +1,923 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-14) first version"
+ ],
+ "id": "s5e11",
+ "season": 5,
+ "n": 11,
+ "title": "Branches",
+ "setting": "a family tree that keeps splitting",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "git-workflows",
+  "trunk-based-development",
+  "pull-requests"
+ ],
+ "prerequisites": [
+  "s5e09",
+  "s5e08",
+  "s5e07"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/release_night_ljubica",
+  "flair": "Part 1",
+  "age": "7h",
+  "votes": 2961,
+  "title": "I'm the release manager at a small games studio. A save bug we fixed in March is back in our July update. The fix is still on our code's family tree. Nobody deleted it.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm the release manager at Kettlewyn Games. Seven of us make Lanternwake, a game for consoles. I put each update together and send it to players, always on a Thursday. Version 1.6 went out on 9 July."
+   },
+   {
+    "t": "p",
+    "text": "Our code lives in Git, a tool that remembers every change anyone has made. Each saved change is a commit: the lines changed, who changed them, and a short note. Drawn out, the commits look like a family tree, each one hanging from the one before."
+   },
+   {
+    "t": "p",
+    "text": "And the tree splits. A branch is a separate line of commits, where someone can work without getting in the way. Our main line is a branch called main, and every update is built from it."
+   },
+   {
+    "t": "p",
+    "text": "On 3 February Jolyon started a branch for one new feature, an open world. A branch like that is a feature branch. He named it open-world, and it lived five months apart from main."
+   },
+   {
+    "t": "p",
+    "text": "On 2 March a player reported bug #4127. If a console slept in the middle of an autosave, the save was left half written and ruined. On 12 March Fiachra fixed it on main, in two steps. First the game writes the save to a spare file. Then it renames the spare file over the real one, which on most systems happens all at once, so a sleep can't leave half a save. 1.5 shipped it on 26 March."
+   },
+   {
+    "t": "p",
+    "text": "Joining one branch's commits into another is called merging. Where both sides changed the same lines, it can't choose: it stops, shows both versions, and a person decides. That is a merge conflict."
+   },
+   {
+    "t": "p",
+    "text": "Jolyon merged open-world into main on the night of 2 July. One file, SaveGame.cs, the code that writes and loads saves, had 3 conflicts. Git calls each clashing block of lines a hunk."
+   },
+   {
+    "t": "p",
+    "text": "Here is the hunk in the save code, in C#, our game's language. Git labels the side you are on HEAD, here main; its lines come before =======, and open-world's come after, cut short:"
+   },
+   {
+    "t": "log",
+    "text": "<<<<<<< HEAD\nvar tmp = path + TempSuffix;\nFile.WriteAllBytes(tmp, data);\nFile.Move(tmp, path, true);\n=======\nforeach (var region in regions)\n    WriteChunk(path, region);\n... (34 more lines)\n>>>>>>> open-world"
+   },
+   {
+    "t": "p",
+    "text": "It was late, and the branch held five months of work. Jolyon typed one command, git checkout --theirs SaveGame.cs, which takes the incoming branch's whole file."
+   },
+   {
+    "t": "p",
+    "text": "Then our build machine, a shared computer that rebuilds the game after every merge, ran the tests: small programs that check it still works. Every test passed. None checked #4127."
+   },
+   {
+    "t": "p",
+    "text": "We shipped 1.6 on 9 July. By Sunday players were writing in: saves ruined when the console slept. Word for word, #4127."
+   },
+   {
+    "t": "p",
+    "text": "Tonight I drew our history with git log --graph, cut to the commits that touched SaveGame.cs and where open-world began. Each * is a commit, newest first; the lines show what hangs from what:"
+   },
+   {
+    "t": "log",
+    "text": "*   f2a91c0 Merge open-world into main\n|\\\n| * 7d3e55b Faster region saves\n| * 41b0c9e Save regions in chunks\n* | 9e04d17 Fix #4127: temp file, rename\n| * c58a2f3 Load region data\n| * 2b6d0e8 Save region chunk size\n|/\n* 3b7f1a2 Release 1.4"
+   },
+   {
+    "t": "beat",
+    "text": "The fix is right there on the tree. The game doesn't have it."
+   },
+   {
+    "t": "p",
+    "text": "Co-op, our next feature, starts in September and will take months. What should we change?"
+   },
+   {
+    "t": "evidence",
+    "label": "save_bug_tree.png",
+    "diagram": {
+     "type": "arch",
+     "w": 740,
+     "h": 300,
+     "aria": "My sketch of the tree. Release 1.4 on 29 January splits into main and open-world. On main, the fix for #4127 on 12 March shipped in 1.5. open-world lived from 3 February to 2 July. Both meet at the merge on 2 July: 3 hunks, resolved with the branch's whole file. Release 1.6 on 9 July: #4127 back.",
+     "nodes": [
+      {
+       "id": "v14",
+       "label": "Release 1.4",
+       "sub": "29 Jan",
+       "x": 90,
+       "y": 150,
+       "w": 130,
+       "h": 62,
+       "shape": "box",
+       "tone": ""
+      },
+      {
+       "id": "fix",
+       "label": "Fix #4127 on main",
+       "sub": "12 Mar, in 1.5",
+       "x": 330,
+       "y": 60,
+       "w": 200,
+       "h": 62,
+       "shape": "box",
+       "tone": "ok"
+      },
+      {
+       "id": "ow",
+       "label": "open-world",
+       "sub": "3 Feb to 2 Jul",
+       "x": 330,
+       "y": 240,
+       "w": 200,
+       "h": 62,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "mg",
+       "label": "Merge, 2 Jul",
+       "sub": "3 hunks: branch's file",
+       "x": 590,
+       "y": 150,
+       "w": 200,
+       "h": 62,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "v16",
+       "label": "Release 1.6",
+       "sub": "9 Jul: #4127 back",
+       "x": 590,
+       "y": 260,
+       "w": 170,
+       "h": 62,
+       "shape": "box",
+       "tone": "bad"
+      }
+     ],
+     "edges": [
+      {
+       "from": "v14",
+       "to": "fix",
+       "label": "main"
+      },
+      {
+       "from": "v14",
+       "to": "ow",
+       "label": "branch"
+      },
+      {
+       "from": "fix",
+       "to": "mg",
+       "label": "8 lines",
+       "tone": "ok"
+      },
+      {
+       "from": "ow",
+       "to": "mg",
+       "label": "5 months"
+      },
+      {
+       "from": "mg",
+       "to": "v16",
+       "label": "9 Jul",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "My sketch of the tree. Release 1.4 splits into main and open-world. Fiachra's 8 fix lines went into main on 12 March and out to players in 1.5. open-world lived from 3 February to 2 July. At the merge, all 3 hunks in SaveGame.cs were settled with the branch's whole file, and 1.6 shipped with #4127 back."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 148,
+   "age": "6h",
+   "text": "The tree isn't lying. The fix is a commit, and commits don't vanish. It's the file that changed. Run git diff, which shows two versions of a file side by side, line by line, on SaveGame.cs in 1.5 and in 1.6. Which of Fiachra's lines are still there? Then find out how long open-world went without taking anything from main, and what in that hunk could have told Jolyon those lines mattered. Last: when a bug is fixed, is there a test that fails if it ever comes back? That kind is called a regression test.",
+   "replies": [
+    {
+     "author": "u/release_night_ljubica",
+     "op": true,
+     "points": 61,
+     "age": "5h",
+     "text": "All 8 of Fiachra's lines are gone: 1 at the top of the file, 3 in the save code, 4 in the load code. open-world never took a single commit from main in five months. The hunk showed her 3 lines and nothing about why they were there. And no, there was no regression test."
+    }
+   ]
+  },
+  {
+   "author": "u/straight_line_ultan",
+   "points": 93,
+   "age": "5h",
+   "text": "Merge commits, the extra commit a merge leaves where two lines join, are the mess. Rebase instead. Rebasing takes your branch's commits and replays them one at a time on top of the newest main, as if you'd started the branch today. Then main simply moves forward to the end of your branch. Your history stays one straight line, with no merge commit for anything to vanish into. Clean history, and this can't happen.",
+   "replies": [
+    {
+     "author": "u/release_night_ljubica",
+     "op": true,
+     "points": 37,
+     "age": "4h",
+     "text": "Jolyon likes this. He says our tree would be a single line, easy to read."
+    }
+   ]
+  },
+  {
+   "author": "u/monday_sync_ruaraidh",
+   "points": 66,
+   "age": "4h",
+   "text": "Long branches are fine if you keep them fresh. Every Monday, merge main into your branch. Main's changes then arrive a week at a time, as small conflicts, while you still remember both sides. Someone will tell you to use feature flags: a switch in the code that keeps unfinished work hidden from players while it sits in main. That's a habit from web shops. A game can't ship half an open world, switched off or not.",
+   "replies": [
+    {
+     "author": "u/release_night_ljubica",
+     "op": true,
+     "points": 29,
+     "age": "3h",
+     "text": "Bohumil, our most senior programmer, wrote most of SaveGame.cs years ago. He says the branch was never the problem: the merge was done by the wrong person at the wrong hour. He'd have read every hunk."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "Co-op starts in September and will take months. What should Kettlewyn change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Rebase the feature branch onto main instead of merging, so the history stays in one line.",
+    "tone": "bad",
+    "verdict": "The same conflicts, one commit at a time",
+    "part2": "Before co-op began, Jolyon replayed the five months on a copy of our history, rebasing open-world onto main as it stood on 2 July. Git stopped at the first commit that touched saves, Save region chunk size from 24 February, with a 3-line conflict at the top of SaveGame.cs. During a rebase Git's names flip: --theirs is the branch being replayed. He took that commit's whole file, as he had in July, and the other commits went on without a stop. The tree was one clean line, and all 8 of Fiachra's lines were gone. He tried again hunk by hunk. Git stopped 3 times, at the same 3 places, 48 lines in all. At Save regions in chunks the branch had rewritten the save code, so he kept the rewrite, and 3 of the fix's lines were lost again: 5 of 8. Every test passed both times.",
+    "senior": "Rebase and merge are two ways to combine the same work, and they meet the same conflicts: a merge all at once, a rebase one commit at a time. A straight history is pleasant to read, and rebasing a short branch before it joins main is a fine habit. But it does nothing about the cause: five months of two sides changing the same lines without seeing each other. It also writes new commits, so anyone else working on that branch has to start again from them."
+   },
+   {
+    "text": "Have the most senior programmer resolve every merge conflict, as they know the save code best.",
+    "tone": "bad",
+    "verdict": "A hunk shows lines, not reasons",
+    "part2": "Bohumil replayed the 2 July merge on a copy of our history, slowly, hunk by hunk: 3 hunks, 54 lines. At the top of the file he kept both sides. In the load code he kept both sides. In the save code, open-world had rewritten it all to write regions in chunks, and main's side was 3 lines of the old code. He kept the rewrite, as almost anyone would. 5 of Fiachra's 8 lines survived. The spare file had a name, and leftovers were cleaned up on loading, but nothing ever wrote to it. Every test passed, 1.6 shipped, and #4127 was back.",
+    "senior": "Experience helps, but a conflict shows two sets of lines, not why each exists. Main's side looked like old code the branch had replaced; only March's commit note said otherwise, and nobody reads five months of notes at midnight. The cure is not a better person at the end but less to settle: changes that meet within a day, while their authors remember why, and a test that fails when a fix goes missing, whoever did the merge."
+   },
+   {
+    "text": "Merge main into the long branch every week, so its conflicts arrive small and often.",
+    "tone": "warn",
+    "verdict": "Trade-off: small conflicts, one big landing",
+    "part2": "Jolyon replayed the five months with a merge from main every Monday: 21 syncs, 6 of them bringing new commits. Fiachra's fix arrived on 16 March, 4 days after she made it, with 2 small conflicts, 15 lines, at the top of the file and in the load code. The save code didn't conflict, because open-world hadn't touched it yet, so the fix went in whole. On 22 April the save rewrite was written on top of it and kept it. 1.6 had all 8 lines. But open-world still reached main only on 2 July: 8 commits from 149 days, landing at once, in code main's build machine had never run. Then he tried one sync the July way, taking the branch's whole file on 16 March. The fix vanished that Monday, and on 2 July Git reported no conflict at all.",
+    "senior": "Regular syncs are a real improvement: conflicts arrive small, while both sides are fresh. But they flow one way. Main never sees the branch's work until the end, so the last merge still lands months of change at once, untested on main until then. And a sync settled carelessly is worse than a big merge, because the loss happens early and the final merge looks clean. Syncs shrink conflicts; they don't make a branch short-lived."
+   },
+   {
+    "text": "Merge small changes into main daily, unfinished work behind a feature flag, test each merge.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Jolyon replayed the five months the new way. Every open-world change went into main the day it was made, through a small pull request, behind a flag called open_world that stayed off. The changes landed one at a time, and Git never stopped once. When Fiachra fixed #4127 on 12 March, main already had the region loading from 10 March, so she wrote her fix around it. On 22 April the save rewrite was written on code that already had her lines, and kept them. Her fix came with a regression test: stop a save halfway, as a sleeping console would, and check the old save still loads. The build machine ran it after every merge, and it passed every time. On 2 July the flag went on, and 1.6 had all 8 lines. Then he replayed July's merge with the test in place: taking the branch's whole file failed the build on 2 July, a week before release. Co-op starts behind a flag of its own.",
+    "senior": "Trunk-based development keeps every change small and merges it into main at least daily, so conflicts are met within hours by the people who wrote both sides. Unfinished work rides along switched off behind a feature flag, so main can ship on any Thursday. A regression test for every fixed bug, run on every merge, catches a fix lost by any route: a rebase, a sync, a tired night. The costs are real: flags must be removed once a feature is live, and code behind a switch still ships and must not break the game around it."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s5e11",
+  "title": "Replay open-world's five months",
+  "lede": "You're Jolyon on 29 January, the day 1.4 shipped. From 3 February to 2 July, open-world gets 8 commits and main gets 6, including Fiachra's fix for #4127 on 12 March: 8 lines in three places in SaveGame.cs, 1 at the top of the file, 3 in the save code, 4 in the load code. Choose how the branch meets main: one merge on 2 July, a merge from main into it every Monday, a rebase onto main on 2 July, or every change straight into main behind a feature flag. Choose how conflicts are settled: take the branch's whole file, or hunk by hunk by eye, which keeps both sides unless the branch rewrote that place. And choose whether the fix came with a regression test, which the build machine runs after every merge into main. Then step through the events, or run to 9 July, when 1.6 ships.",
+  "tryThis": "Try this: run to 9 July as it was: one merge, the branch's whole file, no test. 3 hunks, 54 lines, 0 of 8 fix lines, and #4127 is back. Switch to hunk by hunk: 5 of 8 survive. Try a rebase both ways, then the Monday syncs both ways, then every change into main behind the flag. Last, turn the test on and replay July."
+ },
+ "explain": {
+  "oneLine": "Nobody deleted the fix. open-world lived 149 days without taking anything from main, so its SaveGame.cs still held the 1.4 code. On 2 July all three places Fiachra had changed conflicted, Jolyon took the branch's whole file, and no test checked #4127. The fix stayed in the history and left the game.",
+  "steps": [
+   {
+    "title": "Git merges by comparing both sides with where they split.",
+    "text": "A merge happens in four steps. First, Git finds the merge base: the last commit both branches share, here Release 1.4 from 29 January. Second, it compares each side with that base, one place in a file at a time. Third, a place only one side changed is taken from that side, with no question asked. Fourth, a place both sides changed is a conflict, and Git stops for a person. Main had changed SaveGame.cs once: Fiachra's 8 lines on 12 March. open-world changed the same three places on 24 February, 10 March, 22 April and 3 June, without ever seeing her lines. So on 2 July all three conflicted: the top of the file (3 lines), the save code (39) and the load code (12), 54 lines in all. What can go wrong: a hunk shows two sets of lines, never why either was written."
+   },
+   {
+    "title": "Taking a whole file drops main's side everywhere in it.",
+    "text": "git checkout --theirs SaveGame.cs replaces the file with the incoming branch's copy, whole. Every change main made to that file since the base goes, whether it conflicted or not. Git has a narrower tool, git merge -X theirs, which takes the branch's side only inside conflicting hunks and keeps main's other changes. On 2 July it would not have saved the fix either, because all three of Fiachra's places sat inside conflicting hunks. Settling hunk by hunk keeps more: both sides at the top of the file and in the load code. But open-world had rewritten the save code, and a rewrite looks as if it replaces main's 3 lines. Keeping it loses them unless someone knows they matter, so 5 of 8 survive. What can go wrong at every step: a late night, a big hunk, and no test to say a fix is missing."
+   },
+   {
+    "title": "Rebase meets the same conflicts, one commit at a time.",
+    "text": "A rebase works in three steps. First, Git lists the branch's commits since it split from main. Second, it replays them one by one on top of main as it is now. Third, at any commit that clashes, it stops for a person, then carries on. The history comes out as one straight line with no merge commit. But the clashes are the same: replayed onto 2 July's main, open-world stops at Save region chunk size, Load region data and Save regions in chunks, 48 lines in all. During a rebase Git's names flip, and --theirs means the branch being replayed. Taking that whole file at the first stop wipes all 8 lines, and the rest replays without a stop. What can go wrong: a rebase writes new commits, so anyone else working on that branch must start again from them."
+   },
+   {
+    "title": "Keep branches short, and hide unfinished work behind a flag.",
+    "text": "Trunk-based development means everyone merges small changes into main, the trunk, at least once a day. Unfinished work goes in too, switched off. First, the open world's code goes into main with a check around it: if the flag open_world is on, show the new area. Second, the flag stays off, so every update can ship from main with the new code asleep inside it. Third, when the feature is ready, the flag is switched on. Fourth, once it is on for good, the check and the flag are removed. Each change still goes through a pull request (s5e08), but a small one, reviewed the same day. Conflicts are met within hours, by the people who wrote both sides. What can go wrong: flags left in for years, and code behind a switch that still runs and breaks something next to it."
+   },
+   {
+    "title": "Test main after every merge, with a test for every fixed bug.",
+    "text": "CI (s5e09) builds and tests every change on a shared machine. A regression test keeps a fixed bug fixed. First, write a test that recreates the bug: start a save, stop it halfway as a sleeping console would, and check that the old save still loads. Second, check that it fails on the code before the fix; a test that never fails proves nothing. Third, commit it with the fix. Fourth, the build machine runs it after every merge into main, for good. On 2 July it would have failed whatever the merge did, rebase or sync or whole file, and 1.6 would have waited. What can go wrong: a test catches only the bug it recreates, so each fix needs its own."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 760,
+   "h": 300,
+   "aria": "The fix, drawn for co-op. A small change, hours old, goes into a pull request reviewed the same day, then is merged into main, where the flag open_world stays off. After every merge the build machine runs the tests, including the #4127 test. Builds that pass become updates, any Thursday.",
+   "nodes": [
+    {
+     "id": "chg",
+     "label": "Small change",
+     "sub": "hours, not months",
+     "x": 110,
+     "y": 70,
+     "w": 170,
+     "h": 62,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "pr",
+     "label": "Pull request",
+     "sub": "reviewed same day",
+     "x": 380,
+     "y": 70,
+     "w": 170,
+     "h": 62,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "main",
+     "label": "main",
+     "sub": "flag open_world: off",
+     "x": 650,
+     "y": 70,
+     "w": 170,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "ci",
+     "label": "Build machine",
+     "sub": "#4127 test, every merge",
+     "x": 650,
+     "y": 220,
+     "w": 190,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "ship",
+     "label": "Update",
+     "sub": "any Thursday",
+     "x": 380,
+     "y": 220,
+     "w": 170,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "chg",
+     "to": "pr",
+     "label": "same day"
+    },
+    {
+     "from": "pr",
+     "to": "main",
+     "label": "merged"
+    },
+    {
+     "from": "main",
+     "to": "ci",
+     "label": "every merge"
+    },
+    {
+     "from": "ci",
+     "to": "ship",
+     "label": "passed",
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for co-op. Each change is hours old, not months, and goes through a small pull request reviewed the same day. It joins main switched off behind its flag. After every merge the build machine runs the tests, including the one for #4127, so a fix that goes missing fails the build before any update ships.",
+  "fix": {
+   "title": "The fix: small changes into main every day, unfinished work behind a flag, a test for every fixed bug",
+   "text": "Stop keeping features on long branches. Break each one into small changes that join main at least once a day, through a pull request someone reviews the same day. Put unfinished work behind a feature flag that stays off until the feature is ready, then remove the flag once it is on for good. Write a regression test with every bug fix, check it fails without the fix, and have the build machine run every test after every merge into main. When a conflict does come, settle it hunk by hunk, look up why main changed each line (git log on that file shows the commit and its note), and let the tests have the last word. Never take a whole file to make a conflict go away."
+  },
+  "limits": [
+   "Flags pile up. Each one is a switch whose both settings need testing, and a flag left in after its feature is live becomes a place for bugs to hide. Give each one an owner and a date to remove it.",
+   "Daily merging needs fast, trusted tests and same-day review. If the build takes hours or reviews wait days, people start saving changes up again, and the long branch comes back under another name.",
+   "A regression test catches only the bug it recreates. The #4127 test checks a save stopped halfway; it says nothing about a save written with the wrong region data."
+  ],
+  "tradeoff": {
+   "head": [
+    "Approach",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Long branch, one merge, whole file (as built)",
+     "Quick on the night: one command.",
+     "3 hunks, 54 lines settled by dropping main's side. 0 of 8 fix lines in 1.6."
+    ],
+    [
+     "Long branch, rebase",
+     "One straight line of history.",
+     "The same conflicts, one commit at a time. Whole file: 0 of 8. Hunk by hunk: 5 of 8."
+    ],
+    [
+     "Long branch, senior settles by hand",
+     "Careful, by someone who knows the code.",
+     "A hunk shows lines, not reasons. The rewrite wins in the save code: 5 of 8."
+    ],
+    [
+     "Long branch, weekly syncs",
+     "The fix arrives on 16 March as 2 small hunks, 15 lines, and survives.",
+     "Still 8 commits landing on main after 149 days. A careless sync loses the fix with no conflict later."
+    ],
+    [
+     "Daily into main, flag, test each merge",
+     "No conflicts; the fix is written around the new code; a lost line fails the build.",
+     "Flags to test and remove; needs fast tests and same-day review."
+    ]
+   ]
+  },
+  "seniorTake": "A branch is a promise to meet main again, and the longer it waits, the more both sides change without seeing each other. Merge or rebase only decides how you meet those changes, not how many there are. So keep the time apart short: small changes into main every day, unfinished work hidden behind a flag, reviewed while they are small. Then treat a fixed bug as a promise too: a regression test that fails if the fix ever goes, run on every merge. History tells you what was done; only a test tells you it is still true.",
+  "realWorld": [
+   {
+    "title": "DORA: merge into trunk at least once a day",
+    "text": "DORA's capability page on trunk-based development lists the practices: \"Have three or fewer active branches in the application's code repository.\" \"Merge branches to trunk at least once a day.\" \"Don't have code freezes and don't have integration phases.\" On long-lived branches it says: \"Large merges frequently introduce bugs or regressions.\" and \"The longer a merge is delayed, the more likely it is to create merge conflicts and associated issues.\"",
+    "source": 0
+   },
+   {
+    "title": "trunkbaseddevelopment.com: avoid merge hell",
+    "text": "The site defines trunk-based development as \"A source-control branching model, where developers collaborate on code in a single branch called ’trunk’\", where they \"resist any pressure to create other long-lived development branches by employing documented techniques.\" \"They therefore avoid merge hell, do not break the build, and live happily ever after.\"",
+    "source": 1
+   },
+   {
+    "title": "Short-lived branches: a couple of days",
+    "text": "On short-lived feature branches: \"Simply put, the branch should only last a couple of days.\" \"Any longer than two days, and there is a risk of the branch becoming a long-lived feature branch\". \"These branches are destined to come back as \"pull requests\" into the main/trunk.\"",
+    "source": 2
+   },
+   {
+    "title": "git merge: -X theirs works inside conflicting hunks only",
+    "text": "Git's manual on the ours option of the ort merge strategy: \"This option forces conflicting hunks to be auto-resolved cleanly by favoring our version. Changes from the other tree that do not conflict with our side are reflected in the merge result.\" theirs \"is the opposite of ours\". It also explains the markers: \"The part before the ======= is typically your side, and the part afterwards is typically their side.\"",
+    "source": 3
+   },
+   {
+    "title": "git checkout --theirs takes a whole side, and flips in a rebase",
+    "text": "Git's manual: \"When checking out paths from the index, check out stage #2 (ours) or #3 (theirs) for unmerged paths.\" And: \"during git rebase and git pull --rebase, ours and theirs may appear swapped; --ours gives the version from the branch the changes are rebased onto, while --theirs gives the version from the branch that holds your work that is being rebased.\"",
+    "source": 4
+   },
+   {
+    "title": "git rebase: one by one, stopping at conflicts",
+    "text": "Git's manual describes a rebase as steps, including: \"Replay the commits, one by one, in order.\" And: \"If there is a merge conflict during this process, git rebase will stop at the first problematic commit and leave conflict markers.\"",
+    "source": 5
+   },
+   {
+    "title": "Feature flags for unfinished work",
+    "text": "Pete Hodgson's article on feature toggles: \"Release Toggles allow incomplete and un-tested codepaths to be shipped to production as latent code which may never be turned on.\" \"These are feature flags used to enable trunk-based development for teams practicing Continuous Delivery.\"",
+    "source": 6
+   }
+  ],
+  "interview": {
+   "asked": [
+    "What branching strategy do you use, and why?",
+    "Merge or rebase?",
+    "How do you ship a feature that isn't finished?"
+   ],
+   "answer": "I prefer trunk-based development: everyone merges small changes into main at least daily, through short pull requests reviewed the same day, and CI builds and tests main after every merge. The reason is that the cost of a merge grows with the time apart; DORA's research ties long-lived branches to large, risky merges, and short branches meet conflicts within hours, while the authors still remember why each line exists. Merge or rebase is a smaller question. Both meet the same conflicts; a rebase meets them commit by commit and gives a straight history, but it rewrites commits, so I rebase my own short branch before it joins main and never rebase a branch others are using. When a conflict comes, I settle it hunk by hunk, check git log for why the other side changed, and let the tests decide, and I never take a whole side of a file to make a conflict go away. For unfinished features I use feature flags: the code ships switched off, gets switched on when ready, and the flag is then removed. And every bug fix comes with a regression test, so a fix that goes missing in any merge fails the build."
+  }
+ },
+ "terms": [
+  {
+   "term": "Kettlewyn Games",
+   "def": "The small games studio in this story, seven people. It makes Lanternwake and ships updates on Thursdays."
+  },
+  {
+   "term": "Lanternwake",
+   "def": "Kettlewyn's game for consoles (invented). 1.5 shipped on 26 March with the fix for #4127; 1.6 on 9 July without it."
+  },
+  {
+   "term": "Release manager",
+   "def": "The person who puts each update together from the finished code and sends it out. Ljubica is Kettlewyn's."
+  },
+  {
+   "term": "Bug #4127",
+   "def": "Reported 2 March: a console going to sleep mid-autosave left the save file half written. Fixed on main on 12 March; back in 1.6."
+  },
+  {
+   "term": "Autosave",
+   "def": "A save the game makes by itself every so often, so a player who forgets to save loses little."
+  },
+  {
+   "term": "Spare file (temp file)",
+   "def": "A file written first, then renamed over the real one. If the write stops halfway, only the spare file is spoiled and the real save is untouched."
+  },
+  {
+   "term": "Git",
+   "def": "The tool most programmers use to keep every change to their code, who made it and why, and to work on separate branches and join them."
+  },
+  {
+   "term": "History (Git)",
+   "def": "Every commit a project has, each hanging from the one before. Drawn out, it looks like a family tree that splits and joins."
+  },
+  {
+   "term": "Branch",
+   "def": "A separate line of commits where someone can work without getting in everyone's way, like a copy of a document to draft in. It is joined back by merging."
+  },
+  {
+   "term": "main",
+   "def": "The branch every update is built from: the project's main line, also called the trunk."
+  },
+  {
+   "term": "Feature branch",
+   "def": "A branch made for one feature, joined into main when the feature is done. open-world lived from 3 February to 2 July."
+  },
+  {
+   "term": "Long-lived branch",
+   "def": "A branch kept apart from main for weeks or months. The longer it lives, the more both sides change the same lines without seeing each other."
+  },
+  {
+   "term": "Merge",
+   "def": "Joining one branch's commits into another. Git takes what only one side changed and stops where both changed the same lines."
+  },
+  {
+   "term": "Merge base",
+   "def": "The last commit two branches share. Git compares each side with it to see who changed what. For the 2 July merge it was Release 1.4."
+  },
+  {
+   "term": "Merge commit",
+   "def": "The commit a merge makes, hanging from both branches at once. In git log --graph it is where two lines join."
+  },
+  {
+   "term": "Merge conflict",
+   "def": "A place where both branches changed the same lines since the merge base. Git can't choose, so it stops and shows both versions for a person to settle."
+  },
+  {
+   "term": "Hunk",
+   "def": "One block of clashing lines in a merge conflict, with one side's version, then the other's. SaveGame.cs had 3 on 2 July."
+  },
+  {
+   "term": "Conflict markers",
+   "def": "The lines Git writes around a hunk: <<<<<<< before the side you are on, ======= between the sides, >>>>>>> after the incoming side."
+  },
+  {
+   "term": "HEAD",
+   "def": "Git's name for where you are now: the branch you have open. In a merge into main, HEAD's side of a hunk is main's."
+  },
+  {
+   "term": "git checkout --theirs",
+   "def": "A command that, during a conflict, replaces a whole file with the incoming side's copy. Every change the other side made to it goes, conflicting or not."
+  },
+  {
+   "term": "git merge -X theirs",
+   "def": "A merge option that settles only conflicting hunks in favour of the incoming side, and keeps the other side's changes that didn't conflict."
+  },
+  {
+   "term": "git diff",
+   "def": "A command that shows two versions of a file line by line: what was removed and what was added."
+  },
+  {
+   "term": "git log and git log --graph",
+   "def": "git log lists commits, newest first, with their notes; given a file, only those that changed it. --graph adds lines showing which hangs from which: * is a commit."
+  },
+  {
+   "term": "Rebase",
+   "def": "Replaying a branch's commits, one at a time, on top of the newest main, as if the work had started there. It gives a straight history and writes new commits."
+  },
+  {
+   "term": "Sync (merging main into a branch)",
+   "def": "Merging main into a feature branch so it keeps up with main's changes. In the replay, every Monday: 21 syncs, 6 bringing new commits."
+  },
+  {
+   "term": "Feature flag",
+   "def": "A switch in the code that keeps unfinished work hidden from players while it sits in main, like a light switch for one room. Also called a feature toggle."
+  },
+  {
+   "term": "Trunk-based development",
+   "def": "A way of working where everyone merges small changes into main, the trunk, at least once a day, with unfinished work behind flags, so no branch lives long."
+  },
+  {
+   "term": "Short-lived branch",
+   "def": "A branch that lasts hours or a couple of days and comes back through a pull request. It is still short enough that conflicts stay small."
+  },
+  {
+   "term": "Regression test",
+   "def": "A test written with a bug fix that recreates the bug, so it fails if the bug ever comes back. #4127's would stop a save halfway and check the old save loads."
+  },
+  {
+   "term": "Build machine",
+   "def": "The shared computer that builds the game and runs the tests after every change to main, as CI does. Kettlewyn's ran every test on 2 July; none checked #4127."
+  },
+  {
+   "term": "C#",
+   "def": "A programming language used for many games. Lanternwake's code, including SaveGame.cs, is written in it."
+  },
+  {
+   "term": "SaveGame.cs",
+   "def": "The file of Lanternwake's code that writes and loads saves. Fiachra's fix changed it in 3 places: 1 line at the top, 3 in the save code, 4 in the load code."
+  },
+  {
+   "term": "Rewrite",
+   "def": "Replacing a block of code with new code that does the job another way. open-world rewrote the save code on 22 April to write regions in chunks."
+  },
+  {
+   "term": "Hunk by hunk, by eye (in the sim)",
+   "def": "Settling each hunk by reading both sides: keep both, unless the branch rewrote that place, then keep the rewrite. It loses the 3 save-code lines."
+  },
+  {
+   "term": "Code freeze",
+   "def": "A stretch of time when no new changes may join the main code, often before a release, so it can settle. DORA lists avoiding them as part of trunk-based development."
+  },
+  {
+   "term": "DORA",
+   "def": "Short for DevOps Research and Assessment: a research programme that studies what helps software teams deliver well. DevOps means the people who write software and those who run it working as one team."
+  },
+  {
+   "term": "Integration phase",
+   "def": "A stretch of time set aside to join long-separated work together and fix what breaks. DORA lists avoiding them as part of trunk-based development."
+  },
+  {
+   "term": "Merge hell",
+   "def": "Slang for the long, painful merge at the end of a long-lived branch, with many conflicts and surprises."
+  },
+  {
+   "term": "Ours and theirs (Git)",
+   "def": "Git's names for the two sides of a merge: ours is the branch you are on, theirs the one coming in. During a rebase they swap."
+  },
+  {
+   "term": "Stages #2 and #3 (Git)",
+   "def": "During a conflict Git keeps each side's copy of a file still in conflict (an unmerged path): stage #2 is ours, stage #3 is theirs."
+  },
+  {
+   "term": "ort (merge strategy)",
+   "def": "Git's usual way of merging two branches today. Options such as -X ours and -X theirs tune how it settles conflicting hunks."
+  },
+  {
+   "term": "git merge -s ours",
+   "def": "A merge that keeps only the current branch's files and ignores everything the other branch did. Git's manual warns not to confuse it with -X ours."
+  },
+  {
+   "term": "git pull --rebase",
+   "def": "A command that fetches other people's new commits and then rebases your own commits on top of them."
+  },
+  {
+   "term": "Release toggle",
+   "def": "Pete Hodgson's name for a feature flag that hides unfinished work in the shipped code until it is ready to switch on."
+  },
+  {
+   "term": "Region (in Lanternwake)",
+   "def": "One piece of the open world, loaded and saved on its own. open-world's save code writes them in chunks, one region at a time."
+  },
+  {
+   "term": "Bug tracker",
+   "def": "A shared list of reported bugs, each with a number, such as #4127, and whether it is open or fixed."
+  },
+  {
+   "term": "A.8.32 (ISO/IEC 27001)",
+   "def": "The ISO/IEC 27001:2022 control on change management: changes to information systems should be planned and controlled."
+  }
+ ],
+ "atWork": "Look for fixes that came back. In your bug tracker, search for bugs reopened after a release, or new bugs whose description matches an old fixed one. It is a common pattern after a big merge. Read-only access to your code is enough to check. For each, find the merge that lost it, and look at how long the branch had lived and how the conflicts were settled. Then look at your branches today: how many are older than a few days, and which haven't taken anything from main in weeks? Check whether each bug fix in the last few months came with a test that fails without it, and whether your CI runs every test on main after every merge. If your company works towards ISO/IEC 27001:2022, control A.8.32 asks that changes to information systems go through change management; a fix that silently leaves in a merge is hard to show you controlled. If it is pursuing SOC 2, criterion CC8.1 expects changes to be authorized, tested and approved before they are put in place. Building it in now, with short branches, reviewed pull requests and a regression test per fix, costs far less than reconstructing the evidence at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "git-workflows",
+    "title": "Git workflows"
+   },
+   {
+    "id": "trunk-based-development",
+    "title": "Trunk-based development"
+   },
+   {
+    "id": "pull-requests",
+    "title": "Pull requests"
+   }
+  ],
+  "strings": [
+   {
+    "from": "git-workflows",
+    "to": "trunk-based-development",
+    "label": "shortest branches"
+   },
+   {
+    "from": "pull-requests",
+    "to": "code-review",
+    "label": "small, same day"
+   },
+   {
+    "from": "trunk-based-development",
+    "to": "ci-cd-pipelines",
+    "label": "test every merge"
+   },
+   {
+    "from": "trunk-based-development",
+    "to": "testing",
+    "label": "regression tests"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s5e11-r1",
+   "kind": "free",
+   "prompt": "Your team's payments feature has lived on its own branch for four months. Tonight it joins main, and one file has 6 conflicts. A teammate suggests settling them by taking the branch's copy of that file, since the branch is newer and all its tests pass. What could go wrong, and how should the team work so this night doesn't happen again?",
+   "keyIdeas": [
+    {
+     "idea": "Taking the branch's copy drops every change main made to that file since the branch began, fixes included, conflicting or not",
+     "match": [
+      "main's changes",
+      "main's side",
+      "changes on main",
+      "lose the fix",
+      "lost fix",
+      "fixes made on main",
+      "throws away",
+      "discard"
+     ]
+    },
+    {
+     "idea": "Settle conflicts hunk by hunk, find out why main changed each part, and run the tests afterwards",
+     "match": [
+      "hunk by hunk",
+      "each hunk",
+      "per hunk",
+      "git log",
+      "why main changed",
+      "run the tests",
+      "tests after"
+     ]
+    },
+    {
+     "idea": "Avoid long branches: merge small changes into main at least daily, with unfinished work behind a feature flag",
+     "match": [
+      "feature flag",
+      "feature toggle",
+      "daily",
+      "every day",
+      "trunk",
+      "short-lived",
+      "small changes"
+     ]
+    },
+    {
+     "idea": "Add a regression test with every bug fix, run on every merge, so a lost fix fails the build",
+     "match": [
+      "regression test",
+      "regression",
+      "test for every fix",
+      "test for each fix",
+      "test that recreates"
+     ]
+    }
+   ],
+   "model": "Taking the branch's copy of the file drops every change main made to it in four months: main's side of the 6 conflicts, and main's changes that didn't even conflict. Any bug fixed on main in that file would quietly come back, and the branch's own tests can't notice, because they never had the fix. Tonight, settle it hunk by hunk: for each one, use git log on the file to see why main changed it, keep both sides where they fit, and rewrite the fix into the new code where the branch replaced it. Then run the tests. For the future, don't let a branch live four months: merge small changes into main daily, with unfinished payments work behind a feature flag that stays off until it's ready. And give every bug fix a regression test that recreates the bug and runs on every merge, so a lost fix fails the build instead of reaching customers."
+  },
+  {
+   "id": "s5e11-r2",
+   "kind": "mcq",
+   "prompt": "During a merge into main, which choice takes the incoming branch's side only inside conflicting hunks, and keeps main's changes that didn't conflict?",
+   "options": [
+    "git checkout --theirs on the file",
+    "git merge -X theirs",
+    "git merge -s ours",
+    "Copying the branch's file over main's"
+   ],
+   "answer": 1,
+   "why": "Git's manual says the -X option forces conflicting hunks to be resolved in favour of one side, while changes from the other side that do not conflict are kept. git checkout --theirs, like copying the file, takes the whole file and drops all of main's changes to it. git merge -s ours ignores the other branch entirely."
+  },
+  {
+   "id": "s5e11-r3",
+   "kind": "free",
+   "prompt": "An interviewer asks: merge or rebase? When would you use each, and does either one prevent conflicts?",
+   "keyIdeas": [
+    {
+     "idea": "Both meet the same conflicts; a rebase meets them commit by commit, a merge all at once",
+     "match": [
+      "same conflicts",
+      "commit by commit",
+      "one commit at a time",
+      "each commit",
+      "neither"
+     ]
+    },
+    {
+     "idea": "Rebase gives a straight history but writes new commits, so don't rebase a branch others are using",
+     "match": [
+      "rewrite",
+      "new commits",
+      "shared branch",
+      "others are using",
+      "straight",
+      "linear"
+     ]
+    },
+    {
+     "idea": "A merge keeps the true history, with a merge commit where the branches join",
+     "match": [
+      "merge commit",
+      "true history",
+      "what really happened",
+      "keeps the history",
+      "preserves"
+     ]
+    },
+    {
+     "idea": "Conflicts shrink only when branches are short, merged into main at least daily",
+     "match": [
+      "short-lived",
+      "short branch",
+      "daily",
+      "every day",
+      "trunk",
+      "time apart"
+     ]
+    }
+   ],
+   "model": "Neither prevents conflicts. Both combine the same work, so they meet the same conflicts: a merge all at once, a rebase one commit at a time as it replays the branch onto main. A merge keeps the true history, with a merge commit where the branches join, which is honest but busier to read. A rebase gives a straight, linear history, but it writes new commits, so I rebase only my own short branch before it joins main, never a shared branch others are using. What actually makes conflicts small is time: short-lived branches merged into main at least daily, with unfinished work behind a flag."
+  },
+  {
+   "id": "s5e11-r4",
+   "kind": "mcq",
+   "prompt": "DORA's description of trunk-based development says developers should merge their branches into trunk at least how often?",
+   "options": [
+    "Once a day",
+    "Once a week",
+    "Once per release",
+    "When the feature is finished"
+   ],
+   "answer": 0,
+   "why": "DORA's capability page lists \"Merge branches to trunk at least once a day\", alongside having three or fewer active branches and no code freezes. It warns that the longer a merge is delayed, the more likely it is to create merge conflicts."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. Co-op went the new way. Every change goes into main the day it's made, through a small pull request; co-op sits behind a flag called coop, switched off; and Fiachra's #4127 test runs after every merge. No conflict since has taken more than ten minutes. Then on Thursday 5 November we shipped 1.7.2, and players whose consoles are set to Portuguese crashed on the title screen. The crash is in co-op's code. The coop flag was off. Jolyon found that the game loads co-op's menu text for every language at start-up, before any code asks the flag, and the Portuguese file has a broken line. Our tests run with every flag off, in English.",
+  "prompt": "Reply to OP. How did switched-off co-op code crash the game, and what should change in how Kettlewyn tests and keeps its flags?",
+  "keyIdeas": [
+   {
+    "idea": "Code behind a flag still ships in the build; the flag only guards the paths that check it, and setup code outside the check still runs",
+    "match": [
+     "still ships",
+     "still in the build",
+     "still runs",
+     "outside the check",
+     "not behind the flag",
+     "ships anyway"
+    ]
+   },
+   {
+    "idea": "Test the build with the flag both off and on, and in each language or setting that matters",
+    "match": [
+     "both ways",
+     "flag switched on",
+     "on and off",
+     "off and on",
+     "each language",
+     "all languages",
+     "other languages"
+    ]
+   },
+   {
+    "idea": "Keep flags few and short-lived, with the check at the very start of the feature, and remove each once its feature is live",
+    "match": [
+     "remove the flag",
+     "delete the flag",
+     "short-lived",
+     "clean up",
+     "cleanup",
+     "few flags",
+     "first thing"
+    ]
+   }
+  ],
+  "model": "A flag doesn't remove code from the game; the switched-off code still ships in the build. The flag only guards the paths that ask it, and co-op's menu text was loaded at start-up, outside the check, so it still runs for every player, and a broken Portuguese line crashes the title screen. Put the flag check first thing, before co-op loads anything, so switched off really means asleep. Then test both ways: run the tests with each flag on and off, and in each language you ship, or at least load every language file in a test, since a test in English only never opens the Portuguese one. And keep flags few and short-lived: give each an owner and a date, and remove the flag once co-op is live, so there are fewer hidden paths to test."
+ },
+ "next": "Next, Leaks: a basement that keeps flooding, and programs that keep holding memory they no longer need, the clean-up that should free it, and how to find what is holding on.",
+ "sources": [
+  {
+   "title": "DORA, Capabilities: Trunk-based development (merges into trunk at least once, and potentially several times, a day; three or fewer active branches; merge branches to trunk at least once a day; no code freezes or integration phases; large merges frequently introduce bugs or regressions; the longer a merge is delayed, the more likely merge conflicts)",
+   "url": "https://dora.dev/capabilities/trunk-based-development/"
+  },
+  {
+   "title": "trunkbaseddevelopment.com, home page (a source-control branching model where developers collaborate on code in a single branch called trunk and resist long-lived development branches; avoid merge hell)",
+   "url": "https://trunkbaseddevelopment.com/"
+  },
+  {
+   "title": "trunkbaseddevelopment.com, Short-Lived Feature Branches (should only last a couple of days; longer than two days risks a long-lived feature branch; they come back as pull requests into the main/trunk)",
+   "url": "https://trunkbaseddevelopment.com/short-lived-feature-branches/"
+  },
+  {
+   "title": "Git documentation, git-merge (the ours and theirs options of the ort strategy resolve conflicting hunks in favour of one side and keep non-conflicting changes from the other; the ours strategy is different; conflict markers)",
+   "url": "https://git-scm.com/docs/git-merge"
+  },
+  {
+   "title": "Git documentation, git-checkout (--ours and --theirs check out stage #2 or #3 for unmerged paths; during git rebase, ours and theirs may appear swapped)",
+   "url": "https://git-scm.com/docs/git-checkout"
+  },
+  {
+   "title": "Git documentation, git-rebase (replay the commits, one by one, in order; on a merge conflict, rebase stops at the first problematic commit and leaves conflict markers)",
+   "url": "https://git-scm.com/docs/git-rebase"
+  },
+  {
+   "title": "Pete Hodgson, Feature Toggles (aka Feature Flags), martinfowler.com (release toggles ship incomplete and un-tested codepaths as latent code; feature flags used to enable trunk-based development)",
+   "url": "https://martinfowler.com/articles/feature-toggles.html"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.32 Change Management (manage changes to the information processing facilities and systems)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-32-change-management-2022/"
+  },
+  {
+   "title": "AICPA, 2017 Trust Services Criteria (with revised points of focus, 2022), criterion CC8.1 on changes to infrastructure, data, software and procedures",
+   "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+  }
+ ]
+}
