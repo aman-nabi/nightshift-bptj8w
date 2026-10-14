@@ -1,0 +1,766 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version"
+ ],
+ "id": "s6e12",
+ "season": 6,
+ "n": 12,
+ "title": "Debugging Production",
+ "setting": "a detective's last case",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "debugging-method",
+  "hypotheses",
+  "bisecting",
+  "use"
+ ],
+ "prerequisites": [
+  "s1e11",
+  "s3e01",
+  "s5e09",
+  "s6e05",
+  "s6e08"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/fenmoor_nights_meurig",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 3207,
+  "title": "Thirty years a detective; now I run a laundry's night shift. For three weeks a cart of hospital sheets has taken 32 seconds to scan, but only on Tuesday and Thursday nights.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Meurig. Thirty years a detective; now night manager at Fenmoor Laundry, where hotel and hospital linen comes in dirty and goes out clean. I've told the owner, Olwen, that this is my last case."
+   },
+   {
+    "t": "p",
+    "text": "Every sheet and towel has a tag sewn in: a chip the size of a stamp that answers a radio signal with its own number. A tag reader at each sorting table hears every tag in a cart at once."
+   },
+   {
+    "t": "p",
+    "text": "Our scanning program sends each tag's number to the database: the laundry's filing system, kept on a computer, which answers questions from programs. One question and its answer is called a lookup."
+   },
+   {
+    "t": "p",
+    "text": "The program comes from a small software firm. They send it as a build: the program put together from all their changes so far, ready to run. Putting a new build into use is called a release."
+   },
+   {
+    "t": "p",
+    "text": "Tilsworth General Hospital's carts come only on Tuesday and Thursday nights, and each holds 400 items; it has always been 400. Hotel carts come every night and hold 40. A hospital cart used to scan in a fifth of a second."
+   },
+   {
+    "t": "p",
+    "text": "The last release went in on Wednesday 30 September: 64 changes since the build before. From the next night on, every hospital cart takes about 32 seconds. Same readers, same staff, same tags. Hotel carts take a third of a second, which nobody notices."
+   },
+   {
+    "t": "p",
+    "text": "The program keeps a log, a diary with one line per cart; writing such lines is called logging. Each line shows the time, the reader, the table, the cart, how many items it held, and how long its scan took."
+   },
+   {
+    "t": "log",
+    "text": "01:00  R3  table 3  C-1187   40 items   0.3 s\n01:10  R3  table 3  C-2214  400 items  32.1 s"
+   },
+   {
+    "t": "beat",
+    "text": "Same reader, same table, ten minutes apart."
+   },
+   {
+    "t": "evidence",
+    "label": "reader_r3_tonight.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Reader R3 at table 3, Thursday 22 October, 01:00 to 01:11. At 01:00 hotel cart C-1187, 40 items, scans in 0.3 s. At 01:10 hospital cart C-2214, 400 items, scans from 01:10:00 to 01:10:32, 32.1 s.",
+     "start": "01:00:00",
+     "seconds": 660,
+     "ticksEvery": 60,
+     "rows": [
+      {
+       "label": "Reader R3",
+       "segments": [],
+       "gaps": [
+        [
+         600,
+         632.1,
+         "32.1 s"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 0,
+       "label": "C-1187, 40 items: 0.3 s",
+       "tone": "ok"
+      },
+      {
+       "t": 600,
+       "label": "C-2214, 400 items",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Redrawn from the scan log. The hotel cart at 01:00 is a sliver too thin to draw: 0.3 s. The hospital cart at 01:10 holds the screen for 32.1 s, on the same reader at the same table."
+   },
+   {
+    "t": "p",
+    "text": "The force taught me three habits. Write the symptom down exactly. List every suspect, which you'd call a hypothesis, with the evidence that would clear it. Change one thing at a time."
+   },
+   {
+    "t": "p",
+    "text": "And a fourth: if a bike vanished between 08:00 and 16:00, ask who saw it at noon. Seen at noon? Then it went after noon. Each answer halves the hours left to search."
+   },
+   {
+    "t": "p",
+    "text": "My shift book holds three weeks of suspects, all cleared. The database moved to a new computer in August, weeks before the slow nights, and hotel carts use it too. On Tuesday 13 October we swapped reader R3 for a spare: still 32.1 s. On Thursday 15 October I scanned 40 hospital sheets on their own: 0.3 s, so the tags are fine."
+   },
+   {
+    "t": "p",
+    "text": "Rhodri, the firm's developer, sent me a checklist called USE, named for its three letters. It is for each part that does work, like the database computer."
+   },
+   {
+    "t": "p",
+    "text": "U is utilisation: how busy the part is. S is saturation: how much work waits in line for it. E is errors. During tonight's 01:10 cart the database computer was 12% busy, nothing was waiting, and there were no errors."
+   },
+   {
+    "t": "beat",
+    "text": "Thirty years of cases, and the last one has nobody in it."
+   },
+   {
+    "t": "p",
+    "text": "Tilsworth's carts come again on Tuesday. What would you do?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 142,
+   "age": "4h",
+   "text": "A good detective's post: the symptom is written down exactly. USE is for the parts that do work. Its partner is RED, for each service, a program that answers requests from others: R for rate, how many requests a second; E for errors; D for duration, how long each one takes. Do RED at 01:00 and at 01:10, for the scan program and for the database. Which numbers move, and which stay put? What is true of every hospital cart that is never true of a hotel cart? And what else arrived on 30 September besides the slow nights?",
+   "replies": [
+    {
+     "author": "u/fenmoor_nights_meurig",
+     "op": true,
+     "points": 58,
+     "age": "3h",
+     "text": "Scan program: one cart each time, no errors, 0.3 s at 01:00 and 32.1 s at 01:10. Database: no errors, every answer 0.4 ms (ms is a thousandth of a second), about 2,300 lookups a second at 01:00 and 2,500 at 01:10. So the database was no slower at 01:10. It just kept answering for longer. A hospital cart is bigger, and it comes on certain nights. That's all I have."
+    }
+   ]
+  },
+  {
+   "author": "u/always_the_db_bedwyr",
+   "points": 91,
+   "age": "4h",
+   "text": "It's the database. It's always the database. 12% busy only tells you it isn't overloaded, not that it's quick, and 0.4 ms is a slow answer; a decent database computer usually gives you 0.2. Halve every lookup and your 32 s is 16 by Tuesday. Let the firm hunt for its bug at leisure."
+  },
+  {
+   "author": "u/the_scan_firm_rhodri",
+   "points": 66,
+   "age": "3h",
+   "text": "Rhodri, the firm's developer. All 64 changes are saved in order, so I can build the program as it stood after any one of them; building and testing one takes about 20 minutes. Our test computer has a copy of the database and can replay a pretend cart of any size. The release also carried fixes you rely on, like the hospital's new invoice layout. Or I can add detailed logging, a line for every step of every scan, and next Tuesday's slow cart will tell us where the time goes."
+  },
+  {
+   "author": "u/fenmoor_owner_olwen",
+   "points": 47,
+   "age": "2h",
+   "text": "Olwen, Fenmoor's owner. Roll it back. A rollback means putting the previous build back in place: the one from before 30 September, which scanned every cart fast for years. Meurig has had three weeks. I want my Tuesdays back."
+  }
+ ],
+ "reply": {
+  "prompt": "Tilsworth's carts come again on Tuesday night. What should Fenmoor do? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Replay a pretend 400-item cart and halve the 64 changes each time until one is left.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "On Friday night Rhodri replayed a pretend 400-item cart on the test computer, one build at a time. The first 32 changes: 0.2 s, fast, so the cause was in changes 33 to 64. The first 48: 32.1 s, slow, so 33 to 48. Then 40 fast, 44 slow, 42 slow, 41 slow. Six builds, about two hours, and one change left: change 41, a new safety check that no tag is counted twice in a cart. For each new tag it asked the database for every tag already in the cart, one lookup each. A cart of 40 makes 780 lookups; a cart of 400 makes 79,800, at 0.4 ms each. Ten times the items, about a hundred times the lookups. Rhodri kept the check and rewrote it to keep the cart's tags in a list as it goes, asking the database nothing. In the sim, with the check rewritten, a 400-item cart scans in 0.2 s and an 800-item cart in 0.4 s. On Tuesday the hospital carts went through as fast as they did in September, with the invoice fix still in.",
+    "senior": "A slowdown you can make happen on demand is half solved. First turn the symptom into a test that fails every time: here a pretend 400-item cart, since a 40-item cart never runs slow. Then, with a known good build and a known bad one, test the middle and keep the half that holds the cause. Each test halves the suspects, so 64 changes need only 6 builds, because 2 to the 6th is 64. It needs no theory about the cause, and it ends on one change you can read."
+   },
+   {
+    "text": "Move to a faster database computer, so every lookup a scan makes takes half the time.",
+    "tone": "bad",
+    "verdict": "Faster answers, too many questions",
+    "part2": "Olwen paid for a faster database computer, and each lookup dropped to 0.2 ms. On Tuesday the hospital carts took about 16 seconds each instead of 32: better, still slow, and nobody knew why. In the sim, with the faster database, a 400-item cart takes 16.2 s. Then I tried an 800-item cart: 319,600 lookups, 64.3 s, even on the faster computer. Bedwyr was right that each answer got quicker and wrong about what was wrong. The database was never slow: USE and RED both said so. It was being asked too many times, and twice the items means about four times the lookups, so faster answers buy back less every time the carts grow.",
+    "senior": "Faster hardware divides the time by a fixed amount; work that grows with the square of the input outgrows any fixed amount. When the resource checks come back clean (low utilisation, nothing waiting, no errors), the part is not the problem, and buying a better one hides the cause for a while. Count how many times each part is asked before you make each answer quicker."
+   },
+   {
+    "text": "Roll back to the build from before 30 September, when every cart scanned fast.",
+    "tone": "warn",
+    "verdict": "Fast on Tuesday, blind next time",
+    "part2": "Rhodri put the old build back on Monday. In the sim, the build before 30 September scans a 400-item cart in 0.2 s, and on Tuesday the hospital carts flew. But all 64 changes went with it, the hospital's new invoice layout among them, so Tilsworth's invoices went out in the old layout and came back. When the firm sent its next release, with the 64 changes back in and more besides, the slow carts returned on the first Tuesday, and we still didn't know which change to blame.",
+    "senior": "A rollback is a good first move when a release is hurting people: it stops the harm in minutes. But it is a tourniquet, not a diagnosis. It throws away every fix in the release and leaves the cause in the code, waiting for the next release. Roll back if you must, then still find the change: here with a pretend cart and six builds."
+   },
+   {
+    "text": "Add detailed logging to every step of the scan, so the next slow cart shows the cause.",
+    "tone": "bad",
+    "verdict": "A bigger haystack",
+    "part2": "Rhodri added a line for every step. On Tuesday the first hospital cart wrote 80,200 lines: 400 tag reads and 79,800 lookups. In the sim with detailed logging on, the slowest single step takes 0.5 ms, for a cart of 40 and for a cart of 400 alike. No step was slow. There were just too many of them, and that pattern hides in a pile of normal lines. Tuesday was slow again, we had to wait two more nights for evidence, and the log grew by 80,200 lines for every hospital cart.",
+    "senior": "Logging every step helps when one step is slow or fails. When the cause is a pattern, a step repeated far too often, each line looks fine and the log only buries it. Logs answer the questions you ask of them. Count the steps per cart, or reproduce the problem and narrow down the change, before adding noise."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s6e12",
+  "title": "Bisect the slow carts at Fenmoor Laundry",
+  "lede": "You're Meurig on Thursday night at reader R3, table 3, running the release of 30 September, which carried 64 changes in order. Reading and saving each tag takes 0.5 ms; each database lookup takes 0.4 ms. Pick the cart (40 items, 400, or 800), how many of the 64 changes are in the build (0 is the build before 30 September), the database speed, how change 41's duplicate-tag check works, and whether detailed logging is on. Scan the cart, and read USE for the database computer and RED for the database and the scan program. Then bisect: each click builds the middle of the suspect changes and scans your cart; over 1 s counts as slow.",
+  "tryThis": "Try this: scan the 40-item cart: 780 lookups, 0.3 s. Switch to 400 and scan: 79,800 lookups, 32.1 s, with the database 12% busy and nothing waiting. Set the build to 0: 0.2 s. Back to 64, turn on the faster database: 16.2 s, and 64.3 s for 800 items. Turn on detailed logging: the slowest step is 0.5 ms either way. Now bisect with the 400-item cart: six clicks name change 41. Start again with a 40-item cart: six clicks name the wrong change. Finally set the check to rewritten."
+ },
+ "explain": {
+  "oneLine": "Nothing was broken. Change 41 of the release added a safety check that no tag is counted twice, and for each new tag it looked up every tag already in the cart. A cart of n items makes n(n-1)/2 lookups: 780 for a hotel cart, 79,800 for a hospital cart, 32.1 s at 0.4 ms each. Only Tilsworth's carts are big, and they come on Tuesdays and Thursdays.",
+  "steps": [
+   {
+    "title": "Write the symptom exactly.",
+    "text": "Not \"the scanners are slow\", but: since Thursday 1 October, every 400-item hospital cart takes 32.1 s on any reader, while 40-item hotel carts take 0.3 s, and before 30 September a hospital cart took 0.2 s. Each part of that sentence rules something out. Any reader rules out the reader. The same database for hotel carts rules out a broken database. The first slow night, right after a release, points at the release. What can go wrong here is a vague symptom: \"slow on Tuesdays\" sends you after Tuesdays."
+   },
+   {
+    "title": "List the suspects, and what would clear each.",
+    "text": "Each hypothesis needs a test that could kill it. The database's move in August came weeks before the first slow night. A spare reader gave the same 32.1 s. Forty hospital sheets alone took 0.3 s, so the tags were fine. Then the two checklists. USE asks, for each resource, how busy it is, how much work waits, and how many errors: the database computer was 12% busy, with nothing waiting and no errors, so it was not overloaded. RED asks, for each service, the rate of requests, the errors and the duration: the database answered every lookup in 0.4 ms at both times, while the scan program's duration rose from 0.3 s to 32.1 s. The database was healthy; something was asking it far more. As in Logs at 3 AM, correlation is not cause: the Tuesday pattern only meant hospital carts."
+   },
+   {
+    "title": "Make it happen on purpose.",
+    "text": "A bug you can only wait for takes a week per guess. A bug you can make happen on demand takes minutes. Rhodri's test computer replays a pretend cart of any size against any build. A 400-item cart takes 32.1 s on the release and 0.2 s on the build before it, every time. Now the 64 changes are the only difference between fast and slow. What can go wrong: a test that doesn't reproduce the symptom. A 40-item test cart takes 0.3 s on every build, under the 1 s line, and tells you nothing."
+   },
+   {
+    "title": "Halve the changes.",
+    "text": "Bisecting goes in steps. First mark a good build (none of the 64 changes) and a bad one (all 64). Second, build the middle, changes 1 to 32, and run the test: 0.2 s, fast, so the cause is in 33 to 64. Third, keep halving: 48 slow, 40 fast, 44 slow, 42 slow, 41 slow. After six builds one change is left, because 2 to the 6th is 64. Git, the tool most teams save their changes in, does this for you with git bisect, and git bisect run can drive the test itself. What can go wrong: a test that is sometimes slow for other reasons gives a wrong verdict, and one wrong verdict sends every later step into the wrong half."
+   },
+   {
+    "title": "Read the culprit, and count.",
+    "text": "Change 41 checked that no tag is counted twice in a cart. For each new tag, it asked the database for each tag already in the cart: 0 for the first, 1 for the second, up to 399 for the last. Added up, that is n(n-1)/2 lookups: 40 x 39 / 2 = 780 for a hotel cart, 400 x 399 / 2 = 79,800 for a hospital cart, which at 0.4 ms is 31.9 s on top of 0.2 s of tag reading. The query plan of one lookup, as in The Card Catalog, looked fine: it used the index and took 0.4 ms. No plan of one query shows how many times it is run. The check was a safety measure doing exactly its job; its cost grew with the square of the cart."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 300,
+   "aria": "The bisect loop. A pretend 400-item cart is replayed against a test build holding the first changes of the release. The scan is timed; over 1 s is slow. The verdict keeps the half of the suspect changes that holds the cause, and the next test build is the middle of what is left. After six builds, change 41 is the one left.",
+   "nodes": [
+    {
+     "id": "cart",
+     "label": "Pretend cart",
+     "sub": "400 items",
+     "meta": "same test every time",
+     "x": 110,
+     "y": 70,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "build",
+     "label": "Test build",
+     "sub": "changes 1 to the middle",
+     "meta": "6 builds in all",
+     "x": 370,
+     "y": 70,
+     "w": 200,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "scan",
+     "label": "Scan and time it",
+     "sub": "over 1 s: slow",
+     "meta": "41 in: 32.1 s",
+     "x": 630,
+     "y": 70,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "range",
+     "label": "Suspect changes",
+     "sub": "keep the half with the cause",
+     "meta": "64, 32, 16, 8, 4, 2, 1",
+     "x": 370,
+     "y": 220,
+     "w": 240,
+     "h": 72,
+     "shape": "box",
+     "tone": "bad"
+    }
+   ],
+   "edges": [
+    {
+     "from": "cart",
+     "to": "build",
+     "label": "replayed",
+     "tone": "ok"
+    },
+    {
+     "from": "build",
+     "to": "scan",
+     "label": "built",
+     "tone": "ok"
+    },
+    {
+     "from": "scan",
+     "to": "range",
+     "label": "fast or slow",
+     "tone": "warn"
+    },
+    {
+     "from": "range",
+     "to": "build",
+     "label": "next middle",
+     "dash": true,
+     "tone": "muted"
+    }
+   ]
+  },
+  "caption": "The bisect loop Rhodri ran on Friday night. The same pretend 400-item cart against each test build; over 1 s is slow. Each verdict halves the suspects: 64, 32, 16, 8, 4, 2, 1. In the sim it names change 41 after six builds.",
+  "fix": {
+   "title": "The fix: reproduce, halve, then fix the check, not the database",
+   "text": "Replay a pretend 400-item cart on the test computer against a good build and a bad one, and halve the 64 changes until one is left: six builds, about two hours. Read change 41, and count its lookups: n(n-1)/2. Keep the duplicate-tag check, because it does a real job, but rewrite it to keep the cart's tags in a list as it goes, so it asks the database nothing per tag. In the sim, with the check rewritten, a 400-item cart scans in 0.2 s and an 800-item cart in 0.4 s. Then add the pretend 400-item cart to the firm's tests, so any release that slows a hospital cart fails before it reaches Fenmoor."
+  },
+  "limits": [
+   "Bisecting needs a test that reproduces the symptom every time and a good build to start from. A slowdown that comes and goes with load or time of day can give a wrong verdict, and one wrong verdict sends every later step into the wrong half.",
+   "It names one change, not a cause. If two changes only misbehave together, or a change cannot be built without the one before it, the halves stop being clean and the search needs care, or git bisect skip.",
+   "Bisecting finds what changed in the code. A slowdown with no release behind it, from growing data or a busy shared computer, needs the USE and RED checks and the symptom first."
+  ],
+  "tradeoff": {
+   "head": [
+    "What we do",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Faster database computer",
+     "Each lookup halves: 400 items in 16.2 s.",
+     "Still slow, and 800 items take 64.3 s. The cause stays hidden."
+    ],
+    [
+     "Roll back to the build before 30 September",
+     "Fast within the hour: 400 items in 0.2 s.",
+     "Every fix in the 64 changes is lost, and the next release brings the slowness back."
+    ],
+    [
+     "Detailed logging on every step",
+     "Useful when one step is slow or failing.",
+     "80,200 lines a hospital cart, each step 0.5 ms or less: the pattern hides in the noise."
+    ],
+    [
+     "Wait for Tuesday and watch",
+     "No cost tonight.",
+     "One guess a week; three weeks of theories so far."
+    ],
+    [
+     "Pretend 400-item cart, halve the 64 changes",
+     "Change 41 in six builds, about two hours, with no theory needed.",
+     "Needs a test that reproduces it and a good build to start from."
+    ]
+   ]
+  },
+  "seniorTake": "Debugging a production slowdown is detective work with one advantage: you can make the crime happen again. Write the symptom exactly, with sizes, times and the first bad night. List the hypotheses and the evidence that would kill each, and change one thing at a time. Use the checklists to rule parts in or out quickly: USE for each resource (utilisation, saturation, errors), RED for each service (rate, errors, duration). When the parts are healthy but the work is slow, count how often each part is asked, not just how fast it answers. Then turn the symptom into a test that fails every time, and if a release is behind it, bisect: a known good build, a known bad one, test the middle, keep the half with the cause. It needs only as many builds as times you can halve the number of changes, six for 64, and no theory. Roll back first if people are being hurt, but still find the change. And keep the test afterwards, so the same slowdown fails a build instead of a Tuesday night.",
+  "realWorld": [
+   {
+    "title": "Brendan Gregg, The USE Method",
+    "text": "Gregg sums it up in one line: \"For every resource, check utilization, saturation, and errors.\" He defines utilization as \"the average time that the resource was busy servicing work\", saturation as \"the degree to which the resource has extra work which it can't service, often queued\", and errors as \"the count of error events\".",
+    "source": 0
+   },
+   {
+    "title": "Tom Wilkie, the RED Method (2015)",
+    "text": "Grafana Labs' write-up of Wilkie's talk, a method \"which he created in 2015\", gives the three measures for every service: rate, \"the number of requests per second\"; errors, \"the number of those requests that are failing\"; and duration, \"the amount of time those requests take\". Wilkie says the USE Method \"doesn't really apply to services\" and recommends using the two together.",
+    "source": 1
+   },
+   {
+    "title": "Git documentation: git bisect",
+    "text": "The manual describes git bisect as a command to \"Use binary search to find the commit that introduced a bug.\" You give it \"a \"bad\" commit that is known to contain the bug, and a \"good\" commit that is known to be before the bug was introduced\", and it picks a commit between them for you to test. With a script that tells good from bad, git bisect run does the testing too.",
+    "source": 2
+   },
+   {
+    "title": "SOC 2 availability: A1.1",
+    "text": "The AICPA's availability criterion A1.1, as Linford & Co summarise it, asks that the entity maintains, monitors, and evaluates current processing capacity and use of system components. A slowdown that grows with input size is exactly what capacity monitoring should catch.",
+    "source": 3
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you debug a production slowdown you can't reproduce?",
+    "What are USE and RED?",
+    "How does bisecting find a bad change?"
+   ],
+   "answer": "First write the symptom exactly: what is slow, by how much, for which inputs, since when, and what is not slow. Then list hypotheses and, for each, the evidence that would kill it, and change one thing at a time. Check the parts quickly with two lists. USE, from Brendan Gregg, is for each resource such as a CPU, disk or database computer: utilisation, how busy it is; saturation, how much work is waiting; errors. RED, from Tom Wilkie, is for each service: rate of requests, errors, and duration. If the resources are healthy but a service is slow, count how many calls each request makes, not just how long each takes. If you can't reproduce it, find what is different about the slow cases, such as one customer's larger inputs, and build a test that has that difference; a slowdown you can make happen on demand is half solved. If a release is behind it, bisect: mark a good build and a bad one, test the middle, keep the half that holds the cause, and repeat; 64 changes need six builds. git bisect does the bookkeeping and git bisect run can drive the test. A story I'd tell: at a laundry, hospital carts of 400 items took 32 seconds to scan, only on the two nights the hospital delivered, while 40-item hotel carts took 0.3 s. The database was 12% busy with no queue. A pretend 400-item cart and six test builds named one change: a duplicate check that looked up every tag already in the cart for each new tag, n(n-1)/2 lookups, 79,800 for 400 items. A faster database would have halved it and hidden it; we rewrote the check to keep a list instead."
+  }
+ },
+ "terms": [
+  {
+   "term": "Fenmoor Laundry",
+   "def": "The commercial laundry in this story. Hotel linen comes every night; Tilsworth General Hospital's carts come on Tuesday and Thursday nights."
+  },
+  {
+   "term": "Tilsworth General Hospital",
+   "def": "The hospital whose linen Fenmoor washes. Each of its carts holds 400 items, and has for years."
+  },
+  {
+   "term": "Tag",
+   "def": "A chip the size of a stamp sewn into each sheet or towel. It answers a radio signal with its own number, so items can be counted without being handled."
+  },
+  {
+   "term": "Tag reader",
+   "def": "The radio reader at a sorting table that hears every tag in a cart at once and passes the numbers to the scanning program. Fenmoor's R3 sits at table 3."
+  },
+  {
+   "term": "Scan time",
+   "def": "How long a cart takes from the reader hearing its tags to the program saving it: 0.3 s for a 40-item cart and 32.1 s for a 400-item cart on the release."
+  },
+  {
+   "term": "Database",
+   "def": "A filing system kept on a computer, which programs ask questions of and save records in. Fenmoor's holds every tag and every cart."
+  },
+  {
+   "term": "Lookup",
+   "def": "One question to the database and its answer, such as: which tags are already in this cart? Each of Fenmoor's takes 0.4 ms."
+  },
+  {
+   "term": "ms",
+   "def": "Short for millisecond, a thousandth of a second. 0.4 ms is four ten-thousandths of a second."
+  },
+  {
+   "term": "Build",
+   "def": "The program put together from all its changes up to some point, ready to run. A test build holds only the first few changes, for checking."
+  },
+  {
+   "term": "Release",
+   "def": "Putting a new build into real use. Fenmoor's of 30 September carried 64 changes since the build before."
+  },
+  {
+   "term": "Change",
+   "def": "One saved edit to a program's code, such as a fix or a new check. Saved in order, so a program can be rebuilt as it stood after any one of them."
+  },
+  {
+   "term": "Developer",
+   "def": "A person who writes and changes a program's code. Rhodri is the scanning firm's."
+  },
+  {
+   "term": "Test computer",
+   "def": "A computer kept apart from the real one, with a copy of the database, where builds can be tried without touching real carts."
+  },
+  {
+   "term": "Pretend cart",
+   "def": "A made-up cart of a chosen size that the test computer feeds to a build as if a reader had heard it. Fenmoor's test used 400 items."
+  },
+  {
+   "term": "Log",
+   "def": "A program's diary: a file where it writes one line for each thing it does, with the time first."
+  },
+  {
+   "term": "Logging",
+   "def": "A program writing lines into its log. Detailed logging writes one for every step, which helps when one step is slow and buries a pattern of many fast steps."
+  },
+  {
+   "term": "Symptom",
+   "def": "What you can see going wrong, written exactly: which carts, how slow, since when, and what is not slow. Not the cause."
+  },
+  {
+   "term": "Hypothesis",
+   "def": "A guess about the cause that a test could prove wrong, like a suspect with an alibi to check. Plural: hypotheses."
+  },
+  {
+   "term": "Reproduce",
+   "def": "To make a problem happen again on purpose, so you can watch it and later check a fix. Fenmoor's pretend 400-item cart reproduced the slow scan every time."
+  },
+  {
+   "term": "Bisecting",
+   "def": "Narrowing down by halves: test the middle of the suspects, keep the half that holds the cause, repeat. 64 changes need 6 tests, because 2 to the 6th is 64."
+  },
+  {
+   "term": "Binary search",
+   "def": "The general name for finding something by halving a sorted list at each step. Bisecting changes is a binary search over them."
+  },
+  {
+   "term": "Git",
+   "def": "The tool most software teams use to save their changes, in order, with who made each and why."
+  },
+  {
+   "term": "Commit",
+   "def": "Git's word for one saved change, or group of changes, with a message. git bisect searches commits."
+  },
+  {
+   "term": "git bisect",
+   "def": "Git's command that runs a bisect: you mark a good commit and a bad one, it picks one between for you to test, and repeats until one is left."
+  },
+  {
+   "term": "git bisect run",
+   "def": "A way to let git bisect do the testing itself: give it a script that says good or bad, and it runs every step without you."
+  },
+  {
+   "term": "Resource",
+   "def": "A part of a system that does work and can run out, such as a processor, a disk, a network link or the database computer."
+  },
+  {
+   "term": "USE method",
+   "def": "Brendan Gregg's checklist: for every resource, check Utilisation, Saturation and Errors."
+  },
+  {
+   "term": "Utilisation",
+   "def": "How busy a resource is, as a share of the time. Fenmoor's database computer was 12% busy during the slow cart."
+  },
+  {
+   "term": "Saturation",
+   "def": "How much extra work a resource can't get to yet, usually waiting in a queue. Fenmoor's database had none waiting."
+  },
+  {
+   "term": "Service",
+   "def": "A program that answers requests from other programs, like the scan program or the database."
+  },
+  {
+   "term": "Request",
+   "def": "One ask sent to a service, such as one cart to the scan program or one lookup to the database."
+  },
+  {
+   "term": "RED method",
+   "def": "Tom Wilkie's checklist from 2015: for every service, check Rate (requests a second), Errors, and Duration (how long each takes)."
+  },
+  {
+   "term": "Rate",
+   "def": "How many requests a service handles each second. Fenmoor's database answered about 2,500 lookups a second during the slow cart."
+  },
+  {
+   "term": "Duration",
+   "def": "How long a request takes. Each lookup's stayed at 0.4 ms; the scan program's went from 0.3 s to 32.1 s."
+  },
+  {
+   "term": "Duplicate-tag check",
+   "def": "Change 41: a safety check that no tag is counted twice in a cart. As built, for each new tag it looked up every tag already in the cart."
+  },
+  {
+   "term": "n(n-1)/2",
+   "def": "How many pairs n things make, and how many lookups the check made for a cart of n items: 780 for 40, 79,800 for 400. Ten times the items, about a hundred times the work."
+  },
+  {
+   "term": "Rollback",
+   "def": "Putting the previous build back after a bad release. It stops the harm quickly but takes every fix in the release away and leaves the cause unfound."
+  },
+  {
+   "term": "Query plan",
+   "def": "The database's plan for answering one question, such as which index to use. It shows the cost of one lookup, not how many times it is asked."
+  },
+  {
+   "term": "Index",
+   "def": "A sorted list a database keeps beside a table so it can find rows without reading them all, like the index at the back of a book."
+  },
+  {
+   "term": "Correlation is not causation",
+   "def": "Two things happening together does not mean one causes the other. Tuesdays didn't slow the carts; Tuesdays brought the big carts."
+  },
+  {
+   "term": "SOC 2",
+   "def": "An audit report on how a company runs its systems, against the AICPA's Trust Services Criteria. Availability is one of its optional categories."
+  },
+  {
+   "term": "A1.1 (SOC 2)",
+   "def": "The availability criterion on capacity: the company keeps, watches and reviews how much processing capacity it has and how its system parts are used."
+  }
+ ],
+ "atWork": "Look for slowdowns that show only for some inputs. It is a common pattern for a release to add a check or a loop that is cheap for typical inputs and grows with the square of the input, so it is noticed only when one customer sends large ones, often on that customer's own schedule. Check four things. Is the symptom written down exactly, with sizes and the first bad day? Do your dashboards show USE for each resource (utilisation, saturation, errors) and RED for each service (rate, errors, duration), and do they count calls per request, not just time per call? Can you replay a large input against any build on a test system? And does your test suite hold an input as large as your largest customer's, so a release that slows it fails before it ships? Keep good and bad builds easy to rebuild, so git bisect can find a change in a handful of steps. Standards: if your company is pursuing SOC 2 with the availability category, criterion A1.1 asks that you maintain, monitor and evaluate processing capacity and the use of system components. A slowdown that hides in one customer's input sizes is the kind of capacity risk that monitoring should show; recording sizes and durations per request now gives you that evidence before an auditor asks.",
+ "board": {
+  "cards": [
+   {
+    "id": "debugging-method",
+    "title": "Debugging method"
+   },
+   {
+    "id": "hypotheses",
+    "title": "Hypotheses"
+   },
+   {
+    "id": "bisecting",
+    "title": "Bisecting"
+   },
+   {
+    "id": "use",
+    "title": "USE and RED"
+   }
+  ],
+  "strings": [
+   {
+    "from": "debugging-method",
+    "to": "basic-debugging",
+    "label": "grown up"
+   },
+   {
+    "from": "hypotheses",
+    "to": "debugging-method",
+    "label": "kill each one"
+   },
+   {
+    "from": "bisecting",
+    "to": "deployments",
+    "label": "find the change"
+   },
+   {
+    "from": "use",
+    "to": "metrics",
+    "label": "what to measure"
+   },
+   {
+    "from": "use",
+    "to": "query-plans",
+    "label": "count the calls"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s6e12-r1",
+   "kind": "free",
+   "prompt": "Since a release with 32 changes, your web shop's checkout takes about 20 seconds for business customers whose orders have hundreds of lines, and well under a second for everyone else. The database is lightly loaded, with nothing waiting and no errors, and your colleague wants to buy a bigger database server. How would you find the cause?",
+   "keyIdeas": [
+    {
+     "idea": "Reproduce it on purpose with a test order as large as the slow ones",
+     "match": [
+      "reproduce",
+      "test order",
+      "large order",
+      "big order",
+      "pretend order",
+      "on purpose",
+      "replay",
+      "hundreds of lines in a test"
+     ]
+    },
+    {
+     "idea": "Bisect the 32 changes: test the middle build and keep the half with the cause, about five builds",
+     "match": [
+      "bisect",
+      "halve",
+      "halving",
+      "binary search",
+      "five builds",
+      "5 builds",
+      "middle build",
+      "half that"
+     ]
+    },
+    {
+     "idea": "The database is healthy, so count how many calls each order makes; work that grows with the square of the order outgrows any faster server",
+     "match": [
+      "how many calls",
+      "how many queries",
+      "count the calls",
+      "count the queries",
+      "number of calls",
+      "squared",
+      "square of",
+      "n(n-1)/2",
+      "quadratic"
+     ]
+    }
+   ],
+   "model": "The database is lightly loaded with nothing waiting and no errors, so USE clears it; a bigger server would only shave the time. The slowness tracks order size and started with the release. First reproduce it: a test order with hundreds of lines, run against the build before the release and the release itself, slow every time on one and fast on the other. Then bisect the 32 changes: build the middle, run the test, keep the half that holds the cause; about five builds name one change. Read that change and count how many calls one order makes: a check that repeats a query for every pair of lines grows with the square of the order, which no faster server outruns."
+  },
+  {
+   "id": "s6e12-r2",
+   "kind": "mcq",
+   "prompt": "Which pair is right?",
+   "options": [
+    "USE is for services (users, sessions, errors); RED is for resources (reads, edits, deletes)",
+    "USE is for resources (utilisation, saturation, errors); RED is for services (rate, errors, duration)",
+    "USE and RED are two names for the same three measures",
+    "USE measures code changes; RED measures database speed"
+   ],
+   "answer": 1,
+   "why": "Brendan Gregg's USE method checks each resource, such as a processor or the database computer: how busy, how much waits, how many errors. Tom Wilkie's RED method checks each service: requests a second, failing requests, and how long they take."
+  },
+  {
+   "id": "s6e12-r3",
+   "kind": "mcq",
+   "prompt": "A release holds 64 changes, and a pretend cart reproduces the slowdown every time. If you halve the suspects with each test build, how many builds name the one change?",
+   "options": [
+    "64",
+    "32",
+    "8",
+    "6"
+   ],
+   "answer": 3,
+   "why": "Each build halves the suspects: 64, 32, 16, 8, 4, 2, 1. That is six builds, because 2 to the 6th is 64. Testing the changes one by one could take up to 64."
+  },
+  {
+   "id": "s6e12-r4",
+   "kind": "mcq",
+   "prompt": "Change 41 looks up every tag already in the cart for each new tag, at 0.4 ms a lookup. Why does a database twice as fast not fix it?",
+   "options": [
+    "It does fix it: every cart then scans in under a second",
+    "The faster database makes the lookups slower",
+    "It halves each lookup, but the number of lookups grows with the square of the cart: 400 items still take about 16 s, and 800 about 64 s",
+    "The check doesn't use the database at all"
+   ],
+   "answer": 2,
+   "why": "A cart of n items makes n(n-1)/2 lookups. At 0.2 ms, 400 items still need 16.2 s, and 800 items make 319,600 lookups, 64.3 s. Fix the count, not the speed of each answer."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The rewritten check has held: hospital carts scan in 0.2 s, and the pretend 400-item cart is now part of the firm's tests. On Monday 1 March the firm sent a release with 128 changes. Since then, the weekly invoice run, which used to take 10 minutes, takes 3 hours, but only for Tilsworth's invoice, the one with thousands of lines; hotel invoices are as quick as ever. The invoice computer is 9% busy with nothing waiting. Rhodri says he'll read all 128 changes one by one over the weekend.",
+  "prompt": "Reply to OP. What should Rhodri do instead, and in what order?",
+  "keyIdeas": [
+   {
+    "idea": "Write the symptom exactly and turn it into a test: a pretend invoice as large as Tilsworth's, slow every time on the new build and fast on the old",
+    "match": [
+     "reproduce",
+     "pretend invoice",
+     "test invoice",
+     "large invoice",
+     "big invoice",
+     "as large as",
+     "on purpose",
+     "replay"
+    ]
+   },
+   {
+    "idea": "Bisect the 128 changes from a good build and a bad one: seven builds, because 2 to the 7th is 128",
+    "match": [
+     "bisect",
+     "halve",
+     "halving",
+     "binary search",
+     "seven builds",
+     "7 builds",
+     "seven tests",
+     "7 tests"
+    ]
+   },
+   {
+    "idea": "The computer is healthy by USE, so the work per invoice grew; count the calls or steps per line in the culprit",
+    "match": [
+     "use method",
+     "utilisation",
+     "utilization",
+     "count the calls",
+     "how many calls",
+     "how many times",
+     "per line",
+     "square"
+    ]
+   }
+  ],
+  "model": "Don't read 128 changes; let the evidence pick one. The symptom is exact: only the invoice with thousands of lines is slow, since the 1 March release, and USE clears the invoice computer (9% busy, nothing waiting), so the work per invoice grew rather than the computer failing. First reproduce it: a pretend invoice as large as Tilsworth's, run against the build before 1 March and the new one. Then bisect the 128 changes: test the middle, keep the half with the cause; seven builds name one change, because 2 to the 7th is 128. Read it and count how many times it repeats work per line; something that grows with the square of the lines is the usual suspect. Add the large pretend invoice to the tests."
+ },
+ "next": "Next, The Typo That Took Down the Internet: a power company's control room, and making dangerous commands safe: showing what a command will touch before it runs, refusing to go below a safe minimum, and acting a few at a time.",
+ "sources": [
+  {
+   "title": "Brendan Gregg, The USE Method (\"For every resource, check utilization, saturation, and errors\"; definitions of utilization, saturation and errors; read 15 October 2026 through a reader, as the site refused a direct connection that day)",
+   "url": "https://www.brendangregg.com/usemethod.html"
+  },
+  {
+   "title": "Grafana Labs blog, The RED Method: How to Instrument Your Services (Julie Dam, August 2018, on Tom Wilkie's talk; the method \"which he created in 2015\"; rate, errors and duration; read 15 October 2026)",
+   "url": "https://grafana.com/blog/2018/08/02/the-red-method-how-to-instrument-your-services/"
+  },
+  {
+   "title": "Git documentation, git-bisect (\"Use binary search to find the commit that introduced a bug\"; good and bad commits; git bisect run; read 15 October 2026)",
+   "url": "https://git-scm.com/docs/git-bisect"
+  },
+  {
+   "title": "Linford & Co: Availability Trust Services Criteria in a SOC 2 Audit (A1.1: the entity maintains, monitors, and evaluates current processing capacity and use of system components)",
+   "url": "https://linfordco.com/blog/availability-soc-2-trust-service-principle/"
+  }
+ ]
+}
