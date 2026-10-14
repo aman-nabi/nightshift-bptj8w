@@ -1,5 +1,6 @@
 {
  "_changelog": [
+  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
   "v1.0.2 (2026-10-11) explain diagram: the barn and cottage boxes moved apart so the stream label clears both",
   "v1.0.1 (2026-10-11) rule 15: the storyteller's handle is now u/hollinmere_stove; removed an unused term",
   "v1.0.0 (2026-10-11) first version"
@@ -47,7 +48,11 @@
   "blocks": [
    {
     "t": "p",
-    "text": "Hollinmere is a grief retreat in an old farmhouse. Guests stay three weeks. In our journal app they write letters to the people they have lost, and on their last night they burn them: the Burn button deletes the letter while we light a candle in the yard. I'm the night warden. I keep the stove in, lock the doors, and look after the three little computers that hold the journal: one in the main house, one in the barn, and one in the crawl space under the cottage floorboards, down among the old stone foundations. Ingleby, who looks after our computers on Saturdays, says each one keeps a whole copy, so we can lose one."
+    "text": "Hollinmere is a grief retreat in an old farmhouse. Guests stay three weeks. In our journal app they write letters to the people they have lost, and on their last night they burn them. The Burn button deletes the letter while we light a candle in the yard."
+   },
+   {
+    "t": "p",
+    "text": "I'm the night warden. I keep the stove in, lock the doors, and look after the three little computers that hold the journal's database, the program that keeps its records. One is in the main house, one in the barn, and one in the crawl space under the cottage floorboards, down among the old stone foundations. Ingleby, who looks after our computers on Saturdays, calls each one a node, and says each keeps a whole copy of the journal, a replica, so we can lose one."
    },
    {
     "t": "p",
@@ -55,7 +60,7 @@
    },
    {
     "t": "p",
-    "text": "On 4 February at 22:10 Isaura burned her letter to her mother. She had written it on 1 February at 21:15, and it was 2,312 bytes; she asked me how long it was, and I looked. The app said Burned. The candle went out by itself. She went home in the morning."
+    "text": "On 4 February at 22:10 Isaura burned her letter to her mother. She had written it on 1 February at 21:15, and it was 2,312 bytes, a byte being about one typed letter; she asked me how long it was, and I looked. The app said Burned. The candle went out by itself. She went home in the morning."
    },
    {
     "t": "p",
@@ -63,7 +68,15 @@
    },
    {
     "t": "p",
-    "text": "Ingleby printed what the computers wrote down:"
+    "text": "Ingleby printed what the computers wrote down and explained the words. A delete here can't rub anything out; each node writes a tombstone instead, a small note saying \"deleted at this time\". QUORUM means a write counts once two of the three nodes have it."
+   },
+   {
+    "t": "p",
+    "text": "A hint is a note the others keep of writes a switched-off node missed, to hand over when it returns. Compaction tidies a node's files: it reads several, keeps the newest version of each letter, leaves out what a tombstone covers, and writes one new file."
+   },
+   {
+    "t": "p",
+    "text": "Repair runs every Monday: first it compares the nodes' copies, then it copies, or streams, whatever one node has to those that lack it. Each line shows the date and time, the node, and what happened:"
    },
    {
     "t": "log",
@@ -75,7 +88,7 @@
    },
    {
     "t": "p",
-    "text": "Ingleby says nothing is broken; every computer reports healthy. The owner wants to buy two more, so one forgetful copy is always outvoted. What do we change before the next storm?"
+    "text": "Ingleby says nothing is broken; every computer reports healthy. The owner wants two more nodes, five copies instead of three, a higher replication factor, so one forgetful copy is always outvoted. What do we change before the next storm?"
    },
    {
     "t": "evidence",
@@ -152,14 +165,14 @@
    "author": "u/grey_pager",
    "points": 142,
    "age": "5h",
-   "text": "Your journal runs on Cassandra, which never edits a data file once it's written. Those files are SSTables: sorted files on disk, written once and only read after. So a delete can't rub the letter out. It writes a tombstone instead, a small marker that says \"deleted at 22:10 on 4 February\", into a newer file. Compaction is the cleanup that later merges files, keeps the newest version of each thing and drops what's hidden. A tombstone itself may be dropped once it's older than the table's gc_grace_seconds, its grace period. And while a node is off, the others keep hints, notes of the writes it missed, but only for the first max_hint_window of the outage. Now Ingleby's printout. On 15 February at 03:00, how old was the tombstone, and what was the grace? Where was the cottage then? When the repair compared three copies on the 16th, what did the house and the barn have to set against the cottage's letter? And when had the cottage last been part of a repair?",
+   "text": "Your journal runs on a database that spreads its copies over several nodes and never edits a file once it's written. That database is called Cassandra. It keeps its data in sorted files on disk, written once and only read after; those files are called SSTables. So a delete can't rub the letter out. It writes a tombstone (the \"deleted\" note) saying \"deleted at 22:10 on 4 February\" into a newer file. Compaction, the tidy-up, is how the old letter finally leaves. Most nights it merges only a node's newest small files; a full compaction merges every file on the node. A tombstone can be left out too, but only once it's older than the table's waiting time, a setting called gc_grace_seconds, the grace period. Hints (notes of missed writes) have a limit as well: the others keep them only for the first part of a node's outage, a limit called max_hint_window. Now Ingleby's printout. On 15 February at 03:00, how old was the tombstone, and what was the grace? Where was the cottage then? When the repair compared three copies on the 16th, what did the house and the barn have to set against the cottage's letter? And when had the cottage last been part of a repair?",
    "replies": [
     {
      "author": "u/hollinmere_stove",
      "op": true,
      "points": 51,
      "age": "4h",
-     "text": "Ingleby read me the settings: max_hint_window is 3h, and gc_grace_seconds on the letters table is 864000. The repair runs by itself every Monday at 02:00. On 9 February it ran on the house and the barn only; the cottage was off. The cottage came back six hours after the merge."
+     "text": "Ingleby read me the settings: max_hint_window is 3h, three hours, and gc_grace_seconds on the letters table is 864000, which is ten days counted in seconds. The repair runs by itself every Monday at 02:00. On 9 February it ran on the house and the barn only; the cottage was off. The cottage came back six hours after the full compaction."
     }
    ]
   },
@@ -167,13 +180,13 @@
    "author": "u/clean_hearth_vosper",
    "points": 88,
    "age": "4h",
-   "text": "Tombstones are clutter. Every one is a deleted thing your disks keep carrying, and Cassandra reads get slower as they pile up. Set gc_grace_seconds to 0 and a burned letter leaves the disk at the next compaction, which is what burned should mean. Ten days of keeping a deleted letter around is ten days of a promise not kept. I run my tables with a short grace and sleep fine."
+   "text": "Tombstones are clutter. Every one is a deleted thing your disks keep carrying, and Cassandra reads get slower as they pile up, because each read has to step past them. Set gc_grace_seconds, the grace period, to 0, and a burned letter leaves the disk at the next compaction, which is what burned should mean. Ten days of keeping a deleted letter around is ten days of a promise not kept. I run my tables with a short grace and sleep fine."
   },
   {
    "author": "u/locked_drawer_trelawney",
    "points": 61,
    "age": "3h",
-   "text": "Don't delete at all. Add a burned column, set it to true, and have the app hide burned letters. An update with a newer timestamp can't be outvoted by an old copy, there's no tombstone to lose, and if a guest regrets it you can undo it. My team stopped deleting rows years ago."
+   "text": "Don't delete at all. Each letter is a row, one record in a table; give the table a new column, a field called burned. Set it to true, and have the app hide burned letters. Every change Cassandra stores carries a timestamp, the time it was made, and the newer one wins. So an update with a newer timestamp can't be outvoted by an old copy, there's no tombstone to lose, and if a guest regrets it you can undo it. My team stopped deleting rows years ago."
   }
  ],
  "reply": {
@@ -183,29 +196,29 @@
     "text": "Set gc_grace_seconds to 0, so a burned letter and its tombstone leave every disk at the next compaction.",
     "tone": "bad",
     "verdict": "Gone sooner, back the same",
-    "part2": "Ingleby set gc_grace_seconds to 0 on the letters table. The next winter the crawl space flooded again, and the cottage computer was off for 12 days. On the second night a guest burned her letter, and the house and the barn wrote tombstones. The nightly compactions didn't drop them, even at a grace of zero: the letter's old SSTable was never in those merges, and a tombstone can't go while an older copy of the row sits outside the merge. On the twelfth day at 03:00 the full compaction merged everything, and the letter and its tombstone went together, on the same day they had gone in February. The cottage came back at 09:00 holding the letter, and the Monday repair at 02:00 streamed it to the other two. Her letter was back on the same schedule as Isaura's. The disks were a little emptier, and the cottage didn't care.",
-    "senior": "A grace of zero doesn't carry a delete to a replica that was off; it only removes the time repair had to carry it there. At Hollinmere the letter and its tombstone first met in one merge on the twelfth day either way, so the letter came back on the same day. With any outage that spans a merge, a zero grace loses a missed delete the moment the merge runs. Keep the grace longer than your repair interval plus slack, and cut tombstone cost elsewhere."
+    "part2": "Ingleby set gc_grace_seconds to 0 on the letters table. The next winter the crawl space flooded again, and the cottage computer was off for 12 days. On the second night a guest burned her letter, and the house and the barn wrote tombstones. The nightly compactions didn't drop them, even with no grace at all. The letter sat in an old SSTable that those small merges never touched, and a tombstone can't be dropped while an older copy of its letter sits in a file outside the merge. On the twelfth day at 03:00 the full compaction merged every file, and the letter and its tombstone went together, on the same day they had gone in February. The cottage came back at 09:00 holding the letter, and the Monday repair at 02:00 streamed it to the other two. Her letter was back on the same schedule as Isaura's. The disks were a little emptier, and the cottage didn't care.",
+    "senior": "A grace of zero doesn't carry a delete to a replica that was off. It only takes away the time repair had to carry it there. At Hollinmere the letter and its tombstone first met in one merge on the twelfth day either way, so the letter came back on the same day. With any outage that lasts past a merge, a zero grace loses a missed delete the moment the merge runs. Keep the grace longer than the gap between your repairs, plus some spare time, and cut the cost of tombstones some other way."
    },
    {
     "text": "Buy two more nodes and raise the replication factor to 5, so a single forgetful copy is always outvoted.",
     "tone": "bad",
     "verdict": "Five copies, the same letter",
-    "part2": "The owner bought two more computers, one for the dairy and one for the stable, and Ingleby raised the replication factor to 5. The next winter the cottage was off for 12 days again. On the second night a guest burned her letter. The DELETE at QUORUM, now 3 of 5, reached the house, the barn, the dairy and the stable, and all four wrote tombstones. On the twelfth day at 03:00 the full compaction dropped the letter and its tombstone on all four. The cottage came back at 09:00 with the only copy, and the Monday repair streamed it to all four. Four empty copies didn't outvote one full one; nothing was counted at all. Her letter came back five times over: 11,560 bytes on disk instead of 6,936.",
-    "senior": "Repair and reads don't count heads for deleted. Once the tombstones are gone, the other replicas hold nothing, and nothing loses to any value: an absent row is not a vote. More replicas survive more node losses, but every replica must still receive the delete before its tombstone goes. The number that matters is the outage against gc_grace_seconds, not the replication factor."
+    "part2": "The owner bought two more computers, one for the dairy and one for the stable, and Ingleby raised the replication factor to 5. The next winter the cottage was off for 12 days again. On the second night a guest burned her letter. The DELETE at QUORUM, which now needed 3 of the 5 nodes, reached the house, the barn, the dairy and the stable, and all four wrote tombstones. On the twelfth day at 03:00 the full compaction dropped the letter and its tombstone on all four. The cottage came back at 09:00 with the only copy, and the Monday repair streamed it to all four. Four empty copies didn't outvote one full one; nothing was counted at all. Her letter came back five times over: 11,560 bytes on disk instead of 6,936.",
+    "senior": "Repair and reads don't take a vote on whether something was deleted. Once the tombstones are gone, the other replicas hold nothing, and nothing loses to any value: a missing row is not a vote. More replicas let you lose more nodes, but every replica must still receive the delete before its tombstone goes. The number that matters is how long the outage lasts compared with gc_grace_seconds, not the replication factor."
    },
    {
     "text": "Repair every node inside the grace, wipe and re-copy a node that was off longer, and alert before then.",
     "tone": "ok",
     "verdict": "Senior answer",
-    "part2": "Ingleby kept the Monday repair on every node, well inside the 10-day grace, and added an alert for any computer off for 5 days, half the grace. The rule went on the crawl-space hatch: off longer than the grace, the computer is wiped and re-copied from the others, never just switched on. The next winter the cottage was off for 12 days, and the alert went off on the fifth. On the second night a guest burned her letter, and on the twelfth day at 03:00 the full compaction dropped the letter and its tombstone on the house and the barn, as before. At 09:00 Ingleby wiped the cottage's disk and it streamed its data from the other two, which held nothing for the letter. The Monday repair found three copies that matched, and the letter stayed burned: 0 bytes of it left on any disk. Bringing the cottage back took most of a morning instead of a minute.",
-    "senior": "A tombstone is a promise with a deadline: every replica must hear about the delete before gc_grace_seconds runs out, so repair every node inside that window, with slack; the Cassandra docs suggest at least every 7 days for the default 10. A node that was off longer than the grace may hold data whose tombstones are gone everywhere else, so treat it as dead: wipe it, let it stream from the others, then repair. Alert well before the deadline. The cost is a slower return, and a routine someone must keep."
+    "part2": "Ingleby kept the Monday repair on every node, well inside the 10-day grace, and added an alert for any computer off for 5 days, half the grace. The rule went on the crawl-space hatch: off longer than the grace, the computer is wiped and re-copied from the others, never just switched on. The next winter the cottage was off for 12 days, and the alert went off on the fifth. On the second night a guest burned her letter, and on the twelfth day at 03:00 the full compaction dropped the letter and its tombstone on the house and the barn, as before. At 09:00 Ingleby wiped the cottage's disk. Then it copied all its data back from the other two, which held nothing for the letter. The Monday repair found three copies that matched, and the letter stayed burned: 0 bytes of it left on any disk. Bringing the cottage back took most of a morning instead of a minute.",
+    "senior": "A tombstone is a promise with a deadline. Every replica must hear about the delete before gc_grace_seconds runs out, so repair every node inside that time, with some to spare; the Cassandra docs suggest at least every 7 days for the default 10. A node that was off longer than the grace may hold data whose tombstones are gone everywhere else. So treat it as dead: wipe it, let it copy its data from the others, then repair. Alert well before the deadline. The cost is a slower return, and a routine someone must keep."
    },
    {
     "text": "Never delete: mark each letter burned and hide it, so no copy anywhere holds a letter that can return.",
     "tone": "warn",
     "verdict": "Trade-off: nothing returns, nothing leaves",
-    "part2": "Ingleby changed Burn to set burned = true and had the app hide burned letters. The next winter the cottage was off for 12 days, and on the second night a guest burned her letter. The house and the barn wrote the flag; the cottage, off, kept the letter unflagged. When it came back, the Monday repair carried the flag to it, newer than the letter, and the letter stayed hidden everywhere. Nothing came back. But nothing went, either: three copies of her words, 6,936 bytes for a letter Isaura's size, sat on the disks under a flag, and would until someone deleted them for real. When the guest wrote to ask whether her letter was really gone, the warden couldn't say yes.",
-    "senior": "A soft delete never returns, because an update with a newer timestamp beats an older value everywhere it lands. But it isn't a delete: the words stay on every disk and in every backup, so a promise of erasure, or a legal duty to erase, isn't met. Use it for an undo window, then delete for real, which still needs repair inside the grace."
+    "part2": "Ingleby changed Burn to set burned = true and had the app hide burned letters. The next winter the cottage was off for 12 days, and on the second night a guest burned her letter. The house and the barn wrote the burned mark, or flag; the cottage, off, kept the letter unmarked. When it came back, the Monday repair carried the flag to it. The flag was newer than the letter, so it won, and the letter stayed hidden everywhere. Nothing came back. But nothing went, either: three copies of her words, 6,936 bytes for a letter Isaura's size, sat on the disks under a flag, and would until someone deleted them for real. When the guest wrote to ask whether her letter was really gone, the warden couldn't say yes.",
+    "senior": "Marking a row deleted instead of deleting it is called a soft delete. It never returns, because an update with a newer timestamp beats an older value everywhere it lands. But it isn't a delete: the words stay on every disk and in every backup, the spare copies kept in case of loss. So a promise to erase, or a legal duty to erase, isn't met. Use it for a short undo period, then delete for real, which still needs repair inside the grace."
    }
   ]
  },
@@ -216,27 +229,27 @@
   "tryThis": "Try this: press Next event to walk the story: tombstones on the house and the barn at 22:10 on 4 Feb, the 9 Feb repair without the cottage, both dropped at 15 Feb 03:00 (the tombstone 10 d 4 h 50 min old), the cottage back at 09:00, and the letter back at 16 Feb 02:00. Run to the end: 6,936 bytes on disk. Set the grace to 0: back at 16 Feb 02:00 all the same. Replication factor 5: back at 16 Feb 02:00, with 11,560 bytes. A 14-day grace: nothing comes back; now make the outage 20 days, and it is back at 2 Mar 02:00. Set the return to rebuild, which wipes the cottage and re-copies it from the others: nothing comes back, 0 bytes. Try a 5-day outage with the default grace. Soft delete: hidden, never back, and 6,936 bytes for good."
  },
  "explain": {
-  "oneLine": "Nothing came back from the dead. The cottage was off when the letter was burned, so it never got the tombstone; ten days later compaction on the house and the barn dropped the letter and its tombstone, and the next repair, finding a letter on one node and nothing on two, copied the letter back.",
+  "oneLine": "Nothing came back from the dead. The cottage was off when the letter was burned, so it never got the tombstone. Ten days later, compaction on the house and the barn dropped the letter and its tombstone together. Then the next repair found a letter on one node and nothing on two, and copied the letter back.",
   "steps": [
    {
     "title": "Two ways to keep data on disk.",
-    "text": "A storage engine is the part of a database that keeps rows on disk. A B-tree engine, like PostgreSQL's or InnoDB's, keeps each row on one page of a tree (case 1's pages) and changes that page, after logging the change first (case 4). A delete there doesn't erase on the spot either: PostgreSQL marks the old tuple dead and VACUUM reclaims the space later, and InnoDB delete-marks the record and a purge removes it. What matters here is that no older copy of the row is left behind in a file that never changes. An LSM tree, the design under Cassandra, works the other way round. A write goes to the commit log, its write-ahead log, and into the memtable in memory. When the memtable fills, it is flushed to disk as a new SSTable, sorted and immutable: never edited again. So a delete is a write too, a tombstone, and the old copy stays in its SSTable until a compaction merges it with that tombstone."
+    "text": "A storage engine is the part of a database that keeps rows on disk: how they are written, found and removed. There are two common designs. The first is a B-tree engine, like PostgreSQL's or InnoDB's (InnoDB is the engine inside MySQL). It keeps each row on one page, a fixed-size block of the disk, in a tree of pages (case 1's pages). A change happens in two steps. First the change is written to a log, so a crash can't lose it (case 4). Then the page that holds the row is changed where it sits; if the page is full, it has to split in two, which is extra work. A delete there doesn't erase on the spot either. PostgreSQL marks the old version of the row, called a tuple, as dead, and a later cleanup called VACUUM frees the space. InnoDB marks the record as deleted, and a later cleanup called a purge removes it. What matters here is that no older copy of the row is left behind in a file that never changes. The second design is the LSM tree, short for log-structured merge tree. It is the design under Cassandra, and it works the other way round. A write goes in steps. First it is added to the commit log, Cassandra's write-ahead log: a file on disk where each change is noted before anything else. Next it goes into the memtable, a sorted table held in memory. If the machine crashes now, the commit log is read back to rebuild the memtable. When the memtable fills, it is flushed: written to disk as a new SSTable, sorted and immutable, meaning never edited again. So a delete is a write too, a tombstone, and the old copy stays in its SSTable until a compaction merges it with that tombstone."
    },
    {
     "title": "Compaction, and what it costs.",
-    "text": "Compaction merges several SSTables into one, keeps the newest version of each value, and drops values hidden by a newer tombstone, plus tombstones old enough to go. Without it, reads would slow down and the disk would fill. The costs come in three kinds, usually called amplification. Write amplification: each value is rewritten several times as it is merged into bigger files. Read amplification: one read may have to check several SSTables for the same row; Bloom filters let it skip most files that can't hold the key (case 14 covers them). Space amplification: old versions and tombstones take disk until a merge removes them. Size-tiered compaction merges SSTables of similar size, cheap on writes. Leveled compaction keeps small SSTables in levels that don't overlap, more merging but fewer files per read. Cassandra lets you pick one per table."
+    "text": "Compaction merges several SSTables into one, in steps. First it reads the chosen SSTables side by side. Each is sorted, so it can walk through them together, like merging sorted piles of cards. Next, for each value, it keeps only the newest version. Then it leaves out values that a newer tombstone hides, and tombstones old enough to go. If the merge doesn't include every file that holds older data for a row, it can't safely drop that row's tombstone, so the tombstone stays. Last, it writes the result as one new SSTable, and the old files are no longer needed. Without compaction, reads would slow down and the disk would fill. Its costs come in three kinds, usually called amplification: doing more work, or using more space, than the data alone needs. Write amplification: each value is rewritten several times as it is merged into bigger files. Read amplification: one read may have to check several SSTables for the same row. Bloom filters, small summaries of which keys a file might hold, let it skip most files that can't hold the key (case 14 covers them). Space amplification: old versions and tombstones take disk until a merge removes them. There are different rules, called strategies, for picking which files to merge. Size-tiered compaction merges SSTables of similar size, which is cheap on writes. Leveled compaction keeps small SSTables in levels whose rows don't overlap. That means more merging, but fewer files to check per read. Cassandra lets you pick one per table."
    },
    {
     "title": "A tombstone has a deadline.",
-    "text": "A delete has to reach every replica: at once, through a hint kept for a node that is briefly off, through read repair, or through repair. The tombstone is what repair carries. If it is dropped before a replica hears of it, that replica's old copy looks like data the others lost. So each table has gc_grace_seconds, 864,000 by default, ten days, and the Cassandra docs give two conditions for dropping a tombstone: it must be older than gc_grace_seconds, and every SSTable holding older data for that row must be in the same compaction. Hints don't cover a long outage: no new hints are made once a node has been off longer than max_hint_window, 3h by default. That leaves repair, which the docs say should run on every node often enough that the grace never expires on unrepaired data."
+    "text": "A delete has to reach every replica, and it can get there in four ways. It arrives at once if the replica is on. It arrives through a hint if the node is only briefly off. It arrives through read repair, where a read that finds two copies disagreeing fixes the older one. Or it arrives through repair, the regular job that compares whole replicas. The tombstone is what repair carries. If it is dropped before a replica hears of it, that replica's old copy looks like data the others lost. So each table has gc_grace_seconds, 864,000 seconds by default, which is ten days. The Cassandra docs give two conditions for dropping a tombstone. It must be older than gc_grace_seconds, and every SSTable holding older data for that row must be in the same compaction. Hints don't cover a long outage: no new hints are made once a node has been off longer than max_hint_window, 3h by default. That leaves repair, which works in steps. First it compares what each replica holds. Then it finds the parts that differ. Then it streams the newer data to the replicas that lack it. If a run skips a node that is off, that node gets nothing, and nobody may notice. The docs say repair should run on every node often enough that the grace never expires on unrepaired data."
    },
    {
     "title": "What happened under the floor.",
-    "text": "The cottage went off at 09:00 on 3 February, and three hours later the others stopped keeping hints for it. Isaura burned her letter at 22:10 on 4 February, 37 h 10 min into the outage: the DELETE at QUORUM succeeded on the house and the barn, two of three, and no hint was kept for the cottage. Each night's compaction merged only small, new SSTables, which held the tombstone but not the letter's old SSTable, so the tombstone stayed. At 03:00 on 15 February the full compaction merged everything on the house and the barn. The tombstone was 10 d 4 h 50 min old, past the 10-day grace, and the letter was in the same merge: both conditions held, and both went. Six hours later the cottage came back with the letter. At 02:00 on Monday the repair compared copies: a letter on one node, nothing on two. An absent row is not a vote; a value beats nothing, and the letter was streamed back."
+    "text": "The cottage went off at 09:00 on 3 February, and three hours later the others stopped keeping hints for it. Isaura burned her letter at 22:10 on 4 February, 37 h 10 min into the outage. The DELETE at QUORUM succeeded on the house and the barn, two of three, and no hint was kept for the cottage. Each night's compaction merged only small, new SSTables. They held the tombstone but not the letter's old SSTable, so the tombstone stayed. At 03:00 on 15 February the full compaction merged every file on the house and the barn. The tombstone was 10 d 4 h 50 min old, past the 10-day grace, and the letter was in the same merge. Both conditions held, so both went. Six hours later the cottage came back with the letter. At 02:00 on Monday the repair compared copies: a letter on one node, nothing on two. A missing row is not a vote for deleted. A value beats nothing, so the letter was streamed back."
    },
    {
     "title": "Tombstones also slow reads.",
-    "text": "Until compaction drops them, tombstones are read like rows. A read that scans a partition full of deleted rows has to hold every tombstone it meets in memory, so cassandra.yaml has two limits: tombstone_warn_threshold, 1,000 by default, which logs a warning, and tombstone_failure_threshold, 100,000, which aborts the query. That is the real cost behind the commenter's \"tombstones are clutter\", and the answer is usually a data model that deletes less, not a shorter grace."
+    "text": "Until compaction drops them, tombstones are read like rows. Cassandra stores rows in groups called partitions, all the rows that share one key. A read that scans a partition full of deleted rows goes in steps: it meets each tombstone, holds it in memory, and moves on to the next. So cassandra.yaml, Cassandra's settings file, has two limits. tombstone_warn_threshold, 1,000 by default, writes a warning to the log. tombstone_failure_threshold, 100,000, gives up on the read. That is the real cost behind the commenter's \"tombstones are clutter\". The answer is usually a data model, the way the tables are laid out, that deletes less, not a shorter grace."
    }
   ],
   "diagram": {
@@ -328,15 +341,15 @@
     }
    ]
   },
-  "caption": "The fix, drawn for the next storm. Repair reaches every node inside the 10-day grace, so a tombstone always arrives before it may be dropped. A node off longer than the grace, like the cottage after 12 days, is wiped and re-copied from the others, then repaired, so the old letter on its disk never meets a cluster that has forgotten the burn. The alert fires at 5 days, half the grace.",
+  "caption": "The fix, drawn for the next storm. Repair reaches every node inside the 10-day grace, so a tombstone always arrives before it may be dropped. A node off longer than the grace, like the cottage after 12 days, is wiped and re-copied from the others, then repaired. So the old letter on its disk never meets a cluster, the group of nodes, that has forgotten the burn. The alert fires at 5 days, half the grace.",
   "fix": {
    "title": "The fix: repair inside the grace, rebuild after it, and alert before it",
-   "text": "Run repair on every node more often than gc_grace_seconds, with slack: with the default 10 days, Hollinmere's Monday run already does it, as long as every node takes part. Watch outages against the grace. Alert when a node has been off for half of it, so there is time to bring it back and repair. If a node has been off longer than the grace, don't switch it back on as it was: wipe its data and let it stream from the other replicas, the way Cassandra replaces a dead node, then repair. Its old disk may hold letters whose tombstones are gone everywhere else. Keep gc_grace_seconds at the default unless you can prove your repairs always finish well inside a shorter one."
+   "text": "Run repair on every node more often than gc_grace_seconds, with time to spare. With the default 10 days, Hollinmere's Monday run already does it, as long as every node takes part. Watch how long any node has been off, compared with the grace. Alert when a node has been off for half of it, so there is time to bring it back and repair. If a node has been off longer than the grace, don't switch it back on as it was. Rebuild it in three steps, the way Cassandra replaces a dead node. First wipe its data. Then let it stream a fresh copy from the other replicas. Then run repair. Its old disk may hold letters whose tombstones are gone everywhere else. Keep gc_grace_seconds at the default unless you can prove your repairs always finish well inside a shorter one."
   },
   "limits": [
-   "Repair costs disk and network I/O, and Cassandra doesn't run it by itself; someone has to schedule it, watch that every run finishes on every node, and notice when one silently skips a node that is off, as the 9 February run did.",
-   "Rebuilding is slow, and while the node streams the cluster leans on fewer full copies; with replication factor 3, losing a second node in that window leaves QUORUM unreachable.",
-   "A long grace keeps tombstones longer, so a table with heavy deletes uses more disk and reads more tombstones; the fix for that is fewer deletes in the data model, not a shorter grace."
+   "Repair costs disk and network work, and Cassandra doesn't run it by itself. Someone has to schedule it, watch that every run finishes on every node, and notice when one quietly skips a node that is off, as the 9 February run did.",
+   "Rebuilding is slow, and while the node copies its data, the cluster has fewer full copies to lean on. With replication factor 3, losing a second node in that time means QUORUM, two of three, can't be reached.",
+   "A long grace keeps tombstones longer. So a table with many deletes uses more disk and reads past more tombstones. The fix for that is a data model that deletes less, not a shorter grace."
   ],
   "tradeoff": {
    "head": [
@@ -347,18 +360,18 @@
    "rows": [
     [
      "Nothing (as now)",
-     "Monday repair, default grace; fine while every node is on.",
+     "Monday repair, default grace: fine while every node is on.",
      "A node off longer than 10 days brings burned letters back."
     ],
     [
      "gc_grace_seconds 0",
      "Tombstones go at the first merge that can drop them.",
-     "No margin for repair at all; the letter came back on the same day."
+     "No time left for repair at all; the letter came back on the same day."
     ],
     [
      "Replication factor 5",
      "Survives more lost nodes.",
-     "Nothing is counted against a value; back five times over, 11,560 bytes."
+     "Empty copies don't outvote a value; back five times over, 11,560 bytes."
     ],
     [
      "Grace of 14 days",
@@ -377,11 +390,11 @@
     ]
    ]
   },
-  "seniorTake": "An LSM tree buys fast, sequential writes by never editing a file, and pays in compaction, read amplification and deletes that are really writes. In a replicated LSM store, a delete is only finished when every replica has the tombstone, and the tombstone has a deadline. Treat gc_grace_seconds as a contract with your operations: repair every node inside it, alert before an outage reaches it, and wipe and rebuild a node that outlived it. Never shorten it to tidy the disks, and never take more replicas for a fix; nothing doesn't outvote anything. When the data is personal, check backups and soft-deleted rows too, because erasure means every copy.",
+  "seniorTake": "An LSM tree buys fast writes by never editing a file: each write is simply added at the end, in order. It pays for that in compaction, in reads that check several files, and in deletes that are really writes. In an LSM store that keeps several replicas, a delete is only finished when every replica has the tombstone, and the tombstone has a deadline. Treat gc_grace_seconds as a promise your team must keep. Repair every node inside it, alert before an outage reaches it, and wipe and rebuild a node that was off longer. Never shorten it to tidy the disks, and never think more replicas are a fix: an empty copy doesn't outvote anything. When the data is personal, check backups and soft-deleted rows too, because erasing means erasing every copy.",
   "realWorld": [
    {
     "title": "Cassandra: a delete is an insertion",
-    "text": "The Cassandra docs say \"Cassandra treats a deletion as an insertion, and inserts a time-stamped deletion marker called a tombstone.\" The tombstones go through the write path into SSTables, and once one exists, queries ignore all values time-stamped before it.",
+    "text": "The Cassandra docs say \"Cassandra treats a deletion as an insertion, and inserts a time-stamped deletion marker called a tombstone.\" The tombstones go through the write path (the steps every write follows) into SSTables, and once one exists, queries ignore all values time-stamped before it.",
     "source": 0
    },
    {
@@ -396,7 +409,7 @@
    },
    {
     "title": "Cassandra: the hint window",
-    "text": "cassandra.yaml's max_hint_window \"defines the maximum amount of time a dead host will have hints generated\", default 3h; after that, no new hints are made until the node has been seen alive and gone down again. Older versions named the key max_hint_window_in_ms, and the Hints page's prose still uses the old form.",
+    "text": "cassandra.yaml's max_hint_window (cassandra.yaml is Cassandra's settings file) \"defines the maximum amount of time a dead host will have hints generated\", default 3h; after that, no new hints are made until the node has been seen alive and gone down again. Older versions named the key max_hint_window_in_ms, and the Hints page's prose still uses the old form.",
     "source": 2
    },
    {
@@ -406,52 +419,52 @@
    },
    {
     "title": "DataStax (Cassandra 2.1 docs): wipe and bootstrap",
-    "text": "DataStax's older Cassandra 2.1 page on deletes says a node down longer than the grace can miss the delete, and that if the node doesn't come back within gc_grace_seconds, \"remove the node, wipe it, and bootstrap it again.\"",
+    "text": "DataStax's older Cassandra 2.1 page on deletes says a node down longer than the grace can miss the delete, and that if the node doesn't come back within gc_grace_seconds, \"remove the node, wipe it, and bootstrap it again.\" (To bootstrap is to join the cluster afresh and copy its data from the other nodes.)",
     "source": 5
    },
    {
     "title": "Cassandra today: replacing a dead node",
-    "text": "The current Apache docs replace a dead node by starting a new one with the replace_address_first_boot flag, which streams the data from the rest of the cluster, and say you \"MUST run repair\" afterwards if the node was down longer than max_hint_window before being replaced.",
+    "text": "The current Apache docs replace a dead node by starting a new one with the replace_address_first_boot flag (a startup setting), which streams the data from the rest of the cluster, and say you \"MUST run repair\" afterwards if the node was down longer than max_hint_window before being replaced.",
     "source": 4
    },
    {
     "title": "Cassandra's storage engine",
-    "text": "\"The core storage engine consists of memtables for in-memory data and immutable SSTables (Sorted String Tables) on disk,\" with a write-ahead log \"referred to as the commit log\". \"SSTables are immutable, and never written to again after the memtable is flushed.\" The page warns: \"Every write of data in Cassandra is re-written multiple times, known as write amplification.\" It adds that Bloom filters help reads.",
+    "text": "\"The core storage engine consists of memtables for in-memory data and immutable SSTables (Sorted String Tables) on disk,\" with a write-ahead log \"referred to as the commit log\". \"SSTables are immutable, and never written to again after the memtable is flushed.\" The page warns: \"Every write of data in Cassandra is re-written multiple times, known as write amplification.\" It adds that Bloom filters (small summaries of which keys a file holds) help reads.",
     "source": 6
    },
    {
     "title": "Cassandra: compaction strategies",
-    "text": "Size Tiered (STCS) \"is the default compaction strategy, because it is useful as a fallback\"; Leveled (LCS) \"is optimized for read heavy workloads, or workloads with lots of updates and deletes\"; and Unified (UCS) \"is recommended for new workloads\".",
+    "text": "Size Tiered (STCS) \"is the default compaction strategy, because it is useful as a fallback\"; Leveled (LCS) \"is optimized for read heavy workloads, or workloads with lots of updates and deletes\"; and Unified (UCS) \"is recommended for new workloads\". (A workload is the mix of reads and writes a table gets.)",
     "source": 7
    },
    {
     "title": "Cassandra: tombstones slow reads",
-    "text": "cassandra.yaml explains that a scan keeps the tombstones it sees in memory, and says: \"With workloads that generate a lot of tombstones, this can cause performance problems and even exhaust the server heap.\" tombstone_warn_threshold defaults to 1000 and tombstone_failure_threshold to 100000.",
+    "text": "cassandra.yaml explains that a scan keeps the tombstones it sees in memory, and says: \"With workloads that generate a lot of tombstones, this can cause performance problems and even exhaust the server heap.\" (The heap is the memory the program does its work in.) tombstone_warn_threshold defaults to 1000 and tombstone_failure_threshold to 100000.",
     "source": 2
    },
    {
     "title": "PostgreSQL: the old version stays until VACUUM",
-    "text": "\"In PostgreSQL, an UPDATE or DELETE of a row does not immediately remove the old version of the row.\" VACUUM later \"removes dead row versions in tables and indexes and marks the space available for future reuse.\"",
+    "text": "\"In PostgreSQL, an UPDATE or DELETE of a row does not immediately remove the old version of the row.\" VACUUM (PostgreSQL's cleanup command) later \"removes dead row versions in tables and indexes and marks the space available for future reuse.\"",
     "source": 8
    },
    {
     "title": "InnoDB: delete-marked, then purged",
-    "text": "In InnoDB \"a row is not physically removed from the database immediately when you delete it with an SQL statement\"; it is removed later: \"This removal operation is called a purge.\"",
+    "text": "In InnoDB (the storage engine inside MySQL) \"a row is not physically removed from the database immediately when you delete it with an SQL statement\"; it is removed later: \"This removal operation is called a purge.\"",
     "source": 9
    },
    {
     "title": "The LSM-tree paper, 1996",
-    "text": "Patrick O'Neil, Edward Cheng, Dieter Gawlick and Elizabeth O'Neil, \"The Log-Structured Merge-Tree (LSM-Tree)\", Acta Informatica, 1996: the design that batches changes in memory and merges them into larger sorted runs on disk.",
+    "text": "Patrick O'Neil, Edward Cheng, Dieter Gawlick and Elizabeth O'Neil, \"The Log-Structured Merge-Tree (LSM-Tree)\", Acta Informatica, 1996: the design that batches changes in memory and merges them into larger sorted runs (sorted files) on disk.",
     "source": 10
    },
    {
     "title": "The B-tree paper, 1972",
-    "text": "Rudolf Bayer and Edward McCreight, \"Organization and Maintenance of Large Ordered Indices\", 1972: the paper behind the B-tree that most relational databases still use for tables and indexes.",
+    "text": "Rudolf Bayer and Edward McCreight, \"Organization and Maintenance of Large Ordered Indices\", 1972: the paper behind the B-tree that most relational databases (table-based databases) still use for tables and indexes (sorted lists for finding rows fast).",
     "source": 11
    },
    {
     "title": "Bigtable, OSDI 2006",
-    "text": "Fay Chang, Jeffrey Dean, Sanjay Ghemawat and colleagues at Google, \"Bigtable: A Distributed Storage System for Structured Data\", OSDI 2006: the paper that made the memtable and the SSTable common names, and an ancestor of Cassandra's storage engine.",
+    "text": "Fay Chang, Jeffrey Dean, Sanjay Ghemawat and colleagues at Google, \"Bigtable: A Distributed Storage System for Structured Data\", OSDI 2006 (a computer systems conference): the paper that made the memtable and the SSTable common names, and an ancestor of Cassandra's storage engine.",
     "source": 12
    }
   ],
@@ -461,7 +474,7 @@
     "What is compaction and what does it cost?",
     "How can deleted data come back in a distributed database?"
    ],
-   "answer": "Start from the workload. A B-tree keeps each row on one page and changes it there, after logging; reads are predictable, often one path from the root to a leaf, and it suits read-heavy tables with point lookups and range scans. Its writes land on random pages, and page splits and cleanup such as VACUUM or purge add work. An LSM tree appends writes to a commit log and a memtable and flushes them as sorted, immutable SSTables, so writes are sequential and cheap, which suits heavy write streams. The bill is compaction: background merging that rewrites data several times (write amplification), reads that may check several SSTables (read amplification, eased by Bloom filters), and old versions and tombstones taking disk until merged (space amplification). Size-tiered compaction favours writes; leveled favours reads. Deleted data comes back when a replica misses a delete and the tombstone is dropped elsewhere before repair carries it over: compaction drops it once it's older than gc_grace_seconds, ten days by default in Cassandra, and repair then sees a value on one replica and nothing on the others and copies the value back. Prevent it by repairing every node inside the grace, alerting on long outages, and wiping and rebuilding a node that was down longer than the grace. Don't set the grace to zero, and don't expect more replicas to outvote it."
+   "answer": "Start from the workload, the mix of reads and writes the table gets. A B-tree keeps each row on one page and changes it there, after noting the change in a log. Reads are predictable, often one path from the top of the tree, the root, down to a bottom page, a leaf. So it suits tables that are read far more than written, looked up by one key or by a range of keys. Its writes land on pages all over the disk, and page splits and cleanup such as VACUUM or purge add work. An LSM tree adds each write to the end of a commit log and to a memtable in memory, then flushes them as sorted SSTables that never change. Writes are added in order and are cheap, which suits heavy streams of writes. The bill is compaction. Background merging rewrites data several times (write amplification). Reads may check several SSTables (read amplification, eased by Bloom filters). Old versions and tombstones take disk until merged (space amplification). Size-tiered compaction favours writes; leveled favours reads. Deleted data comes back in three steps. First a replica misses a delete. Next, elsewhere, compaction drops the tombstone once it's older than gc_grace_seconds, ten days by default in Cassandra, before repair has carried it over. Then repair sees a value on one replica and nothing on the others, and copies the value back. Prevent it by repairing every node inside the grace, alerting on long outages, and wiping and rebuilding a node that was down longer than the grace. Don't set the grace to zero, and don't expect more replicas to outvote it."
   }
  },
  "terms": [
@@ -475,11 +488,11 @@
   },
   {
    "term": "Journal app (Hollinmere's)",
-   "def": "The retreat's app where guests write letters to people they have lost. Its data lives in a three-node Cassandra cluster."
+   "def": "The retreat's app where guests write letters to people they have lost. Its data lives in Cassandra, a database that keeps a copy on each of the retreat's three computers."
   },
   {
    "term": "Burn (in the journal app)",
-   "def": "The button a guest presses on her last night to destroy a letter. It sends a DELETE for the letter at QUORUM."
+   "def": "The button a guest presses on her last night to destroy a letter. It asks the database to delete it, and counts that done once two of the three computers have the delete (QUORUM)."
   },
   {
    "term": "Crawl space",
@@ -491,23 +504,23 @@
   },
   {
    "term": "B-tree engine",
-   "def": "A storage engine that keeps rows in the pages of a B-tree and changes the page that holds a row, after logging the change. PostgreSQL and InnoDB work this way."
+   "def": "A storage engine that keeps each row on one page, a block of the disk, in a tree of pages. It changes that page in place, after first noting the change in a log. PostgreSQL and InnoDB work this way."
   },
   {
    "term": "LSM tree",
-   "def": "Log-structured merge tree: a storage engine that collects writes in memory, writes them out as sorted files that never change, and merges those files in the background. Cassandra uses one."
+   "def": "Log-structured merge tree: a storage engine that collects writes in memory, writes them out as sorted files that never change, and merges those files later, behind the scenes. Cassandra uses one."
   },
   {
    "term": "Commit log",
-   "def": "Cassandra's write-ahead log: every write is appended to it on disk first, so a crash can't lose writes still in the memtable."
+   "def": "Cassandra's write-ahead log: a file on disk where every write is noted first, so a crash can't lose writes that were still only in memory."
   },
   {
    "term": "Memtable",
-   "def": "An LSM tree's sorted table of recent writes in memory. When it fills, it is flushed to disk as a new SSTable."
+   "def": "An LSM tree's sorted table of recent writes, kept in memory. When it fills, it is written out to disk as a new SSTable, which is called a flush."
   },
   {
    "term": "SSTable",
-   "def": "Sorted String Table: one of Cassandra's data files on disk, sorted by key and written once from a memtable or a merge. It is never edited after."
+   "def": "Sorted String Table: one of Cassandra's data files on disk, sorted by key and written once, from memory or from a merge. Like a printed page, it is never edited after."
   },
   {
    "term": "Immutable",
@@ -515,11 +528,11 @@
   },
   {
    "term": "Tombstone",
-   "def": "A marker written by a delete in Cassandra that says a value was deleted at a given time. Older values it covers are hidden from reads until compaction removes them."
+   "def": "A small note a delete writes in Cassandra, saying a value was deleted at a given time. It hides older copies of that value from reads until compaction removes them both."
   },
   {
    "term": "Compaction",
-   "def": "Merging several SSTables into one: keeping the newest version of each value, dropping values a tombstone hides, and dropping tombstones old enough to go."
+   "def": "Merging several SSTables into one: keeping the newest version of each value, leaving out values a tombstone hides, and leaving out tombstones old enough to go."
   },
   {
    "term": "Nightly compaction (sim)",
@@ -543,11 +556,11 @@
   },
   {
    "term": "Hint",
-   "def": "A note a Cassandra node keeps of a write meant for a replica that is off, to hand over when it returns. Part of hinted handoff."
+   "def": "A note a Cassandra node keeps of a write meant for a copy that is off, to hand over when it returns. Handing it over is called hinted handoff."
   },
   {
    "term": "max_hint_window",
-   "def": "The cassandra.yaml setting for how long after a node goes down the others keep making hints for it. The default is 3h. Older versions called it max_hint_window_in_ms."
+   "def": "The setting, in Cassandra's settings file, for how long after a node goes down the others keep making hints for it. The default is 3h. Older versions called it max_hint_window_in_ms."
   },
   {
    "term": "Stream (Cassandra)",
@@ -563,11 +576,11 @@
   },
   {
    "term": "replace_address_first_boot",
-   "def": "The Cassandra startup flag that makes a new node take a dead node's place and stream its data from the rest of the cluster."
+   "def": "A Cassandra startup setting that makes a new node take a dead node's place and copy its data from the rest of the group of nodes."
   },
   {
    "term": "Bootstrap (a node)",
-   "def": "A new Cassandra node joining the cluster and streaming the data it will hold from the other nodes before it serves reads."
+   "def": "A new Cassandra node joining the group and copying the data it will hold from the other nodes, before it answers any reads."
   },
   {
    "term": "Absent row",
@@ -587,15 +600,15 @@
   },
   {
    "term": "Size-tiered compaction (STCS)",
-   "def": "A compaction strategy that merges SSTables of similar size. Cheap on writes; a row may sit in several files. Cassandra's default."
+   "def": "A compaction strategy, or rule for what to merge, that merges SSTables of similar size. Cheap on writes, but one row may sit in several files. Cassandra's default."
   },
   {
    "term": "Leveled compaction (LCS)",
-   "def": "A compaction strategy that keeps small SSTables in levels that don't overlap. More merging, fewer files per read; suits read-heavy tables and many updates or deletes."
+   "def": "A compaction strategy that keeps small SSTables in levels whose rows don't overlap. More merging, fewer files per read; suits tables read far more than written, or with many updates or deletes."
   },
   {
    "term": "Unified compaction (UCS)",
-   "def": "A newer Cassandra compaction strategy designed to cover many workloads; the docs recommend it for new ones."
+   "def": "A newer Cassandra compaction strategy meant to suit many mixes of reads and writes; the docs recommend it for new tables."
   },
   {
    "term": "VACUUM",
@@ -603,7 +616,7 @@
   },
   {
    "term": "Dead row version",
-   "def": "In PostgreSQL, an old copy of a row left on its page by an UPDATE or DELETE, kept while other transactions may still see it, until VACUUM removes it."
+   "def": "In PostgreSQL, an old copy of a row left on its page by a change or a delete. It is kept while other work in progress may still need it, until VACUUM removes it."
   },
   {
    "term": "Delete-mark (InnoDB)",
@@ -611,7 +624,7 @@
   },
   {
    "term": "Purge (InnoDB)",
-   "def": "InnoDB's background removal of delete-marked rows and their index records, once no transaction needs the old version."
+   "def": "InnoDB's later cleanup that removes rows marked deleted, and their index entries, once nothing still needs the old version."
   },
   {
    "term": "Soft delete",
@@ -623,11 +636,11 @@
   },
   {
    "term": "Heap (Cassandra)",
-   "def": "The memory Cassandra's Java process keeps its working objects in. A scan that holds too many tombstones there can run it out."
+   "def": "The memory Cassandra's program does its work in. A read that holds too many tombstones there can use it all up."
   },
   {
    "term": "UPDATE (CQL)",
-   "def": "Cassandra's statement for changing values in a row. Each changed value gets a new timestamp, so it beats older copies."
+   "def": "The command, in CQL, Cassandra's query language, for changing values in a row. Each changed value gets a new timestamp, so it beats older copies."
   },
   {
    "term": "Burned flag (sim)",
@@ -647,11 +660,11 @@
   },
   {
    "term": "tombstone_warn_threshold",
-   "def": "A cassandra.yaml limit: a read that scans more tombstones than this logs a warning. The default is 1,000."
+   "def": "A limit in Cassandra's settings file: a read that passes more tombstones than this writes a warning to the log. The default is 1,000."
   },
   {
    "term": "tombstone_failure_threshold",
-   "def": "A cassandra.yaml limit: a read that scans more tombstones than this is aborted. The default is 100,000."
+   "def": "A limit in Cassandra's settings file: a read that passes more tombstones than this is given up. The default is 100,000."
   },
   {
    "term": "Autosave",
@@ -659,7 +672,7 @@
   },
   {
    "term": "Right to erasure (GDPR Art. 17)",
-   "def": "The GDPR article that lets a data subject have personal data erased by the controller without undue delay, on grounds the article lists."
+   "def": "The article of the GDPR, the EU's data protection law, that lets a person have their personal data erased by the organisation holding it, without undue delay, on grounds it lists."
   },
   {
    "term": "Acta Informatica",
@@ -674,7 +687,7 @@
    "def": "Google's storage system for structured data, described in a 2006 paper. Its memtables and SSTables shaped Cassandra's engine."
   }
  ],
- "atWork": "Picture a common incident: a customer asks for their account to be deleted, the request succeeds, and weeks later support finds the profile live again. A node had been off for longer than the grace, and when it came back, repair copied the deleted rows back. Look for the same in your own systems. With read-only access, list every store that keeps replicas and deletes with tombstones: Cassandra, ScyllaDB, and any LSM-based store. For each table, note gc_grace_seconds and when each node last finished a repair, and check that repair reaches every node inside the grace with room to spare; a run that silently skips a node that is off counts for nothing. Find your runbook for a node that comes back after a long outage: does it say to wipe and rebuild a node that was off longer than the grace, or just to switch it on? Check that an alert fires well before an outage reaches the grace. Look for soft-deleted rows and backups that still hold data your app calls deleted. If personal data is involved and the GDPR applies, Article 17, the right to erasure, expects the controller to erase it without undue delay when a valid request arrives, so a deletion that can come back from a replica, a soft-deleted row or a backup is a gap to close. If your company is pursuing ISO/IEC 27001:2022, control A.8.10 (information deletion) expects information to be deleted when no longer needed, so write down how a delete reaches every replica, the repair schedule and the rebuild rule, and keep their logs as evidence. Build both into the first version of the table, not at audit time.",
+ "atWork": "Picture a common incident. A customer asks for their account to be deleted, and the request succeeds. Weeks later, support finds the profile live again. A node had been off for longer than the grace, and when it came back, repair copied the deleted rows back. Look for the same in your own systems. With read-only access, which lets you look but not change anything, list every store that keeps replicas and deletes with tombstones: Cassandra, ScyllaDB, and any store built on an LSM tree. For each table, note gc_grace_seconds and when each node last finished a repair. Check that repair reaches every node inside the grace with room to spare; a run that quietly skips a node that is off counts for nothing. Find your runbook, the written steps your team follows, for a node that comes back after a long outage. Does it say to wipe and rebuild a node that was off longer than the grace, or just to switch it on? Check that an alert fires well before an outage reaches the grace. Look for soft-deleted rows and backups that still hold data your app calls deleted. Personal data needs extra care. If the GDPR, the EU's data protection law, applies, Article 17, the right to erasure, expects the controller, the organisation holding the data, to erase it without undue delay when a valid request arrives. So a deletion that can come back from a replica, a soft-deleted row or a backup is a gap to close. If your company is pursuing ISO/IEC 27001:2022, an international security standard, control A.8.10 (information deletion) expects information to be deleted when no longer needed. So write down how a delete reaches every replica, the repair schedule and the rebuild rule, and keep their logs as evidence. Build both into the first version of the table, not at audit time, when the checkers arrive.",
  "board": {
   "cards": [
    {
@@ -732,7 +745,7 @@
   {
    "id": "s3e13-r1",
    "kind": "free",
-   "prompt": "Your company keeps customer profiles in a Cassandra table with replication factor 3 and the default gc_grace_seconds. One node was offline for 13 days for a disk swap. During that time a customer asked for account deletion, and the DELETE at QUORUM succeeded. A week after the node was switched back on, the profile is visible again. Explain how, and what you would change.",
+   "prompt": "Your company keeps customer profiles in a Cassandra table with replication factor 3, three copies, and the default gc_grace_seconds. One node was offline for 13 days while its disk was swapped. During that time a customer asked for their account to be deleted, and the DELETE at QUORUM, two of three, succeeded. A week after the node was switched back on, the profile is visible again. Explain how, and what you would change.",
    "keyIdeas": [
     {
      "idea": "The offline node missed the delete and kept the profile, with no hint kept for it because it had been off longer than the hint window",
@@ -792,7 +805,7 @@
      ]
     }
    ],
-   "model": "The node that was offline never got the tombstone. The DELETE succeeded on the other two replicas, which wrote tombstones, but the third had been off for days, far longer than the 3h hint window, so no hint was kept for it and it still held the profile. Ten days later, once the tombstones were older than gc_grace_seconds, compaction on the two live nodes merged each tombstone with the profile it hid and dropped both. When the third node came back after 13 days, the next repair found the profile on one replica and nothing on the other two. An absent row is not a vote, so repair copied it back to both, and it reappeared: a zombie. I'd repair every node inside the grace with slack, alert when a node has been off for half the grace, and never switch on a node that was off longer than the grace: wipe it and rebuild it by streaming from the other replicas, then repair. I'd leave the grace at the default and check backups for the deleted profile too."
+   "model": "The node that was offline never got the tombstone. The DELETE succeeded on the other two replicas, which wrote tombstones. But the third had been off for days, far longer than the 3h hint window, so no hint was kept for it, and it still held the profile. Ten days later the tombstones were older than gc_grace_seconds. So compaction on the two live nodes merged each tombstone with the profile it hid, and dropped both. When the third node came back after 13 days, the next repair compared the copies. It found the profile on one replica and nothing on the other two. An absent row is not a vote, so repair copied it back to both, and it reappeared: a zombie. I'd repair every node inside the grace, with time to spare, and alert when a node has been off for half the grace. And I'd never just switch on a node that was off longer than the grace. First wipe it, then rebuild it by streaming a fresh copy from the other replicas, then repair. I'd leave the grace at the default and check backups for the deleted profile too."
   },
   {
    "id": "s3e13-r2",
@@ -805,12 +818,12 @@
     "Never: tombstones stay until the table itself is dropped"
    ],
    "answer": 1,
-   "why": "The Cassandra docs give two conditions: the tombstone must be older than gc_grace_seconds, and the SSTables holding older data for the same partition must be in the same compaction. Otherwise the older copy would reappear once its tombstone was gone. At Hollinmere the nightly merges never included the letter's old SSTable, so the tombstone survived them, and both went together in the full compaction on 15 February."
+   "why": "The Cassandra docs give two conditions. The tombstone must be older than gc_grace_seconds. And the SSTables holding older data for the same partition, the group of rows that share one key, must be in the same compaction. Otherwise the older copy would reappear once its tombstone was gone. At Hollinmere the nightly merges never included the letter's old SSTable, so the tombstone survived them. Both went together in the full compaction on 15 February."
   },
   {
    "id": "s3e13-r3",
    "kind": "free",
-   "prompt": "In a design interview you're asked to choose a storage engine for two tables: a sensor feed taking 40,000 small writes a second, read mostly as recent ranges, and a customer accounts table read by id far more often than it's written. Which kind of engine would you lean towards for each, and what does each choice cost?",
+   "prompt": "In a design interview you're asked to choose a storage engine for two tables. One is a sensor feed taking 40,000 small writes a second, read mostly as recent stretches of time. The other is a customer accounts table, read by id, each account's own number, far more often than it's written. Which kind of engine would you lean towards for each, and what does each choice cost?",
    "keyIdeas": [
     {
      "idea": "An LSM tree for the write-heavy feed: writes are appended to a log and a memtable and flushed in sorted batches, so they are sequential and cheap",
@@ -855,12 +868,12 @@
      ]
     }
    ],
-   "model": "I'd lean towards an LSM tree for the sensor feed. Each write is appended to the commit log and put in the memtable, which is flushed as a sorted, immutable SSTable, so writes are sequential and cheap, and recent ranges come out sorted. The cost is compaction: background merging rewrites each value several times, which is write amplification, and until files are merged a read may check several SSTables, which is read amplification, eased by Bloom filters. Old versions and deletes also take disk until merged. For the accounts table I'd lean towards a B-tree. Each row lives on one page, so a lookup by id is a predictable walk from the root to a leaf, and there is only one place to check. Its cost is on writes: they change random pages, pages split as they fill, and cleanup such as VACUUM runs later. At 40,000 writes a second that cost would hurt; for a read-heavy table it barely shows."
+   "model": "I'd lean towards an LSM tree for the sensor feed. A write goes in three steps. It is appended to the commit log, put in the memtable in memory, and later flushed as a sorted, immutable SSTable. So writes are sequential and cheap, and recent ranges come out sorted. The cost is compaction. Background merging rewrites each value several times, which is write amplification. Until files are merged, a read may check several SSTables, which is read amplification, eased by Bloom filters. Old versions and deletes also take disk until merged. For the accounts table I'd lean towards a B-tree. Each row lives on one page, so a lookup by id is a predictable walk from the root, the top of the tree, to a leaf, and there is only one place to check. Its cost is on writes. They change random pages, pages split as they fill, and cleanup such as VACUUM runs later. At 40,000 writes a second that cost would hurt; for a table read far more than written it barely shows."
   },
   {
    "id": "s3e13-r4",
    "kind": "mcq",
-   "prompt": "A query reads a Cassandra partition holding many deleted rows. With the default cassandra.yaml, after how many scanned tombstones is the query aborted?",
+   "prompt": "A query reads a Cassandra partition, a group of rows stored under one key, holding many deleted rows. With the default cassandra.yaml, Cassandra's settings file, after how many tombstones does the read give up?",
    "options": [
     "1,000",
     "10,000",
@@ -868,11 +881,11 @@
     "1,000,000"
    ],
    "answer": 2,
-   "why": "tombstone_failure_threshold defaults to 100,000: a read that scans more tombstones than that is aborted. tombstone_warn_threshold, 1,000 by default, only logs a warning. A scan has to keep the tombstones it meets in memory so it can pass them to the coordinator, which is why cassandra.yaml says heavy tombstone workloads can even exhaust the heap."
+   "why": "tombstone_failure_threshold defaults to 100,000: a read that passes more tombstones than that gives up. tombstone_warn_threshold, 1,000 by default, only writes a warning to the log. A read has to keep the tombstones it meets in memory, so it can pass them to the coordinator, the node handling the request. That is why cassandra.yaml says tables with many tombstones can even use up the heap, the program's working memory."
   }
  ],
  "coldCase": {
-  "update": "UPDATE, 5 months later. The hatch rule works. In June the barn computer's power supply failed and it was off for 11 days; Ingleby wiped it and re-copied it before switching it on, and nothing came back. But the journal now has autosave: every 2 seconds while a guest writes, the app inserts a new draft row for her letter and deletes the previous one. A guest who writes three hours a day makes about 5,400 deletes a day. On her first evening the log began warning about the tombstones her journal page was reading. On day 19 of her stay the page stopped opening at all; the log said the read gave up after more than 100,000 tombstones. Ingleby wants to set gc_grace_seconds to 0 on the drafts table, just for drafts.",
+  "update": "UPDATE, 5 months later. The hatch rule works. In June the barn computer's power supply failed and it was off for 11 days; Ingleby wiped it and re-copied it before switching it on, and nothing came back. But the journal now has autosave, saving by itself as she types: every 2 seconds while a guest writes, the app adds a new draft row for her letter and deletes the previous one. A guest who writes three hours a day makes about 5,400 deletes a day. On her first evening the log began warning about the tombstones her journal page was reading. On day 19 of her stay the page stopped opening at all; the log said the read gave up after more than 100,000 tombstones. Ingleby wants to set gc_grace_seconds to 0 on the drafts table, just for drafts.",
   "prompt": "Reply to OP. Why does her journal page slow down and then fail, and what should Ingleby do instead?",
   "keyIdeas": [
    {
@@ -919,7 +932,7 @@
     ]
    }
   ],
-  "model": "Each autosave is an insert plus a delete, and every delete writes a tombstone. Until compaction drops them, at least ten days later, a read of her drafts still has to read past every one, holding them in memory: past 1,000 Cassandra logs a warning, which is tombstone_warn_threshold, and past 100,000 it aborts the read, the failure threshold. So stop deleting. Keep one draft row per letter and overwrite it on each autosave; an update with a newer timestamp simply replaces the old value, and no tombstone is written. When the letter is finished or burned, that one row is deleted once. Don't set the grace to zero, not even for drafts: they are replicated like the letters, and the first node that is off during a delete would make old drafts reappear after the next merge, the zombie problem from February. Keep the grace at the default and the repair inside it."
+  "model": "Each autosave adds a row and deletes one, and every delete writes a tombstone. Until compaction drops them, at least ten days later, a read of her drafts still has to read past every one, holding each in memory. Past 1,000, Cassandra writes a warning to the log, which is tombstone_warn_threshold. Past 100,000 it gives up the read, the failure threshold. So stop deleting. Keep one draft row per letter and overwrite it on each autosave. An update with a newer timestamp simply replaces the old value, and no tombstone is written. When the letter is finished or burned, that one row is deleted once. Don't set the grace to zero, not even for drafts. They are copied to every node like the letters. The first node that is off during a delete would make old drafts reappear after the next merge, the zombie problem from February. Keep the grace at the default and the repair inside it."
  },
  "next": "Next, Maybe, Never: a cemetery gatekeeper's three tallies, and small data structures that answer maybe or definitely not, count unique visitors and count the most frequent.",
  "sources": [
