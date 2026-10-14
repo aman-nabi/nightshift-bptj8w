@@ -1,0 +1,837 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version"
+ ],
+ "id": "s6e03",
+ "season": 6,
+ "n": 3,
+ "title": "The Bouncer",
+ "setting": "a nightclub door",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "rate-limiting",
+  "token-bucket",
+  "leaky-bucket",
+  "sliding-window"
+ ],
+ "prerequisites": [
+  "s1e04",
+  "s1e06",
+  "s1e13",
+  "s2e09",
+  "s6e01"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/pellucid_door_zephyrine",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 3241,
+  "title": "I run the door at a nightclub. Our New Year's guest list opened at midnight, and 119 of its 120 free places went to one promoter before 00:00:01. The limiter says he never broke the rule.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Zephyrine, door manager at the Pellucid, a club in the basement of an old bank. Every New Year's Eve the club gives away 120 free places on its guest list. Promoters fill them: people the club pays to bring in their regulars."
+   },
+   {
+    "t": "p",
+    "text": "For years the list opened by phone at 09:00 on 1 December, and the office typed the names in. In September Gwendaline, who runs the club's computers, built a booking API: a fixed set of requests one program may send another. Since then promoters add names from an app on their phones, one request per name. Each promoter has a key, a secret code sent with every request, so the API knows who is asking."
+   },
+   {
+    "t": "p",
+    "text": "A bouncer counts heads. Gwendaline's API counts requests for each key and refuses any key that sends more than 60 a minute. Every request counts, not just names. Capping how many requests one caller may send in a stretch of time is called rate limiting, and the part that counts is the limiter."
+   },
+   {
+    "t": "p",
+    "text": "It counts in steps. A key's first request starts a one-minute clock and counts as 1. Each request inside that minute adds 1. Request 61 is refused. When the minute runs out, the next request starts a new minute at 1. Each minute is called a window, and because it stays fixed once it starts, this is a fixed window."
+   },
+   {
+    "t": "p",
+    "text": "A refused request gets the web's number for it, 429 Too Many Requests, and a line called Retry-After saying how many seconds to wait."
+   },
+   {
+    "t": "p",
+    "text": "All autumn, promoters typed in a few names a night. Nobody came near 60 in a minute. The club posted the New Year's opening weeks ago: 00:00:00 on 1 December, through the API for the first time."
+   },
+   {
+    "t": "p",
+    "text": "At midnight Afua, Sabriel and Moyra stood at my door with their phones out and fifty regulars in the queue, thumbs ready."
+   },
+   {
+    "t": "p",
+    "text": "Nnamdi wasn't there. He had written a script, a small program that sends requests by itself, and hadn't touched the API all evening. Gwendaline pulled the limiter's log for his key, P-07. Each line shows the time to a tenth of a second, the key, when its window started, its count, and the answer:"
+   },
+   {
+    "t": "log",
+    "text": "23:59:00.5  P-07  window 23:59:00.5  count  1  allowed\n00:00:00.0  P-07  window 23:59:00.5  count  2  allowed\n...\n00:00:00.4  P-07  window 23:59:00.5  count 60  allowed\n00:00:00.4  P-07  window 23:59:00.5  count 60  refused\n00:00:00.5  P-07  window 00:00:00.5  count  1  allowed\n...\n00:00:00.9  P-07  window 00:00:00.5  count 60  allowed"
+   },
+   {
+    "t": "p",
+    "text": "The first line is his script checking its login about a minute early, to be sure the key worked. At midnight it sent his 120 names, 12 every tenth of a second, without reading a single answer. No line counts past 60. One request was refused."
+   },
+   {
+    "t": "beat",
+    "text": "The guest list shows 119 of his names, all stamped before 00:00:01."
+   },
+   {
+    "t": "p",
+    "text": "At 00:00:01.2 Afua's phone said place 120 of 120. Sabriel's said list full. Then Moyra's. Forty-nine regulars stood in my queue holding phones that never had a chance."
+   },
+   {
+    "t": "evidence",
+    "label": "p07_first_second.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Three seconds, from 23:59:59 to 00:00:02. Key P-07's first window runs until 00:00:00.5 and has counted 60 by then; a second window starts at 00:00:00.5 and counts 60. P-07's names: 59 from 00:00:00.0 to 00:00:00.4, then 60 from 00:00:00.5 to 00:00:00.9. Markers: 00:00:00.0, the script sends; 00:00:00.4, one request refused; 00:00:01.2, Afua takes place 120.",
+     "start": "23:59:59",
+     "seconds": 3,
+     "ticksEvery": 1,
+     "rows": [
+      {
+       "label": "P-07 windows",
+       "gaps": [
+        [
+         0,
+         1.5,
+         "from 23:59:00.5, 60"
+        ],
+        [
+         1.5,
+         3,
+         "from 00:00:00.5, 60"
+        ]
+       ],
+       "segments": []
+      },
+      {
+       "label": "P-07 names",
+       "gaps": [
+        [
+         1,
+         1.5,
+         "59"
+        ],
+        [
+         1.5,
+         2,
+         "60"
+        ]
+       ],
+       "segments": []
+      }
+     ],
+     "markers": [
+      {
+       "t": 1,
+       "label": "120 sent",
+       "tone": "bad"
+      },
+      {
+       "t": 1.4,
+       "label": "1 refused",
+       "tone": "warn"
+      },
+      {
+       "t": 2.2,
+       "label": "Afua: place 120",
+       "tone": "ok"
+      }
+     ]
+    },
+    "caption": "Redrawn from Gwendaline's log. P-07's first window began with the login check at 23:59:00.5 and ended at 00:00:00.5. Its last half second took 59 names, refused one at 00:00:00.4, and a new window took the next 60: 119 by 00:00:00.9. Afua's tap at 00:00:01.2 got the last place."
+   },
+   {
+    "t": "p",
+    "text": "Gwendaline says the limiter did exactly what it was built to do. It did. So did Nnamdi's script. What should she change before the next list opens?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 152,
+   "age": "4h",
+   "text": "Times first. When did Nnamdi's key make its first request, so when did that window end? How many had it counted by 00:00:00.4, and how many could the next window take? The moment one window ends and the next begins is called the window edge. A limiter can also count over a moving minute: at every moment it looks back over the last 60 seconds. That is a sliding window. How many of the 119 would one have let through? And how fast does a person tap names in by hand?",
+   "replies": [
+    {
+     "author": "u/pellucid_door_zephyrine",
+     "op": true,
+     "points": 61,
+     "age": "3h",
+     "text": "The login check at 23:59:00.5 started his first window, so it ended at 00:00:00.5. By 00:00:00.4 it had counted 60, the login and 59 names, and refused the next. The new window started at 00:00:00.5 and took 60 more. Afua timed herself last week: one name every 2 seconds, about 30 a minute, with cold thumbs. Nnamdi's script sent 120 in one second."
+    }
+   ]
+  },
+  {
+   "author": "u/halve_it_eustace",
+   "points": 88,
+   "age": "3h",
+   "text": "The limit is just too high. Sixty a minute is half the list, so of course one promoter could grab half of it at a time. Halve it to 30 and the edge problem halves too: whatever slips through at the edge is half as big. Nobody at the door taps 30 names a minute anyway, so no honest promoter would even notice."
+  },
+  {
+   "author": "u/booking_api_gwendaline",
+   "points": 74,
+   "age": "2h",
+   "text": "Gwendaline here, I built it. Besides the moving minute grey_pager describes, my notes from September list two more ways to count. One gives each key a jar of 10 tokens: every request spends a token, a new token drops in each second, and the jar never holds more than 10. No token, refused. That is called a token bucket. The other pours each request into a small bucket with a hole in it, which lets one out each second, a steady drip; when the bucket is full, the next request is refused. That is a leaky bucket. I picked the fixed window because it keeps one number per key."
+  },
+  {
+   "author": "u/list_full_moyra",
+   "points": 53,
+   "age": "2h",
+   "text": "I'm one of the three at the door. Fifteen of my regulars stood outside because of one man's laptop. Ban his key, take his 119 names off and give the places back to the people who queued. Nobody else will try it once they see what happens to him."
+  }
+ ],
+ "reply": {
+  "prompt": "The Valentine's list opens the same way, at 00:00:00 on 1 February. What should Gwendaline change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Give each promoter a token bucket: at most 10 requests at once, then one more a second.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Gwendaline swapped the counter for a token bucket on every key: 10 tokens, one more each second. First she replayed 1 December in the sim. Nnamdi's login check spent one token, and his bucket was full again a second later. At midnight his first 12 requests met 10 tokens: 10 names went on, and the other 110 came back 429 with Retry-After: 1. His script never asked again. Afua, Sabriel and Moyra got all 50 regulars on by 00:00:39.2, and 60 places were still free at 00:01:00. Then she let the script resend every refused name a second later: it got its 10, then about one a second, 20 by 00:00:10.9, the pace of one quick thumb. On 1 February Nnamdi's script got its 10 in the first tenth of a second and then waited its turn like everyone else, and the queue at my door got in.",
+    "senior": "Limit each key so that a burst is small and the long-run pace is fair. A token bucket does both with two numbers: the size caps what one key can do at once, and the refill sets its pace. A fixed window caps each box of time but not the place where two boxes meet, so a client that arrives at the right moment gets twice the limit at once. Answer every refusal with 429 and a truthful Retry-After, so well-behaved clients slow down instead of hammering. And know what a limiter does not do: it limits speed, not share. If 120 places must be split fairly, give each promoter a quota of places as well."
+   },
+   {
+    "text": "Halve the limit to 30 requests a minute, so no promoter can grab half the list again.",
+    "tone": "warn",
+    "verdict": "Half the size, still double at the edge",
+    "part2": "Gwendaline set the limit to 30 requests a minute and replayed 1 December in the sim. Nnamdi's script still went first. The login check was 1 of 30, so 29 names fit before 00:00:00.5; then a new window took 30 more, by 00:00:00.7. 59 names inside one second, against a limit of 30 a minute. The door's 50 regulars got on, with 11 places to spare, and for a week it looked fixed. Then she heard that a second promoter had bought a copy of the script, and ran that too: 59 each, 118 places before 00:00:01, and the list full at 00:00:01.5 after Afua and Sabriel took one each. On 1 February that is how it went.",
+    "senior": "A smaller limit makes the edge burst smaller, not rarer: a fixed window still lets twice the limit through where two windows meet, whatever the limit is. And a limit low enough to blunt scripts also squeezes honest heavy users, such as a promoter pasting a long list for a birthday. Fix the shape of the counting, not the size of the number."
+   },
+   {
+    "text": "Ban the promoter whose script took 119 places, and give the places back to the regulars.",
+    "tone": "bad",
+    "verdict": "He obeyed the rule",
+    "part2": "The club banned key P-07 and gave his 119 places to regulars who had queued. Gwendaline replayed the night in the sim with the same script on another key, P-03: 119 names by 00:00:00.9, list full at 00:00:01.2. On 1 February that is what happened. Nnamdi had sold a copy of his script to another promoter before the ban, and she started it at 23:59:00.5, just as he had. Her key never went over 60 in any of its minutes.",
+    "senior": "Nnamdi obeyed every rule the API had. Punishing the person who found the hole leaves the hole open for the next one. Any client, a script or an app, will push against the limits you publish, so the limit itself must hold up under perfect obedience. Ban keys that break the terms; fix limits that let rule-followers do harm."
+   },
+   {
+    "text": "Add a puzzle to the booking app that only a person can solve, so no script can get in.",
+    "tone": "bad",
+    "verdict": "Machines are allowed",
+    "part2": "Gwendaline added a picture puzzle to the app's sign-in screen: pick every square with a bus in it. Nnamdi's script never opens the app. It sends its requests straight to the API, and the API has no screen to put a puzzle on. In the sim nothing changes: 119 by 00:00:00.9, list full at 00:00:01.2. On 1 February his script got the same 119, while Afua, Sabriel and Moyra stood at my door picking buses with cold thumbs.",
+    "senior": "An API is a door built for programs. A test that only a person can pass belongs on a page made for people, and it does nothing to callers that never see the page. If programs are allowed in, decide what each one may do: limit each key's burst and pace, and answer refusals with 429."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s6e03",
+  "title": "Replay the opening of the Pellucid's guest list",
+  "lede": "You're Gwendaline at 23:59:00.0 on 30 November, before anything is sent. The list opens at 00:00:00.0 with 120 free places. Every request carries a promoter's key and counts against that key. Nnamdi's script (key P-07) checks its login at 23:59:00.5, then from midnight sends 12 names every tenth of a second for one second, never reading an answer; a refused name is not sent again unless you turn resend on. At the door, Afua (P-02, 20 regulars, from 00:00:01.2), Sabriel (P-04, 15, from 00:00:01.5) and Moyra (P-05, 15, from 00:00:02.0) each tap one name every 2 seconds. Pick how the limiter counts, the limit, the bucket's size and refill, the login time and who runs the script, then step through in tenths of a second.",
+  "tryThis": "Try this: press Next request until 00:00:00.9, eleven presses. The login is count 1 of a window that ends at 00:00:00.5; 59 names fit before it, 1 is refused at 00:00:00.4, and a new window takes 60 more: 119. Play on: Afua takes place 120 at 00:00:01.2. Now set the limit to 30: 59, 29 plus 30. Add a copy on P-03: 118 in under a second. Run only the copy, as if P-07 were banned: 119 again. Token bucket: 10 for the script and all 50 regulars on; turn resend on and watch 10, then one a second, 20 by 00:00:10.9. Sliding window: 60. Leaky bucket: one a second, 11 in all. Back on the fixed window, move the login to 23:59:30.0: 59."
+ },
+ "explain": {
+  "oneLine": "Nobody broke a rule. The limiter counted 60 requests a minute in fixed windows, and the login check had started Nnamdi's window at 23:59:00.5, so it ended half a second after midnight. 59 names fit at the end of one window and 60 at the start of the next: 119 in under a second, twice the limit, with no window ever over 60.",
+  "steps": [
+   {
+    "title": "A fixed window counts in boxes of time.",
+    "text": "A fixed-window limiter works in steps. First, a request arrives; if its key has no open window, a new one-minute window starts with a count of 1. Second, each later request inside that window adds 1. Third, once the count reaches the limit, every request is refused with 429 until the window ends. Fourth, the next request after that starts a fresh window at 1. It is cheap: one start time and one number per key. What goes wrong sits between the third and fourth steps: when a window ends, the limiter forgets everything, so it can't see what the same key sent a moment before. A bouncer who clicks his counter back to zero on the minute will happily wave in 60 more at once."
+   },
+   {
+    "title": "The edge lets twice the limit through.",
+    "text": "Nnamdi's login check started his window at 23:59:00.5, so it ended at 00:00:00.5. At midnight the script sent 12 names every tenth of a second. 59 fit in the last half second of the old window, one was refused at 00:00:00.4, and from 00:00:00.5 a new window took 60 more. With any fixed window the worst case is the limit at the end of one window plus the limit at the start of the next: up to twice the limit in a moment. Halving the limit halves both sides, 29 plus 30, so the burst is still double the stated rate. The edge was never touched before because promoters typed a few names a night; the first client to arrive with a burst at an announced time found it."
+   },
+   {
+    "title": "A sliding window counts the last 60 seconds at every moment.",
+    "text": "A sliding-window limiter asks one question per request: how many has this key sent in the last 60 seconds, counting back from now? If fewer than the limit, it allows the request and notes its time; if not, it refuses. There is no edge, because the minute moves with the clock. In the sim Nnamdi's script gets 59 before 00:00:00.5, one more when the login check turns 60 seconds old, and nothing after: 60 in all, never more than 60 in any 60 seconds. The cost is memory: an exact one keeps a time for every request it counts. And it still lets a whole minute's limit through in one burst."
+   },
+   {
+    "title": "A token bucket allows a small burst, then a steady pace.",
+    "text": "A token bucket works in steps. Each key has a bucket that holds up to 10 tokens. A new token drops in every second, never more than 10. Each request takes a token; with none left, it is refused with 429 and a Retry-After of when the next token arrives. A key that has been quiet can burst 10 at once, and after that it gets about one request a second, however hard it pushes. Replayed, the script gets 10 names at 00:00:00.0 and 110 refusals; resending every second, it gets 10, then one a second. Two numbers set it: the bucket size is the biggest burst, and the refill is the long-run pace. Stripe uses it for its request rate limiter, and The Front Desk met it at a gateway."
+   },
+   {
+    "title": "A leaky bucket lets requests out at a steady drip.",
+    "text": "A leaky bucket works the other way round. Each request is poured into the key's bucket, which holds a few; if it is full, the request is refused. The bucket lets one request out each second, no faster, so whatever sits behind it sees a perfectly even flow. In the sim the script gets 11 into the bucket and 109 refusals, and its 11 names land one a second, from 00:00:00.0 to 00:00:10.0. Requests waiting their turn form a small queue, a cousin of the club's line in The Queue Outside, and what a full queue should do is The Slow Room's subject; here the bucket only sets one key's pace. Whatever the counting, the refusal sounds the same: 429 Too Many Requests with Retry-After. A good client waits that long, with the backoff and jitter of Wait Longer, before it tries again."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 280,
+   "aria": "The fix, drawn for 1 December. Nnamdi's script, key P-07, sends 120 requests in one second into P-07's own bucket of 10 tokens, refilled one a second. 10 get onto the guest list and 110 are refused with 429 and Retry-After 1. The phones at the door, one name every 2 seconds, go through a bucket for each key that never runs dry, and 50 names get on. The guest list holds 10 from P-07 and 50 from the door, with 60 places free.",
+   "nodes": [
+    {
+     "id": "script",
+     "label": "Nnamdi's script",
+     "sub": "key P-07: 120 in 1 s",
+     "x": 110,
+     "y": 70,
+     "w": 180,
+     "h": 56,
+     "shape": "box",
+     "tone": "bad"
+    },
+    {
+     "id": "door",
+     "label": "Phones at the door",
+     "sub": "one name per 2 s",
+     "x": 110,
+     "y": 210,
+     "w": 180,
+     "h": 56,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "b7",
+     "label": "P-07's bucket",
+     "sub": "10 tokens, +1 a second",
+     "x": 380,
+     "y": 70,
+     "w": 200,
+     "h": 56,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "bd",
+     "label": "A bucket per key",
+     "sub": "never runs dry",
+     "x": 380,
+     "y": 210,
+     "w": 200,
+     "h": 56,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "list",
+     "label": "Guest list",
+     "sub": "P-07: 10, door: 50",
+     "meta": "60 places free",
+     "x": 640,
+     "y": 140,
+     "w": 170,
+     "h": 72,
+     "shape": "db",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "script",
+     "to": "b7",
+     "label": "120 sent",
+     "tone": "bad"
+    },
+    {
+     "from": "door",
+     "to": "bd",
+     "label": "50 names",
+     "tone": "ok"
+    },
+    {
+     "from": "b7",
+     "to": "list",
+     "label": "10 in",
+     "tone": "warn"
+    },
+    {
+     "from": "bd",
+     "to": "list",
+     "label": "50 in",
+     "tone": "ok"
+    }
+   ],
+   "notes": [
+    {
+     "x": 380,
+     "y": 132,
+     "text": "110 refused: 429, Retry-After: 1",
+     "tone": "bad",
+     "anchor": "middle"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for 1 December. Each key gets its own token bucket of 10, refilled one a second. Nnamdi's script gets 10 names and 110 refusals with Retry-After 1; the phones at the door never empty their buckets, and all 50 regulars get on, with 60 places still free at 00:01:00, in the sim.",
+  "fix": {
+   "title": "The fix: a token bucket per key, and an honest 429",
+   "text": "Give every key its own token bucket: 10 tokens, one more each second. A promoter tapping by hand, a name every 2 seconds, never runs out; a script gets 10 at once and then one a second. Answer every refusal with 429 Too Many Requests and a Retry-After saying when the next token comes. Keep the buckets where every server of the API can reach them, in one shared store, and take each token in one step. Run the new limiter in watch-only mode first, logging what it would refuse, as Stripe advises. Check it in the sim: 10 names for P-07, all 50 regulars on, 60 places free at 00:01:00."
+  },
+  "limits": [
+   "A token bucket limits speed, not share. A script that keeps resending gets one name a second for as long as places last: in the sim, 69 of the 120 by 00:01:00. If places must be shared fairly, add a quota per promoter as well, such as 20 names each.",
+   "Limits are per key. A promoter with five keys has five buckets, so keys must be handed out with care, and a club may also limit per account or per phone.",
+   "Counting across several servers needs one shared count. If each server keeps its own bucket, the burst and the pace add up: two servers with 10 tokens each let 20 through at once."
+  ],
+  "tradeoff": {
+   "head": [
+    "How it counts",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Fixed window, 60 a minute (as built)",
+     "One number per key; cheap and easy to explain.",
+     "Up to twice the limit at the edge: 119 by 00:00:00.9."
+    ],
+    [
+     "Fixed window, 30 a minute",
+     "The edge burst is half as big: 59.",
+     "Still double the stated rate; two scripts take 118; honest heavy users are squeezed."
+    ],
+    [
+     "Sliding window, 60 a minute",
+     "No edge: never more than 60 in any 60 seconds.",
+     "Keeps a time for every request; still allows 60 in one burst."
+    ],
+    [
+     "Token bucket, 10 and one a second",
+     "Small burst, steady pace: 10 for the script, all 50 regulars on.",
+     "Two numbers to choose; limits speed, not share."
+    ],
+    [
+     "Leaky bucket, 10 and one a second",
+     "A perfectly even flow out: one name a second.",
+     "Requests wait in the bucket, so a burst is delayed as well as cut; better for smoothing than for fairness."
+    ],
+    [
+     "Ban the key",
+     "Stops one promoter tonight.",
+     "The same script on another key takes 119."
+    ]
+   ]
+  },
+  "seniorTake": "Rate limiting is a promise about each key: how much it may do at once, and how much over time. Say both numbers, and pick a way of counting that keeps both. A fixed window is cheap and easy to explain, but it only promises a count per box of time, and a client that arrives at the meeting of two boxes gets twice the limit at once; that client is usually a script started at an announced time, the very moment the limit exists for. A sliding window removes the edge at the cost of memory. A token bucket states the burst and the pace directly, which is why it is the common choice for APIs. A leaky bucket smooths what passes through, at the cost of waiting. Count per key, keep the count where every server can see it, and change it in one step. Refuse with 429 and a truthful Retry-After, so well-behaved clients back off, and launch a new limiter in watch-only mode first. Then ask what the limit is for. Speed and share are different promises: if a scarce thing must be shared, give each caller a quota as well as a pace.",
+  "realWorld": [
+   {
+    "title": "Stripe, 2017: what a rate limiter is for",
+    "text": "Paul Tarjan's post defines it: \"A rate limiter is used to control the rate of traffic sent or received on the network.\" Among the cases it protects against: \"One of your users has a misbehaving script which is accidentally sending you a lot of requests.\" And: \"One of your users is responsible for a spike in traffic, and you need to stay up for everyone else.\"",
+    "source": 0
+   },
+   {
+    "title": "Stripe: start with a limit per user",
+    "text": "\"This rate limiter restricts each user to N requests per second.\" Of Stripe's four types, \"The first one, the Request Rate Limiter, is by far the most important one.\" The post adds: \"We recommend you start here if you want to improve the robustness of your API.\"",
+    "source": 0
+   },
+   {
+    "title": "Stripe: a token bucket, with room for bursts",
+    "text": "\"We use the token bucket algorithm to do rate limiting.\" A request takes a token, and \"If the bucket is empty, reject the request.\" After studying their traffic, \"we added the ability to briefly burst above the cap for sudden spikes in usage\", such as a flash sale.",
+    "source": 0
+   },
+   {
+    "title": "Stripe: shared counts, and launching a limiter dark",
+    "text": "\"We implement our rate limiters using Redis.\" Before a limiter refuses real traffic: \"Dark launch each rate limiter to watch the traffic they would block.\" For the answer, Stripe says to decide \"if you want HTTP 429 (Too Many Requests) or HTTP 503 (Service Unavailable)\", and \"The message you return should also be actionable.\"",
+    "source": 0
+   },
+   {
+    "title": "RFC 6585 (2012): 429 Too Many Requests",
+    "text": "The RFC defines the code: \"The 429 status code indicates that the user has sent too many requests in a given amount of time\", which it calls rate limiting. The answer \"SHOULD include details explaining the condition, and MAY include a Retry-After header\". Its example answer carries Retry-After: 3600. And \"Responses with the 429 status code MUST NOT be stored by a cache.\"",
+    "source": 1
+   },
+   {
+    "title": "IETF draft: RateLimit header fields for HTTP",
+    "text": "The IETF's HTTP API working group has an Internet-Draft named \"RateLimit header fields for HTTP\", aimed at standard headers for telling clients about limits. It was still a draft when read on 15 October 2026, so check its status before relying on it.",
+    "source": 2
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Compare fixed window, sliding window and token bucket.",
+    "Where would you keep the counters for many servers?",
+    "What do you send back when a client is over its limit?"
+   ],
+   "answer": "I'd start with what the limit is for: protecting the service from bursts, and keeping one caller from crowding out the rest, so it is counted per key, per user or per account. A fixed window is one counter per key per minute: cheap and easy to explain, but at the meeting of two windows a client can get up to twice the limit in a moment, and a script started at an announced time will find that. A sliding window counts the last 60 seconds at every moment, so there is no edge; an exact one stores a time per request, and cheaper versions estimate from the current and previous window's counts. A token bucket gives each key a bucket of tokens that refills at a steady rate; each request spends one. Its two numbers state the promise directly: the size is the largest burst, the refill is the long-run rate. That is what Stripe uses, and what I'd pick for most APIs. A leaky bucket lets requests out at a constant drip, which suits smoothing traffic to something fragile. For many servers, the counts must be shared, or each server's limit adds up. I'd keep them in a fast shared store such as Redis, update each key in one atomic step so two servers can't both spend the last token, and decide in advance what happens if that store is down: let traffic through or refuse it. For very high volume, a server can hold a small local allowance and sync it. When a client is over its limit, send 429 Too Many Requests with a Retry-After saying when to try again, and a clear message; clients should back off with jitter. I'd launch a new limiter in watch-only mode first and log what it would refuse. A story I'd tell: a club's guest-list API allowed 60 requests a minute in fixed windows; a promoter's script checked its login at 23:59:00.5 and at midnight got 59 names before the window ended and 60 after, 119 of 120 free places in under a second, without ever exceeding 60 in a window. A token bucket of 10 with one a second gave it 10."
+  }
+ },
+ "terms": [
+  {
+   "term": "Pellucid",
+   "def": "The nightclub in this story, in the basement of an old bank. It gives 120 free places on its New Year's guest list."
+  },
+  {
+   "term": "Door manager",
+   "def": "The person in charge of a club's door at night: who gets in, the queue, and the guest list."
+  },
+  {
+   "term": "Guest list",
+   "def": "The list of names allowed in free. At the Pellucid, promoters add names to it through the booking API."
+  },
+  {
+   "term": "Promoter",
+   "def": "Someone a club pays to bring people in. Each Pellucid promoter adds their regulars' names to the guest list."
+  },
+  {
+   "term": "Regular",
+   "def": "Someone who comes to the club often. The free New Year's places are meant for them."
+  },
+  {
+   "term": "API",
+   "def": "Short for application programming interface: a fixed set of requests one program may send another, and the answers it gets back (s1e06). A front desk for programs."
+  },
+  {
+   "term": "Booking API",
+   "def": "The Pellucid's API, built by Gwendaline in September. Each name added to the guest list is one request to it."
+  },
+  {
+   "term": "Request",
+   "def": "One message a program sends to ask for something, here to add one name or to check a login (s1e04)."
+  },
+  {
+   "term": "Key (API key)",
+   "def": "A secret code sent with every request, so the API knows who is asking. Each Pellucid promoter has one; Nnamdi's is P-07."
+  },
+  {
+   "term": "Per key",
+   "def": "Counted for each key separately. One promoter's requests never use up another's limit."
+  },
+  {
+   "term": "Login check",
+   "def": "A request that only asks whether a key works. It adds no name, but the limiter counts it like any other request."
+  },
+  {
+   "term": "Rate limiting",
+   "def": "Capping how many requests one caller may send in a stretch of time. Requests over the cap are refused with 429 (s1e04)."
+  },
+  {
+   "term": "Limiter",
+   "def": "The part of a service that counts each caller's requests and allows or refuses each one."
+  },
+  {
+   "term": "Window",
+   "def": "The stretch of time a limiter counts requests in, here one minute."
+  },
+  {
+   "term": "Fixed window",
+   "def": "Counting in boxes of time that start and end at set moments: at the Pellucid, a minute from a key's first request, after which the count starts again at 1."
+  },
+  {
+   "term": "Window edge",
+   "def": "The moment one fixed window ends and the next begins. A burst across it can be counted half in each window, so up to twice the limit gets through at once."
+  },
+  {
+   "term": "Sliding window",
+   "def": "Counting the requests in the last 60 seconds at every moment, so the minute moves with the clock and there is no edge."
+  },
+  {
+   "term": "Token bucket",
+   "def": "A limiter that gives each key a bucket of tokens, refilled at a steady rate. Each request spends a token; with none left it is refused. The size sets the biggest burst (s2e09)."
+  },
+  {
+   "term": "Token",
+   "def": "In a token bucket, one permission to send one request. A new one is added at the refill rate."
+  },
+  {
+   "term": "Bucket size",
+   "def": "The most tokens (or waiting requests) a bucket can hold, and so the biggest burst one key can send at once. 10 in the fix."
+  },
+  {
+   "term": "Refill",
+   "def": "How fast new tokens drop into a token bucket, or requests drip out of a leaky one. One a second in the fix."
+  },
+  {
+   "term": "Leaky bucket",
+   "def": "A limiter that holds a few requests in a small bucket and lets them out at a steady rate, refusing new ones when the bucket is full."
+  },
+  {
+   "term": "Burst",
+   "def": "Many requests from one caller in a very short time, like 120 names in one second."
+  },
+  {
+   "term": "429 Too Many Requests",
+   "def": "The web's answer for a caller over its limit (s1e04). Defined in RFC 6585, and it may carry Retry-After."
+  },
+  {
+   "term": "Retry-After",
+   "def": "A line in an answer, a header, saying how many seconds to wait before trying again (s1e04)."
+  },
+  {
+   "term": "Status code",
+   "def": "The three-digit number at the top of every web answer saying how the request went, such as 200, 429 or 503 (s1e04)."
+  },
+  {
+   "term": "HTTP 503",
+   "def": "The status code for a server that can't handle the request right now, such as when it is overloaded. Stripe weighs it against 429."
+  },
+  {
+   "term": "Script",
+   "def": "A small program that does a job by itself (s1e13). Nnamdi's sends names to the booking API without a person tapping."
+  },
+  {
+   "term": "Limiter's log",
+   "def": "The limiter's record of every request: time, key, window start, count, and whether it was allowed."
+  },
+  {
+   "term": "Resend",
+   "def": "In the sim, the script sending a refused name again one second later."
+  },
+  {
+   "term": "Quota",
+   "def": "A fixed share of something for each caller, such as 20 guest-list places per promoter, whatever their speed."
+  },
+  {
+   "term": "Shared store",
+   "def": "One place, reached by every server, where counts are kept, so a key has one bucket rather than one per server."
+  },
+  {
+   "term": "Atomic (one step)",
+   "def": "Done as a single step nobody can interrupt, such as checking and spending a token together, so two servers can't both spend the last one."
+  },
+  {
+   "term": "Redis",
+   "def": "A fast store that keeps data in memory, often used to hold shared counts. Stripe keeps its rate-limit counts in it."
+  },
+  {
+   "term": "Load balancer",
+   "def": "A box in front of several servers that hands each request to one of them, so the service stays up if one fails."
+  },
+  {
+   "term": "Dark launch (watch-only mode)",
+   "def": "Running a new limiter so it logs what it would refuse without refusing anything, to check it before it bites."
+  },
+  {
+   "term": "Gateway",
+   "def": "A server in front of an API that does chores on the way through, such as limiting each caller (s2e09, The Front Desk)."
+  },
+  {
+   "term": "Backoff and jitter",
+   "def": "Waiting longer after each refusal, with some randomness, so callers don't all come back at once (s6e01, Wait Longer)."
+  },
+  {
+   "term": "Header",
+   "def": "An extra line on a web request or answer, written as name: value, like Retry-After: 1 (s1e04)."
+  },
+  {
+   "term": "RFC 6585",
+   "def": "A 2012 standard from the IETF that added four HTTP status codes, among them 429 Too Many Requests."
+  },
+  {
+   "term": "IETF",
+   "def": "The Internet Engineering Task Force, the group that writes the internet's open standards, the RFCs."
+  },
+  {
+   "term": "Internet-Draft",
+   "def": "A working document of the IETF that may become a standard, or may not. RateLimit header fields for HTTP is one."
+  },
+  {
+   "term": "Build Night G6",
+   "def": "The hands-on project after s6e01 to s6e03: timeouts, retries with backoff and jitter on safe calls only, a breaker and a token-bucket limiter."
+  },
+  {
+   "term": "SOC 2",
+   "def": "An audit report, written by an outside checker, on a company's controls against the AICPA's Trust Services Criteria."
+  },
+  {
+   "term": "A1.1 (SOC 2)",
+   "def": "A SOC 2 availability criterion: the company maintains, monitors and evaluates current processing capacity and use of system components."
+  }
+ ],
+ "atWork": "Look for any API or endpoint of yours whose limit is counted in fixed windows: per minute, per hour, per day. It is a common pattern, and the burst at each window's edge is a common way for one client to get far more than the stated limit at once, especially a script started at a published time such as a sale or an opening. Check four things. Does each limit state both a burst and a pace, or only a count per window? Is it counted per key, and are the counts shared by every server, changed in one step? Does every refusal carry 429 Too Many Requests and a truthful Retry-After? And does anything scarce, like places or stock, need a quota per caller as well as a speed limit? Build Night G6 builds this: a token-bucket limiter where over-limit clients get 429. The 3 AM Interviews \"Rate limiter\" and the low-level design \"Rate limiter (class design)\" follow this case. Standards: if your company is pursuing SOC 2 availability, criterion A1.1 expects it to maintain, monitor and evaluate current processing capacity and use of system components; a limit that lets twice the planned burst through is that kind of capacity risk, so test your limits with a burst across a window edge now rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "rate-limiting",
+    "title": "Rate limiting"
+   },
+   {
+    "id": "token-bucket",
+    "title": "Token bucket"
+   },
+   {
+    "id": "leaky-bucket",
+    "title": "Leaky bucket"
+   },
+   {
+    "id": "sliding-window",
+    "title": "Sliding window"
+   }
+  ],
+  "strings": [
+   {
+    "from": "token-bucket",
+    "to": "rate-limiting",
+    "label": "small burst, pace"
+   },
+   {
+    "from": "sliding-window",
+    "to": "rate-limiting",
+    "label": "no window edge"
+   },
+   {
+    "from": "leaky-bucket",
+    "to": "token-bucket",
+    "label": "steady drip"
+   },
+   {
+    "from": "rate-limiting",
+    "to": "status-codes",
+    "label": "429 Retry-After"
+   },
+   {
+    "from": "rate-limiting",
+    "to": "api-gateways",
+    "label": "often lives here"
+   },
+   {
+    "from": "rate-limiting",
+    "to": "jitter",
+    "label": "after a 429"
+   },
+   {
+    "from": "leaky-bucket",
+    "to": "backpressure",
+    "label": "a queue's cousin"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s6e03-r1",
+   "kind": "free",
+   "prompt": "Your company's public API allows each customer 100 requests a minute, counted in fixed one-minute windows that start at a customer's first request. A customer's nightly job sends 100 requests in the final second of one minute and 100 in the first second of the next, and your database slows to a crawl. The limiter's records say the customer never went over 100 in any minute. What happened, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "Two windows meet at the edge, so up to twice the limit gets through in a moment",
+     "match": [
+      "twice the limit",
+      "double the limit",
+      "two windows",
+      "window edge",
+      "edge of the window",
+      "boundary",
+      "back to back",
+      "200 requests"
+     ]
+    },
+    {
+     "idea": "Count with a token bucket or a sliding window, so the burst is capped at every moment",
+     "match": [
+      "token bucket",
+      "sliding window",
+      "last 60 seconds",
+      "last minute",
+      "refill",
+      "burst size"
+     ]
+    },
+    {
+     "idea": "Refuse the extra with 429 and Retry-After so the job slows down",
+     "match": [
+      "retry-after",
+      "too many requests",
+      "429 too",
+      "slow down",
+      "back off",
+      "backoff"
+     ]
+    }
+   ],
+   "model": "Each window was honest, but two windows met at the window edge: 100 at the end of one and 100 at the start of the next, so twice the limit reached the database within two seconds. A fixed window forgets everything when it rolls over. Count with a token bucket instead, with a burst size of, say, 20 and a refill of about 1.7 a second, or a sliding window over the last 60 seconds, so no moment sees more than the burst. Refuse the extra with 429 Too Many Requests and a Retry-After, so the job can slow down and spread its work."
+  },
+  {
+   "id": "s6e03-r2",
+   "kind": "mcq",
+   "prompt": "A limiter allows 60 requests a minute per key, in fixed windows that start at the key's first request. A key's first request comes at 23:59:00.5. From 00:00:00.0 it sends 12 requests every tenth of a second for one second, 120 in all. How many are allowed?",
+   "options": [
+    "60",
+    "59",
+    "119",
+    "120"
+   ],
+   "answer": 2,
+   "why": "The first request is count 1 of a window that ends at 00:00:00.5. From 00:00:00.0 to 00:00:00.4 the key sends 60; 59 fit and one is refused. From 00:00:00.5 a new window starts and takes all 60 that follow. 59 + 60 = 119, and no window ever counted more than 60."
+  },
+  {
+   "id": "s6e03-r3",
+   "kind": "mcq",
+   "prompt": "A token bucket holds up to 10 tokens, gains one a second and starts full. A script sends 120 requests in one second, then sends each refused one again a second later, over and over. About how many get through in the first 11 seconds?",
+   "options": [
+    "10",
+    "About 20",
+    "About 60",
+    "120"
+   ],
+   "answer": 1,
+   "why": "The full bucket lets 10 through at once. After that, however many requests arrive, only one token is added each second, so one more gets through each second: about 20 by the end of the eleventh second. In the sim, 20 by 00:00:10.9."
+  },
+  {
+   "id": "s6e03-r4",
+   "kind": "mcq",
+   "prompt": "A client has gone over its limit. What should the server send back?",
+   "options": [
+    "200 OK with an empty list",
+    "429 Too Many Requests, with Retry-After saying when to try again",
+    "500 Internal Server Error",
+    "Nothing: drop the connection quietly"
+   ],
+   "answer": 1,
+   "why": "429 is the status code for rate limiting (RFC 6585), and Retry-After tells a well-behaved client how long to wait. A 200 hides the refusal, a 500 says the server is broken, and silence makes clients retry blindly."
+  },
+  {
+   "id": "s6e03-r5",
+   "kind": "mcq",
+   "prompt": "Which way of counting sends requests on at a perfectly steady pace, holding a few to wait their turn and refusing the rest?",
+   "options": [
+    "Fixed one-minute windows",
+    "Counting back over the past minute at every moment",
+    "A jar of tokens topped up one a second",
+    "A bucket with a hole that lets one out each second"
+   ],
+   "answer": 3,
+   "why": "That is a leaky bucket: it holds requests and lets them out at a constant drip. A jar of tokens, a token bucket, lets a burst through at once, up to its size, and then a steady pace; the fixed and sliding windows only count and refuse."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The token buckets work: at every monthly opening since February, no script got more than 10 at once, and my queue got in. In April Gwendaline put the API on two servers behind a load balancer, a box that hands each request to one of them in turn, so the list stays up if one fails. The servers keep the buckets in memory, each its own. At the May opening, the limiter's logs on both servers show P-07 never had more than 10 at once. The guest list shows 20 of his names at 00:00:00.0, then two a second.",
+  "prompt": "Reply to OP. Why did P-07 get 20 names at once and then two a second, and how should the counting work across both servers?",
+  "keyIdeas": [
+   {
+    "idea": "Each server keeps its own bucket, so the key really has two buckets: twice the burst and twice the pace",
+    "match": [
+     "two buckets",
+     "separate buckets",
+     "not shared",
+     "per server",
+     "twice the burst",
+     "counted twice",
+     "each server has"
+    ]
+   },
+   {
+    "idea": "Keep one bucket per key in a shared store that both servers use",
+    "match": [
+     "shared store",
+     "one store",
+     "shared bucket",
+     "one bucket",
+     "central store",
+     "redis",
+     "same store"
+    ]
+   },
+   {
+    "idea": "Check and spend the token in one atomic step, so two servers can't both spend the last token",
+    "match": [
+     "one step",
+     "single step",
+     "atomic step",
+     "at the same time",
+     "both spend",
+     "check and spend"
+    ]
+   }
+  ],
+  "model": "The servers each keep a bucket for P-07 in memory, so the key really has two buckets, not shared: 10 tokens at each, refilled one a second at each. The load balancer spread the script's requests over both, so it got twice the burst and twice the pace, while each log honestly shows no more than 10 at once. Keep one bucket per key in a shared store that both servers use, such as Redis, the way Stripe does, and check and spend the token in one atomic step, so two servers can't both spend the last token. Decide in advance what happens if that store is down: let requests through or refuse them."
+ },
+ "next": "Next, Cascades: a dam upstream of a town, and how one slow part brings down parts that never touched it: cascading failures, retry storms and load shedding.",
+ "sources": [
+  {
+   "title": "Paul Tarjan, Scaling your API with rate limiters, Stripe blog, 30 March 2017 (what a rate limiter is; a misbehaving script; the request rate limiter first; the token bucket; bursting above the cap; Redis; 429 or 503; dark launch)",
+   "url": "https://stripe.com/blog/rate-limiters"
+  },
+  {
+   "title": "RFC 6585, Additional HTTP Status Codes, section 4: 429 Too Many Requests (2012; may include a Retry-After header; must not be stored by a cache)",
+   "url": "https://www.rfc-editor.org/rfc/rfc6585#section-4"
+  },
+  {
+   "title": "IETF HTTPAPI working group, RateLimit header fields for HTTP, Internet-Draft draft-ietf-httpapi-ratelimit-headers (named only; read 15 October 2026)",
+   "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/"
+  },
+  {
+   "title": "Linford & Co: Availability Trust Services Criteria in a SOC 2 Audit (A1.1: the entity maintains, monitors, and evaluates current processing capacity and use of system components)",
+   "url": "https://linfordco.com/blog/availability-soc-2-trust-service-principle/"
+  }
+ ]
+}
