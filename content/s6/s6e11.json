@@ -1,0 +1,813 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version"
+ ],
+ "id": "s6e11",
+ "season": 6,
+ "n": 11,
+ "title": "Autoscaling",
+ "setting": "a ferry at rush hour",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "capacity",
+  "autoscaling-policies",
+  "serverless-cold-starts"
+ ],
+ "prerequisites": [
+  "s2e01",
+  "s2e08",
+  "s4e03"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/kelsor_deckhand_mbali",
+  "flair": "Part 1",
+  "age": "4h",
+  "votes": 3047,
+  "title": "I'm a deckhand on a city river ferry. Tonight our 22:05 boat left with 100 empty seats while the crowd stood at the gate, every phone saying \"payment processing\".",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Mbali, a deckhand on the Kelsor water bus, our city's river ferry. On concert nights we run extra boats from Quarrymouth Pier, across the river from the stadium: one every five minutes from 22:05, 400 seats each. The gate opens only for a ticket in the ferry app."
+   },
+   {
+    "t": "p",
+    "text": "Since April the app sells every ticket, and the old ticket office is shut. Behind the app sit our servers: rented computers that answer every phone. The ticket service is the program on them that turns a purchase into a ticket."
+   },
+   {
+    "t": "p",
+    "text": "A purchase goes through in steps. First it joins a line, called a queue, in the order it arrived. Then a worker, one running copy of the ticket program, takes the purchase at the front. It asks the bank for the payment and waits 2 seconds for the answer. Then it issues the ticket and takes the next one."
+   },
+   {
+    "t": "p",
+    "text": "We run two workers, so together they issue one ticket a second. The bank takes at most 8 payments from us at once, so our workers share 8 lines to it. On a normal night purchases come a few a minute, and one a second was always plenty."
+   },
+   {
+    "t": "p",
+    "text": "Ebrima, our only developer, set up an autoscaler: a helper that watches the workers and starts more when they look busy. It judges busy by the CPU, short for central processing unit: the chip in each computer that does the computing. The CPU figure is the share of time that chip is working."
+   },
+   {
+    "t": "p",
+    "text": "A new worker isn't ready at once; it takes about a minute to start, its warm-up. The level that sets the autoscaler off is its threshold."
+   },
+   {
+    "t": "p",
+    "text": "Ebrima's rule is six lines in a settings file, written in YAML, a plain format of one name, a colon and a value per line. In order: what it watches, the threshold, how long the figure must stay over it, the warm-up, and the fewest and most workers."
+   },
+   {
+    "t": "log",
+    "text": "watch:       average CPU, percent\nthreshold:   60\nstay_over:   3 minutes\nwarm_up:     60 seconds\nmin_workers: 2\nmax_workers: 8"
+   },
+   {
+    "t": "p",
+    "text": "Tonight was the first late concert since the app replaced the office. The concert ended at 22:00. From 22:00 to 22:05, 1,500 people bought tickets on the walk to the pier: five a second."
+   },
+   {
+    "t": "p",
+    "text": "Our two workers issued one a second, as always. Each spent almost all its time waiting for the bank, and waiting barely uses the chip. Average CPU went from 2% to 15% and stayed there. It never reached 60%, so the autoscaler never added a worker."
+   },
+   {
+    "t": "p",
+    "text": "By 22:05, 300 tickets were issued and 1,200 purchases were still waiting."
+   },
+   {
+    "t": "beat",
+    "text": "The 22:05 boat left with 300 of its 400 seats taken."
+   },
+   {
+    "t": "evidence",
+    "label": "ticket_service_2200_2206.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "22:00 to 22:06. Purchases arrive at 5 a second from 22:00 to 22:05, 1,500 in all. Two workers issue tickets at 1 a second from 22:00:02. The autoscaler never acts: average CPU stays at 15%, under its 60% threshold, for the whole time. At 22:03 the CPU has been at 15% for 3 minutes. At 22:05 the boat leaves with 300 of 400 seats taken and 1,200 purchases waiting.",
+     "start": "22:00:00",
+     "seconds": 360,
+     "ticksEvery": 60,
+     "rows": [
+      {
+       "label": "Buying, 5 a sec",
+       "segments": [
+        [
+         0,
+         300,
+         "warn"
+        ]
+       ]
+      },
+      {
+       "label": "Tickets, 1 a sec",
+       "segments": [
+        [
+         2,
+         360,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "Autoscaler",
+       "segments": [],
+       "gaps": [
+        [
+         0,
+         360,
+         "CPU 15%, under 60%: no worker added"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 180,
+       "label": "3 min at 15%",
+       "tone": "warn"
+      },
+      {
+       "t": 300,
+       "label": "boat: 300 of 400",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Redrawn from the dashboard and the ticket log. From 22:00 to 22:05 the crowd bought 5 tickets a second; the two workers issued 1 a second. CPU sat at 15%, under the 60% threshold, so no worker was added. At 22:05: 300 issued, 1,200 waiting, and the boat left with 300 of 400 seats taken."
+   },
+   {
+    "t": "p",
+    "text": "The pier camera shows the crowd pressed against the gate, phones lit, every screen saying \"payment processing\". Ebrima's dashboard, the page of graphs for our servers, says the ticket service was 15% busy that same minute."
+   },
+   {
+    "t": "p",
+    "text": "Ebrima says the autoscaler did exactly what its rule says. There's another concert on Saturday. What should we change?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 141,
+   "age": "3h",
+   "text": "Your autoscaler did its job; the question is what its job was. A worker waiting on the bank: what is its chip doing during those 2 seconds? Put two numbers from the dashboard side by side, at 21:59 and at 22:05: average CPU, and purchases waiting. Which one moved with the crowd, and by how much? Then two questions for Saturday. How long would you let one buyer wait before it costs them a boat? And when the crowd has gone, what tells the autoscaler to send workers home? Adding workers is called scaling out; removing them, scaling in.",
+   "replies": [
+    {
+     "author": "u/kelsor_deckhand_mbali",
+     "op": true,
+     "points": 49,
+     "age": "2h",
+     "text": "21:59: CPU 2%, nothing waiting. 22:05: CPU 15%, 1,200 waiting. Boats go every five minutes, so a few minutes at most. And nothing removes workers yet; at 2 there's nothing to remove."
+    }
+   ]
+  },
+  {
+   "author": "u/lower_the_bar_sundiata",
+   "points": 92,
+   "age": "3h",
+   "text": "Your threshold's too high; autoscaling at 60% CPU is asking for trouble. That number comes from servers doing heavy work. Ticket work is light, so busy shows up as a smaller number on your chips. Look at your own graph: 2% to 15% the moment the crowd hit, a sevenfold jump. Set the threshold to 20%, and with a crowd still arriving it climbs past that in a minute or two. One line in the settings file, no new code."
+  },
+  {
+   "author": "u/no_servers_halcomb",
+   "points": 71,
+   "age": "2h",
+   "text": "Why run workers at all? Move the ticket program to serverless functions. You hand the cloud company your program, and it starts a copy for each purchase that comes in, as many as needed, then stops them when the crowd's gone. You pay per purchase, not per hour. When a new copy starts, the cloud fetches your program, sets up a fresh copy and runs its start-up code, a second or so; that first start is called a cold start. Nobody on a pier notices one second."
+  },
+  {
+   "author": "u/kelsor_dev_ebrima",
+   "points": 44,
+   "age": "1h",
+   "text": "Ebrima here. The rule is the cloud company's example with our numbers in it. If we want Saturday safe, I can keep 8 workers, the most the bank's lines allow, running at all times: no rule to trip, ready for any crowd. It costs more, but a full boat is worth it."
+  }
+ ],
+ "reply": {
+  "prompt": "The next concert is on Saturday. What should the water bus change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Lower the CPU threshold from 60% to 20%, so the autoscaler adds workers much sooner.",
+    "tone": "bad",
+    "verdict": "A lower bar the chip still never reaches",
+    "part2": "Ebrima changed the threshold to 20% on Thursday. In the sim I did the same and replayed tonight: average CPU went from 2% to 15% at 22:00 and stayed at 15%, under 20%, so no worker was added. At 22:05: 300 issued, 1,200 waiting, 300 of 400 seats, exactly as before. Then I tried 10%, under the 15%. The rule tripped at 22:02:59 and added one worker, then two at 22:05:59 and three at 22:08:59; the 22:05 boat left with 330 of 400. Sundiata was wrong about the climb: a worker waiting on the bank barely uses its chip, so CPU stays flat however long the queue gets. On Saturday the 22:05 boat left a quarter empty again.",
+    "senior": "CPU measures how hard the chips work, not how much work is waiting. A worker that spends most of each ticket waiting for another system shows almost the same CPU whether one purchase is waiting or a thousand, so no threshold on CPU tracks the crowd. Set it above that flat line and it never fires; set it below and it fires at any traffic, adding workers in proportion to a number that hardly moves, and on most systems it will also fire on ordinary busy minutes. Pick the signal first, the number second: the figure that grows when the work grows."
+   },
+   {
+    "text": "Keep 8 workers running at all times, so the service is ready for any concert crowd.",
+    "tone": "warn",
+    "verdict": "Right tonight, paid for all week",
+    "part2": "Ebrima set the minimum to 8 on Thursday, and the workers never went home. In the sim, with 8 always on: four tickets a second from 22:00:02, 1,197 issued by 22:05 and the boat full, 400 of 400; every ticket by 22:06:16. Saturday went well. Then the month's bill came: 8 workers running every hour of every day, for crowds that come a few nights a month. In the sim tonight alone it is 176 worker-minutes against 44, and on every quiet night 8 workers sit idle where 2 were plenty. It is also the most the bank allows, so a bigger crowd gets no more from it.",
+    "senior": "Running the peak all the time is a valid choice when peaks are frequent, unpredictable and short, or when starting new capacity is slower than the spike. It buys safety with money: you pay for the busiest minute every minute. Here the crowds are rare and announced, and the work is in a queue that can be measured, so a rule that adds workers when purchases wait gets almost the same night for a fraction of the cost. Keep a sensible floor, and let the signal do the rest."
+   },
+   {
+    "text": "Add workers by how many tickets are waiting per worker, not by how busy the CPU is.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Ebrima changed the first line: the rule now watches tickets waiting per worker, with a threshold of 10, the same 3 minutes, the same warm-up, the same 2 to 8 workers. In the sim, tonight: the count passed 10 within seconds of 22:00; at 22:03:03 the rule added 6 workers, 8 in all, ready at 22:04:03. The 22:05 boat left full, 400 of 400, with 468 issued, and every ticket was out by 22:09:18. Then the queue stayed empty, and from 22:13:57 the rule sent one worker home a minute, back to 2 by 22:18:57: 124 worker-minutes. With the 3 minutes cut to 1, every ticket was out by 22:07:48. On Saturday the 22:05 boat left full.",
+    "senior": "Scale on the signal that measures the work. When workers spend their time waiting on another system, CPU stays flat while the queue grows, so count what is waiting and divide by the workers, or watch the age of the oldest waiting item. Set the threshold from what a customer can bear: how long you will let one purchase wait, divided by how long one takes. Then mind the delays you add on top, the time the signal must stay high and the warm-up of each new worker, and scale back in slowly, a worker at a time, after the queue has stayed empty."
+   },
+   {
+    "text": "Move ticket issuing to serverless functions, which add copies of themselves by demand.",
+    "tone": "bad",
+    "verdict": "Copies by demand, refusals by the bank",
+    "part2": "Halcomb's way, in the sim: each purchase gets its own copy, and there is no queue. Ten copies cold-started in the first two seconds, then served everyone after. Each copy called the bank the moment its purchase arrived: at 5 a second, each call holding a line for 2 s, the copies wanted 10 lines and the bank has 8. It refused the rest. 303 purchases were refused and those phones said \"payment failed\". The 22:05 boat did leave full, 1,192 issued, but 303 people had to buy again on the pier. With 10 copies kept warm: no cold starts, and still 300 refused. Faster starts don't add bank lines.",
+    "senior": "Serverless functions scale by starting copies, which solves the wrong half here. The first request on each new copy pays a cold start, which kept-warm copies remove for a price. But the real limit is downstream: the bank takes 8 calls at once, and a function with no cap sends every purchase straight to it. A waiting purchase becomes a ticket a few minutes later; a refused one is a lost sale and an angry buyer. To make functions work you would cap them at 8 at once and hold the rest in a queue, which is the worker design with a different bill."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s6e11",
+  "title": "Run the concert crowd through the ticket service",
+  "lede": "You're Mbali at 21:58:00, two minutes before the concert ends. From 22:00:00 to 22:04:59, 5 people a second buy tickets, 1,500 in all. A worker takes one purchase, waits 2 s for the bank, then issues the ticket; the bank takes 8 calls at once. A worker uses 15% of its chip while issuing and 2% while idle. Boats leave at 22:05, 22:10, 22:15 and 22:20 with 400 seats each. Pick the scaling signal (average CPU, tickets waiting per worker, or serverless functions), the threshold, how long the figure must stay over it, the warm-up of a new worker, the minimum workers and, for serverless, warm copies. Then run the night ten seconds at a time, to the first boat, or to 22:20.",
+  "tryThis": "Try this: run to 22:05 as now. 300 issued, 1,200 waiting, CPU 15%, still 2 workers: the boat leaves 300 of 400. Set the CPU threshold to 20%: nothing changes. Try 10%: one worker at 22:02:59, 330 of 400. Switch the signal to tickets waiting per worker: 6 workers at 22:03:03, the boat full, every ticket by 22:09:18, and back to 2 workers by 22:18:57. Set the minimum to 8: full too, at 176 worker-minutes. Try serverless: 303 refused by the bank; with warm copies, still 300."
+ },
+ "explain": {
+  "oneLine": "Nothing broke. The autoscaler watched CPU, and a worker waiting 2 s for the bank barely uses its chip, so CPU sat at 15% while 1,200 purchases waited. The rule was waiting for 60%. Scale on how much work is waiting per worker, and the extra workers arrive before the boat leaves.",
+  "steps": [
+   {
+    "title": "Capacity: what the busiest minutes need.",
+    "text": "Work it out in steps. First, the busiest minutes: 1,500 purchases in 5 minutes, 5 a second. Second, how long each takes: 2 s at the bank. Third, multiply: 5 a second times 2 s means 10 purchases in progress at once, which is Little's law from napkin maths. Two workers hold 2, so they issue 1 a second and the rest wait. Fourth, check every limit on the way: the bank takes 8 at once, so even 8 workers issue 4 a second, under the 5 arriving. Plan for the busiest ten minutes, not the average night, where a few a minute fit easily."
+   },
+   {
+    "title": "CPU measures the chip, not the work.",
+    "text": "A worker's 2 s goes in steps: a moment of chip work to build the request, then waiting for the bank, then a moment more to write the ticket. Only the chip work shows as CPU. So a busy worker read 15% and an idle one 2%, and adding a thousand purchases to the queue changed nothing. AWS, Amazon Web Services, says a metric for target tracking must rise and fall in proportion to the number of servers; CPU works when the load is spread across their chips. Here the load was spread across the bank's waiting time instead."
+   },
+   {
+    "title": "Scale on the signal that measures the work.",
+    "text": "The rule then works in steps. Count the purchases waiting. Divide by the workers you have: tickets waiting per worker. Compare with the threshold; if it stays over it for the set time, add enough workers to bring it back, never past the most the bank allows. AWS calls this backlog per instance, and its threshold the acceptable backlog, set from what customers can bear: the longest acceptable wait divided by the time one item takes. A 20 s wait at 2 s a ticket gives 10 per worker, the threshold in the fix. The age of the oldest waiting purchase works too, and catches a slow trickle the count misses."
+   },
+   {
+    "title": "Two delays: the period and the warm-up.",
+    "text": "Even the right signal acts late. First, the figure must stay over the threshold for the set time, 3 minutes here, so one busy second doesn't add a worker. Second, each new worker takes its warm-up, 60 s, before it takes purchases; AWS leaves warming servers out of the averages. Tonight that put the first help at 22:04:03. With 1 minute instead of 3, help came at 22:02:03 and every ticket was out by 22:07:48. Shorter periods react faster and also react to noise, so pick the shortest your signal allows."
+   },
+   {
+    "title": "Scaling back in, and serverless cold starts.",
+    "text": "Scaling in goes in steps too: wait until the queue has stayed under the threshold for a while, 5 minutes in the sim, then remove one idle worker, then one a minute, never below the minimum, and never one still issuing a ticket. Serverless works differently. A purchase arrives; if a copy is ready it runs at once; if not, the cloud downloads the code, starts a new environment and runs its start-up code, the cold start, then runs the purchase. Kept-warm copies skip that. Neither waits for a free bank line: there is no queue, so at 10 calls wanted and 8 lines, the bank refuses the rest."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 300,
+   "aria": "The fix, drawn for Saturday. Phones send purchases at 5 a second into the ticket queue, oldest first. Workers, 2 to 8 of them, take the next purchase and each wait 2 s at the bank, which takes 8 calls at once. The autoscaler counts the purchases waiting in the queue, divides by the workers, and when it stays over 10 per worker for 3 minutes adds workers, each ready after 60 s; when the queue stays empty it removes them one a minute.",
+   "nodes": [
+    {
+     "id": "phones",
+     "label": "Phones",
+     "sub": "5 a second",
+     "meta": "1,500 in 5 min",
+     "x": 80,
+     "y": 80,
+     "w": 120,
+     "h": 72,
+     "shape": "box",
+     "tone": "muted"
+    },
+    {
+     "id": "queue",
+     "label": "Ticket queue",
+     "sub": "oldest first",
+     "meta": "the signal",
+     "x": 270,
+     "y": 80,
+     "w": 120,
+     "h": 72,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "workers",
+     "label": "Workers",
+     "sub": "2 to 8",
+     "meta": "2 s each",
+     "x": 460,
+     "y": 80,
+     "w": 120,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "bank",
+     "label": "Bank",
+     "sub": "8 at once",
+     "meta": "4 a second",
+     "x": 650,
+     "y": 80,
+     "w": 120,
+     "h": 72,
+     "shape": "box",
+     "tone": "muted"
+    },
+    {
+     "id": "auto",
+     "label": "Autoscaler",
+     "sub": "waiting per worker > 10",
+     "meta": "3 min, warm-up 60 s",
+     "x": 270,
+     "y": 230,
+     "w": 220,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "phones",
+     "to": "queue",
+     "label": "5 a sec",
+     "tone": "muted"
+    },
+    {
+     "from": "queue",
+     "to": "workers",
+     "label": "next one",
+     "tone": "ok"
+    },
+    {
+     "from": "workers",
+     "to": "bank",
+     "label": "8 lines",
+     "tone": "muted"
+    },
+    {
+     "from": "queue",
+     "to": "auto",
+     "label": "count",
+     "dash": true,
+     "tone": "warn"
+    },
+    {
+     "from": "auto",
+     "to": "workers",
+     "label": "adds, removes",
+     "at": 0.35,
+     "dash": true,
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for Saturday. The autoscaler counts the purchases waiting in the queue and divides by the workers. Over 10 per worker for 3 minutes, it adds workers up to the bank's 8; when the queue stays empty, it sends them home one a minute. In the sim the 22:05 boat leaves full and every ticket is out by 22:09:18.",
+  "fix": {
+   "title": "The fix: scale on tickets waiting per worker",
+   "text": "Change the rule's first line from average CPU to tickets waiting per worker, with a threshold of 10: a 20 s wait at 2 s a ticket. Keep the most at 8, the bank's lines, and the fewest at 2. Add the scale-in rule: after 5 minutes with the queue under the threshold, remove one idle worker a minute. Check it in the sim: 6 workers at 22:03:03, the 22:05 boat full, every ticket by 22:09:18, back to 2 by 22:18:57, 124 worker-minutes. Then shorten the 3 minutes to 1 if the count holds steady; that brings every ticket out by 22:07:48. Before the next concert, ask the bank whether it can raise the 8."
+  },
+  "limits": [
+   "The bank's 8 lines cap the service at 4 tickets a second, under the 5 a second the crowd buys at. No rule can beat that: the queue still grows until the buying stops. Only a higher limit from the bank, or spreading the buying, adds real capacity.",
+   "Any reactive rule is late by its period plus its warm-up. For crowds you know about, such as concerts on the stadium's calendar, also use scheduled scaling: add workers a few minutes before the end, and keep the rule for the surprises.",
+   "Waiting per worker counts purchases, not their age. If the bank slows down, a short queue can still keep people waiting long; watch the age of the oldest purchase as well, at least as an alert."
+  ],
+  "tradeoff": {
+   "head": [
+    "What we change",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "CPU threshold 20%",
+     "One line, no new code.",
+     "15% never passes it: 300 of 400 again. Lower still, it adds workers slowly and on any traffic."
+    ],
+    [
+     "8 workers always on",
+     "Boat full, every ticket by 22:06:16.",
+     "176 worker-minutes tonight against 44, and every quiet hour of every day paid at the peak."
+    ],
+    [
+     "Scale on tickets waiting per worker",
+     "Boat full; every ticket by 22:09:18; back to 2 workers by 22:18:57; 124 worker-minutes.",
+     "Still late by 3 minutes plus 60 s of warm-up; still capped at the bank's 4 a second."
+    ],
+    [
+     "Serverless functions as-is",
+     "No rule to tune; copies start as purchases arrive.",
+     "No queue: 303 purchases refused by the bank. Warm copies remove cold starts, not refusals."
+    ]
+   ]
+  },
+  "seniorTake": "Autoscaling is a feedback loop: measure something, compare it with a target, change the number of workers, and wait for the change to show. Every part can fail quietly. The measurement must grow with the work; CPU does when the work is computing, and does not when the work is waiting on a bank, a database or a partner, which is common in real services. Queue length per worker, or the age of the oldest item, measures waiting work directly. The target should come from what a customer can bear, not from a default. The loop has delays, the time the signal must stay high and the warm-up of new capacity, so for known peaks add capacity on a schedule and let the rule handle surprises. Scale in slowly. Look past your own servers too: the slowest shared limit, here the bank's 8 lines, sets your real capacity, and a design that scales without a queue, such as uncapped serverless functions, turns that limit into refusals. Do the capacity sum first: arrivals a second times seconds each, against every limit on the path.",
+  "realWorld": [
+   {
+   "title": "AWS: target tracking is a thermostat",
+    "text": "Amazon EC2 Auto Scaling's guide says that with target tracking \"you select a metric and a target value\", and that \"this is similar to how a thermostat maintains a target temperature.\" On choosing the metric: \"The metric value must increase or decrease proportionally to the number of instances in the Auto Scaling group.\"",
+    "source": 2
+   },
+   {
+    "title": "AWS: count the queue per worker, not the whole queue",
+    "text": "The same guide says the raw number of messages in a queue \"might not change proportionally to the size of the Auto Scaling group that processes messages from the queue. However, a custom metric that measures the number of messages in the queue per EC2 instance in the Auto Scaling group can work.\"",
+    "source": 2
+   },
+   {
+    "title": "AWS: the threshold from the wait you accept",
+    "text": "AWS's queue page: \"To scale your Auto Scaling group in proportion to the work waiting in your queue, use a backlog per instance metric.\" For the target: \"take the acceptable latency value and divide it by the average time that an EC2 instance takes to process a message.\" Its example: 10 seconds divided by 0.1 seconds gives 100 messages per instance. Tonight's 20 s and 2 s give 10.",
+    "source": 3
+   },
+   {
+    "title": "AWS: warm-up, and scaling in gently",
+    "text": "\"Until its specified warmup time has expired, an instance is not counted toward the aggregated EC2 instance metrics of the Auto Scaling group.\" And a target tracking policy \"prioritizes availability during periods of fluctuating traffic levels by scaling in more gradually when traffic is decreasing.\"",
+    "source": 2
+   },
+   {
+    "title": "AWS: how long a warm-up to start with",
+    "text": "\"If you're not sure how much time you need for the warmup time, you could start with 300 seconds. Then gradually decrease or increase it until you get the best scaling performance for your application.\" The water bus's workers are ready in 60 s, so its rule uses 60.",
+    "source": 4
+   },
+   {
+    "title": "AWS Lambda: what a cold start is",
+    "text": "Lambda's guide says that on a new request it downloads your code, starts the environment and runs your start-up code, and \"the first two steps of downloading the code and setting up the environment are frequently referred to as a 'cold start'.\" It adds: \"Cold starts typically occur in under 1% of invocations. The duration of a cold start varies from under 100 ms to over 1 second.\" (ms: a thousandth of a second.)",
+    "source": 0
+   },
+   {
+    "title": "AWS Lambda: warm copies, and a cap for downstream",
+    "text": "Provisioned concurrency \"is useful for reducing cold start latencies\", and \"Configuring provisioned concurrency incurs additional charges to your AWS account.\" Reserved concurrency \"can be used for limiting concurrency to prevent overwhelming downstream resources, like database connections\": the cap the serverless option was missing.",
+    "source": 1
+   }
+  ],
+  "interview": {
+   "asked": [
+    "What would you autoscale on?",
+    "What is a cold start, and how do you avoid one?",
+    "How do you size for a spike?"
+   ],
+   "answer": "I autoscale on the signal that grows with the work. If the work is computing, average CPU across the servers is fine. If the workers spend their time waiting on something else, a payment provider, a database, another team's service, CPU stays flat while work piles up, so I scale on the queue: messages waiting per worker, or the age of the oldest message. I set the target from the wait a customer can accept divided by the time one item takes, say 20 s over 2 s gives 10 per worker. I cap the maximum at the tightest downstream limit, keep a sensible minimum, allow for the period and the warm-up of new capacity, and scale in slowly once the queue has stayed empty. A cold start is the delay when a serverless platform starts a new copy of a function: it downloads the code, starts an environment and runs the start-up code before the first request. AWS says it usually happens in under 1% of invocations and takes from under 100 ms to over a second. To avoid it, keep copies warm with provisioned concurrency, which you pay for, keep start-up code small, and remember warm copies don't fix a downstream limit; cap concurrency to protect it. To size for a spike, I do the sum: arrivals a second times seconds each gives how much must be in progress at once, by Little's law, and I check every limit on the path against it. A story I'd tell: a river ferry's ticket service had 2 workers that each waited 2 s for the bank and an autoscaler on CPU at 60%. A concert crowd bought 5 tickets a second; CPU sat at 15% and no worker was added, so the first boat left with 300 of 400 seats while 1,200 purchases waited. Scaling on tickets waiting per worker filled the boat and cleared the queue by 22:09, and the bank's 8 lines, not the servers, set the real ceiling."
+  }
+ },
+ "terms": [
+  {
+   "term": "Kelsor water bus",
+   "def": "The city river ferry in this story. On concert nights it runs extra boats from Quarrymouth Pier every five minutes from 22:05, 400 seats each."
+  },
+  {
+   "term": "Quarrymouth Pier",
+   "def": "The water bus pier across the river from the stadium. Its gate opens only for a ticket in the ferry app."
+  },
+  {
+   "term": "Ferry app",
+   "def": "The phone program that has sold every water bus ticket since April, when the ticket office shut. A purchase shows \"payment processing\" until its ticket is issued."
+  },
+  {
+   "term": "Server",
+   "def": "A computer that answers requests from other computers, such as phones. The water bus rents its servers."
+  },
+  {
+   "term": "Ticket service",
+   "def": "The program on the servers that turns a purchase into a ticket: it queues each purchase, has a worker take the payment from the bank, then issues the ticket."
+  },
+  {
+   "term": "Queue",
+   "def": "A line of waiting jobs, served in the order they arrived, like people at a ticket window. Here, purchases waiting for a worker."
+  },
+  {
+   "term": "Worker",
+   "def": "One running copy of the ticket program. It takes one purchase from the queue, waits 2 s for the bank, issues the ticket, then takes the next. Two workers issue one ticket a second."
+  },
+  {
+   "term": "Bank's limit",
+   "def": "The bank takes at most 8 payments from the water bus at once, so the workers share 8 lines to it. At 2 s a payment, that caps the service at 4 tickets a second."
+  },
+  {
+   "term": "Autoscaler",
+   "def": "A helper that watches a figure and adds workers when it stays high, and removes them when it stays low, by a written rule."
+  },
+  {
+   "term": "CPU",
+   "def": "Short for central processing unit: the chip in a computer that does the computing. CPU percent is the share of time it is working. Waiting for another system barely uses it."
+  },
+  {
+   "term": "Average CPU",
+   "def": "The CPU percent of all running workers added up and divided by their number. Tonight: 2% before the crowd, 15% with both workers issuing."
+  },
+  {
+   "term": "Threshold",
+   "def": "The level that sets an autoscaler off, like the temperature a thermostat is set to. Ebrima's was 60% CPU; the fix uses 10 tickets waiting per worker."
+  },
+  {
+   "term": "Period",
+   "def": "How long the figure must stay over the threshold before the autoscaler acts, 3 minutes here, so one busy second doesn't add a worker. Shorter reacts faster and to more noise."
+  },
+  {
+   "term": "Warm-up",
+   "def": "The time a new worker takes to start before it can take purchases, 60 s here. AWS leaves warming servers out of the averages it scales on."
+  },
+  {
+   "term": "Scale out, scale in",
+   "def": "Adding workers to share the work, and removing them when the work is done. Scaling in should be slow: one at a time, after the queue has stayed low."
+  },
+  {
+   "term": "Minimum and maximum workers",
+   "def": "The fewest workers the autoscaler keeps and the most it may run. Here 2 and 8; the 8 matches the bank's lines."
+  },
+  {
+   "term": "Settings file",
+   "def": "A file of named values a program reads to decide how to behave. Ebrima's autoscaler rule is six lines in one."
+  },
+  {
+   "term": "Dashboard",
+   "def": "A page of live graphs about a system, such as average CPU and purchases waiting, minute by minute."
+  },
+  {
+   "term": "Tickets waiting per worker",
+   "def": "Purchases waiting divided by the number of workers. It grows with the crowd and shrinks as workers are added, so it is a good figure to scale on. AWS calls it backlog per instance."
+  },
+  {
+   "term": "Acceptable backlog",
+   "def": "The threshold for waiting per worker, worked out as the longest wait a customer will bear divided by the time one item takes: 20 s over 2 s gives 10."
+  },
+  {
+   "term": "Age of the oldest item",
+   "def": "How long the purchase at the front of the queue has waited. It catches a slow queue that a short count would miss."
+  },
+  {
+   "term": "Capacity",
+   "def": "How much work a system can finish in a given time. Here at most 4 tickets a second, set by the bank's 8 lines, not by the servers."
+  },
+  {
+   "term": "Little's law",
+   "def": "Items in progress equal arrivals a second times seconds each. 5 purchases a second at 2 s each means 10 in progress at once."
+  },
+  {
+   "term": "Target tracking",
+   "def": "An AWS way of autoscaling: you pick a figure and a target value, and it adds or removes servers to keep the figure near the target, like a thermostat."
+  },
+  {
+   "term": "Scheduled scaling",
+   "def": "Adding capacity at set times you know will be busy, such as a few minutes before a concert ends, instead of waiting for a figure to rise."
+  },
+  {
+   "term": "Serverless function",
+   "def": "A program you hand to a cloud company, which starts a copy for each request as needed and stops copies when idle. You pay per use, not per hour. AWS Lambda is one."
+  },
+  {
+   "term": "Cold start",
+   "def": "The delay when a new copy of a serverless function starts: the cloud downloads the code, sets up the environment and runs the start-up code. About 1 s in the sim."
+  },
+  {
+   "term": "Warm copy",
+   "def": "A copy of a serverless function already started and kept ready, so a request skips the cold start. AWS sells this as provisioned concurrency, at extra cost."
+  },
+  {
+   "term": "Provisioned concurrency",
+   "def": "AWS Lambda's setting for a number of copies started ahead of time and kept warm, to avoid cold starts. It is charged whether or not requests arrive."
+  },
+  {
+   "term": "Reserved concurrency",
+   "def": "AWS Lambda's cap on how many copies of a function run at once, which AWS says can protect systems further down the line, such as a bank's 8 lines."
+  },
+  {
+   "term": "AWS Lambda",
+   "def": "Amazon Web Services' serverless function service."
+  },
+  {
+   "term": "Amazon EC2 Auto Scaling",
+   "def": "Amazon Web Services' autoscaler for groups of rented servers, with target tracking, warm-up and scaling in."
+  },
+  {
+   "term": "Metric",
+   "def": "A figure a system reports over time, such as average CPU or purchases waiting. Autoscalers act on metrics."
+  },
+  {
+   "term": "Instance",
+   "def": "AWS's word for one rented server; EC2 is Amazon's rented-server service. Backlog per instance is the queue divided by the servers working on it."
+  },
+  {
+   "term": "Auto Scaling group",
+   "def": "In AWS, a set of identical rented servers that an autoscaler grows and shrinks between a minimum and a maximum."
+  },
+  {
+   "term": "Latency",
+   "def": "How long one request takes from asking to answer, including any wait in a queue."
+  },
+  {
+   "term": "Downstream",
+   "def": "Further along the path a request takes. The bank is downstream of the workers; its limit caps everything before it."
+  },
+  {
+   "term": "Worker-minute",
+   "def": "One worker running, or starting, for one minute: a simple measure of what is paid for. 2 workers for 22 minutes is 44."
+  },
+  {
+   "term": "ISO/IEC 27001",
+   "def": "An international standard for running information security. Its Annex A lists controls, among them A.8.6 on capacity management."
+  },
+  {
+   "term": "A.8.6 (ISO/IEC 27001:2022)",
+   "def": "The control on capacity management. ISMS.online's summary says it ensures the organisation has \"sufficient capacity for processing information\", now and as needs grow."
+  }
+ ],
+ "atWork": "Look for services that wait on something slower than themselves: a payment provider, a partner's system, a database under load. It is a common pattern for such a service to autoscale on CPU, for the CPU to stay low while its queue grows, and for nobody to notice until the first real spike. Check three things. Which figure does each autoscaler watch, and does it rise with the work, or only with computing? What is the slowest shared limit on the path, such as connections a provider allows, and is your maximum set to it? And how long does new capacity take to be useful, the period plus the warm-up, against how long a customer will wait? If you use AWS, target tracking on a backlog-per-instance metric is the documented pattern for queue workers; for Lambda, cap concurrency to protect what it calls. Standards: if your company is pursuing ISO/IEC 27001:2022, control A.8.6, capacity management, is there to ensure, in ISMS.online's summary, that the organisation has \"sufficient capacity for processing information\"; write down the busiest-minutes sum, the downstream limits and the scaling rule now, so the evidence exists before an auditor asks.",
+ "board": {
+  "cards": [
+   {
+    "id": "capacity",
+    "title": "Capacity"
+   },
+   {
+    "id": "autoscaling-policies",
+    "title": "Autoscaling policies"
+   },
+   {
+    "id": "serverless-cold-starts",
+    "title": "Serverless cold starts"
+   }
+  ],
+  "strings": [
+   {
+    "from": "autoscaling-policies",
+    "to": "message-queues",
+    "label": "scale on waiting"
+   },
+   {
+    "from": "autoscaling-policies",
+    "to": "cpu",
+    "label": "flat when waiting"
+   },
+   {
+    "from": "autoscaling-policies",
+    "to": "warm-up",
+    "label": "new workers start"
+   },
+   {
+    "from": "capacity",
+    "to": "back-of-envelope-estimation",
+    "label": "busiest minutes"
+   },
+   {
+    "from": "capacity",
+    "to": "autoscaling-policies",
+    "label": "met on demand"
+   },
+   {
+    "from": "serverless-cold-starts",
+    "to": "horizontal-scaling",
+    "label": "a copy per call"
+   },
+   {
+    "from": "serverless-cold-starts",
+    "to": "backpressure",
+    "label": "no queue, refused"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s6e11-r1",
+   "kind": "free",
+   "prompt": "Your team's report service takes each request from a list, asks a partner's slow system for data, and waits about 3 s for the answer. The autoscaler adds servers when average CPU passes 70% for 5 minutes. During a sale, requests piled up for 20 minutes, no server was added, and the dashboard showed CPU at 12%. What happened, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "Waiting on the partner barely uses the chip, so CPU stays low however many requests pile up",
+     "match": [
+      "barely uses",
+      "uses almost no",
+      "uses little",
+      "hardly uses",
+      "idle while",
+      "not computing",
+      "doesn't grow",
+      "does not grow",
+      "stays flat",
+      "stayed flat"
+     ]
+    },
+    {
+     "idea": "Scale on the queue: requests waiting per server (backlog per instance) or the age of the oldest",
+     "match": [
+      "per server",
+      "per instance",
+      "per worker",
+      "backlog",
+      "queue length",
+      "queue depth",
+      "oldest request",
+      "age of the oldest",
+      "waiting requests"
+     ]
+    },
+    {
+     "idea": "Set the target from the acceptable wait divided by the time per request, and allow for the period and warm-up",
+     "match": [
+      "acceptable wait",
+      "acceptable latency",
+      "divided by",
+      "warm-up",
+      "warm up",
+      "warmup",
+      "how long a customer",
+      "longest wait"
+     ]
+    }
+   ],
+   "model": "Each request spends most of its 3 s waiting on the partner, and waiting barely uses the chip, so CPU stays flat at 12% however many requests pile up; a 70% rule can never fire. Scale on the queue instead: requests waiting per server, the backlog per instance, or the age of the oldest request. Set the target as the acceptable wait divided by the time one request takes, for example 30 s divided by 3 s gives 10 per server. Shorten the 5 minutes if the signal is steady, remember each new server's warm-up, cap the maximum at what the partner allows, and scale in slowly once the queue is empty."
+  },
+  {
+   "id": "s6e11-r2",
+   "kind": "mcq",
+   "prompt": "Purchases arrive at 5 a second and each takes 2 s to complete. How many must be in progress at once to keep up?",
+   "options": [
+    "2.5",
+    "5",
+    "7",
+    "10"
+   ],
+   "answer": 3,
+   "why": "Little's law: in progress equals arrivals a second times seconds each, 5 x 2 = 10. Two workers hold only 2, so they issue 1 a second; the bank's 8 lines cap it at 4 a second."
+  },
+  {
+   "id": "s6e11-r3",
+   "kind": "mcq",
+   "prompt": "What is a serverless cold start, and what removes it?",
+   "options": [
+    "A copy that crashed; restarting the function removes it",
+    "The delay while a new copy downloads its code and runs its start-up code; copies kept warm remove it",
+    "A request refused by a downstream system; more copies remove it",
+    "The time a request waits in a queue; a lower threshold removes it"
+   ],
+   "answer": 1,
+   "why": "A new copy must download the code, set up its environment and run its start-up code before its first request. Provisioned concurrency keeps copies started and warm, for a price. Warm copies do not add room downstream: the bank still refused 300."
+  },
+  {
+   "id": "s6e11-r4",
+   "kind": "mcq",
+   "prompt": "AWS says the total number of messages in a queue does not work for target tracking. Why, and what does?",
+   "options": [
+    "It changes too fast; use average CPU instead",
+    "It is not published by AWS; use the age of the newest message",
+    "It does not change in proportion to the number of servers; messages per server does",
+    "It counts only failed messages; use the dead-letter queue"
+   ],
+   "answer": 2,
+   "why": "Target tracking adds or removes servers to move its figure toward a target, so the figure must rise and fall with the number of servers. The raw count doesn't; the count divided by the servers, backlog per instance, does."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. Concert nights are fine: the rule watches tickets waiting per worker, and every 22:05 boat since has left full. In March the city held its first night marathon, finishing at Quarrymouth. About 3,000 runners bought tickets in 10 minutes, 5 a second. The rule reached 8 workers within four minutes and added none after that, though tickets waiting per worker passed 100. The queue only emptied several minutes after the buying stopped. Ebrima's dashboard showed CPU at 15% and every worker busy.",
+  "prompt": "Reply to OP. Why did the autoscaler add no more than 8 workers, and what should the water bus do before next year's marathon?",
+  "keyIdeas": [
+   {
+    "idea": "The maximum is 8 because the bank takes 8 calls at once; at 2 s each that is 4 tickets a second, under the 5 arriving",
+    "match": [
+     "8 calls",
+     "eight calls",
+     "8 lines",
+     "eight lines",
+     "bank's limit",
+     "bank limit",
+     "4 a second",
+     "four a second",
+     "4 tickets a second"
+    ]
+   },
+   {
+    "idea": "Raise the real capacity ahead: ask the bank for a higher limit and test it before the event",
+    "match": [
+     "raise the limit",
+     "higher limit",
+     "ask the bank",
+     "more lines",
+     "before the event",
+     "in advance",
+     "load test",
+     "capacity plan"
+    ]
+   },
+   {
+    "idea": "For a known crowd, add capacity on a schedule before it arrives instead of waiting for the rule",
+    "match": [
+     "schedule",
+     "ahead of time",
+     "before the crowd",
+     "before it arrives",
+     "start early",
+     "pre-warm",
+     "prewarm"
+    ]
+   }
+  ],
+  "model": "The rule did its job; the ceiling is the bank's limit. The bank takes 8 calls at once, so the maximum is 8 workers, and at 2 s a payment that is 4 a second, under the 5 a second the runners bought at; more workers would only wait for a line. Raise the limit itself: ask the bank for a higher limit, or more lines, well in advance, and load test it before the event. The marathon's date and finish time are known, so add the workers on a schedule before the crowd arrives instead of waiting 3 minutes plus warm-up for the rule, and keep the rule for surprises."
+ },
+ "next": "Next, Debugging Production: a detective's last case, and a method for finding the cause of a problem in a live system: writing hypotheses, halving the changes, and the USE and RED checks.",
+ "sources": [
+  {
+   "title": "AWS Lambda Developer Guide, Understanding the Lambda execution environment lifecycle (Init phase; cold starts: downloading the code and setting up the environment; under 1% of invocations, under 100 ms to over 1 second; read 15 October 2026)",
+   "url": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html"
+  },
+  {
+   "title": "AWS Lambda Developer Guide, Configuring provisioned concurrency (pre-initialized execution environments, reducing cold start latencies, additional charges; reserved concurrency to prevent overwhelming downstream resources; read 15 October 2026)",
+   "url": "https://docs.aws.amazon.com/lambda/latest/dg/provisioned-concurrency.html"
+  },
+  {
+   "title": "Amazon EC2 Auto Scaling User Guide, Target tracking scaling policies (like a thermostat; metric must change proportionally to the number of instances; queue messages per instance; warmup; scaling in more gradually; read 15 October 2026)",
+   "url": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-scaling-target-tracking.html"
+  },
+  {
+   "title": "Amazon EC2 Auto Scaling User Guide, Scaling policy based on Amazon SQS (backlog per instance; acceptable backlog = acceptable latency / processing time; read 15 October 2026)",
+   "url": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-using-sqs-queue.html"
+  },
+  {
+   "title": "Amazon EC2 Auto Scaling User Guide, Set the default instance warmup for an Auto Scaling group (start with 300 seconds if unsure; read 15 October 2026)",
+   "url": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-default-instance-warmup.html"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.6, Capacity Management (a summary of the control: sufficient capacity for processing information; read 15 October 2026)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-6-capacity-management-2022/"
+  }
+ ]
+}
