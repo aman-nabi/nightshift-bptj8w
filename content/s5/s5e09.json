@@ -1,0 +1,935 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-14) main-session review: grey_pager now explains committing a file before option 0 uses the word",
+  "v1.0.0 (2026-10-14) first version"
+ ],
+ "id": "s5e09",
+ "season": 5,
+ "n": 9,
+ "title": "The Assembly Line",
+ "setting": "a night-shift bottling plant",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "ci-cd-pipelines",
+  "build",
+  "test",
+  "deploy"
+ ],
+ "prerequisites": [
+  "s5e07",
+  "s5e06",
+  "s4e05",
+  "s3e16",
+  "s2e16",
+  "s2e07",
+  "s2e03",
+  "s1e04"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/bottle_line_sidony",
+  "flair": "Part 1",
+  "age": "7h",
+  "votes": 3487,
+  "title": "I run the night shift on a bottling line. A supermarket's audit found our water with batch codes from 29 December 2026, a night that hasn't come yet. The labels were printed last December.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm the night shift lead on line 2 at Okeburn Spring, a bottling plant. We fill and label spring water from 22:00 to 06:00, at 9,000 bottles an hour. That's 72,000 bottles a night."
+   },
+   {
+    "t": "p",
+    "text": "Every label carries a batch code: five digits that say which day a bottle was made. If a batch goes bad, shops use the code to find the bottles to pull. Ours is the last two digits of the year, then the day of the year, counting 1 January as 001. 29 December 2025 was day 363, so its code is 25363. A whole night is one batch, coded with the date the shift starts."
+   },
+   {
+    "t": "p",
+    "text": "This week Pennyroyal, the supermarket chain that sells our water, finished an audit: a check of the stock on its shelves against our records. It flagged our bottles coded 26363, 26364 and 26365. Those codes mean 29, 30 and 31 December 2026, eleven weeks from now."
+   },
+   {
+    "t": "p",
+    "text": "I pulled the label log, the line computer's record of every night it printed. Each line shows when the night started, the batch code printed and the bottles labelled:"
+   },
+   {
+    "t": "log",
+    "text": "22:00 28 Dec 2025  batch 25362  72,000 bottles\n22:00 29 Dec 2025  batch 26363  72,000 bottles\n22:00 30 Dec 2025  batch 26364  72,000 bottles\n22:00 31 Dec 2025  batch 26365  72,000 bottles\n22:00 01 Jan 2026  batch 26001  72,000 bottles"
+   },
+   {
+    "t": "beat",
+    "text": "Three nights. 216,000 bottles, made on days that haven't happened yet."
+   },
+   {
+    "t": "p",
+    "text": "The labels come from a small program on the line computer. Mungo, our developer, wrote it. A program that sits and does one job for others, like making our labels, is called a service. It works out the batch code and sends each label to the printer."
+   },
+   {
+    "t": "p",
+    "text": "Mungo didn't write the date part himself. He used a library: ready-made code that other programmers write and share, like buying a part instead of making it. This one is called tallydate. Libraries come out in numbered versions, such as 2.4.3, and a new first number usually means a big change."
+   },
+   {
+    "t": "p",
+    "text": "Here is his line, in JavaScript, the language the service is written in. It hands tallydate the shift's date and a pattern of letters, YY for the year and DDD for the day of the year:"
+   },
+   {
+    "t": "log",
+    "text": "const batch = format(today, \"YYDDD\");  // 2-digit year + day of year"
+   },
+   {
+    "t": "p",
+    "text": "A library the service needs is one of its dependencies. They are listed in a project file called package.json, with the versions each will take. Here is Mungo's entry; >= means this version or anything newer:"
+   },
+   {
+    "t": "log",
+    "text": "\"dependencies\": {\n  \"tallydate\": \">=2.4.0\"\n}"
+   },
+   {
+    "t": "p",
+    "text": "Mungo wrote and tested the service in March 2025, with tallydate 2.4.3. On 18 December he set up a new laptop and built the service again. Building has two steps. First, a tool called npm fetches every listed library from the internet, the newest version the list allows. Then it puts them and Mungo's code together into one bundle that can run. That bundle had tallydate 3.0.0. He copied it to the line computer that night."
+   },
+   {
+    "t": "p",
+    "text": "Nobody touched his line of code. The nights from 22 to 28 December came out right, and so did every night from 1 January. Only those three are wrong. The year end is eleven weeks away. What should we change before it?"
+   },
+   {
+    "t": "evidence",
+    "label": "label_route_redrawn.png",
+    "diagram": {
+     "type": "arch",
+     "w": 740,
+     "h": 300,
+     "aria": "Mungo's sketch of the route. package.json takes tallydate 2.4.0 or newer. On 18 December npm on the new laptop fetched tallydate 3.0.0, and one copy went to the line computer that night. Most nights, 22 to 28 December and 1 to 2 January, printed right codes. The nights of 29, 30 and 31 December printed 26363, 26364 and 26365.",
+     "nodes": [
+      {
+       "id": "pkg",
+       "label": "package.json",
+       "sub": "tallydate >=2.4.0",
+       "x": 105,
+       "y": 70,
+       "w": 170,
+       "h": 62,
+       "shape": "box",
+       "tone": ""
+      },
+      {
+       "id": "lap",
+       "label": "New laptop, 18 Dec",
+       "sub": "npm: tallydate 3.0.0",
+       "x": 370,
+       "y": 70,
+       "w": 200,
+       "h": 62,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "line",
+       "label": "Line computer",
+       "sub": "copied that night",
+       "x": 640,
+       "y": 70,
+       "w": 170,
+       "h": 62,
+       "shape": "box",
+       "tone": ""
+      },
+      {
+       "id": "ok",
+       "label": "22-28 Dec, 1-2 Jan",
+       "sub": "codes right",
+       "x": 400,
+       "y": 220,
+       "w": 210,
+       "h": 62,
+       "shape": "box",
+       "tone": "ok"
+      },
+      {
+       "id": "bad",
+       "label": "29, 30, 31 Dec",
+       "sub": "26363 26364 26365",
+       "x": 640,
+       "y": 220,
+       "w": 170,
+       "h": 62,
+       "shape": "box",
+       "tone": "bad"
+      }
+     ],
+     "edges": [
+      {
+       "from": "pkg",
+       "to": "lap",
+       "label": "the list"
+      },
+      {
+       "from": "lap",
+       "to": "line",
+       "label": "one copy"
+      },
+      {
+       "from": "line",
+       "to": "ok",
+       "label": "most nights",
+       "tone": "ok"
+      },
+      {
+       "from": "line",
+       "to": "bad",
+       "label": "3 nights",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Mungo sketched the route our labels took. package.json takes any tallydate from 2.4.0 up. On 18 December npm on his new laptop fetched 3.0.0, and he copied the result to the line computer that night. Of the twelve nights from 22 December to 2 January, nine printed the right code. The nights of 29, 30 and 31 December printed 26363, 26364 and 26365."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 152,
+   "age": "6h",
+   "text": "Two builds of the same code, nine months apart, and they didn't get the same tallydate. Write down which version each one got, and who chose it. When npm builds, it can also write a lockfile: a list of the exact version of every library it put in, so a later build can fetch the very same ones. Was Mungo's March lockfile kept with his code? Saving a file into the project's shared history, so every later build starts from it, is called committing it. Then read the notes tallydate published with 3.0.0, and find what weekday 1 January 2026 fell on.",
+   "replies": [
+    {
+     "author": "u/bottle_line_sidony",
+     "op": true,
+     "points": 58,
+     "age": "5h",
+     "text": "npm wrote a lockfile on Mungo's old laptop in March, but he never committed it. Committing means saving a file into the project's shared history: the record of every change to the code. That laptop has since been wiped."
+    },
+    {
+     "author": "u/bottle_line_sidony",
+     "op": true,
+     "points": 49,
+     "age": "5h",
+     "text": "Mungo read me the 3.0.0 notes. YY now means the week-numbering year, as the Unicode rules for date letters define it. Diaries number the weeks, Monday to Sunday, and week 1 is the week with the year's first Thursday. In a week-numbering year, every day belongs to the year its week is in. 1 January 2026 was a Thursday, so week 1 of 2026 began on Monday 29 December 2025. Version 3.0.0 printed 26 for those three days."
+    }
+   ]
+  },
+  {
+   "author": "u/no_deps_hartmut",
+   "points": 97,
+   "age": "5h",
+   "text": "Every library is a stranger's code running on your line. This one changed what two letters mean, and nobody asked you. A date code is a few lines: take the year, count the days since 1 January, put them side by side. Write it yourself, delete tallydate, and no update can ever touch your labels again. Fewer libraries, fewer surprises.",
+   "replies": [
+    {
+     "author": "u/bottle_line_sidony",
+     "op": true,
+     "points": 33,
+     "age": "4h",
+     "text": "Mungo says he could write it in an afternoon. Our plant manager has a cheaper idea: before each run, I check the night's first label against the calendar on the wall. It takes a minute."
+    }
+   ]
+  },
+  {
+   "author": "u/pin_exact_dymphna",
+   "points": 71,
+   "age": "4h",
+   "text": "Pin it and be done. Pinning means writing one exact version in package.json, \"2.4.3\" instead of \">=2.4.0\", so npm can't choose another. People will tell you to build on a clean machine: a computer that starts empty for every build and is set up the same way each time. That's a lot of kit for one library. Mungo's laptop is fine once the version can't move.",
+   "replies": [
+    {
+     "author": "u/bottle_line_sidony",
+     "op": true,
+     "points": 26,
+     "age": "3h",
+     "text": "Mungo says a clean machine would build with npm ci, a stricter npm command that installs only what the lockfile lists and stops if there isn't one. And tallydate isn't our only library: labelwright, the one that drives the printer, takes any version from 1.6.0 up too."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "The year end is eleven weeks away. What should Mungo change before it? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Build once on a clean machine from the committed lockfile, and ship that build to the line.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Mungo found March's version, 2.4.3, set package.json to it, let npm write a fresh lockfile, and committed both. Now every change goes through the same steps. A clean machine starts empty and runs npm ci, which installs exactly what the lockfile lists and stops if there isn't one. Then it runs the tests, including a new year-end test: 29 December 2025 must print 25363, 1 January 2026 26001, 1 January 2027 27001 and 1 July 2027 27182. A build that passes is stored, and that same stored build is the one copied to the line computer. In November an update tool offered tallydate 3.0.0 again and changed the lockfile. The year-end test failed, expected 25363, got 26363, and the line kept the build it ran. From 22 December 2026 to 2 January 2027 line 2 labelled 864,000 bottles, and every code was right.",
+    "senior": "The fix makes the thing on the line the thing you tested. The lockfile decides which versions go in. The clean machine and npm ci make sure nothing else creeps in from someone's laptop. The year-end test checks the real format on the dates where it can break. Storing the build means the line gets exactly what passed, and the last good one is always there to go back to. Upgrades still happen, but on purpose and through a test, never by accident on a new laptop."
+   },
+   {
+    "text": "Write the date code by hand with no library, so no library update can ever change it again.",
+    "tone": "bad",
+    "verdict": "Swaps one risk for another",
+    "part2": "Mungo deleted tallydate and wrote the date code himself: the last two digits of the year, then the days since 1 January, found by subtracting the two dates and dividing by the length of a day. December 2026 came out right. But a day isn't always 24 hours long. When the clocks go forward in March, one day has 23, and from then on his sum loses a day: 1 July 2027 would print 27181, not 27182. Every summer code would be a day early, until the clocks went back. And the laptop build still fetched the newest of everything else. That night it put in labelwright 1.9.2, the library that drives the printer, a version nobody had tested with our labels.",
+    "senior": "Removing a library removes one stranger's change, not the risk of change. Dates are full of edge cases: weeks, leap years, clocks changing, time zones. A library's maintainers have usually met more of them than one developer in an afternoon. Writing your own is sometimes right for something tiny and stable, but it needs the same year-end and summer tests either way. And it settles one dependency while the build still takes whatever else is newest that day."
+   },
+   {
+    "text": "Have the shift lead check the first label of each night against the calendar before the run.",
+    "tone": "bad",
+    "verdict": "Eyes pass what looks right",
+    "part2": "Every night before the run I held the first label against the wall calendar. The laptop build with tallydate 3.0.0 stayed on the line. On 29, 30 and 31 December 2026 the codes were right this time, because those days sit in the last week of 2026. On New Year's night the first label read 26001. Day 001 matched the calendar, and the 26 looked like every code I'd checked for a year. I passed it. It was 1 January 2027. The codes for 1 and 2 January said 2026: 144,000 bottles dated a year in the past. Afterwards Mungo replayed 29 December 2025 for me, and its first label read 26363. 363 matched the calendar. I'd have passed that one too.",
+    "senior": "A person checking output is a last line of defence, and a weak one for this kind of error. The wrong part looks like a normal code, and a tired eye checks the part that changes every night. It also has to work every night, forever, after the fault is already built in. Keep people for the checks machines can't judge. A date format is something a test can check exactly, before the build ever reaches the line."
+   },
+   {
+    "text": "Pin the date library's exact version in the project file, and keep building on the laptop.",
+    "tone": "warn",
+    "verdict": "Trade-off: fixes this one, not the next",
+    "part2": "Mungo wrote \"2.4.3\" in package.json and built on his laptop as before. tallydate came out 2.4.3, and from 22 December 2026 to 2 January 2027 line 2 labelled 864,000 bottles with every code right. Pinning one library is a real fix for this one. But the same build also fetched labelwright 1.9.2, the library that drives the printer, which nobody had tested with our labels. And because the build was made on a laptop and copied by hand, no copy was stored. If the next build is wrong, there is no last good build to go back to, only whatever the laptop makes next.",
+    "senior": "Pinning a library you name is a sensible habit, and it stops this one from moving. But a service usually pulls in many more libraries than its project file names, because libraries use other libraries, and those still float. The lockfile pins the whole tree. The laptop is the other half: a build made on whatever machine is handy, copied by hand and kept nowhere, can't be repeated, checked or rolled back. Pin, then lock, then build in one clean place."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s5e09",
+  "title": "Run line 2 through the year end",
+  "lede": "You're Mungo, before 18 December 2025. The March build is on the line computer, with tallydate 2.4.3 and labelwright 1.6.0, the library that drives the printer. package.json takes tallydate \">=2.4.0\" and labelwright \">=1.6.0\". Line 2 labels 9,000 bottles an hour from 22:00 to 06:00, 72,000 a night, and the service reads the date once, at 22:00. Choose when the build is made; where (your laptop, where npm install takes the newest each list allows, or a clean machine, where npm ci installs only what the lockfile lists); the lockfile; an exact pin; the date code; a year-end test of four dates; and which build goes to the line. Then run the nights from 22 December to 2 January and read every batch code.",
+  "tryThis": "Try this: set the build to 18 December and run all nights: 29, 30 and 31 December print 26363, 26364 and 26365, 216,000 bottles. Turn on the year-end test and see what the line keeps. Try a clean machine with no lockfile, then with March's. Update the lockfile to the newest with the test off, then deploy the last good stored build. Last, try the date code by hand, the pin, and the 2026 nights."
+ },
+ "explain": {
+  "oneLine": "Nobody changed the code. The service was rebuilt on a new laptop with no lockfile, so npm fetched tallydate 3.0.0, where YY means the week-numbering year. 29, 30 and 31 December 2025 sit in week 1 of 2026, so three nights printed 2026 codes. Nothing tested that build before it reached the line, and no copy of the last good build was kept.",
+  "steps": [
+   {
+    "title": "One letter changed its meaning.",
+    "text": "Unicode's rules for date patterns, UTS #35 (Unicode Technical Standard 35), give two letters for a year. Small y is the calendar year. Capital Y is the week-numbering year: the year that owns the date's Monday-to-Sunday week, where week 1 holds the year's first Thursday, as ISO 8601, the international date standard, sets out. For most of the year the two agree. Near 1 January they can differ. 1 January 2026 was a Thursday, so Monday 29 December 2025 began week 1 of 2026. tallydate 2.x printed YY as the calendar year. Version 3.0.0 took the Unicode meaning, the kind of change a new first number warns of. The same line of code gave a different answer on exactly three nights: 26363, 26364, 26365."
+   },
+   {
+    "title": "Nobody chose 3.0.0; the range did.",
+    "text": "package.json said >=2.4.0: anything from 2.4.0 up. First, in March, npm fetched the newest allowed, 2.4.3, and the service was tested with it. Second, npm wrote a lockfile naming that exact version, but it stayed on the old laptop. Third, on 18 December, a fresh install on a new laptop found no lockfile and fetched the newest allowed again: tallydate 3.0.0, and labelwright 1.9.2 with it. Fourth, the result was copied by hand to the line computer. What went wrong at every step: the version depended on the day and the machine, not on anything anyone decided. Even a caret range, ^2.4.0, which refuses a new first number, would have drifted to later 2.x versions nobody had tested."
+   },
+   {
+    "title": "Build once, on a clean machine, from the lockfile.",
+    "text": "Continuous integration, CI, means every change goes through the same automatic steps on a shared machine, not on someone's laptop. First, the change and its lockfile are committed. Second, a clean machine starts empty, so nothing left over from earlier work can creep in. Third, npm ci installs exactly what the lockfile lists; with no lockfile, or one that doesn't match package.json, it stops. Fourth, the service is put together once. The aim is a reproducible build: the same code and the same steps give the same result, on any day, on any such machine. What can go wrong: a lockfile someone updates without testing carries the new version straight in, which is why the next step exists."
+   },
+   {
+    "title": "Test the real format, on the dates where it breaks.",
+    "text": "A unit test (s5e07) is only as good as the inputs it tries. Mungo's March tests used ordinary days, where the calendar year and the week-numbering year agree. A year-end test checks the dates where they don't: 29 December 2025 must print 25363, 1 January 2026 26001, 1 January 2027 27001, and one summer date, 1 July 2027 27182, for the clock change. tallydate 3.0.0 fails two of the four; Mungo's hand-written sum fails the summer one. A failed test stops the pipeline, the chain of steps from commit to the line, and nothing new reaches the bottles. What can go wrong: tests catch only what someone thought to try, so each label format needs its awkward dates written down."
+   },
+   {
+    "title": "Store it, deploy that same build, and roll back by deploying the last good one.",
+    "text": "Continuous delivery, CD, carries on from CI. First, the build that passed is stored as an artifact: the finished bundle, kept with a note of every version in it. Second, deploying means copying that same stored artifact to the line computer and starting it, never building again. Third, if it goes wrong, rolling back means deploying the last good stored artifact, which takes minutes. What can go wrong: building old code again instead is a new, untested build. A pipeline is also where the other careful steps run: expand and contract (s3e16) changes a database in safe stages, and a schema check (s4e05) refuses a message format that would break its readers. In the LATENT course, Nothing Broke Last Night runs its evals, tests of an AI model's answers, in a pipeline like this."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 760,
+   "h": 310,
+   "aria": "The fix, drawn for this December. Each commit of the code and its lockfile, with tallydate 2.4.3, goes to a clean machine running npm ci. The service is built once and goes to the year-end test of 4 dates. A build that passes is stored with every passing build, and the same build goes to the line computer. A note says roll back means deploying the last good one.",
+   "nodes": [
+    {
+     "id": "code",
+     "label": "Code + lockfile",
+     "sub": "tallydate 2.4.3",
+     "x": 110,
+     "y": 70,
+     "w": 180,
+     "h": 62,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "clean",
+     "label": "Clean machine",
+     "sub": "npm ci",
+     "x": 380,
+     "y": 70,
+     "w": 180,
+     "h": 62,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "test",
+     "label": "Year-end test",
+     "sub": "4 dates",
+     "x": 650,
+     "y": 70,
+     "w": 180,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "store",
+     "label": "Stored builds",
+     "sub": "every pass kept",
+     "x": 650,
+     "y": 210,
+     "w": 180,
+     "h": 62,
+     "shape": "db",
+     "tone": ""
+    },
+    {
+     "id": "line",
+     "label": "Line computer",
+     "sub": "runs the same build",
+     "x": 380,
+     "y": 210,
+     "w": 180,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "code",
+     "to": "clean",
+     "label": "each commit"
+    },
+    {
+     "from": "clean",
+     "to": "test",
+     "label": "build once"
+    },
+    {
+     "from": "test",
+     "to": "store",
+     "label": "passed"
+    },
+    {
+     "from": "store",
+     "to": "line",
+     "label": "same build"
+    }
+   ],
+   "notes": [
+    {
+     "x": 380,
+     "y": 285,
+     "text": "roll back: deploy the last good one",
+     "tone": "ok",
+     "anchor": "middle"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for this December. The code and its lockfile are committed together. A clean machine installs exactly the lockfile's versions with npm ci and builds the service once. The year-end test checks four awkward dates. A build that passes is stored, and that same build goes to the line computer. If it misbehaves, the last good stored build goes back on in minutes.",
+  "fix": {
+   "title": "The fix: one clean build from the lockfile, tested at the year's edges, stored and shipped as it is",
+   "text": "Set package.json back to the version that was tested, 2.4.3, let npm write a lockfile, and commit both. Build every change on a clean machine with npm ci, which installs exactly the lockfile's versions and stops if the lockfile is missing or doesn't match. Add a year-end test of the batch code: 29 December 2025 is 25363, 1 January 2026 is 26001, 1 January 2027 is 27001, and 1 July 2027 is 27182. Store every build that passes, with its versions. Deploy only stored builds, the same one that was tested, and roll back by deploying the last good one. When a library has a new version, take it on purpose: update the lockfile in its own change and let the tests decide. If you do move to tallydate 3, write yy, the calendar year, not YY."
+  },
+  "limits": [
+   "A lockfile freezes versions, including old ones with known security holes. Someone still has to update on purpose, through the pipeline, or the line runs old code for years.",
+   "Tests catch only what they try. The year-end test covers the dates written into it; a new label format, or a new kind of date, needs its own awkward cases added.",
+   "A clean machine fixes the libraries, not everything. The version of Node.js that runs the service, and the line computer's own clock and settings, can still differ, so record them and set them in the build too."
+  ],
+  "tradeoff": {
+   "head": [
+    "Approach",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Laptop build, no lockfile (as built)",
+     "Quick, and no extra kit.",
+     "The versions depend on the day and the machine: 3.0.0 came in unseen, and 216,000 bottles carry future codes."
+    ],
+    [
+     "Date code by hand",
+     "No library update can change it.",
+     "Its own bugs: 1 July 2027 would print 27181. Every other library still drifts."
+    ],
+    [
+     "Shift lead checks the first label",
+     "A minute a night, no code to change.",
+     "Wrong codes look like codes: 26363 and 26001 pass a tired eye."
+    ],
+    [
+     "Pin tallydate exactly, laptop build",
+     "This library can't move, and every code is right.",
+     "labelwright 1.9.2 still drifts, and nothing is stored to roll back to."
+    ],
+    [
+     "Clean machine, lockfile, npm ci",
+     "The same versions in every build.",
+     "A lockfile updated with no test still ships the change: 216,000 wrong codes."
+    ],
+    [
+     "Plus year-end test, stored builds, deploy and roll back",
+     "3.0.0 is caught before the line; going back takes minutes.",
+     "It takes setting up, and tests catch only the dates they try."
+    ]
+   ]
+  },
+  "seniorTake": "A build is a decision about which code runs, and if nobody makes it, the day and the machine make it for you. Treat the thing that reaches production as a product of the pipeline, not of a person's laptop: commit the lockfile, build once on a clean machine, test the real formats on their awkward days, store the result, and deploy exactly that, everywhere. Then rolling back is just deploying the last good build, and an upgrade is a change you chose and tested. The habits pay most on the boring days: the year end, the clock change, the new laptop, the night the person who knows the build is asleep.",
+  "realWorld": [
+   {
+    "title": "Unicode UTS #35: y and Y",
+    "text": "The Unicode date standard's field table defines y as \"Calendar year (numeric)\", where \"“yy” requests just the two low-order digits of the year\". Y is the \"Year in “Week of Year” based calendars in which the year transition occurs on a week boundary; may differ from calendar year ‘y’ near a year transition.\" It adds that Y \"is used in conjunction with pattern character ‘w’ in the ISO year-week calendar as defined by ISO 8601\".",
+    "source": 0
+   },
+   {
+    "title": "ISO 8601 weeks: 29 December 2025 is in 2026",
+    "text": "Wikipedia's article on ISO week dates: \"The ISO 8601 definition for week 01 is the week with the first Thursday of the Gregorian year (i.e., of January) in it.\" Its own example: \"29 December 2025 is ISO 2026-W01-1.\" And: \"Confusing these two year numbers has caused some software bugs.\"",
+    "source": 1
+   },
+   {
+    "title": "npm: the lockfile",
+    "text": "npm's documentation says package-lock.json \"describes the exact tree that was generated, such that subsequent installs are able to generate identical trees, regardless of intermediate dependency updates.\" It is \"intended to be committed into source repositories\", so that \"teammates, deployments, and continuous integration are guaranteed to install exactly the same dependencies.\"",
+    "source": 2
+   },
+   {
+    "title": "npm ci: made for pipelines",
+    "text": "npm ci is \"meant to be used in automated environments such as test platforms, continuous integration, and deployment\". \"The project must have an existing package-lock.json or npm-shrinkwrap.json.\" \"If dependencies in the package lock do not match those in package.json, npm ci will exit with an error\", and \"It will never write to package.json or any of the package-locks\".",
+    "source": 3
+   },
+   {
+    "title": "Reproducible builds",
+    "text": "The Reproducible Builds project: \"A build is reproducible if given the same source code, build environment and build instructions, any party can recreate\" bit-by-bit identical copies of the specified artifacts. A committed lockfile and a clean build machine are steps towards it.",
+    "source": 4
+   },
+   {
+    "title": "A new first number: breaking changes",
+    "text": "npm's guide to semantic versioning describes a major release, the first number going up, as \"Changes that break backward compatibility\". tallydate 3.0.0 changing what YY means is that kind of release, which a range like >=2.4.0 lets in without asking.",
+    "source": 5
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Walk me through a CI/CD pipeline.",
+    "Why build once and deploy the same artifact?",
+    "How do you roll back?"
+   ],
+   "answer": "A pipeline starts when someone commits a change. A clean build machine checks out that commit, installs dependencies exactly as the committed lockfile lists them, with npm ci or its equivalent, and builds once. Then it runs tests in layers: fast unit tests, integration tests, and tests of the real formats on their awkward inputs, such as year-end dates. Schema checks and database migration steps belong here too. If everything passes, the build is stored as a versioned artifact with a record of what went into it. Deployment promotes that same artifact through each environment, test, staging and production, never rebuilding, so what runs is exactly what was tested; a rebuild can pick up different library versions or tools and is, in effect, an untested build. Rolling back is deploying the previous good artifact, which should be one quick, rehearsed step anyone on call can take, and then the fix goes forward through the same pipeline. The point of all of it is that every release is reproducible, tested and reversible."
+  }
+ },
+ "terms": [
+  {
+   "term": "Okeburn Spring",
+   "def": "The bottling plant in this story. It fills and labels spring water; line 2 runs a night shift from 22:00 to 06:00."
+  },
+  {
+   "term": "Night shift lead",
+   "def": "The person in charge of a line overnight. Sidony leads line 2's night shift."
+  },
+  {
+   "term": "Batch code",
+   "def": "A short code on every label that says which batch a bottle came from, so bad stock can be found and pulled. Okeburn's is 2 digits of the year, then the day of the year: 25363."
+  },
+  {
+   "term": "Day of the year",
+   "def": "A date counted from 1 January, which is day 001. 29 December 2025 is day 363. Some plants call a code built this way a Julian date code."
+  },
+  {
+   "term": "Batch",
+   "def": "A run of goods made together and tracked as one. At Okeburn, one night's 72,000 bottles are one batch."
+  },
+  {
+   "term": "Audit",
+   "def": "A planned check of records and stock against the rules. Pennyroyal's audit compared the bottles on its shelves with Okeburn's records."
+  },
+  {
+   "term": "Pennyroyal",
+   "def": "The supermarket chain in this story that sells Okeburn's water. Its audit found the codes from 2026."
+  },
+  {
+   "term": "Traceability",
+   "def": "Being able to follow a product back to where and when it was made, and forward to where it went, usually through codes like a batch code."
+  },
+  {
+   "term": "Label log",
+   "def": "The line computer's record of every night it printed: when the night started, the batch code and the bottles labelled."
+  },
+  {
+   "term": "Line computer",
+   "def": "The computer beside line 2 that runs the label service and drives the label printer."
+  },
+  {
+   "term": "Service",
+   "def": "A program that runs on its own and does one job for other things. Okeburn's label service works out each batch code and sends labels to the printer."
+  },
+  {
+   "term": "Library",
+   "def": "Ready-made code that other programmers write and share, which your program uses for one job, like buying a part instead of making it. tallydate formats dates."
+  },
+  {
+   "term": "tallydate",
+   "def": "The date library in this story (invented). Version 2.x printed YY as the calendar year; 3.0.0 made YY the week-numbering year."
+  },
+  {
+   "term": "labelwright",
+   "def": "The library in this story (invented) that drives the label printer. March's build had 1.6.0; the 18 December laptop build fetched 1.9.2."
+  },
+  {
+   "term": "Version",
+   "def": "A numbered release of a library, such as 2.4.3: the first number for big changes, then smaller ones. A new first number usually warns that old code may behave differently."
+  },
+  {
+   "term": "Major release",
+   "def": "The first number of a version, such as the 3 in 3.0.0. Raising it signals changes that break backward compatibility, so code that worked may not."
+  },
+  {
+   "term": "Dependency (of code)",
+   "def": "A library a program needs in order to run. The label service's dependencies are tallydate and labelwright, and the libraries those use in turn."
+  },
+  {
+   "term": "package.json",
+   "def": "A project file that lists a JavaScript program's dependencies and the versions each will take, such as \"tallydate\": \">=2.4.0\"."
+  },
+  {
+   "term": "Version range",
+   "def": "A rule in package.json for which versions are acceptable. >=2.4.0 means 2.4.0 or anything newer, including a new first number."
+  },
+  {
+   "term": "Caret range",
+   "def": "A version range written ^2.4.0: newer versions are allowed but not a new first number. It still lets in later 2.x versions nobody tested."
+  },
+  {
+   "term": "Pin",
+   "def": "Write one exact version, such as \"2.4.3\", instead of a range, so the tool can't choose another. It fixes only the libraries you name."
+  },
+  {
+   "term": "npm",
+   "def": "The tool that fetches JavaScript libraries from the internet and installs them for a project, following package.json and, if there is one, the lockfile."
+  },
+  {
+   "term": "npm install",
+   "def": "The everyday npm command. It uses the lockfile when one matches package.json; otherwise it fetches the newest version each range allows and writes a lockfile."
+  },
+  {
+   "term": "npm ci",
+   "def": "The npm command for automatic builds. It installs exactly what the lockfile lists, after removing anything already installed, and stops if the lockfile is missing or doesn't match."
+  },
+  {
+   "term": "Lockfile (package-lock.json)",
+   "def": "A file npm writes listing the exact version of every library it installed, including the libraries those use. Committed with the code, it lets every later build fetch the same ones."
+  },
+  {
+   "term": "Commit",
+   "def": "To save a set of changes into a project's shared history, the record of every change to the code. A file that is never committed stays on one person's computer."
+  },
+  {
+   "term": "Build",
+   "def": "Turning code into something that runs. Here: npm fetches the listed libraries, then they and the code are put together into one bundle."
+  },
+  {
+   "term": "Clean machine",
+   "def": "A computer that starts empty for every build and is set up the same way each time, so nothing left from earlier work changes the result."
+  },
+  {
+   "term": "Works on my machine",
+   "def": "The classic excuse when code runs for one developer and not elsewhere. It usually means the two computers have different versions or settings."
+  },
+  {
+   "term": "Reproducible build",
+   "def": "A build that gives the same result whenever and wherever it is made, from the same code, setup and steps."
+  },
+  {
+   "term": "Continuous integration (CI)",
+   "def": "Sending every change through the same automatic steps, build and tests, on a shared clean machine, so problems show up early and on one known setup."
+  },
+  {
+   "term": "Continuous delivery (CD)",
+   "def": "Carrying on from CI: every build that passes is stored and can be deployed by a routine automatic step, the same build to every place it runs."
+  },
+  {
+   "term": "Pipeline",
+   "def": "The chain of automatic steps from a commit to the running service: build, test, store, deploy. A failed step stops the chain."
+  },
+  {
+   "term": "Artifact",
+   "def": "The finished output of a build, stored and labelled with what went into it, such as tallydate 2.4.3. Deploys copy it; they don't rebuild it."
+  },
+  {
+   "term": "Year-end test",
+   "def": "A test of the batch code on dates where calendar and week-numbering years differ, plus a summer date: 25363, 26001, 27001 and 27182."
+  },
+  {
+   "term": "Schema check",
+   "def": "A check that compares a new message format with the last one and refuses changes that would break programs reading it, such as the breaking-change check in s4e05."
+  },
+  {
+   "term": "Update tool",
+   "def": "A helper that watches for new versions of a project's libraries and proposes changing the lockfile to take them."
+  },
+  {
+   "term": "Week-numbering year",
+   "def": "The year that owns a date's Monday-to-Sunday week, where week 1 holds the year's first Thursday. 29 December 2025 belongs to 2026; 1 January 2027 to 2026."
+  },
+  {
+   "term": "Calendar year",
+   "def": "The ordinary year a date falls in, from 1 January to 31 December. 29 December 2025 is in 2025."
+  },
+  {
+   "term": "ISO 8601",
+   "def": "The international standard for writing dates and times. It defines weeks from Monday to Sunday, with week 1 holding the year's first Thursday."
+  },
+  {
+   "term": "Unicode",
+   "def": "The body that sets the standard codes for the world's writing, and also publishes rules for formatting dates in every language."
+  },
+  {
+   "term": "UTS #35",
+   "def": "Unicode Technical Standard 35, which defines the letters in date patterns: y for the calendar year, Y for the week-numbering year, D for the day of the year."
+  },
+  {
+   "term": "Date pattern",
+   "def": "A string of letters that tells a date library how to write a date, such as YYDDD or yyDDD. Each letter stands for one part of the date."
+  },
+  {
+   "term": "Clocks going forward",
+   "def": "In the UK, the clocks move an hour ahead on the last Sunday of March and back on the last Sunday of October, so one spring day has 23 hours."
+  },
+  {
+   "term": "Developer",
+   "def": "Someone who writes and looks after programs. Mungo is Okeburn's."
+  },
+  {
+   "term": "Edge case",
+   "def": "An input at the edge of the usual range, such as the last days of a year, where code is most likely to break."
+  },
+  {
+   "term": "Staging",
+   "def": "A copy of the live setup used for a last check before a build goes to production."
+  },
+  {
+   "term": "Eval",
+   "def": "A test of an AI system's answers against a set of questions with known good answers. LATENT runs them in pipelines."
+  },
+  {
+   "term": "Repository",
+   "def": "The shared place where a project's code and its history of commits are kept, so everyone builds from the same files."
+  },
+  {
+   "term": "Semantic versioning",
+   "def": "The common rule for version numbers: first number for changes that break old code, second for new features, third for fixes."
+  },
+  {
+   "term": "A.8.25 (ISO/IEC 27001)",
+   "def": "The ISO/IEC 27001:2022 control on the secure development life cycle: rules for building software securely, from design to deployment."
+  }
+ ],
+ "atWork": "Look for services that are built on a developer's laptop and copied to where they run, and for projects with no lockfile committed or with ranges such as >=, * or latest. It is a common pattern: \"it works on my machine\" builds. Read-only access to the code is enough to check. For each service, find where its production build is made, whether the lockfile is in the repository, whether the build uses npm ci (or the equivalent for your language), and whether the thing deployed is a stored artifact or a fresh build. Then look at its tests for anything date-shaped: is there a test for the last days of December, the first days of January, and the day the clocks change? If your company works towards ISO/IEC 27001:2022, control A.8.32 asks that changes to information systems go through change management, and A.8.25 asks for rules for secure development across the life cycle; a build nobody can repeat or roll back is hard to show either way. If it is pursuing SOC 2, criterion CC8.1 expects changes to software to be authorized, tested and approved before they are put in place. Building it in now, one pipeline, a committed lockfile and stored builds, costs far less than rebuilding the evidence at audit time. If you label food or drink, traceability rules may also apply to how batch codes are made and kept.",
+ "board": {
+  "cards": [
+   {
+    "id": "ci-cd-pipelines",
+    "title": "CI/CD pipelines"
+   },
+   {
+    "id": "build",
+    "title": "Build"
+   },
+   {
+    "id": "test",
+    "title": "Test"
+   },
+   {
+    "id": "deploy",
+    "title": "Deploy"
+   }
+  ],
+  "strings": [
+   {
+    "from": "build",
+    "to": "ci-cd-pipelines",
+    "label": "first stage"
+   },
+   {
+    "from": "test",
+    "to": "testing",
+    "label": "tests run here"
+   },
+   {
+    "from": "deploy",
+    "to": "ci-cd-pipelines",
+    "label": "same artifact"
+   },
+   {
+    "from": "ci-cd-pipelines",
+    "to": "expand",
+    "label": "runs the stages"
+   },
+   {
+    "from": "ci-cd-pipelines",
+    "to": "schema-evolution",
+    "label": "schema checks"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s5e09-r1",
+   "kind": "free",
+   "prompt": "Your team's online shop is built on whichever developer's laptop is free, then copied to the server. package.json takes each library at a range such as >=3.1.0, and nobody has saved npm's list of exact versions with the code. On Friday a build from a newly set-up laptop broke card payments, though no one had changed the code; a build of the same code from an older laptop works. What is going on, and what do you change?",
+   "keyIdeas": [
+    {
+     "idea": "The two laptops fetched different library versions, because the ranges float and nothing records the exact ones",
+     "match": [
+      "different version",
+      "newer version",
+      "newest version",
+      "lockfile",
+      "lock file",
+      "package-lock",
+      "resolved"
+     ]
+    },
+    {
+     "idea": "Build once on a clean machine, installing exactly the committed lockfile's versions with npm ci",
+     "match": [
+      "clean machine",
+      "npm ci",
+      "build server",
+      "ci machine",
+      "continuous integration",
+      "build once"
+     ]
+    },
+    {
+     "idea": "Store the build that passed, deploy that same artifact, and roll back by deploying the last good one",
+     "match": [
+      "artifact",
+      "artefact",
+      "same build",
+      "roll back",
+      "rollback",
+      "last good"
+     ]
+    }
+   ],
+   "model": "The code didn't change; its libraries did. Every range accepts newer versions, and no lockfile was committed, so the new laptop fetched the newest version of something the payments code uses, while the older laptop still had what it fetched months ago. Commit a lockfile from the build that works, and build once on a clean machine with npm ci, which installs exactly the lockfile's versions and stops if it's missing. Run the tests there, including card payments. Store the build that passes as an artifact and deploy that same build to the server; if one ever goes wrong, roll back by deploying the last good stored build. Upgrade libraries on purpose, as their own change, through the same tests."
+  },
+  {
+   "id": "s5e09-r2",
+   "kind": "mcq",
+   "prompt": "In Unicode's date patterns (UTS #35), which pattern prints the last two digits of the calendar year, then the day of the year, so that 29 December 2025 prints 25363?",
+   "options": [
+    "YYDDD",
+    "yyDDD",
+    "yyddd",
+    "YYddd"
+   ],
+   "answer": 1,
+   "why": "Small y is the calendar year; capital Y is the week-numbering year, which is 2026 for 29 December 2025, so YYDDD prints 26363. Capital D is the day of the year, 363; small d is the day of the month, so yyddd would print 25029."
+  },
+  {
+   "id": "s5e09-r3",
+   "kind": "free",
+   "prompt": "An interviewer asks: why build once and deploy the same artifact to testing and to production, instead of building it again for each place? And how do you roll back?",
+   "keyIdeas": [
+    {
+     "idea": "What runs in production is exactly what was tested; a second build can pick up different versions or tools",
+     "match": [
+      "exactly what",
+      "what you tested",
+      "what was tested",
+      "different versions",
+      "drift",
+      "pick up"
+     ]
+    },
+    {
+     "idea": "A rebuild is in effect a new, untested build",
+     "match": [
+      "untested",
+      "not tested",
+      "never tested",
+      "not the same",
+      "might differ",
+      "may differ"
+     ]
+    },
+    {
+     "idea": "Roll back by redeploying the last good stored build, in minutes, not by rebuilding old code",
+     "match": [
+      "last good",
+      "previous build",
+      "stored",
+      "redeploy",
+      "minutes"
+     ]
+    }
+   ],
+   "model": "Because the point of testing is to know what you're running. If production gets the stored artifact that passed, it runs exactly what was tested. Build again for production and the second build can pick up different versions of libraries, or a different compiler or setting, so what reaches users is in effect untested, however similar it looks. Rolling back follows from the same idea: keep every passing build, and to go back, redeploy the last good stored build. That takes minutes and puts back something that already ran. Don't rebuild old code to roll back; that is a new build too. Then fix the problem forward through the pipeline."
+  },
+  {
+   "id": "s5e09-r4",
+   "kind": "mcq",
+   "prompt": "A pipeline runs npm ci, but the project has no package-lock.json. What happens?",
+   "options": [
+    "It installs the newest each range allows",
+    "It creates the missing file, then installs from it",
+    "It stops with an error and installs nothing",
+    "It reuses whatever the last install left behind"
+   ],
+   "answer": 2,
+   "why": "npm's documentation says the project must have an existing package-lock.json or npm-shrinkwrap.json for npm ci, and that npm ci never writes to package.json or the lockfiles. With no lockfile it stops, which is the point: a pipeline build should never quietly choose versions."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. The pipeline runs every build now: clean machine, npm ci, the year-end test, and every build that passes is stored. New Year went through clean. Last Tuesday, build 14 went to line 2 at 22:00. It printed the batch code bigger, as Pennyroyal asked, and it passed every test. At 22:10 the printer began refusing labels: the new layout was too wide for our roll. Mungo, at home, said he'd fix it by getting last month's code and building it again on his laptop. The line stood from 22:10 to 23:00, 7,500 bottles we didn't make, and then his copy wouldn't start on the line computer at all.",
+  "prompt": "Reply to OP. What should getting the old version back have looked like, and why not build last month's code again?",
+  "keyIdeas": [
+   {
+    "idea": "Deploy build 13, the last good stored build, instead of building anything",
+    "match": [
+     "build 13",
+     "last good",
+     "stored build",
+     "redeploy",
+     "previous build",
+     "deploy the old"
+    ]
+   },
+   {
+    "idea": "Building old code again makes a new, untested build on a different machine, which may not match what ran",
+    "match": [
+     "untested",
+     "not tested",
+     "never tested",
+     "not the same",
+     "different machine",
+     "may differ",
+     "might differ"
+    ]
+   },
+   {
+    "idea": "Make rolling back one quick step anyone on shift can start, then fix the layout through the pipeline",
+    "match": [
+     "one step",
+     "one click",
+     "one button",
+     "anyone on shift",
+     "minutes",
+     "through the pipeline",
+     "fix forward",
+     "printer test"
+    ]
+   }
+  ],
+  "model": "Rolling back should have been deploying build 13, the last good stored build, the one that had printed every night before Tuesday. It was already built, tested and kept, so it could have been back on the line in minutes. Building last month's code again on a laptop makes a new build, untested, on a different machine, with whatever that laptop has installed; it may not match what ran, and Tuesday's copy didn't even start. At 9,000 bottles an hour, those 50 minutes were 7,500 bottles. Make rolling back one step anyone on shift can start, rehearsed, with no developer needed. Then fix the layout forward through the pipeline, and add a printer test: a label from the real template, checked against the roll's width, before a build is stored."
+ },
+ "next": "Next, Threads, Processes, Coroutines: a circus with too many acts, and the different ways a program can do several things at once, compared.",
+ "sources": [
+  {
+   "title": "Unicode Technical Standard #35, Unicode Locale Data Markup Language (LDML) Part 4: Dates, version 48.2, Date Field Symbol Table (y: calendar year, yy the two low-order digits; Y: year in week of year based calendars, may differ from calendar year y near a year transition, used with w in the ISO year-week calendar)",
+   "url": "https://www.unicode.org/reports/tr35/tr35-dates.html"
+  },
+  {
+   "title": "Wikipedia, ISO week date (week 01 is the week with the first Thursday of January; 29 December 2025 is ISO 2026-W01-1; confusing the two year numbers has caused some software bugs)",
+   "url": "https://en.wikipedia.org/wiki/ISO_week_date"
+  },
+  {
+   "title": "npm Docs, package-lock.json (describes the exact tree that was generated; intended to be committed into source repositories; teammates, deployments and continuous integration install exactly the same dependencies)",
+   "url": "https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json"
+  },
+  {
+   "title": "npm Docs, npm-ci (meant for automated environments such as test platforms, continuous integration and deployment; the project must have an existing package-lock.json or npm-shrinkwrap.json; exits with an error if they don't match package.json; never writes to package.json or the package-locks; removes an existing node_modules)",
+   "url": "https://docs.npmjs.com/cli/v11/commands/npm-ci"
+  },
+  {
+   "title": "Reproducible Builds, Definitions (a build is reproducible if given the same source code, build environment and build instructions, any party can recreate bit-by-bit identical copies of all specified artifacts)",
+   "url": "https://reproducible-builds.org/docs/definition/"
+  },
+  {
+   "title": "npm Docs, About semantic versioning (major release: changes that break backward compatibility)",
+   "url": "https://docs.npmjs.com/about-semantic-versioning"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.32 Change Management (manage changes to the information processing facilities and systems)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-32-change-management-2022/"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.25 Secure Development Life Cycle (integrating security throughout the software development life cycle)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-25-secure-development-life-cycle-2022/"
+  },
+  {
+   "title": "AICPA, 2017 Trust Services Criteria (with revised points of focus, 2022), criterion CC8.1 on changes to infrastructure, data, software and procedures",
+   "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+  }
+ ]
+}
