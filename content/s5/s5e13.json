@@ -1,0 +1,943 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-14) main-session review: board label shortened to 18 characters or fewer",
+  "v1.0.0 (2026-10-14) first version"
+ ],
+ "id": "s5e13",
+ "season": 5,
+ "n": 13,
+ "title": "Field Report: The Delivery Machine",
+ "setting": "the Netflix TechBlog archive",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "spinnaker",
+  "continuous-delivery-as-pipelines",
+  "repeatable-automated-deployments",
+  "one-view-of-every-environment"
+ ],
+ "prerequisites": [
+  "s5e12",
+  "s5e11",
+  "s5e09",
+  "s5e07"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/slipway_night_gerlinde",
+  "flair": "Field Report",
+  "age": "7h",
+  "votes": 2961,
+  "title": "I keep the night desk for an island ferry. Our release machine was copied from a Netflix post from 2015. At 06:40 nine people with valid tickets waited on the slipway for a boat that doesn't run until November.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Gerlinde, night duty officer at Skelholm Ferries. One boat crosses from Brackwick to the island. Tickets for each day go on sale at midnight. The program that takes the bookings, the booking service, runs on rented computers called servers."
+   },
+   {
+    "t": "p",
+    "text": "The booking service has a memory leak: every hour it keeps a little more of the servers' working memory. About 30 hours after a start, the memory fills and it falls over. Starting it again, a restart, empties it."
+   },
+   {
+    "t": "p",
+    "text": "Two years ago Vilém, who writes our code, copied our release steps from a printout: \"Global Continuous Delivery with Spinnaker\", the Netflix Tech Blog, 16 November 2015. Spinnaker is Netflix's free tool for continuous delivery: sending every finished change live by the same automatic steps."
+   },
+   {
+    "t": "p",
+    "text": "A finished change is merged into the shared copy of our code. Each merge makes a build, a numbered new version of the program, ready to run. Our timetable is a file inside the build, so the site sells the timetable the live build carries."
+   },
+   {
+    "t": "p",
+    "text": "Each build starts our main pipeline, a chain of automatic steps the post calls stages. In order:"
+   },
+   {
+    "t": "p",
+    "text": "First, bake: turn the build into a machine image, a ready-to-start copy of a whole server."
+   },
+   {
+    "t": "p",
+    "text": "Next, deploy it (put it on) to staging, our practice copy of the site."
+   },
+   {
+    "t": "p",
+    "text": "Then manual judgement: wait until Rosalba, who runs the timetable office, checks staging and clicks Continue. She usually signs off the same afternoon."
+   },
+   {
+    "t": "p",
+    "text": "Last, deploy to production, the live site, red/black, Netflix's name for a safe swap: start new servers from the image, move customers onto them, and keep the old ones ready to switch back."
+   },
+   {
+    "t": "p",
+    "text": "The leak needed a restart every night, so Vilém added a second pipeline. What starts a pipeline is its trigger, and the post says pipelines can be triggered \"via a cron expression\". Cron is a timer that starts a job at set times."
+   },
+   {
+    "t": "p",
+    "text": "Ours fires at 02:00, when nobody is awake to judge. It bakes the newest build, or skips the bake if it has an image already, then deploys it to production. The new servers start with empty memory. Most nights the newest build is the live one, so nothing new ships."
+   },
+   {
+    "t": "p",
+    "text": "On Friday 30 October Rosalba left at 17:00. At 17:40 Vilém merged the winter timetable: from Tuesday 3 November our first boat moves from 07:30 to 06:40, for the hospital's day shift. Build 345 passed its tests and stopped at manual judgement, to be released, put live, after Monday's last boat, once Rosalba checked it."
+   },
+   {
+    "t": "p",
+    "text": "Our deploy log: time, pipeline, what it did."
+   },
+   {
+    "t": "log",
+    "text": "Fri 17:47  main     build 345 on staging. judgement: waiting\nSat 02:00  restart  cron. newest build: 345. bake skipped\nSat 02:04  restart  production: build 345 released. approved by: nobody"
+   },
+   {
+    "t": "p",
+    "text": "From 02:04 the site sold Saturday's seats from the winter timetable. Between 02:04 and 06:30, when sales for the first boat close, 14 people booked. Nine chose the 06:40."
+   },
+   {
+    "t": "beat",
+    "text": "At 06:40 I opened the slipway gate. Nine people stood in the dark with valid tickets for a boat that doesn't run until November. The log says nobody approved it. Cron did."
+   },
+   {
+    "t": "p",
+    "text": "Vilém put build 344 back at 07:05. But 345 is still the newest build, and the restart pipeline runs again tonight at 02:00. What do we change before then?"
+   },
+   {
+    "t": "evidence",
+    "label": "deploy_pipelines_sat_0204.png",
+    "diagram": {
+     "type": "arch",
+     "w": 740,
+     "h": 330,
+     "aria": "Skelholm Ferries' two pipelines on Saturday 31 October. The main pipeline: a merge at 17:40 on Friday makes build 345, which is baked, put on staging and stopped at manual judgement, waiting for Rosalba on Monday. The restart pipeline: cron fires at 02:00, finds the newest build, 345, skips the bake because its image exists, and deploys it to production red/black. Build 345 is live from 02:04, approved by nobody.",
+     "nodes": [
+      {
+       "id": "merge",
+       "label": "Merge",
+       "sub": "Fri 17:40",
+       "x": 75,
+       "y": 60,
+       "w": 110,
+       "h": 56,
+       "shape": "box"
+      },
+      {
+       "id": "bake",
+       "label": "Bake",
+       "sub": "image of 345",
+       "x": 210,
+       "y": 60,
+       "w": 110,
+       "h": 56,
+       "shape": "box"
+      },
+      {
+       "id": "staging",
+       "label": "Staging",
+       "sub": "345 at 17:47",
+       "x": 345,
+       "y": 60,
+       "w": 110,
+       "h": 56,
+       "shape": "box"
+      },
+      {
+       "id": "judge",
+       "label": "Manual judgement",
+       "sub": "345: waiting",
+       "meta": "Rosalba, Monday",
+       "x": 500,
+       "y": 60,
+       "w": 150,
+       "h": 72,
+       "shape": "box",
+       "tone": "warn"
+      },
+      {
+       "id": "prod",
+       "label": "Production",
+       "sub": "build 345 from 02:04",
+       "meta": "approved by: nobody",
+       "x": 640,
+       "y": 175,
+       "w": 170,
+       "h": 72,
+       "shape": "box",
+       "tone": "bad"
+      },
+      {
+       "id": "cron",
+       "label": "Cron trigger",
+       "sub": "Sat 02:00",
+       "x": 75,
+       "y": 265,
+       "w": 120,
+       "h": 56,
+       "shape": "box",
+       "tone": "accent"
+      },
+      {
+       "id": "bake2",
+       "label": "Bake the newest",
+       "sub": "345: skipped, image exists",
+       "x": 300,
+       "y": 265,
+       "w": 220,
+       "h": 56,
+       "shape": "box"
+      }
+     ],
+     "edges": [
+      {
+       "from": "merge",
+       "to": "bake"
+      },
+      {
+       "from": "bake",
+       "to": "staging"
+      },
+      {
+       "from": "staging",
+       "to": "judge"
+      },
+      {
+       "from": "judge",
+       "to": "prod",
+       "dash": true,
+       "tone": "muted"
+      },
+      {
+       "from": "cron",
+       "to": "bake2"
+      },
+      {
+       "from": "bake2",
+       "to": "prod",
+       "label": "02:04",
+       "tone": "bad"
+      }
+     ],
+     "notes": [
+      {
+       "x": 20,
+       "y": 160,
+       "text": "MAIN PIPELINE: on every merge",
+       "tone": "muted",
+       "anchor": "start"
+      },
+      {
+       "x": 20,
+       "y": 315,
+       "text": "RESTART PIPELINE: no staging, no judgement",
+       "tone": "bad",
+       "anchor": "start"
+      }
+     ]
+    },
+    "caption": "Both pipelines as they stood at 02:04 on Saturday. The main pipeline holds build 345 at manual judgement until Rosalba clicks Continue. The restart pipeline has no such stage: cron fired at 02:00, it took the newest build, found its image already baked, and put it live."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 133,
+   "age": "6h",
+   "text": "Two words, then questions. An artifact is the stored output of one build, labelled so that exact one can be deployed again, like a sealed parcel with a number on it. An environment is one place a build runs: staging is one, production another. Now your log. At 02:00 on Saturday, did the restart pipeline ask for build 344 by its number, or for something else? Your main pipeline has a stage where a person decides. Which of your two triggers leads to that stage, and which goes round it? And what did the 02:00 run exist to do?",
+   "replies": [
+    {
+     "author": "u/slipway_night_gerlinde",
+     "op": true,
+     "points": 49,
+     "age": "5h",
+     "text": "Vilém checked. The restart pipeline asks for \"newest build\", never a number. Rosalba signs off by about 16:00, and when she turns a build down, Vilém undoes the change the same afternoon, so the newest build matches the live one again. The deploy log shows the 02:00 run never shipped a new build before Saturday. Friday was the first evening a build sat at the judgement overnight."
+    }
+   ]
+  },
+  {
+   "author": "u/gate_it_hallgrim",
+   "points": 84,
+   "age": "5h",
+   "text": "Netflix gates releases with manual judgement; add the stage and you're done. A gate is a stage that stops everything until a person says yes, and it's right there in the post's own list of stages. Your 02:00 pipeline is the only path to production without one. Give it the same gate as the main pipeline and nothing ships unseen again."
+  },
+  {
+   "author": "u/fix_the_leak_dragan",
+   "points": 61,
+   "age": "4h",
+   "text": "A pipeline that ships every night to hide a leak is the real bug. Restarts are a sticking plaster. Find what is holding on to the memory, fix it, then delete the 02:00 pipeline. No timer, no surprise releases, ever."
+  },
+  {
+   "author": "u/no_late_merges_jovanka",
+   "points": 52,
+   "age": "4h",
+   "text": "This is a rule, not a code change: no merges after 18:00. Whatever is merged in the daytime gets signed off in the daytime, so at 02:00 the newest build is the live one. We ran that rule at my last job for years."
+  }
+ ],
+ "reply": {
+  "prompt": "The restart pipeline runs again tonight at 02:00, and build 345 is still the newest. What should Vilém change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Make the 02:00 job restart the version that's already live, so only signed-off builds deploy.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Vilém changed the restart pipeline that afternoon. It no longer asks for the newest build. It asks which build the live servers run and starts fresh servers from that same image, red/black, with no bake. Then we replayed Friday night on a spare copy of the site, with the same builds and bookings. At 02:04 build 344 came up on new servers with 2.0 GB (gigabytes) of memory in use, and 345 stayed at manual judgement. All 19 of the night's bookings went onto boats that run, 11 of them onto the 07:30. That night, and Sunday's, the real 02:00 run did the same. On Monday Rosalba opened 345 on staging, checked every sailing, and released it after the last boat. On Tuesday 3 November the 06:40 sailed for the first time, with the hospital's day shift on board.",
+    "senior": "A restart and a deploy are different jobs. A restart starts the same version again, to clear the memory; a deploy changes the version, and every change should pass the gate. \"The newest build\" is a moving target: it changed at 17:40 without anyone touching the restart pipeline. Asking for the image the live servers already run makes the 02:00 job a restart by design, so only builds that passed manual judgement ever reach production. The cost: the live build, bugs and leak included, is restarted every night until a signed-off build replaces it, and the leak still needs fixing."
+   },
+   {
+    "text": "Add a manual judgement stage to the 02:00 pipeline, so a person approves each night's release.",
+    "tone": "bad",
+    "verdict": "A gate nobody is awake to open",
+    "part2": "Vilém added manual judgement to the restart pipeline. We replayed Friday night on a spare copy of the site. At 02:00 the run stopped at the judgement, and nobody was awake to click. No restart happened. The servers had been running since 02:04 on Friday; their memory reached 8.0 GB (gigabytes) at 08:04 on Saturday, and the booking service fell over, with the site down until someone woke. Nobody booked a boat that doesn't run: all 19 went onto real sailings. So Vilém set his phone to wake him at 02:00. On the second real night he clicked Continue half asleep, without looking at which build it was.",
+    "senior": "A gate is only as good as the judgement behind it. At 02:00 a manual judgement either waits, and the leak wins, or gets a sleepy click, which approves nothing. The question was never who approves the night's run. It was what the run deploys. A restart of the live version changes nothing, so it needs no approval; a new version needs one, in daylight, through the main pipeline."
+   },
+   {
+    "text": "Fix the memory leak first, then delete the 02:00 pipeline, since it exists only for the leak.",
+    "tone": "warn",
+    "verdict": "Right in the end, but not by tonight",
+    "part2": "Vilém started hunting the leak on Saturday and left the restart pipeline as it was. At 02:00 on Sunday it ran exactly as on Saturday: newest build 345, bake skipped, released at 02:04, approved by nobody. Gerlinde was watching this time and rang Vilém, and he put 344 back before the first booking. Replayed with Friday night's bookings on a spare copy of the site, as built, that run sends 9 people to the 06:40. The leak took Vilém most of November to find and fix. Only then did he delete the 02:00 pipeline.",
+    "senior": "Fixing the leak is the right end state, and it removes the only reason the 02:00 pipeline exists. But it is weeks of work, and the pipeline runs again in hours, still deploying whatever is newest. Make tonight safe first: point the restart at the live version. Then fix the leak and delete the pipeline. When the danger is hours away and the cure is weeks away, do both, in that order."
+   },
+   {
+    "text": "Stop all merges after 18:00, so the newest build at 02:00 is always the one that is live.",
+    "tone": "bad",
+    "verdict": "17:40 is before 18:00",
+    "part2": "The team agreed: no merges after 18:00. Then Rosalba read the deploy log again. Build 345 was merged at 17:40. We replayed Friday night on a spare copy of the site with the cut-off on: at 02:04 build 345 was released by cron all the same, and 9 people booked onto the 06:40. The rule would only have stopped the merge if Vilém had been more than twenty minutes later.",
+    "senior": "The danger isn't late merges. It is any build newer than the one that was signed off: a build merged at 15:00 that Rosalba hasn't checked yet, or one she turned down, is just as new. A rule people must remember also fails on the busy day it matters. Change the job so it can only start what is already live, and the time of the merge stops mattering."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s5e13",
+  "title": "Run Friday night through both pipelines",
+  "lede": "You're Vilém, replaying from Friday 30 October, 17:00, before the winter timetable is merged. This week's builds, 341 to 344, Monday to Thursday, were each signed off the same afternoon, and build 344 is live; its servers started at 02:04 on Friday, using 2.0 GB of memory (GB, gigabytes, a measure of memory), and the leak adds 0.2 GB an hour, so they fall over at 8.0 GB, 30 hours after a start. Tickets for Saturday go on sale at midnight: 19 bookings between 00:00 and 06:30, each one seat: 3, 2, 2, 1, 2 and 5 in the hours from midnight, then 4 to 06:30. 11 of them are for the first boat. On the summer timetable the first boat is the 07:30; on the winter timetable it is the 06:40, which doesn't run until November. Choose how the 02:00 restart pipeline works, whether merges after 18:00 are refused, and which build is newest at 02:00. Then step an hour at a time or run to 09:00 on Saturday.",
+  "tryThis": "Try this: run to 09:00 as built. At 02:04 build 345 is released, approved by nobody, and 9 bookings go onto the 06:40, which doesn't run; 10 go onto boats that do. Pick the ordinary night (nothing newer than 344): the bake is skipped and nothing new ships, as for two years. Add manual judgement: nothing ships, and at 08:04 the memory is full. Restart the live version: 344 on new servers at 02:04, all 19 onto real boats. Turn the 18:00 cut-off on: 345, merged at 17:40, still ships. Move the merge to 19:10 and it is refused."
+ },
+ "explain": {
+  "oneLine": "Nobody released the winter timetable on purpose. The 02:00 restart pipeline asked for the newest build instead of the live one, and on Friday the newest was build 345, still waiting for Rosalba's sign-off. Cron released it at 02:04, round the manual judgement it never had. Make the 02:00 job restart the version already live, so only signed-off builds deploy.",
+  "steps": [
+   {
+    "title": "Two pipelines, two triggers, one judgement.",
+    "text": "The main pipeline runs in four stages. First a merge triggers it and the build is baked into a machine image. Then the image is deployed to staging. Then it waits at manual judgement until Rosalba checks staging and clicks Continue. Last, it is deployed to production, red/black. What can go wrong at each step: a bad change merges; a bake fails; staging shows a mistake; a person waves it through. The restart pipeline has two stages. Cron triggers it at 02:00; it bakes the newest build (or skips the bake when the image exists); then it deploys to production. Each trigger says who is watching. A merge has a person who just finished a change. A Jenkins job, a tool that builds and tests code, follows a build. Manual means someone is there. Another pipeline means whatever started that one. Cron means a clock, and at 02:00 nobody."
+   },
+   {
+    "title": "It asked for \"the newest build\", not a build number.",
+    "text": "\"Newest\" is a moving target. At 17:39 on Friday it meant 344, the live build. At 17:40 Vilém's merge made it 345, without anyone touching the restart pipeline. At 02:00 Spinnaker looked up the newest build, found an image for 345 already baked by the main pipeline at 17:44, skipped the bake, and deployed it at 02:04. Manual judgement guards only the pipeline it sits in, so 345 went round it. In two years this never showed, because sign-off came the same afternoon and a turned-down change was undone the same day. The lesson from s5e09 holds: deploy a specific, tested artifact by its number, never \"the latest\"."
+   },
+   {
+    "title": "A restart is not a deploy.",
+    "text": "A restart starts the same version again on fresh memory. A deploy changes the version. The 02:00 job only ever needed the first, but it was built from deploy stages, so it could do the second. Red/black can do both. It goes in steps. First, new servers start from an image. Then customers are moved onto them. Then the old servers are kept, switched off, ready to switch back. Started from the live image, red/black is a clean restart with no gap for customers. Started from a new image, it is a release. Deployment strategies, blue-green and canary among them, come back in Season 6. The fix is to make the 02:00 job start new servers from the image the live servers already run, and give it no way to pick another."
+   },
+   {
+    "title": "Why a gate at 02:00, or a rule at 18:00, doesn't fix it.",
+    "text": "Manual judgement at 02:00 needs someone awake who will really check. With nobody there, the run waits, no restart happens, and in the sim the servers' memory is full at 08:04 on Saturday. With someone half asleep, the click approves nothing. A merge cut-off at 18:00 would not have stopped 345: it was merged at 17:40. And any build that is newer than the signed-off one is the same danger, whatever time it was merged."
+   },
+   {
+    "title": "What Spinnaker was built for.",
+    "text": "The post describes more than pipelines. Spinnaker gives one view of every environment, so you can see what is running where and change it from one screen. It deploys to more than one cloud, the rented computing of companies like Amazon and Google, with the same pipelines. And it replaced Netflix's older tool, Asgard, with no big-bang migration: changes made through either tool worked with the other, so teams could move over gradually. None of that decides which build a trigger deploys. That is still the pipeline author's job."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 330,
+   "aria": "The fix. The main pipeline is unchanged: a merge makes build 345, which is baked, put on staging and held at manual judgement until Rosalba clicks Continue on Monday. The restart pipeline now has one stage after its cron trigger at 02:00: start new servers from the live image, build 344, with no bake. At 02:04 production runs build 344 on new servers with 2.0 GB of memory in use.",
+   "nodes": [
+    {
+     "id": "merge",
+     "label": "Merge",
+     "sub": "Fri 17:40",
+     "x": 75,
+     "y": 60,
+     "w": 110,
+     "h": 56,
+     "shape": "box"
+    },
+    {
+     "id": "bake",
+     "label": "Bake",
+     "sub": "image of 345",
+     "x": 210,
+     "y": 60,
+     "w": 110,
+     "h": 56,
+     "shape": "box"
+    },
+    {
+     "id": "staging",
+     "label": "Staging",
+     "sub": "345",
+     "x": 345,
+     "y": 60,
+     "w": 110,
+     "h": 56,
+     "shape": "box"
+    },
+    {
+     "id": "judge",
+     "label": "Manual judgement",
+     "sub": "345: waits",
+     "meta": "Rosalba, Monday",
+     "x": 500,
+     "y": 60,
+     "w": 150,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "prod",
+     "label": "Production",
+     "sub": "build 344, new servers",
+     "meta": "2.0 GB at 02:04",
+     "x": 640,
+     "y": 175,
+     "w": 170,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "cron",
+     "label": "Cron trigger",
+     "sub": "Sat 02:00",
+     "x": 75,
+     "y": 265,
+     "w": 120,
+     "h": 56,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "restart",
+     "label": "Restart the live image",
+     "sub": "344, no bake",
+     "x": 300,
+     "y": 265,
+     "w": 200,
+     "h": 56,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "merge",
+     "to": "bake"
+    },
+    {
+     "from": "bake",
+     "to": "staging"
+    },
+    {
+     "from": "staging",
+     "to": "judge"
+    },
+    {
+     "from": "judge",
+     "to": "prod",
+     "dash": true,
+     "tone": "muted"
+    },
+    {
+     "from": "cron",
+     "to": "restart"
+    },
+    {
+     "from": "restart",
+     "to": "prod",
+     "label": "02:04",
+     "tone": "ok"
+    }
+   ],
+   "notes": [
+    {
+     "x": 20,
+     "y": 160,
+     "text": "MAIN PIPELINE: the only way in for a new build",
+     "tone": "muted",
+     "anchor": "start"
+    },
+    {
+     "x": 20,
+     "y": 315,
+     "text": "RESTART PIPELINE: same version, fresh memory",
+     "tone": "ok",
+     "anchor": "start"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for Saturday night. The restart pipeline can only start the image the live servers already run, so at 02:04 build 344 comes up on new servers and build 345 waits at manual judgement for Rosalba. In the sim: all 19 bookings onto boats that run.",
+  "fix": {
+   "title": "The fix: the 02:00 job restarts the live version, and only the main pipeline releases",
+   "text": "Change the restart pipeline so its first step asks production which image the live servers were started from, and deploys that image, red/black, with no bake and no choice of build. If it can't find the live image, it stops and pages someone rather than guessing. Every new version then has one way in: merge, bake, staging, manual judgement, production. Label both pipelines' runs in the deploy log with the build number and the trigger, so a release by cron would stand out at once. Keep fixing the leak; when it is fixed, delete the restart pipeline. In the sim: build 344 on new servers at 02:04, memory 2.0 GB, and all 19 bookings onto boats that run."
+  },
+  "limits": [
+   "A restart of the live version restarts its bugs too. If the live build is the broken one, the 02:00 job faithfully brings it back every night until a signed-off build replaces it.",
+   "It hides the leak rather than curing it. If the leak speeds up, say to 30 hours becoming 20, one restart a day is no longer enough, and nothing in the pipeline will notice.",
+   "It still depends on the main pipeline's judgement being real. A sign-off clicked without looking at staging lets a bad build in through the front door."
+  ],
+  "tradeoff": {
+   "head": [
+    "The 02:00 job",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Bake and deploy the newest build (as built)",
+     "Simple; for two years the newest was the live one.",
+     "Ships any unapproved build: 345 at 02:04, 9 bookings onto the 06:40."
+    ],
+    [
+     "Add manual judgement",
+     "Nothing ships unseen while someone really checks.",
+     "Nobody is awake: no restart, memory full at 08:04, or a blind click."
+    ],
+    [
+     "Restart the live version",
+     "Same version, fresh memory; 345 waits for Rosalba. 19 onto real boats.",
+     "Restarts the live build's bugs too; the leak is still there."
+    ],
+    [
+     "Fix the leak, delete the job",
+     "The right end state: no nightly run at all.",
+     "Weeks away; the job runs again tonight as built."
+    ],
+    [
+     "No merges after 18:00",
+     "Fewer late builds waiting overnight.",
+     "345 was merged at 17:40 and still ships; people break rules."
+    ]
+   ]
+  },
+  "seniorTake": "Treat every path to production as a release path, whatever it was built for. A pipeline made of deploy stages can deploy, so ask of each one: what does its trigger mean about who is watching, and which build will it take? A cron trigger means nobody is watching, so that pipeline must not be able to choose a version. Deploy builds by number, the artifact that was tested and signed off, never \"the newest\". Keep restarts and releases apart: a restart starts the same version again; a release changes it, through the gate, in daylight. And treat a nightly restart as a debt, not a design: it hides a leak that will one day outgrow it.",
+  "realWorld": [
+   {
+    "title": "Netflix, 2015: Spinnaker announced",
+    "text": "Andy Glover's post says Spinnaker is \"an open source multi-cloud Continuous Delivery platform for releasing software changes with high velocity and confidence\". Open source means anyone may read and reuse the code; multi-cloud means it works with more than one company's rented computers.",
+    "source": 0
+   },
+   {
+    "title": "Pipelines made of stages",
+    "text": "Pipelines represent \"a delivery process that can begin with the creation of some deployable asset (such as an machine image, Jar file, or Docker image) and end with a deployment.\" Netflix \"generalized the building blocks of their delivery pipelines into configurable Stages that are composable into Pipelines.\" A Jar file and a Docker image are two other ways to pack a program to run.",
+    "source": 0
+   },
+   {
+    "title": "Four kinds of trigger",
+    "text": "\"Pipelines can be triggered by the completion of a Jenkins Job, manually, via a cron expression, or even via other pipelines.\" The stages listed include \"baking a machine image, deploying to a cloud provider, running a Jenkins Job, or manual judgement\".",
+    "source": 0
+   },
+   {
+    "title": "Red/black, and one view of every environment",
+    "text": "Through \"Spinnaker's application view\" you can deploy new server groups \"using strategies like Blue-Green (or Red-Black as we call it at Netflix)\". The post says Spinnaker \"provides deep visibility into an application's cloud footprint\", one screen for what runs where.",
+    "source": 0
+   },
+   {
+    "title": "More than one cloud, and no big-bang migration from Asgard",
+    "text": "Spinnaker could \"deploy to and manage clusters simultaneously across both AWS and Google Cloud Platform with full feature compatibility\", with Cloud Foundry supported and Azure \"actively underway\". A cluster is a group of servers working together, and Cloud Foundry and Azure are two more places to run programs. Spinnaker replaced Asgard, and \"There is no need for a migration from Asgard to Spinnaker as changes to AWS assets via Asgard are completely compatible with changes to those same assets via Spinnaker and vice versa.\"",
+    "source": 0
+   },
+   {
+    "title": "Spinnaker today: what a trigger means",
+    "text": "The current documentation says \"A pipeline trigger defines when to automatically run a pipeline\", and \"Adding a trigger to your pipeline means that the pipeline runs each time the triggering event occurs.\" Its examples: \"Jenkins jobs, webhooks, CRON jobs, and even other pipelines.\" A webhook is a message another system sends when something happens.",
+    "source": 1
+   },
+   {
+    "title": "Spinnaker today: manual judgment and skipped bakes",
+    "text": "The stage reference says the Manual Judgment stage will \"Wait for the user to click Continue before continuing.\" For the Bake stage, \"Baking here refers to the process of creating a machine image\", and \"Spinnaker skips the bake process if it detects that a new bake is unnecessary.\"",
+    "source": 2
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Walk me through a CD pipeline you'd build.",
+    "How do you gate a production deploy?",
+    "What's the difference between a restart and a deploy?"
+   ],
+   "answer": "A continuous delivery (CD) pipeline I'd build starts on a merge. Continuous integration (CI) builds once on a clean machine and runs the tests, and the result is stored as an artifact with a number. That one artifact is baked or packed, deployed to staging, checked, then deployed to production. I'd use red/black or blue-green, so the old version stays ready for a quick switch back. I'd gate production on evidence: automated checks against staging, and for risky changes a person's manual judgement. The gate approves a specific build number, and production may only receive build numbers that passed it. Every trigger gets the same scrutiny, because each one says who is watching: a merge or a manual run has a person, a cron trigger has nobody. A restart and a deploy differ in one thing, the version. A restart starts the same version on fresh processes or servers, for memory or a stuck state. A deploy changes the version and must go through the gate. A story I'd tell: a ferry company's nightly restart pipeline, added to hide a memory leak, deployed \"the newest build\". One Friday the newest was a winter timetable still waiting for sign-off. Cron released it at 02:04, and nine people booked a boat that didn't run until November. The fix was to make the nightly job restart only the image already live."
+  }
+ },
+ "terms": [
+  {
+   "term": "Skelholm Ferries",
+   "def": "The ferry company in this story. One boat crosses between Brackwick and the island of Skelholm; tickets for each day go on sale online at midnight."
+  },
+  {
+   "term": "Booking service",
+   "def": "The program behind Skelholm's website that answers every booking. It runs on rented servers and leaks memory."
+  },
+  {
+   "term": "Server",
+   "def": "A computer that runs a program for others to use over the internet, often rented. The booking service runs on servers."
+  },
+  {
+   "term": "Memory leak",
+   "def": "A program that keeps holding on to more working memory and never gives it back, until the machine runs out. The booking service's fills 8.0 GB about 30 hours after a start."
+  },
+  {
+   "term": "Restart",
+   "def": "Stopping a program and starting the same version again from fresh, which empties its working memory. A restart changes nothing else."
+  },
+  {
+   "term": "Spinnaker",
+   "def": "Netflix's free tool for releasing software, made public in 2015. It runs pipelines of stages that carry a build from code to the live site."
+  },
+  {
+   "term": "Continuous delivery",
+   "def": "Sending every finished change to the live site by the same automatic steps, so a release is routine and repeatable rather than a special event."
+  },
+  {
+   "term": "Merge",
+   "def": "Adding a finished change to the shared copy of the code. At Skelholm every merge starts the main pipeline."
+  },
+  {
+   "term": "Build",
+   "def": "A new version of the program packed ready to run, made from the code after a merge and numbered in order. 344 is live; 345 holds the winter timetable."
+  },
+  {
+   "term": "Pipeline",
+   "def": "A chain of automatic steps that carries a build towards the live site. A step that fails stops the chain."
+  },
+  {
+   "term": "Stage",
+   "def": "One step of a pipeline, such as bake, deploy or manual judgement. Spinnaker's pipelines are made by putting stages together."
+  },
+  {
+   "term": "Bake",
+   "def": "The stage that turns a build into a machine image. Spinnaker skips it when an image for that build already exists."
+  },
+  {
+   "term": "Machine image",
+   "def": "A ready-to-start copy of a whole server, with the program already on it, like a sealed kit: every server started from it is the same."
+  },
+  {
+   "term": "Deploy",
+   "def": "To put a build on a set of servers, so that it is the one running there."
+  },
+  {
+   "term": "Staging",
+   "def": "A practice copy of the site where a build is checked before it goes live. Rosalba checks builds there."
+  },
+  {
+   "term": "Manual judgement",
+   "def": "A Spinnaker stage that waits until a person clicks Continue (or stops it). Spinnaker's documentation spells it judgment."
+  },
+  {
+   "term": "Sign-off",
+   "def": "A person's approval that a build is fit to go live. At Skelholm, Rosalba gives it by clicking Continue at manual judgement."
+  },
+  {
+   "term": "Production",
+   "def": "The live site that customers use, as opposed to staging."
+  },
+  {
+   "term": "Release",
+   "def": "Putting a new version live in production for customers."
+  },
+  {
+   "term": "Red/black (blue-green)",
+   "def": "A safe swap: start new servers from the image, move customers onto them, and keep the old ones ready to switch back. Netflix's name for blue-green."
+  },
+  {
+   "term": "Trigger",
+   "def": "What starts a pipeline: a merge, a finished Jenkins job, a person, a cron timer or another pipeline. Each says something about who is watching."
+  },
+  {
+   "term": "Cron",
+   "def": "A timer that starts a job at set times, written as a cron expression. Skelholm's fires the restart pipeline at 02:00."
+  },
+  {
+   "term": "Jenkins",
+   "def": "A widely used tool that builds and tests code automatically. A finished Jenkins job can trigger a Spinnaker pipeline."
+  },
+  {
+   "term": "Restart pipeline",
+   "def": "Skelholm's 02:00 pipeline, added to clear the memory leak: as built it bakes the newest build and deploys it to production, with no staging or judgement."
+  },
+  {
+   "term": "Main pipeline",
+   "def": "Skelholm's pipeline on every merge: bake, deploy to staging, manual judgement, deploy to production red/black."
+  },
+  {
+   "term": "Newest build",
+   "def": "The build with the highest number, whether or not anyone has signed it off. It changes at every merge."
+  },
+  {
+   "term": "Artifact",
+   "def": "The stored output of one build, labelled so that exact one can be deployed again, like a sealed parcel with a number on it."
+  },
+  {
+   "term": "Environment",
+   "def": "One place a build runs, such as staging or production. Spinnaker shows every environment in one view."
+  },
+  {
+   "term": "Gate",
+   "def": "A stage that stops everything until a condition is met, such as a person saying yes at manual judgement."
+  },
+  {
+   "term": "Deploy log",
+   "def": "The record of every pipeline run: when, which pipeline, which build, and what it did."
+  },
+  {
+   "term": "Merge cut-off",
+   "def": "A rule that no merges are made after a set time, here 18:00, so builds aren't left waiting overnight."
+  },
+  {
+   "term": "Cloud",
+   "def": "Computing rented from a company such as Amazon (AWS) or Google, instead of owning the machines."
+  },
+  {
+   "term": "Asgard",
+   "def": "Netflix's older tool for deploying to AWS, which Spinnaker replaced. Changes made through either worked with the other, so no big move was needed."
+  },
+  {
+   "term": "Big-bang migration",
+   "def": "Moving everything from an old system to a new one in a single step, with no way to run both side by side."
+  },
+  {
+   "term": "Server group",
+   "def": "A set of identical servers started from one image. Red/black swaps one server group for another."
+  },
+  {
+   "term": "GB (gigabyte)",
+   "def": "A measure of memory or storage, about a thousand million bytes. The booking service starts at 2.0 GB and falls over at 8.0 GB."
+  },
+  {
+   "term": "AWS",
+   "def": "Amazon Web Services, Amazon's cloud: computers and services rented by the hour."
+  },
+  {
+   "term": "Cluster",
+   "def": "A group of servers working together as one system."
+  },
+  {
+   "term": "Open source",
+   "def": "Software whose code anyone may read, use and change. Spinnaker was made open source in 2015."
+  },
+  {
+   "term": "Webhook",
+   "def": "A message one system sends to another, over the web, when something happens, such as a new build being ready."
+  },
+  {
+   "term": "Canary",
+   "def": "A release given to a small share of customers first, and widened only if it behaves. One of the deployment strategies in Season 6."
+  },
+  {
+   "term": "Change management",
+   "def": "The rules for how changes to live systems are proposed, checked, approved and recorded, so none goes live unseen."
+  },
+  {
+   "term": "A.8.32 (ISO/IEC 27001)",
+   "def": "The ISO/IEC 27001:2022 control on change management: changes to information systems should follow a managed procedure."
+  },
+  {
+   "term": "CC8.1 (SOC 2)",
+   "def": "The SOC 2 criterion that changes to software and systems are authorized, designed, tested, approved and put in place in a controlled way."
+  }
+ ],
+ "atWork": "Look for scheduled jobs that use a deploy pipeline or a deploy command to do something else: restart services, clear memory, refresh settings, rotate servers. It is a common pattern, and the risk is the same everywhere: the job deploys \"latest\", \"newest\" or a moving tag rather than the version that is running. For each one, find its trigger and ask who is watching when it fires, and read exactly which version it asks for. A restart should start the version already running, by its number or its image, and have no way to choose another. Then list every path to production: each trigger, each pipeline, each script with deploy rights. Only one of them should be able to bring a new version, and it should pass the same gate. If your company works towards ISO/IEC 27001:2022, control A.8.32 asks that changes to information systems follow change management; an unapproved release by a timer is exactly what an auditor looks for. If it is pursuing SOC 2, criterion CC8.1 expects changes to be authorized, tested and approved before they go live. Building this in now, one release path with numbered builds and a deploy log that names the trigger, costs far less than rebuilding the evidence at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "spinnaker",
+    "title": "Spinnaker"
+   },
+   {
+    "id": "continuous-delivery-as-pipelines",
+    "title": "Continuous delivery as pipelines"
+   },
+   {
+    "id": "repeatable-automated-deployments",
+    "title": "Repeatable automated deployments"
+   },
+   {
+    "id": "one-view-of-every-environment",
+    "title": "One view of every environment"
+   }
+  ],
+  "strings": [
+   {
+    "from": "continuous-delivery-as-pipelines",
+    "to": "ci-cd-pipelines",
+    "label": "stages, triggers"
+   },
+   {
+    "from": "repeatable-automated-deployments",
+    "to": "deploy",
+    "label": "a build by number"
+   },
+   {
+    "from": "repeatable-automated-deployments",
+    "to": "memory-leaks",
+    "label": "restart vs deploy"
+   },
+   {
+    "from": "spinnaker",
+    "to": "continuous-delivery-as-pipelines",
+    "label": "runs the pipelines"
+   },
+   {
+    "from": "spinnaker",
+    "to": "one-view-of-every-environment",
+    "label": "one screen"
+   },
+   {
+    "from": "spinnaker",
+    "to": "blue-green",
+    "label": "red/black"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s5e13-r1",
+   "kind": "free",
+   "prompt": "Your team has a scheduled job that runs the deploy pipeline every night at 03:00 to refresh a service that slowly fills its memory. It deploys whatever build is tagged latest. On Thursday evening a change was merged and built, and it was waiting for a product manager's sign-off on Friday. On Friday morning customers saw the unfinished feature. What happened, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The nightly job deployed the latest build, which nobody had approved, going round the sign-off",
+     "match": [
+      "unapproved",
+      "not approved",
+      "never approved",
+      "wasn't approved",
+      "without approval",
+      "round the sign-off",
+      "around the sign-off",
+      "skipped the sign-off",
+      "bypass"
+     ]
+    },
+    {
+     "idea": "A refresh is a restart: it should start the version that is already running, not a new one",
+     "match": [
+      "already running",
+      "currently running",
+      "already live",
+      "running version",
+      "same version",
+      "restart, not",
+      "not a deploy"
+     ]
+    },
+    {
+     "idea": "Deploy a specific, signed-off build by its number or image, never a moving tag",
+     "match": [
+      "build number",
+      "by number",
+      "specific build",
+      "exact build",
+      "specific version",
+      "exact version",
+      "moving tag",
+      "image it runs"
+     ]
+    }
+   ],
+   "model": "The 03:00 job was a deploy, not a restart: it took whatever build was tagged latest, and on Thursday night that was the change still waiting for sign-off. So it went live unapproved, round the sign-off, with nobody watching, because a timer has no person behind it. I'd change the job so it starts the version that is already running, the same version on fresh processes, by its build number or the image it runs, with no way to pick another. New versions would then have one way into production, the normal pipeline with its sign-off. Separately, I'd log every run with the trigger and build number, and fix the memory growth so the nightly job can go."
+  },
+  {
+   "id": "s5e13-r2",
+   "kind": "mcq",
+   "prompt": "According to Netflix's 2015 post, what can trigger a Spinnaker pipeline?",
+   "options": [
+    "Only a person clicking Start in the application view",
+    "Only a change being merged into the code",
+    "The completion of a Jenkins job, a person, a cron expression, or another pipeline",
+    "Only a manual judgement stage in another pipeline"
+   ],
+   "answer": 2,
+   "why": "The post says pipelines \"can be triggered by the completion of a Jenkins Job, manually, via a cron expression, or even via other pipelines.\" Each trigger implies a different watcher: a cron trigger means a clock, and at 02:00 nobody."
+  },
+  {
+   "id": "s5e13-r3",
+   "kind": "mcq",
+   "prompt": "A nightly job exists only to clear a memory leak by starting the service fresh. Which build should it start?",
+   "options": [
+    "The newest build, so the site is always up to date",
+    "The build already running in production, from its own image",
+    "Whichever build most recently passed its automatic tests",
+    "The build waiting at manual judgement, to save the morning's work"
+   ],
+   "answer": 1,
+   "why": "Clearing memory needs a restart: the same version, fresh. Anything else is a release, and a release should pass the gate. In the sim, restarting the live version puts 344 on new servers at 02:04 and all 19 bookings go onto boats that run."
+  },
+  {
+   "id": "s5e13-r4",
+   "kind": "mcq",
+   "prompt": "What does red/black, Netflix's name for blue-green, mainly give you?",
+   "options": [
+    "A check by a person before every deploy",
+    "New servers that take over from the old, with the old kept ready to switch back",
+    "A way to run two versions for different customers for weeks",
+    "Automatic tests on the new version before it is baked"
+   ],
+   "answer": 1,
+   "why": "Red/black starts a new set of servers from the new image, moves customers onto them, and keeps the old set ready, so switching back is quick. It decides how a build goes live, not which build should."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The 02:00 job now starts fresh servers from the live image, and nothing has shipped by cron since. The leak fix is still half done. Then in March the return fare to the island showed as £0.00 on the site. At 15:20 Vilém logged in to both live servers and corrected the fare file on each. The fares were right all afternoon. At 02:04 the next morning the return fare was £0.00 again, and it has been every morning since, until Vilém logs in and corrects it.",
+  "prompt": "Reply to OP. Why does the fare go back to £0.00 every night, and what should Vilém do instead?",
+  "keyIdeas": [
+   {
+    "idea": "His correction was made on the running servers only, not in the build or its image, so servers started fresh from the image don't have it",
+    "match": [
+     "not in the image",
+     "not in the build",
+     "wasn't in the image",
+     "isn't in the image",
+     "from the image",
+     "come up without",
+     "new servers",
+     "only on the servers"
+    ]
+   },
+   {
+    "idea": "Make the fix as a change: merge it, so it becomes a build that goes through staging and manual judgement to production",
+    "match": [
+     "merge the fix",
+     "merge it",
+     "a new build",
+     "main pipeline",
+     "through the pipeline",
+     "signed off",
+     "sign-off",
+     "on staging"
+    ]
+   },
+   {
+    "idea": "Servers should be replaceable and never changed by hand; the restart wiping hand edits is a feature",
+    "match": [
+     "by hand",
+     "replaceable",
+     "never edit",
+     "don't edit",
+     "never change",
+     "hand edits",
+     "disposable"
+    ]
+   }
+  ],
+  "model": "The 02:00 job starts fresh servers from the live image, and that image was baked from the build before Vilém's correction. He changed the fare file only on the servers that were running, not in the build or the image, so every night the new servers come up without it and the £0.00 is back. That is the restart working as designed. The fix has to become a change like any other: merge it, so it makes a new build, which is baked, put on staging, checked by Rosalba at manual judgement and released. Once that build is live, the 02:00 job restarts it, correction included. And treat servers as replaceable: never change them by hand, because anything done by hand lasts only until the next restart."
+ },
+ "next": "Next, Wait Longer: a door that knocks back, and how long to wait for an answer, when to ask again, and why waiting longer each time, by a slightly random amount, keeps everyone from knocking at once.",
+ "sources": [
+  {
+   "title": "Andy Glover, Global Continuous Delivery with Spinnaker, The Netflix Tech Blog, 16 November 2015 (open source multi-cloud Continuous Delivery platform; pipelines from a deployable asset to a deployment; stages composable into pipelines; triggers: Jenkins job, manually, cron expression, other pipelines; stages incl. baking a machine image and manual judgement; Blue-Green or Red-Black; AWS and Google Cloud Platform; replaces Asgard with no need for a migration), read via the Internet Archive, 11 October 2026",
+   "url": "https://web.archive.org/web/20170430215432/http://techblog.netflix.com:80/2015/11/global-continuous-delivery-with.html"
+  },
+  {
+   "title": "Spinnaker documentation, Pipeline Triggers (a pipeline trigger defines when to automatically run a pipeline; Jenkins jobs, webhooks, CRON jobs and other pipelines; the pipeline runs each time the triggering event occurs), read 14 October 2026",
+   "url": "https://spinnaker.io/docs/guides/user/pipeline/triggers/"
+  },
+  {
+   "title": "Spinnaker documentation, Pipeline Stages reference (Manual Judgment: wait for the user to click Continue; Bake: creating a machine image, skipped if a new bake is unnecessary), read 14 October 2026",
+   "url": "https://spinnaker.io/docs/reference/pipeline/stages/"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.32 Change Management (changes to information processing facilities and systems should be subject to change management procedures)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-32-change-management-2022/"
+  },
+  {
+   "title": "AICPA, 2017 Trust Services Criteria (with revised points of focus, 2022), criterion CC8.1 on changes to infrastructure, data, software and procedures",
+   "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+  }
+ ]
+}
