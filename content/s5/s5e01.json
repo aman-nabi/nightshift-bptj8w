@@ -1,5 +1,6 @@
 {
  "_changelog": [
+  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
   "v1.0.0 (2026-10-11) first version"
  ],
  "id": "s5e01",
@@ -38,11 +39,19 @@
   "blocks": [
    {
     "t": "p",
-    "text": "Heronsgate Hostel has forty beds, one shared kitchen and one oven. Guests book the oven by the half hour on the kitchen app, which Ravindra, the owner's nephew, wrote in Python one summer. It runs on a small machine under the reception desk. The bookings live in a dictionary in its memory, written to a file every 5 minutes, and every tap gets its own thread. I'm the night porter. When the app misbehaves, it's mine."
+    "text": "Heronsgate Hostel has forty beds, one shared kitchen and one oven. Guests book the oven by the half hour on the kitchen app, a program they use from their phones. Ravindra, the owner's nephew, wrote it one summer in Python, a language for writing programs. It runs on a small machine under the reception desk."
    },
    {
     "t": "p",
-    "text": "On Thursday the last free slot was 19:00. Nilufar in room 6 tapped book at 18:52:41.208. Halvorsen in room 11 tapped it at 18:52:41.231, 23 milliseconds later. Both phones buzzed: Oven booked, 19:00."
+    "text": "The bookings live in its memory, the machine's fast scratch space. They sit in a dictionary: a list that pairs each half hour with a guest's name. Every 5 minutes the app copies that list into a file on its disk."
+   },
+   {
+    "t": "p",
+    "text": "Every tap gets its own thread. A thread is one line of work inside a program, like one cook following one recipe. Several can run side by side in the same kitchen. I'm the night porter. When the app misbehaves, it's mine."
+   },
+   {
+    "t": "p",
+    "text": "On Thursday the last free slot was 19:00. Nilufar in room 6 tapped book at 18:52:41.208. Halvorsen in room 11 tapped it at 18:52:41.231, 23 milliseconds later. A millisecond, ms for short, is a thousandth of a second. Both phones buzzed: Oven booked, 19:00."
    },
    {
     "t": "p",
@@ -54,7 +63,7 @@
    },
    {
     "t": "p",
-    "text": "This is book(), as Ravindra wrote it:"
+    "text": "This is book(), the part of the app that runs for each booking, as Ravindra wrote it. It checks whether the slot is None, Python's word for empty; if so, it fetches the guest's name, writes it in and sends the confirmation. Words after # are notes for people:"
    },
    {
     "t": "log",
@@ -62,11 +71,15 @@
    },
    {
     "t": "p",
-    "text": "lookup_guest asks the front desk system, on another machine, for the guest's name. The app logs every step to the millisecond. Here are the two threads, all times 18:52:41:"
+    "text": "lookup_guest asks the front desk system, a separate computer, for the guest's name, and waits for the answer over the network, the wires between the two computers. The app also keeps a log, a diary of every step to the millisecond. Each line shows a step number, the time after 18:52:41, the thread (A or B) and what it did:"
    },
    {
     "t": "log",
     "text": " 1  .208  A  tap: room 6 books 19:00\n 2  .208  A  check: slots[\"19:00\"] is None\n 3  .208  A  asks front desk, waits\n 4  .231  B  tap: room 11 books 19:00\n 5  .231  B  check: slots[\"19:00\"] is None\n 6  .231  B  asks front desk, waits\n 7  .248  A  write: None -> Nilufar\n 8  .248  A  confirm room 6\n 9  .271  B  write: Nilufar -> Halvorsen\n10  .271  B  confirm room 11\n    18:55:00  file: 19:00 Halvorsen"
+   },
+   {
+    "t": "p",
+    "text": "Read it in order. First, thread A checks the slot and finds it empty. Then A waits for the front desk. While A waits, B checks and also finds it empty, because A hasn't written yet. Then A writes Nilufar and confirms. Last, B writes Halvorsen over her and confirms too."
    },
    {
     "t": "p",
@@ -161,7 +174,7 @@
    "author": "u/grey_pager",
    "points": 143,
    "age": "5h",
-   "text": "Ravindra is half right. Your app runs on CPython, the usual Python, which has a global interpreter lock, the GIL: only one thread runs Python code at a time. But Python's own glossary says the GIL is always released when doing I/O, which is input and output, such as waiting for an answer over the network, and the operating system decides which thread runs next. A bug whose result depends on which thread happens to get somewhere first is called a race condition. Now your log. What was thread A doing at .231, when B checked? How long passes between a thread's check and its write? That gap is what engineers call the race window. Would taps 45 ms apart have done this? And on a busy evening, how long does the front desk take to answer?",
+   "text": "Ravindra is half right. Your app runs on CPython, the usual version of Python. CPython has a global interpreter lock, the GIL for short: a rule that only one thread runs Python code at a time, like one stove ring shared by every cook. But Python's own glossary says the GIL is always released when doing I/O. I/O, short for input and output, means reading or writing outside the program, such as waiting for an answer over the network. So it goes in steps. Thread A asks the front desk and starts waiting. While it waits, it hands back the stove ring. Then the operating system, the program in charge of the whole machine, picks which thread runs next, and B gets a turn. A bug whose result depends on which thread happens to get somewhere first is called a race condition. Now your log. What was thread A doing at .231, when B checked? How long passes between a thread's check and its write? That gap is what engineers call the race window. Would taps 45 ms apart have done this? And on a busy evening, how long does the front desk take to answer?",
    "replies": [
     {
      "author": "u/porter_jacobus",
@@ -176,13 +189,13 @@
    "author": "u/recheck_tadhgan",
    "points": 88,
    "age": "4h",
-   "text": "This is just an old read. Thread A's check was 40 ms stale by the time it wrote. Check the slot a second time right before the write and you're working from fresh data. A second check right before the write closes it; the gap is microseconds, and no two guests are going to tap inside the same microseconds. Two extra lines, no new machinery. I've shipped exactly this in three apps."
+   "text": "This is just old information. Thread A looked at the slot, and by the time it wrote, what it saw was 40 ms out of date. Check the slot a second time right before the write and you're working from fresh data. A second check right before the write closes it. The gap is then microseconds, millionths of a second, and no two guests are going to tap inside the same microseconds. Two extra lines, nothing new to learn. I've put exactly this live in three apps."
   },
   {
    "author": "u/one_lock_pelham",
    "points": 61,
    "age": "3h",
-   "text": "Python has a tool made for this: threading.Lock. A lock is a marker only one thread can hold at a time; any other thread that asks for it waits until the holder lets go. Wrap all of book() in one and only one booking runs at a time, so two can't overlap, whatever the timing. It's a hostel kitchen, not a stock exchange. Forty guests won't notice a queue."
+   "text": "Python has a tool made for this: threading.Lock. A lock is a marker only one thread can hold at a time, like the single key to a staff toilet. It works in steps. A thread asks for the lock. If nobody holds it, the thread takes it and carries on. If someone does, the thread waits. When the holder is done, it lets go, and a waiting thread takes it. Put all of book() inside one and only one booking runs at a time, so two can't overlap, whatever the timing. It's a hostel kitchen, not a stock exchange. Forty guests won't notice a queue."
   }
  ],
  "reply": {
@@ -192,29 +205,29 @@
     "text": "Check the slot a second time, just before the name is written, to catch a booking made in between.",
     "tone": "bad",
     "verdict": "A thinner window is still a window",
-    "part2": "Ravindra added the second check and replayed Thursday's two taps against it. Thread A checked again at .248, found None and wrote Nilufar; thread B checked again at .271, found Nilufar, and Halvorsen was told 19:00 was gone. One confirmation, and Ravindra was pleased. Then he ran the replay once more and let the operating system switch thread A out between its second check and its write, which it may do after any line. A checked again at .248 and was switched out. B checked again at .271, found None, wrote Halvorsen and confirmed. A ran again at .271 and wrote Nilufar over him. Two confirmations again, and this time the 18:55 file names Nilufar. The window had shrunk from 40 ms to the 23 ms that A sat switched out. It hadn't closed; it had moved, and now the kitchen door would show the other guest.",
-    "senior": "A second check narrows the window; it doesn't remove it. Between any check and the write that relies on it, another thread can run, and the operating system picks when. The check and the write have to become one step no other thread can split: a lock around both, or an atomic operation. Code that is right on most runs is how race conditions reach production."
+    "part2": "Ravindra added the second check and replayed Thursday's two taps against it, running them again in a test. Thread A checked again at .248, found None and wrote Nilufar; thread B checked again at .271, found Nilufar, and Halvorsen was told 19:00 was gone. One confirmation, and Ravindra was pleased. Then he ran the replay once more. This time he let the operating system pause thread A, which the sim calls switching it out, between its second check and its write, which it may do after any line. A checked again at .248 and was paused. B checked again at .271, found None, wrote Halvorsen and confirmed. A ran again at .271 and wrote Nilufar over him. Two confirmations again, and this time the 18:55 file names Nilufar. The window had shrunk from 40 ms to the 23 ms that A sat paused. It hadn't closed; it had moved, and now the kitchen door would show the other guest.",
+    "senior": "A second check narrows the window; it doesn't remove it. Between any check and the write that relies on it, another thread can run, and the operating system picks when. The check and the write have to become one step no other thread can split. That means a lock around both, or an atomic operation: one the machine carries out as a single step that can't be cut in half. Code that is right on most runs is how race conditions reach production, the live app real guests use."
    },
    {
-    "text": "Put one lock around the whole booking, guest lookup included, so only one booking runs at a time.",
+    "text": "Put one lock around the whole booking, front desk wait included, so only one booking runs at a time.",
     "tone": "warn",
     "verdict": "Correct, and every tap queues",
-    "part2": "Ravindra wrapped all of book() in one lock, and the cancellations and the oven page took the same lock, since they read and change the same dictionary. Thursday's replay came out right: A held the lock from .208 to .248, B waited 17 ms, found Nilufar, and Halvorsen was told 19:00 was gone. One confirmation. Then he replayed it with the front desk at 3,000 ms, as it is at check-in. A held the lock for its whole lookup, until 18:52:44.208. B waited 2,977 ms to hear the slot was gone. Room 3's cancellation of 20:30, which needed no guest lookup at all, waited 2,968 ms, and room 8, who only wanted to see the oven page, waited 2,948 ms. At check-in, every tap in the app froze behind whichever booking was waiting on the front desk.",
-    "senior": "A lock held across slow I/O is correct, and it turns one slow call into everyone's wait: here a 3 s lookup held up bookings, cancellations and the oven page alike. Hold a lock for the shortest critical section that keeps the data right, and do the network call before it or after it."
+    "part2": "Ravindra put all of book() inside one lock, and the cancellations and the oven page took the same lock, since they read and change the same dictionary. Thursday's replay came out right: A held the lock from .208 to .248, B waited 17 ms, found Nilufar, and Halvorsen was told 19:00 was gone. One confirmation. Then he replayed it with the front desk at 3,000 ms, as it is at check-in. A held the lock for its whole lookup, until 18:52:44.208. B waited 2,977 ms to hear the slot was gone. Room 3's cancellation of 20:30, which needed no guest lookup at all, waited 2,968 ms, and room 8, who only wanted to see the oven page, waited 2,948 ms. At check-in, every tap in the app froze behind whichever booking was waiting on the front desk.",
+    "senior": "A lock held while waiting on slow I/O is correct, but it turns one slow wait into everyone's wait: here a 3-second lookup held up bookings, cancellations and the oven page alike. The lines a lock guards are its critical section. Keep that section as short as the data needs to stay right, and do the network call before it or after it."
    },
    {
-    "text": "Look up the guest first, then hold a lock only while checking the slot and writing the name.",
+    "text": "Get the guest's name first, then hold a lock only while checking the slot and writing the name.",
     "tone": "ok",
     "verdict": "Senior answer",
-    "part2": "Ravindra moved lookup_guest to the top of book() and put a lock around just the check and the write. Replaying Thursday: A's lookup ran from .208 to .248 with no lock held; at .248 A took the lock, found None, wrote Nilufar, let go, and confirmed. At .271 B took the lock, found Nilufar, let go, and Halvorsen was told 19:00 was gone. One confirmation, one name in the 18:55 file, and they match. He let the operating system switch thread A out between its check and its write: B arrived at .271, waited for the lock, and still found Nilufar. With the front desk at 3,000 ms, the cancellation and the oven page waited 0 ms for the lock; each guest waited only for their own lookup. Halvorsen's lookup was wasted, 40 ms the front desk spent for nothing, and nobody minded.",
-    "senior": "Make the check and the write one step with a lock, and keep everything slow outside it: the critical section here is two lines in memory, usually held for well under a millisecond. On the default CPython build the GIL keeps each dictionary operation safe on its own; it doesn't keep two lines together, which is what the lock is for. And the lock covers threads in this one process only."
+    "part2": "Ravindra moved the front desk lookup, lookup_guest, to the top of book() and put a lock around just the check and the write. Replaying Thursday: A's lookup ran from .208 to .248 with no lock held; at .248 A took the lock, found None, wrote Nilufar, let go, and confirmed. At .271 B took the lock, found Nilufar, let go, and Halvorsen was told 19:00 was gone. One confirmation, one name in the 18:55 file, and they match. He let the operating system pause thread A between its check and its write: B arrived at .271, waited for the lock, and still found Nilufar. With the front desk at 3,000 ms, the cancellation and the oven page waited 0 ms for the lock; each guest waited only for their own lookup. Halvorsen's lookup was wasted, 40 ms the front desk spent for nothing, and nobody minded.",
+    "senior": "Make the check and the write one step with a lock, and keep everything slow outside it. The critical section, the lines the lock guards, is two lines in memory here, usually held for well under a millisecond. On the usual CPython, the GIL keeps each single dictionary step safe on its own; it doesn't keep two lines together, which is what the lock is for. And the lock covers threads in this one process only, one running copy of the app."
    },
    {
-    "text": "After writing, read the slot back and confirm the guest only if it still holds their name.",
+    "text": "After writing, read the slot again and confirm the guest only if it still holds their name.",
     "tone": "bad",
     "verdict": "Looks too early to see it",
     "part2": "Ravindra added the read-back and replayed Thursday. A wrote Nilufar at .248, read the slot back at once, found Nilufar, and confirmed. B had checked at .231, before A wrote; at .271 it wrote Halvorsen over Nilufar, read back Halvorsen, and confirmed. Two confirmations, and the 18:55 file names only Halvorsen, exactly as on Thursday. A's read-back was true when it ran. The overwrite came 23 ms later, and nothing reads the slot again once a confirmation has gone out.",
-    "senior": "A read-back only proves the slot held your name at that instant; a later writer can still overwrite it after the confirmation has gone. It is one more check, after the act instead of before it. The cure is to stop the second writer from writing at all, by making the check and the write one step."
+    "senior": "A read-back, reading the slot again straight after writing it, only proves the slot held your name at that instant; a later writer can still overwrite it after the confirmation has gone. It is one more check, after the act instead of before it. The cure is to stop the second writer from writing at all, by making the check and the write one step."
    }
   ]
  },
@@ -229,23 +242,23 @@
   "steps": [
    {
     "title": "Check, then act, with 40 ms between.",
-    "text": "book() reads the slot, then acts on what it read: a pattern called check-then-act. It is safe only if nothing can change the slot between the check and the act, and here 40 ms sit between them while lookup_guest waits on the front desk. On the default CPython build only one thread runs Python code at a time, which is why Ravindra thought bookings couldn't overlap. But Python's glossary says the GIL is always released when doing I/O. While A waited, B ran its check, saw None too, and went to the front desk itself. The order in which the steps of two threads actually run is their interleaving, and a race condition is a bug whose result depends on it. In the sim, any gap from 0 to 39 ms gives two confirmations; at 40 ms or more, B finds Nilufar."
+    "text": "book() reads the slot, then acts on what it read. That pattern is called check-then-act. It is safe only if nothing can change the slot between the check and the act. Here 40 ms sit between them, while lookup_guest waits on the front desk. On the usual CPython, the GIL lets only one thread run Python code at a time, which is why Ravindra thought bookings couldn't overlap. But Python's glossary says the GIL is always released when doing I/O, such as waiting on the network. Thursday went in steps. First, A checked the slot, saw None and asked the front desk. Next, while A waited, the GIL was free, so B ran its check and saw None too, because A hadn't written yet. Then B asked the front desk itself. Then A wrote Nilufar and confirmed. Last, B wrote Halvorsen over her and confirmed; nothing at that step looked at the slot again. The order in which the steps of two threads actually run is their interleaving, and a race condition is a bug whose result depends on it. In the sim, any gap from 0 to 39 ms gives two confirmations; at 40 ms or more, B finds Nilufar."
    },
    {
     "title": "A second look doesn't close the gap.",
-    "text": "Checking again just before the write, or reading the slot back after it, adds another check, and every check has a gap after it. Python's documentation says that at the end of each switch interval, which thread runs next is the operating system's decision, so a thread can be switched out after any line. In the sim, the second check works on Thursday's timings, but switch thread A out between its second check and its write and B gets in: 2 confirmations and a 23 ms window. The read-back fails even without a switch: A reads its own name at .248, 23 ms before B overwrites it. Narrow windows fail less often, which only makes them harder to find."
+    "text": "Checking again just before the write, or reading the slot back after it, adds another check, and every check has a gap after it. CPython gives each thread a short turn, called the switch interval. Python's documentation says that at the end of each switch interval, which thread runs next is the operating system's decision. So a thread can be paused, or switched out, after any line. In the sim, the second check works on Thursday's timings. But pause thread A between its second check and its write, and the steps change. First, A checks again, finds None, and is paused. Next, B checks, finds None, writes Halvorsen and confirms. Then A wakes and writes Nilufar over him, without looking again. That's 2 confirmations and a 23 ms window. The read-back fails even without a pause: A reads its own name at .248, 23 ms before B overwrites it. Narrow windows fail less often, which only makes them harder to find."
    },
    {
     "title": "A lock makes the check and the write one step.",
-    "text": "The lines that must run with no other thread touching the same data in between are a critical section. A mutex, short for mutual exclusion, lets one thread at a time into it. Python's is threading.Lock: acquire() takes it, and when it is already held, acquire() blocks until another thread calls release(). Written as with slots_lock:, it is taken when the block starts and released when the block ends, even if an error is raised. Every piece of code that reads or changes slots has to take the same lock, cancellations and the oven page included; one path that skips it reopens the race."
+    "text": "The lines that must run with no other thread touching the same data in between are a critical section. A mutex, short for mutual exclusion, lets one thread at a time into it, like the single key to one room. Python's is threading.Lock, and using it goes in steps. First, a thread calls acquire() to take the lock. If another thread already holds it, acquire() blocks: the thread stops there and waits. Then the holder runs its critical section. Last, the holder calls release(), and one waiting thread gets the lock. If a thread never calls release(), every thread behind it waits for good. Python has a safer way to write it: with slots_lock:, where slots_lock is the lock's name. The lock is taken when the indented block under that line starts and released when the block ends, even if an error is raised. Every piece of code that reads or changes slots has to take the same lock, cancellations and the oven page included; one path that skips it reopens the race."
    },
    {
     "title": "Keep slow work out of the lock.",
-    "text": "Lock scope is how much code runs while the lock is held. Hold it across lookup_guest and the lookup's wait becomes everyone's wait: at 3,000 ms, the front desk at check-in, Halvorsen waited 2,977 ms for the lock, room 3's cancellation 2,968 ms and room 8's oven page 2,948 ms. Do the slow work first, with no lock held, then lock only the check and the write, two lines in memory. In the sim nobody then waits on the lock, at a 40 ms lookup or a 3,000 ms one. The cost is one wasted lookup for the guest who loses, which is cheap."
+    "text": "Lock scope is how much code runs while the lock is held. Hold it across lookup_guest and the lookup's wait becomes everyone's wait: at 3,000 ms, the front desk at check-in, Halvorsen waited 2,977 ms for the lock, room 3's cancellation 2,968 ms and room 8's oven page 2,948 ms. So the fix runs in steps. First, ask the front desk for the name, with no lock held; if it is slow, only this guest waits. Next, take the lock. Then check the slot, and write the name only if it is None. Then let go of the lock. Last, send the confirmation, or tell the guest the slot is gone. The lock covers only two lines in memory. In the sim nobody then waits on the lock, at a 40 ms lookup or a 3,000 ms one. The cost is one wasted lookup for the guest who loses, which is cheap."
    },
    {
     "title": "One step in hardware, one statement in a database.",
-    "text": "An atomic operation happens as one indivisible step that no other thread can see half done. Compare-and-swap is the classic one, provided by most CPUs: write the new value only if the location still holds the value you expect, and report whether it did. Booking a slot is a compare-and-swap from None to a name. Many languages offer such operations for numbers and references; for a Python dictionary the lock is the usual answer. If the bookings lived in a database, the same idea would be a conditional write: UPDATE oven SET guest = 'Nilufar' WHERE slot = '19:00' AND guest IS NULL, and confirm only if one row changed, as All or Nothing's version column does. That's the contrast, not tonight's fix: these bookings live in one process's memory."
+    "text": "An atomic operation happens as one indivisible step that no other thread can see half done. Compare-and-swap is the classic one, provided by most CPUs, the chips that do a computer's work. It has three parts. It looks at a place in memory. If that place still holds the value you expect, it writes the new value. Either way, it reports whether it wrote. The chip does all three as one step, so no thread can slip in between. Booking a slot is a compare-and-swap from None to a name. Many languages offer such operations for numbers and references (pointers to other data); for a Python dictionary the lock is the usual answer. A database is a program that stores records and answers questions about them. If the bookings lived in one, the same idea would be a conditional write: UPDATE oven SET guest = 'Nilufar' WHERE slot = '19:00' AND guest IS NULL. That line means: put Nilufar in the 19:00 row, but only if nobody is in it yet. Confirm only if one row changed, as All or Nothing's version column, a number that changes with every write, does. That's the contrast, not tonight's fix: these bookings live in one process's memory, the memory of one running copy of the app."
    }
   ],
   "diagram": {
@@ -311,9 +324,9 @@
    "text": "Call lookup_guest at the top of book(), with no lock held. Then, inside with slots_lock:, check the slot and, only if it is None, write the name. Confirm after the lock is released, or tell the guest 19:00 is gone. Every other piece of code that reads or changes slots, the cancellations and the oven page included, takes the same lock. In the sim, Thursday's taps then end with 1 confirmation, the file says 19:00 Nilufar, Halvorsen is told at .271 that 19:00 is gone, and nobody waits on the lock, even with a 3,000 ms lookup. With a 40 ms lookup, across every gap from 0 to 60 ms and every switch point, there is exactly one confirmation."
   },
   "limits": [
-   "The lock works only inside one process. Run a second copy of the app, or a second machine, and each has its own dictionary and its own lock; bookings shared between them need one shared store and a conditional write.",
-   "Every path that touches slots must take the same lock. A cancellation or an admin page that writes without it reopens the race, and nothing warns you.",
-   "A lock that is never released stops every tap behind it. with slots_lock: releases it even when an error is raised; a bare acquire() with no matching release() does not."
+   "The lock works only inside one process, one running copy of a program. Run a second copy of the app, or a second machine, and each has its own dictionary and its own lock. Bookings shared between them need one shared place to keep them, such as a database, and a conditional write.",
+   "Every path that touches slots must take the same lock. A cancellation, or a staff page that writes without it, reopens the race, and nothing warns you.",
+   "A lock that is never released stops every tap behind it. with slots_lock: releases it even when an error is raised; a plain acquire() with no matching release() does not."
   ],
   "tradeoff": {
    "head": [
@@ -354,41 +367,41 @@
     ]
    ]
   },
-  "seniorTake": "Whenever code reads shared state and then acts on what it read, ask what another thread could do in between. If the answer is anything at all, the check and the act belong in one critical section under one lock, or in one atomic operation. Keep that section as short as correctness needs: the change to the data, not the network call. And know a lock's reach. A threading lock covers one process; data shared across processes needs the guarantee from wherever it lives, such as a conditional write in the database.",
+  "seniorTake": "Whenever code reads data that threads share and then acts on what it read, ask what another thread could do in between. If the answer is anything at all, the check and the act belong in one critical section under one lock, or in one atomic operation. Keep that section as short as being correct needs: the change to the data, not the network call. And know how far a lock reaches. A threading lock covers one process, one running copy of the program. Data shared across processes needs the same promise from wherever it lives, such as a conditional write in the database.",
   "realWorld": [
    {
     "title": "Therac-25, 1985 to 1987: safety moved into software",
-    "text": "Nancy Leveson and Clark Turner's investigation, published in IEEE Computer in July 1993, covers six known accidents with the Therac-25, a computer-controlled radiation therapy machine, between June 1985 and January 1987. Compared with the earlier machines it grew from, they write: \"The Therac-25 relies more on software for these functions.\" The functions were safety checks, including interlocks, that the earlier models also had in hardware.",
+    "text": "Nancy Leveson and Clark Turner's investigation, published in IEEE Computer (an engineering magazine) in July 1993, covers six known accidents with the Therac-25, a computer-controlled radiation therapy machine, between June 1985 and January 1987. Compared with the earlier machines it grew from, they write: \"The Therac-25 relies more on software for these functions.\" The functions were safety checks, including interlocks (switches that stop a machine running in an unsafe state), that the earlier models also had in hardware.",
     "source": 0
    },
    {
     "title": "Therac-25: a race condition, in their words",
-    "text": "Of one accident, they describe a shared flag that said data entry was finished while the operator could still be editing, and write: \"A potential race condition is set up.\" Of a later one: \"The second Yakima accident was again attributed to a type of race condition in the software.\" And: \"Given the unsafe programming practices exhibited in the code, it is possible that unknown race conditions or errors could have been responsible.\"",
+    "text": "Of one accident, they describe a shared flag (a yes-or-no marker in memory) that said data entry was finished while the operator could still be editing, and write: \"A potential race condition is set up.\" Of a later one: \"The second Yakima accident was again attributed to a type of race condition in the software.\" And: \"Given the unsafe programming practices exhibited in the code, it is possible that unknown race conditions or errors could have been responsible.\"",
     "source": 1
    },
    {
     "title": "Therac-25: the lesson on timing",
-    "text": "Among their lessons: \"The second lesson is that for complex interrupt-driven software, timing is of critical importance.\" And, more bluntly: \"A common mistake in engineering, in this case and many others, is to put too much confidence in software.\" A race that never shows in testing can still be there.",
+    "text": "Among their lessons: \"The second lesson is that for complex interrupt-driven software, timing is of critical importance.\" (Interrupt-driven software is set off by signals that can arrive at any moment.) And, more bluntly: \"A common mistake in engineering, in this case and many others, is to put too much confidence in software.\" A race that never shows in testing can still be there.",
     "source": 2
    },
    {
     "title": "Python's threading.Lock",
-    "text": "Python's documentation says a primitive lock is either locked or unlocked, and is created unlocked. When it is unlocked, acquire() changes the state to locked and returns immediately; \"When the state is locked, acquire() blocks until a call to release() in another thread changes it to unlocked.\" Used in a with statement, \"The acquire method will be called when the block is entered, and release will be called when the block is exited.\"",
+    "text": "Python's documentation says a primitive lock (the simplest kind) is either locked or unlocked, and is created unlocked. When it is unlocked, acquire() changes the state to locked and returns immediately; \"When the state is locked, acquire() blocks until a call to release() in another thread changes it to unlocked.\" Used in a with statement, \"The acquire method will be called when the block is entered, and release will be called when the block is exited.\"",
     "source": 3
    },
    {
     "title": "The GIL lets go during I/O",
-    "text": "Python's glossary defines the global interpreter lock as the mechanism CPython uses to assure that only one thread executes Python bytecode at a time, which makes built-in types such as dict implicitly safe against concurrent access. It adds: \"Also, the GIL is always released when doing I/O.\" Each dictionary operation is safe on its own; a check on one line and a write two lines later are not one operation.",
+    "text": "Python's glossary defines the global interpreter lock as the mechanism CPython uses to assure that only one thread executes Python bytecode (the simple steps Python code is turned into) at a time, which makes built-in types such as dict implicitly safe against concurrent access (use by several threads at once). It adds: \"Also, the GIL is always released when doing I/O.\" Each dictionary operation is safe on its own; a check on one line and a write two lines later are not one operation.",
     "source": 4
    },
    {
     "title": "Who runs next is the operating system's call",
-    "text": "On sys.setswitchinterval, Python's documentation says the value sets the ideal length of the time slices given to running Python threads, and: \"Also, which thread becomes scheduled at the end of the interval is the operating system's decision. The interpreter doesn't have its own scheduler.\"",
+    "text": "On sys.setswitchinterval, Python's documentation says the value sets the ideal length of the time slices (turns) given to running Python threads, and: \"Also, which thread becomes scheduled at the end of the interval is the operating system's decision. The interpreter doesn't have its own scheduler.\"",
     "source": 5
    },
    {
     "title": "Not every Python has a GIL",
-    "text": "The threading documentation adds that, as of Python 3.13, free-threaded builds can disable the GIL, \"enabling true parallel execution of threads, but this feature is not available by default\". There, threads really do run at once, and a check-then-act needs its lock just the same.",
+    "text": "The threading documentation adds that, as of Python 3.13, free-threaded builds (special versions of Python) can disable the GIL, \"enabling true parallel execution of threads, but this feature is not available by default\". There, threads really do run at once, and a check-then-act needs its lock just the same.",
     "source": 3
    }
   ],
@@ -398,7 +411,7 @@
     "How would you make check-then-act safe?",
     "What goes inside a lock and what stays out?"
    ],
-   "answer": "A race condition is a bug whose result depends on the order threads happen to run in. The commonest shape is check-then-act: read shared state, decide, then write, with a gap in between in which another thread can change the state. Two threads both see a slot free, and both book it. To make it safe, the check and the act must become one step: put both in a critical section under one mutex, use an atomic operation such as compare-and-swap, or, when the state lives in a database, a conditional write that applies only if the row still matches and tells you whether it did. Checking again, or reading back after the write, only narrows the window. Inside the lock goes only what keeps the data consistent, usually a few lines in memory. Outside go network calls, disk writes and anything else that can block, because every other thread that needs the lock waits as long as you hold it. Every path that touches the data must take the same lock, and a lock in one process does nothing for another process."
+   "answer": "A race condition is a bug whose result depends on the order threads, separate lines of work in one program, happen to run in. The commonest shape is check-then-act: read shared data, decide, then write, with a gap in between in which another thread can change the data. Two threads both see a slot free, and both book it. To make it safe, the check and the act must become one step. Put both in a critical section under one mutex, a lock only one thread can hold. Or use an atomic operation, one done as a single step, such as compare-and-swap. Or, when the data lives in a database, use a conditional write that applies only if the row still matches and tells you whether it did. Checking again, or reading back after the write, only narrows the window. Inside the lock goes only what keeps the data consistent, usually a few lines in memory. Outside go network calls, disk writes and anything else that can block, making the thread wait, because every other thread that needs the lock waits as long as you hold it. Every path that touches the data must take the same lock, and a lock in one process, one running copy of a program, does nothing for another process."
   }
  },
  "terms": [
@@ -412,11 +425,11 @@
   },
   {
    "term": "Kitchen app",
-   "def": "Ravindra's Python app for booking the oven. It runs on one small machine under the reception desk, keeps the bookings in memory and handles each tap on its own thread."
+   "def": "Ravindra's Python program for booking the oven. It runs on one small machine under the reception desk, keeps the bookings in the machine's memory and runs each tap as its own line of work, a thread."
   },
   {
    "term": "Slot",
-   "def": "One half hour of the oven, such as 19:00. In the app it is one entry in the slots dictionary: None when free, a guest's name when booked."
+   "def": "One half hour of the oven, such as 19:00. In the app it is one line in the list called slots: None (empty) when free, a guest's name when booked."
   },
   {
    "term": "Front desk system",
@@ -436,11 +449,11 @@
   },
   {
    "term": "Request thread",
-   "def": "A thread the app starts for one tap. It runs the code for that tap, such as book(), and then ends."
+   "def": "A line of work the app starts for one tap. It runs the steps for that tap, such as book(), and then ends."
   },
   {
    "term": "Dictionary (Python)",
-   "def": "Python's built-in map from keys to values, called dict. slots[\"19:00\"] reads the value under the key \"19:00\"; slots[\"19:00\"] = name sets it."
+   "def": "A Python list that pairs each key, like \"19:00\", with a value, like a name, as a phone book pairs names with numbers. Written dict. slots[\"19:00\"] reads a value; slots[\"19:00\"] = name sets it."
   },
   {
    "term": "None (Python)",
@@ -452,11 +465,11 @@
   },
   {
    "term": "CPython",
-   "def": "The standard Python interpreter, the one most people run. It has a global interpreter lock."
+   "def": "The standard program for running Python code, the one most people use. It lets only one thread run Python code at a time."
   },
   {
    "term": "Global interpreter lock (GIL)",
-   "def": "CPython's lock that lets only one thread run Python code at a time. It is released while a thread waits on I/O, so another thread can run then."
+   "def": "CPython's rule that only one thread runs Python code at a time, like one stove ring shared by every cook. A thread lets go of it while waiting for the network or the disk, so another can run."
   },
   {
    "term": "I/O (input and output)",
@@ -508,7 +521,7 @@
   },
   {
    "term": "Lock (threading.Lock)",
-   "def": "Python's mutex. It is either locked or unlocked; acquire() takes it, and if another thread holds it, waits until that thread calls release()."
+   "def": "Python's mutex: a marker one thread holds at a time, like a single key. acquire() takes it, waiting if another thread has it; release() hands it back."
   },
   {
    "term": "with statement (locks)",
@@ -516,7 +529,7 @@
   },
   {
    "term": "Lock scope",
-   "def": "How much code runs while a lock is held. Keep it to the critical section, and avoid waiting on slow I/O inside it."
+   "def": "How much code runs while a lock is held. Keep it to the critical section, and never wait for the network or the disk while holding it."
   },
   {
    "term": "Atomic operation",
@@ -524,15 +537,15 @@
   },
   {
    "term": "Compare-and-swap (CAS)",
-   "def": "An atomic operation most CPUs provide: write a new value only if the location still holds the value you expect, and report whether it did."
+   "def": "A one-step action most computer chips provide: write a new value only if the place in memory still holds the value you expect, and report whether it did."
   },
   {
    "term": "Conditional write",
-   "def": "A database write that applies only if a condition on the row still holds, such as WHERE guest IS NULL. Zero rows changed means someone got there first."
+   "def": "A database change that happens only if a record still looks as expected, such as WHERE guest IS NULL (nobody booked yet). Zero rows changed means someone got there first."
   },
   {
    "term": "UPDATE (SQL)",
-   "def": "The SQL statement that changes existing rows, such as UPDATE oven SET guest = 'Nilufar' WHERE slot = '19:00'. It reports how many rows it changed."
+   "def": "The command in SQL, the language for talking to databases, that changes saved rows: UPDATE oven SET guest = 'Nilufar' WHERE slot = '19:00'. It reports how many rows it changed."
   },
   {
    "term": "Thread A, B, C, D (in the sim)",
@@ -540,7 +553,7 @@
   },
   {
    "term": "Switch point (in the sim)",
-   "def": "Where the sim has the operating system switch away from thread A, once. A runs again when B has finished or is waiting for the lock."
+   "def": "Where the sim has the operating system pause thread A, once. A runs again when B has finished or is waiting for the lock."
   },
   {
    "term": "Therac-25",
@@ -568,7 +581,7 @@
   },
   {
    "term": "Goroutine",
-   "def": "Go's lightweight thread. A Go program can run many thousands of them at once."
+   "def": "A thread in Go, another programming language. Each is cheap to start, so a Go program can run many thousands of them at once."
   },
   {
    "term": "Channel (Go)",
@@ -576,10 +589,10 @@
   },
   {
    "term": "Race detector (Go)",
-   "def": "A Go tool, turned on with go test -race, that watches memory accesses while a program runs and reports goroutines touching the same data with no lock or channel between them."
+   "def": "A Go tool, turned on with go test -race. While a program runs, it watches what each goroutine reads and writes, and reports two touching the same data with no lock or channel between them."
   }
  ],
- "atWork": "Look for state that a service keeps in its own memory and that more than one request can change at once: a booking map, a stock count, a count of requests per user, a list of who is online. It is a common pattern in small services, and it works until two requests land inside the window. For each one, find every place that reads it and then writes based on what it read. What runs between the check and the write: a network call, a database query, a log line to a slow disk? Do all the paths that touch it take the same lock, or does one skip it? Is the lock held across I/O? And does the service run as more than one process or copy, which would split the state and its lock in two? This is Gatekeeper's G5 Build Night, which unlocks after this case and the next: prove the reverse proxy is free of race conditions under load. Review every piece of shared state, such as connection counters, the list of servers behind it and their health, and fix each race with an atomic operation, a mutex or a channel between goroutines; Go's race detector, run with go test -race during a load test, finds many of them. Standards: none apply here; this is engineering work, not audit work.",
+ "atWork": "Look for data that a service, a program that answers requests, keeps in its own memory and that more than one request can change at once: a list of bookings, a stock count, a count of requests per user, a list of who is online. It is a common pattern in small services, and it works until two requests land inside the window. For each one, find every place that reads it and then writes based on what it read. What runs between the check and the write: a network call, a question to a database, a log line written to a slow disk? Do all the paths that touch it take the same lock, or does one skip it? Is the lock held while waiting on I/O, the network or the disk? And does the service run as more than one process, more than one running copy, which would split the data and its lock in two? This is Gatekeeper's G5 Build Night, which unlocks after this case and the next: prove the reverse proxy, the program that sits in front of your servers and passes requests on, is free of race conditions under heavy use. Review every piece of shared data, such as counts of open connections, the list of servers behind it and whether each is healthy. Fix each race with an atomic operation, a mutex or a channel between goroutines (Go's threads). Go's race detector, run with go test -race during a load test, a test that sends many requests at once, finds many of them. Standards: none apply here; this is engineering work, not audit work.",
  "board": {
   "cards": [
    {
