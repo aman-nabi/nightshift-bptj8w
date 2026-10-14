@@ -1,0 +1,865 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version"
+ ],
+ "id": "s6e14",
+ "season": 6,
+ "n": 14,
+ "title": "The Conductor",
+ "setting": "an orchestra that plays itself",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "kubernetes",
+  "pods",
+  "deployments",
+  "services"
+ ],
+ "prerequisites": [
+  "s2e02",
+  "s2e09",
+  "s6e08",
+  "s6e11"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/quillford_boxoffice_henrietta",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 2961,
+  "title": "I run an orchestra's night box office. Tonight one buyer in four got seats for a concert we played last March. I deleted the copy of the shop that sold them. It was back in 8 seconds.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Henrietta, night box-office manager for the Quillford Sinfonia. Our online shop sells seats until midnight, and I answer the buyers who write in. On a concert eve they come about 60 an hour, one a minute."
+   },
+   {
+    "t": "p",
+    "text": "The shop is a program, and it runs on Kubernetes: software that starts, stops and connects programs on our rented computers. Each running copy of the shop is called a pod. A pod can stop at any moment, so we never keep just one."
+   },
+   {
+    "t": "p",
+    "text": "Jaroslav, our developer, doesn't start pods by hand. He writes a wish in a settings file, in YAML (one name, a colon and a value per line): \"always keep 3 pods of the shop running\". Kubernetes keeps that wish day and night. A kept wish like that is called a Deployment."
+   },
+   {
+    "t": "p",
+    "text": "Buyers never choose a pod. They all come in through one front door, called a Service, which shares them out. It finds its pods by their label: a name tag stuck on each pod. Every pod tagged app: box-office gets buyers. Ours hands each new buyer to the next pod in turn."
+   },
+   {
+    "t": "p",
+    "text": "Three lines from Jaroslav's files. The first is the Deployment's wish, its replicas, meaning copies to keep. The other two are the Service's selector: the tag it picks pods by."
+   },
+   {
+    "t": "log",
+    "text": "replicas: 3\nselector:\n  app: box-office"
+   },
+   {
+    "t": "p",
+    "text": "Kubernetes keeps one team's things together in a named room, a namespace. Ours is called tickets, and it's the only one we have."
+   },
+   {
+    "t": "p",
+    "text": "At 22:00 Osvaldo, our auditor, started last season's shop to check March's sales. It came with its own copy of last season's data, concerts and seats and all. He renamed its Deployment box-office-audit, so it wouldn't overwrite ours, and asked for 1 pod. He put it in tickets. He left the label as it was."
+   },
+   {
+    "t": "p",
+    "text": "From 22:00:08 the Service saw four pods tagged app: box-office and shared buyers among all four. The old shop still had our payment settings."
+   },
+   {
+    "t": "p",
+    "text": "At 22:31 a buyer wrote in. Her ticket was for the spring gala on 14 March. Last March. Her card had been charged."
+   },
+   {
+    "t": "p",
+    "text": "Jaroslav's night sheet says: \"If a pod misbehaves, delete it. Kubernetes starts a fresh one.\" On his control page I saw four pods where there should be three. At 22:40:00 I deleted the stranger, box-office-audit-58c2d-tn6vb."
+   },
+   {
+    "t": "evidence",
+    "label": "pods_2239_2240.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "22:39:20 to 22:40:40. The three live pods run the whole time. The auditor's pod runs until 22:40:00, is gone for 8 seconds, and is back at 22:40:08 under a new name. A buyer at 22:39:30 goes to the auditor's pod and gets March seats; the buyer at 22:40:30 goes to a live pod.",
+     "start": "22:39:20",
+     "seconds": 80,
+     "ticksEvery": 10,
+     "rows": [
+      {
+       "label": "Live pods, 3",
+       "segments": [
+        [
+         0,
+         80,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "Auditor's pod",
+       "segments": [
+        [
+         0,
+         40,
+         "bad"
+        ],
+        [
+         48,
+         80,
+         "bad"
+        ]
+       ],
+       "gaps": [
+        [
+         40,
+         48,
+         "gone"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 10,
+       "label": "buyer: March",
+       "tone": "bad"
+      },
+      {
+       "t": 40,
+       "label": "deleted",
+       "tone": "warn"
+      },
+      {
+       "t": 48,
+       "label": "back",
+       "tone": "bad"
+      },
+      {
+       "t": 70,
+       "label": "buyer: live",
+       "tone": "ok"
+      }
+     ]
+    },
+    "caption": "Redrawn from the control page and the order log. The auditor's pod took every fourth buyer, like the one at 22:39:30. I deleted it at 22:40:00. At 22:40:08 a new one, box-office-audit-58c2d-jk9fs, was ready, before the next buyer at 22:40:30. By midnight: 120 buyers, 30 with seats for 14 March."
+   },
+   {
+    "t": "p",
+    "text": "Eight seconds. A new name, the same old shop. I didn't touch it again."
+   },
+   {
+    "t": "beat",
+    "text": "By midnight, 30 of our 120 buyers held seats for a concert that took place last March. The orchestra plays itself."
+   },
+   {
+    "t": "p",
+    "text": "Osvaldo needs his copy for two more nights. What should we change before 22:00 tomorrow?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 138,
+   "age": "4h",
+   "text": "Your night sheet was written for a pod that hangs, and it did exactly what it says. Here is 22:40 in steps. Kubernetes writes every wish into etcd, its notebook: a store every part of Kubernetes reads. A helper called a controller reads each Deployment's wish over and over, counts the pods that wish owns, and starts or removes pods until the two match. Now the front door. When the Service picks a pod, what does it ask it? Not who started it, and not which season it sells. Look at the names on the control page: the first part of each pod's name is the Deployment that made it. How many wishes are written in tickets tonight, and whose?",
+   "replies": [
+    {
+     "author": "u/quillford_boxoffice_henrietta",
+     "op": true,
+     "points": 47,
+     "age": "3h",
+     "text": "Two wishes: box-office, 3 pods, and box-office-audit, 1. Jaroslav updates the shop at 08:00, while it's closed, so before tonight no old copy had ever run next to the live one while buyers were in."
+    }
+   ]
+  },
+  {
+   "author": "u/more_pods_meinrad",
+   "points": 88,
+   "age": "4h",
+   "text": "Don't fight the stray, drown it. Scale up, which just means running more copies: change replicas: 3 to replicas: 9, and the Service shares buyers among ten pods, so the old copy's share falls from one in four to one in ten. That's down in the noise of refunds you already handle. Kubernetes even has a helper for it, the Horizontal Pod Autoscaler, which changes the replicas number for you as buyers come and go. One line, and nothing Osvaldo needs gets deleted."
+  },
+  {
+   "author": "u/quillford_dev_jaroslav",
+   "points": 52,
+   "age": "2h",
+   "text": "Jaroslav here, awake now. The sheet is mine, sorry. I think the Service is holding a stale list of pods from 22:00. Delete the Service and create it again from my file: a fresh one builds its list from scratch and should find only our three."
+  }
+ ],
+ "reply": {
+  "prompt": "Osvaldo needs his old copy for two more nights. What should the Sinfonia change before 22:00 tomorrow? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Delete the strange pod again, and keep deleting it until it stops coming back.",
+    "tone": "bad",
+    "verdict": "It comes back every time",
+    "part2": "The next night I deleted it at 22:40, then every 5 minutes, 16 times by 23:55. Each time, Deployment box-office-audit counted 0 pods against its wish of 1 and started a new one, ready 8 s later. In the sim I did the same: the 8 s gaps never caught a buyer, who come on the half minute, so 30 of 120 again, one in four. It never stopped coming back, because nothing I did touched the wish written in etcd. By midnight I had deleted 16 pods and refunded 30 more buyers.",
+    "senior": "Deleting a pod changes what is running, not what is wanted. A Deployment is desired state: a controller compares the wish with the pods it owns, over and over, and closes the gap. A pod deleted by hand is, to the controller, the same as a pod that crashed, and replacing crashed pods is the whole point. To stop a workload, remove or change its wish: delete the Deployment, or set its replicas to 0. Fighting a controller by hand is a race you lose every few seconds."
+   },
+   {
+    "text": "Delete the old copy's Deployment, not its pod, and give live pods a unique label.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Before 22:00 Jaroslav deleted Deployment box-office-audit, and its pod went with it for good. Osvaldo started his copy again in a namespace of its own, audit, where our Service cannot see it. Jaroslav also added release: live to our pods and to the Service's selector, so it now picks app: box-office and release: live. In the sim: deleting the Deployment at 22:40 tonight would have stopped the March seats at 10 of 120; with the unique label from 22:00, the auditor's pod runs all night and gets 0 of 120. The next night every buyer got this season's seats, and Osvaldo got his March figures.",
+    "senior": "Act on the wish, not the copy, and make the picking rule specific. Deleting the Deployment removes the desired state, so the controller stops replacing the pod. A label only live pods carry, required by the Service's selector, means a copy that borrows the old label is never picked. Roll the new label onto the live pods first, check that all 3 carry it, then change the Service, or for a moment it picks none. Keep old and test copies out of production's namespace altogether; the label is the second lock, not the first."
+   },
+   {
+    "text": "Delete the Service and create it again, so it sends buyers only to the live pods.",
+    "tone": "bad",
+    "verdict": "Same selector, same four pods",
+    "part2": "Jaroslav deleted the Service at 22:40 the next night and created it again from his file. The new one read its selector, app: box-office, and picked four pods at once, the auditor's among them. In the sim: 30 of 120, the same as tonight. A Service's list can't go stale; it is rebuilt whenever pods change, and it asks only one thing of a pod, its label.",
+    "senior": "A Service is a standing question, not a saved answer: its controller keeps scanning for ready pods in its namespace whose labels match its selector. Recreating it asks the same question and gets the same answer. If the wrong pod is picked, change the question (the selector) or the answers (the labels), or move the pod out of the namespace. Recreating a Service also briefly removes the front door, so it costs an outage for nothing."
+   },
+   {
+    "text": "Scale the live shop from 3 pods to 9, so the old copy gets only a small share of buyers.",
+    "tone": "warn",
+    "verdict": "Fewer refunds, not none",
+    "part2": "Jaroslav set replicas: 9. In the sim the Service picks ten pods, and the auditor's gets every tenth buyer: 12 of 120 held seats for 14 March, against 30. Twelve refunds is fewer, not none, and we paid for six more pods all night to get it. Meinrad's noise was twelve people standing outside a hall that was dark that night.",
+    "senior": "More copies dilute a wrong one, they don't remove it: one in ten is still a wrong ticket sold to a real person every ten minutes. Scaling is the answer to load, and Kubernetes can do it for you with the Horizontal Pod Autoscaler, but it answers a different question from \"which pods should get buyers\". It is a fair stopgap for an hour while someone finds the wish behind the stray pod; it is not a fix, and it costs every hour it stays."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s6e14",
+  "title": "Run the box office from 21:59 to midnight",
+  "lede": "You're Henrietta at 21:59:00. Deployment box-office keeps 3 pods of the shop in the namespace tickets, all labelled app: box-office. At 22:00:00 Osvaldo starts his Deployment box-office-audit: 1 pod of last season's shop, ready 8 s later. A buyer arrives every minute from 22:00:30, 60 an hour, 120 by midnight. The Service picks every ready pod in tickets with its label and hands buyers out in turn (real Services often pick at random; the lab goes in turn so every run is the same). A buyer sent to the auditor's pod gets seats for 14 March. Set the auditor's namespace and label, the live replicas and a unique live label; delete the auditor's pod, its Deployment, or the Service; then run the night.",
+  "tryThis": "Try this: run to 22:40. 40 buyers, 10 with March seats, and the Service picks 4 pods. Delete the auditor's pod: the Service picks 3, then step 10 s: a new pod, box-office-audit-58c2d-jk9fs, ready at 22:40:08. Run to midnight: 30 of 120. Turn on deleting every 5 minutes: 16 deletions, still 30. Recreate the Service at 22:40: still 30. Set 9 live pods: 12 of 120. Delete the auditor's Deployment at 22:40: 10 of 120, and it never comes back. Turn on the unique live label, or move the auditor to the namespace audit: 0 of 120."
+ },
+ "explain": {
+  "oneLine": "Nothing went rogue. The Service picked every pod labelled app: box-office, and the auditor's copy wore that label. When Henrietta deleted its pod, its Deployment's wish, stored in etcd, still said keep 1, so a controller started another. Remove the wish, not the pod, and give the live pods a label nobody else wears.",
+  "steps": [
+   {
+    "title": "A pod runs; a Deployment wishes.",
+    "text": "A pod is one running copy of the shop: one or more containers (packed programs, see Boxes in Boxes) that start and stop together. Pods are meant to be thrown away and replaced, so nobody looks after them one by one. A Deployment is a written wish about pods: which program, how many copies (replicas), and which labels each copy wears. Jaroslav's says 3 copies of this season's shop. Osvaldo's says 1 copy of last season's. Kubernetes calls the wish desired state, and what is running the actual state."
+   },
+   {
+    "title": "The wish lives in etcd, and a controller keeps it.",
+    "text": "It works in steps. First, the wish is stored in etcd, the small database where Kubernetes keeps everything it has been told. Second, a controller, a loop that never stops, reads the wish and counts the pods that belong to it. Third, if there are too few it starts more, and if there are too many it removes some. At 22:40:00 Henrietta deleted the auditor's pod; the count fell to 0 against a wish of 1, so the controller started box-office-audit-58c2d-jk9fs, ready at 22:40:08. What can go wrong: a wish nobody remembers keeps its pods alive for ever."
+   },
+   {
+    "title": "A Service picks by label, and asks nothing else.",
+    "text": "The Service works in steps too. Its selector names the labels it wants, here app: box-office. Its controller keeps scanning the namespace for ready pods carrying those labels. Each new buyer goes to one of the pods on that list: in turn on the Sinfonia's setup, at random on many clusters, which gives about the same share. Labels are not unique, by design: many pods share them. So a pod from any Deployment, any season, that wears the label gets buyers. From 22:00:08 four pods matched, and every fourth buyer went to last March."
+   },
+   {
+    "title": "Why the two Deployments didn't fight, and the Service did not care.",
+    "text": "Kubernetes' guide warns against two controllers whose selectors overlap, because each may count the other's pods as its own, and says Kubernetes does not stop you. On most clusters each Deployment also stamps its own pods with a hidden fingerprint of its pod template, the pod-template-hash label, so each counted only its own pods tonight. The Service has no such stamp to check. A namespace is the other border: a Service only picks pods in its own namespace, so Osvaldo's copy in a namespace of its own would never have been seen."
+   },
+   {
+    "title": "More pods change the share, not the cause.",
+    "text": "Scaling means changing replicas. With 9 live pods the Service picks 10, and the auditor's still gets every tenth buyer: 12 of 120. The Horizontal Pod Autoscaler does the same job automatically: it changes a Deployment's replicas to match the load, as the ferry's autoscaler did with workers. It is right for crowds. It never asks which pods should be picked, so it can only dilute a stray, never remove it."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 320,
+   "aria": "The fix, drawn for tomorrow night. Buyers come in through the Service, whose selector is app: box-office and release: live, and it hands them in turn to the 3 live pods in namespace tickets. The Deployment box-office keeps 3 pods; its wish is stored in etcd. The auditor's old copy runs in its own namespace, audit, with its own label, and nothing points to it.",
+   "nodes": [
+    {
+     "id": "buyers",
+     "label": "Buyers",
+     "sub": "60 an hour",
+     "x": 75,
+     "y": 90,
+     "w": 110,
+     "h": 60,
+     "shape": "box",
+     "tone": "muted"
+    },
+    {
+     "id": "svc",
+     "label": "Service",
+     "sub": "app: box-office",
+     "meta": "+ release: live",
+     "x": 290,
+     "y": 90,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "live",
+     "label": "3 live pods",
+     "sub": "release: live",
+     "meta": "namespace tickets",
+     "x": 590,
+     "y": 90,
+     "w": 200,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "dep",
+     "label": "Deployment",
+     "sub": "box-office",
+     "meta": "replicas: 3",
+     "x": 590,
+     "y": 250,
+     "w": 200,
+     "h": 72,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "etcd",
+     "label": "etcd",
+     "sub": "the stored wishes",
+     "x": 290,
+     "y": 250,
+     "w": 180,
+     "h": 72,
+     "shape": "db",
+     "tone": "muted"
+    },
+    {
+     "id": "old",
+     "label": "Old copy",
+     "sub": "namespace audit",
+     "meta": "never picked",
+     "x": 75,
+     "y": 250,
+     "w": 130,
+     "h": 72,
+     "shape": "box",
+     "tone": "muted"
+    }
+   ],
+   "edges": [
+    {
+     "from": "buyers",
+     "to": "svc",
+     "label": "buy",
+     "tone": "muted"
+    },
+    {
+     "from": "svc",
+     "to": "live",
+     "label": "in turn",
+     "tone": "ok"
+    },
+    {
+     "from": "etcd",
+     "to": "dep",
+     "label": "the wish",
+     "dash": true,
+     "tone": "muted"
+    },
+    {
+     "from": "dep",
+     "to": "live",
+     "label": "keeps 3",
+     "dash": true,
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for tomorrow night. The Service picks only pods labelled app: box-office and release: live, which only the 3 live pods wear. The Deployment box-office keeps those 3; its wish is in etcd. Osvaldo's old copy runs in its own namespace, audit, where the Service never looks. In the sim, the unique label alone gives 0 of 120.",
+  "fix": {
+   "title": "The fix: remove the wish, then make the picking rule specific",
+   "text": "Delete Deployment box-office-audit, not its pod; the controller then has nothing to replace, and the pod goes for good. Osvaldo runs his copy again in a namespace of its own, audit, with its own label, app: box-office-audit. Then add release: live to the live Deployment's pod template and roll it out, check that all 3 pods carry it, and only then add release: live to the Service's selector. The Deployment's own selector stays as it is; Kubernetes doesn't allow changing it after creation, and it still matches. Check it in the sim: deleting the Deployment at 22:40 stops the March seats at 10 of 120; with the unique label or the separate namespace from 22:00, 0 of 120. Add a line to the night sheet: \"A pod that comes back has a Deployment. Find it before you delete anything.\""
+  },
+  "limits": [
+   "A unique label only stops copies that don't copy it. Anyone who starts a test from the live files carries release: live with them. Separate namespaces, with rules on who may start things in production's, are the stronger lock; separate clusters stronger still.",
+   "Order matters. Change the Service's selector before the pods carry the new label and, for that moment, it picks no pods at all and the shop is shut. Label the pods first, check the count, then change the selector.",
+   "Deleting a Deployment deletes its pods, which is what you want for a stray and a disaster for the wrong one. Read the name twice: box-office and box-office-audit differ by six letters."
+  ],
+  "tradeoff": {
+   "head": [
+    "What we change",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Keep deleting the pod",
+     "Quick, and it is what the night sheet says.",
+     "Back in 8 s every time: 16 deletions, still 30 of 120."
+    ],
+    [
+     "Delete its Deployment, unique live label",
+     "The stray stops for good; a borrowed label is never picked: 0 of 120.",
+     "Two changes in the right order; the auditor must move his copy."
+    ],
+    [
+     "Delete and recreate the Service",
+     "One command, and it feels like a reset.",
+     "Same selector, same 4 pods: 30 of 120. In a real cluster, a moment with no front door."
+    ],
+    [
+     "Scale to 9 live pods",
+     "One line; March seats fall to 12 of 120.",
+     "Still 12 wrong tickets, and 6 more pods paid for all night."
+    ]
+   ]
+  },
+  "seniorTake": "Kubernetes runs on written wishes. You tell it what you want, a Deployment with so many replicas, a Service with a selector, and it stores the wish in etcd; controllers then compare the wish with what is running, again and again, and close the gap. That loop is why a crashed pod heals itself, and why a deleted pod comes back. So the senior habit is to change the wish, not the copy: to stop something, find the object that wants it and delete or edit that. The second habit is to treat labels as the wiring. A Service doesn't know about Deployments, versions or seasons; it sends traffic to every ready pod in its namespace whose labels match. Labels are shared by design, so anything that copies a label copies the traffic. Give production pods a label that only production sets, keep tests and old copies in their own namespaces or clusters, and check what a selector picks before trusting it. Scaling, by hand or with the Horizontal Pod Autoscaler, answers how many; it never answers which.",
+  "realWorld": [
+   {
+    "title": "Kubernetes: pods are disposable",
+    "text": "The Pods page: \"Pods are the smallest deployable units of computing that you can create and manage in Kubernetes.\" It adds that you'll rarely create them directly, \"because Pods are designed as relatively ephemeral, disposable entities\", and that they are made through workload resources such as a Deployment.",
+    "source": 0
+   },
+   {
+    "title": "Kubernetes: a Deployment is desired state",
+    "text": "The Deployments page: \"You describe a desired state in a Deployment, and the Deployment Controller changes the actual state to the desired state at a controlled rate.\"",
+    "source": 1
+   },
+   {
+    "title": "Kubernetes: overlapping labels are allowed, and warned against",
+    "text": "On a Deployment's selector: \"You should not create other Pods whose labels match this selector, either directly, by creating another Deployment, or by creating another controller such as a ReplicaSet or a ReplicationController.\" And: \"Kubernetes does not stop you from doing this.\" With overlapping selectors, \"the controllers will fight with each other and won't behave correctly.\"",
+    "source": 1
+   },
+   {
+    "title": "Kubernetes: the pod-template-hash label",
+    "text": "\"The pod-template-hash label is added by the Deployment controller to every ReplicaSet that a Deployment creates or adopts.\" It \"ensures that child ReplicaSets of a Deployment do not overlap.\" A Service's selector has no such label, which is why tonight's two Deployments kept their own pods while the Service picked all four.",
+    "source": 1
+   },
+   {
+    "title": "Kubernetes: a Service picks by selector, continuously",
+    "text": "\"The set of Pods targeted by a Service is usually determined by a selector that you define.\" And: \"The controller for that Service continuously scans for Pods that match its selector\", so recreating the Service finds the same pods.",
+    "source": 2
+   },
+   {
+    "title": "Kubernetes: labels are not unique",
+    "text": "\"Unlike names and UIDs, labels do not provide uniqueness. In general, we expect many objects to carry the same label(s).\" And: \"The label selector is the core grouping primitive in Kubernetes.\"",
+    "source": 3
+   },
+   {
+    "title": "Kubernetes: etcd holds the wishes",
+    "text": "\"etcd is a consistent and highly-available key value store used as Kubernetes' backing store for all cluster data.\" The same page advises: \"make sure you have a back up plan for the data.\"",
+    "source": 4
+   },
+   {
+    "title": "Kubernetes: what a controller is",
+    "text": "The components page describes a controller as \"A control loop that watches the shared state of the cluster through the apiserver and makes changes attempting to move the current state towards the desired state.\"",
+    "source": 5
+   },
+   {
+    "title": "Kubernetes: namespaces",
+    "text": "\"In Kubernetes, namespaces provide a mechanism for isolating groups of resources within a single cluster. Names of resources need to be unique within a namespace, but not across namespaces.\" That is why Osvaldo had to rename his Deployment, and why he did not have to rename his label.",
+    "source": 6
+   },
+   {
+    "title": "Kubernetes: the Horizontal Pod Autoscaler",
+    "text": "\"In Kubernetes, a HorizontalPodAutoscaler automatically updates a workload resource (such as a Deployment or StatefulSet), with the aim of automatically scaling capacity to match demand.\" It changes how many pods; nothing about which.",
+    "source": 7
+   },
+   {
+    "title": "Kubernetes: keep stray labels away from selectors",
+    "text": "The ReplicaSet page: \"it is strongly recommended to make sure that the bare Pods do not have labels which match the selector of one of your ReplicaSets.\"",
+    "source": 8
+   }
+  ],
+  "interview": {
+   "asked": [
+    "What does a Deployment do that a pod doesn't?",
+    "How does a Service find its pods?",
+    "What is stored in etcd?"
+   ],
+   "answer": "A pod is one running copy of a program, one or more containers that start and stop together, and it is meant to be disposable: if it crashes or is deleted, nothing about the pod itself brings it back. A Deployment is desired state: it says which pod template to run and how many replicas, and a controller compares that with what is running, again and again, starting or removing pods to close the gap. It also rolls out new versions gradually. That is why deleting a pod that belongs to a Deployment only gets you a new pod a few seconds later; to stop it you delete the Deployment or set replicas to 0. A Service finds its pods by label: its selector lists labels, and its controller keeps scanning its namespace for ready pods whose labels match, and keeps the list of addresses up to date. It does not care which Deployment made a pod, and labels are not unique, so any pod that wears the label gets traffic. etcd is the key-value store behind the API server: every object, every Deployment, Service, pod and its labels, and their desired state, lives there, which is why you back it up. A story I'd tell: an orchestra's ticket shop ran 3 pods behind a Service selecting app: box-office. An auditor started last season's shop as a second Deployment with the same label, so the Service picked 4 pods and every fourth buyer got seats for a concert from last March. The manager deleted the stray pod and it came back in 8 seconds, because its Deployment's wish was still in etcd. The fix was to delete that Deployment, move old copies to their own namespace, and give production pods a label only production sets, required by the Service's selector."
+  }
+ },
+ "terms": [
+  {
+   "term": "Quillford Sinfonia",
+   "def": "The orchestra in this story. Its online shop sells concert seats until midnight; on a concert eve about 60 buyers an hour come in."
+  },
+  {
+   "term": "Night box-office manager",
+   "def": "Henrietta's job: she watches the online shop at night and answers the buyers who write in."
+  },
+  {
+   "term": "Online shop",
+   "def": "The Sinfonia's ticket-selling program. It runs as pods on Kubernetes and takes payment with the orchestra's payment settings."
+  },
+  {
+   "term": "Auditor",
+   "def": "Someone who checks an organisation's figures. Osvaldo ran last season's shop to check March's sales as the old shop showed them."
+  },
+  {
+   "term": "Spring gala, 14 March",
+   "def": "Last season's concert that the auditor's old copy of the shop still offered, because it carried last season's data. It had already taken place."
+  },
+  {
+   "term": "Night sheet",
+   "def": "Jaroslav's one-page instructions for the night: \"If a pod misbehaves, delete it. Kubernetes starts a fresh one.\" Right for a hung pod; wrong for a stray one."
+  },
+  {
+   "term": "Control page",
+   "def": "The web page where Henrietta can see the shop's pods and their names and delete a pod."
+  },
+  {
+   "term": "Container",
+   "def": "A packed program with everything it needs to run, kept apart from other programs on the same machine. A pod holds one or more. Taught in Boxes in Boxes."
+  },
+  {
+   "term": "Pod",
+   "def": "Kubernetes' smallest unit: one running copy of a program, made of one or more containers that start and stop together. Meant to be thrown away and replaced."
+  },
+  {
+   "term": "Deployment",
+   "def": "A written wish Kubernetes keeps: which program to run, how many copies (replicas) and which labels they wear. A controller starts or removes pods until the wish is met."
+  },
+  {
+   "term": "Desired state and actual state",
+   "def": "What you have asked for (3 pods) and what is running right now. Kubernetes' controllers keep moving the actual state toward the desired state."
+  },
+  {
+   "term": "Replicas",
+   "def": "How many copies of a pod a Deployment keeps. The live shop's is 3; the auditor's was 1."
+  },
+  {
+   "term": "Pod template",
+   "def": "The part of a Deployment that describes each pod it makes: the program and the labels. Adding release: live there gives every new pod that label."
+  },
+  {
+   "term": "YAML",
+   "def": "A plain format for settings files: one name, a colon and a value per line, with indents for things inside things. Kubernetes wishes are often written in it."
+  },
+  {
+   "term": "Service (Kubernetes)",
+   "def": "A front door with a stable address that sends traffic to every ready pod in its namespace whose labels match its selector."
+  },
+  {
+   "term": "Label",
+   "def": "A name tag on a pod, written as name: value, such as app: box-office. Many pods may wear the same label; it is not unique."
+  },
+  {
+   "term": "Selector",
+   "def": "The labels a Service (or a Deployment) looks for. A pod is picked if it carries every label in the selector."
+  },
+  {
+   "term": "Unique live label",
+   "def": "A label only production pods wear, here release: live, also required by the Service's selector, so a copy with only app: box-office is never picked."
+  },
+  {
+   "term": "Namespace",
+   "def": "A named room inside Kubernetes that keeps one team's or one purpose's things together. Names are unique inside it, and a Service only picks pods in its own."
+  },
+  {
+   "term": "etcd",
+   "def": "The small, carefully kept database where Kubernetes stores everything it has been told, including every Deployment's wish. Kubernetes calls it its backing store."
+  },
+  {
+   "term": "Key-value store",
+   "def": "A database that keeps values under names (keys), like a coat check keeps coats under ticket numbers. etcd is one."
+  },
+  {
+   "term": "Database",
+   "def": "An organised store of data that programs read and write."
+  },
+  {
+   "term": "Controller",
+   "def": "A Kubernetes helper that runs in a loop: it reads a wish, compares it with what is running, and makes changes to close the gap, again and again."
+  },
+  {
+   "term": "Control loop",
+   "def": "Watch, compare, act, repeat: like a thermostat, which keeps checking the room and switches the heating to reach the set temperature."
+  },
+  {
+   "term": "API server",
+   "def": "The part of Kubernetes every other part talks to. It reads and writes the wishes kept in etcd."
+  },
+  {
+   "term": "Cluster",
+   "def": "The group of computers Kubernetes runs on, with the parts that manage them, treated as one."
+  },
+  {
+   "term": "pod-template-hash",
+   "def": "A label a Deployment adds to the pods it makes: a short fingerprint of its pod template, so each Deployment counts only its own pods."
+  },
+  {
+   "term": "ReplicaSet",
+   "def": "The helper object a Deployment creates to keep a set number of identical pods running. You rarely touch it directly."
+  },
+  {
+   "term": "Workload resource",
+   "def": "Kubernetes' name for an object that runs pods for you and keeps them going, such as a Deployment or a StatefulSet."
+  },
+  {
+   "term": "Bare pod",
+   "def": "A pod started on its own, with no Deployment or other controller to replace it if it stops."
+  },
+  {
+   "term": "Horizontal Pod Autoscaler",
+   "def": "A Kubernetes helper that changes a Deployment's replicas to match the load, within a minimum and a maximum it is given. It decides how many pods, never which."
+  },
+  {
+   "term": "Scaling",
+   "def": "Changing how many copies run. Horizontal scaling adds or removes pods; vertical scaling gives each pod more power."
+  },
+  {
+   "term": "UID",
+   "def": "A unique id Kubernetes gives every object, unlike a label, which many objects can share."
+  },
+  {
+   "term": "StatefulSet",
+   "def": "A Kubernetes wish like a Deployment, for pods that each need a fixed name and their own stored data."
+  },
+  {
+   "term": "ReplicationController",
+   "def": "An older Kubernetes object that kept a set number of pods running, before ReplicaSets."
+  },
+  {
+   "term": "Payment settings",
+   "def": "The details a shop uses to charge cards. The old copy still had the live ones, so its buyers were really charged."
+  },
+  {
+   "term": "Refund",
+   "def": "Money paid back to a buyer, here for a seat at a concert that had already happened."
+  },
+  {
+   "term": "Environment",
+   "def": "One full setting where a system runs, such as development, test or production. Keeping them apart stops a test from serving real customers."
+  },
+  {
+   "term": "ISO/IEC 27001",
+   "def": "An international standard for running information security. Its Annex A lists controls, among them A.8.31 on separating environments."
+  },
+  {
+   "term": "A.8.31 (ISO/IEC 27001:2022)",
+   "def": "The control on separation of development, test and production environments. ISMS.online's summary says it works \"by isolating development, testing, and production environments.\""
+  }
+ ],
+ "atWork": "Look for anything outside production that can wear production's labels. It is a common pattern for a test copy, an old version kept for a check, or a debugging pod started from the live files to land in production's namespace with the same app label, and for the Service to start sending it real traffic within seconds. Check three things. For each Service, which pods does its selector pick right now, and are they all ones you expect (on Kubernetes, list pods by the selector's labels and compare with the Deployments you know)? Does production have a label only production sets, required by its Services? And do your runbooks say \"delete the pod\" anywhere without saying \"first find what owns it\"? Standards: if your company is pursuing ISO/IEC 27001:2022, control A.8.31 asks for separation of development, test and production environments, which ISMS.online's summary says it achieves \"by isolating development, testing, and production environments\"; separate namespaces with access rules, or separate clusters, plus labels that only production sets, are the evidence an auditor will look for, so build them in now.",
+ "board": {
+  "cards": [
+   {
+    "id": "kubernetes",
+    "title": "Kubernetes"
+   },
+   {
+    "id": "pods",
+    "title": "Pods"
+   },
+   {
+    "id": "deployments",
+    "title": "Deployments"
+   },
+   {
+    "id": "services",
+    "title": "Services"
+   }
+  ],
+  "strings": [
+   {
+    "from": "pods",
+    "to": "containers",
+    "label": "packed programs"
+   },
+   {
+    "from": "kubernetes",
+    "to": "etcd",
+    "label": "wishes stored"
+   },
+   {
+    "from": "kubernetes",
+    "to": "deployments",
+    "label": "desired state"
+   },
+   {
+    "from": "kubernetes",
+    "to": "pods",
+    "label": "puts them back"
+   },
+   {
+    "from": "services",
+    "to": "pods",
+    "label": "picks by label"
+   },
+   {
+    "from": "services",
+    "to": "load-balancers",
+    "label": "shares buyers"
+   },
+   {
+    "from": "services",
+    "to": "service-discovery",
+    "label": "finds its pods"
+   },
+   {
+    "from": "kubernetes",
+    "to": "autoscaling-policies",
+    "label": "sets how many"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s6e14-r1",
+   "kind": "free",
+   "prompt": "Your team runs its payments program on Kubernetes: three pods behind a Service in the namespace prod. A tester starts a trial version there too, from a copy of the live files, renamed payments-trial, 1 pod. Customers report that about one payment in four goes wrong. Someone deletes the trial pod, and a new one appears seconds later. What is happening, and what do you change?",
+   "keyIdeas": [
+    {
+     "idea": "The Service picks every ready pod whose labels match its selector, and the trial copy kept the live label",
+     "match": [
+      "same label",
+      "same labels",
+      "selector",
+      "by label",
+      "by its label",
+      "labels match",
+      "matching label",
+      "copied the label",
+      "kept the label"
+     ]
+    },
+    {
+     "idea": "Deleting a pod leaves the Deployment's wish in place, so a controller replaces it; delete the Deployment",
+     "match": [
+      "delete the deployment",
+      "deleting the deployment",
+      "remove the deployment",
+      "the deployment",
+      "desired state",
+      "controller",
+      "wish"
+     ]
+    },
+    {
+     "idea": "Keep trials out of production: their own namespace or cluster, and a unique label for live pods that the Service requires",
+     "match": [
+      "own namespace",
+      "separate namespace",
+      "another namespace",
+      "different namespace",
+      "unique label",
+      "distinct label",
+      "release: live",
+      "separate cluster",
+      "test environment"
+     ]
+    }
+   ],
+   "model": "The trial copy kept the live label, so the Service, which picks every ready pod in its namespace by its label selector, now sends it about one payment in four. Deleting the pod doesn't help: the trial's wish, the desired state kept in etcd, still says 1 pod, so a controller starts a new one. Delete the Deployment, not the pod. Then run trials in their own namespace or a separate cluster, and give the live pods a unique label, such as release: live, that the Service's selector requires; label the pods first, then change the selector."
+  },
+  {
+   "id": "s6e14-r2",
+   "kind": "mcq",
+   "prompt": "At 22:40 Henrietta deleted the auditor's pod, and a new one was ready 8 seconds later. Why?",
+   "options": [
+    "The Service restarted it, because it still had buyers to send",
+    "Its Deployment's wish for 1 pod was still in etcd, so a controller started a new one",
+    "Kubernetes keeps a spare of every pod and swaps it in after any deletion",
+    "The pod was never deleted; it was only hidden from the Service"
+   ],
+   "answer": 1,
+   "why": "A Deployment is desired state stored in etcd. Its controller counted 0 pods against a wish of 1 and started box-office-audit-58c2d-jk9fs, ready at 22:40:08. Only deleting the Deployment, or setting its replicas to 0, stops that."
+  },
+  {
+   "id": "s6e14-r3",
+   "kind": "mcq",
+   "prompt": "How does a Kubernetes Service decide which pods get its traffic?",
+   "options": [
+    "It sends traffic to the pods its own Deployment created",
+    "It picks every ready pod in its namespace whose labels match its selector",
+    "It picks the pods running the newest version of the program",
+    "It keeps the list of pods it found when it was created"
+   ],
+   "answer": 1,
+   "why": "A Service knows nothing of Deployments or versions. Its controller keeps scanning its namespace for ready pods whose labels match the selector. Labels are not unique, so any pod wearing app: box-office got buyers."
+  },
+  {
+   "id": "s6e14-r4",
+   "kind": "mcq",
+   "prompt": "Which of these does Kubernetes store in etcd?",
+   "options": [
+    "The buyers' tickets and card payments",
+    "The running program inside every pod",
+    "Its objects and their wishes, such as each Deployment's replicas and labels",
+    "Only the names of pods that were deleted"
+   ],
+   "answer": 2,
+   "why": "etcd is Kubernetes' backing store for all cluster data: every object you have told it about, Deployments, Services, pods and their labels. The shop's own data, like tickets, lives in the shop's own database."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The labels held: every buyer since has had this season's seats, and Osvaldo's copies run in their own room. For the season launch in March, Jaroslav added a Horizontal Pod Autoscaler to the shop with a floor of 9 pods and a ceiling of 15. The launch went well. A week later, to save money, he edited the shop's Deployment from replicas: 9 to replicas: 3 by hand. Within a minute the shop was back to 9 pods. He tried twice more. Nine each time.",
+  "prompt": "Reply to OP. Why does the shop keep going back to 9 pods, and how should Jaroslav get it down to 3?",
+  "keyIdeas": [
+   {
+    "idea": "The autoscaler owns the replicas number now and keeps writing it back to at least its minimum of 9",
+    "match": [
+     "rewrites",
+     "overwrites",
+     "overrides",
+     "writes it back",
+     "sets it back",
+     "changes it back",
+     "its minimum",
+     "minimum of"
+    ]
+   },
+   {
+    "idea": "Change the autoscaler's own setting, lowering its minimum to 3, instead of editing the Deployment",
+    "match": [
+     "lower the minimum",
+     "lower its minimum",
+     "minreplicas",
+     "min replicas",
+     "lower the floor",
+     "lower its floor",
+     "edit the autoscaler",
+     "change the autoscaler",
+     "autoscaler's"
+    ]
+   },
+   {
+    "idea": "It is a control loop: the autoscaler checks again every few seconds (15 s by default), so a hand edit only lasts until its next check",
+    "match": [
+     "control loop",
+     "every 15",
+     "15 seconds",
+     "next check",
+     "checks again",
+     "loop"
+    ]
+   }
+  ],
+  "model": "Same lesson as March, one level up. The Horizontal Pod Autoscaler now owns the Deployment's replicas: it is a control loop that checks again every 15 seconds by default and overwrites the number with what it wants, never less than its minimum of 9. Jaroslav's hand edit was undone at the next check. Change the wish that owns the number: edit the autoscaler and lower its minimum to 3 (minReplicas), or remove the autoscaler if he wants a fixed count. Then let the autoscaler scale the shop between 3 and 15 as buyers come and go."
+ },
+ "next": "Next, Blueprints: an architect's drawers, and infrastructure as code: building servers and settings from written files, and keeping development, test and production alike.",
+ "sources": [
+  {
+   "title": "Kubernetes documentation, Pods (smallest deployable units; designed as relatively ephemeral, disposable entities; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/concepts/workloads/pods/"
+  },
+  {
+   "title": "Kubernetes documentation, Deployments (desired state; Selector section and its note on overlapping selectors; pod-template-hash label; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+  },
+  {
+   "title": "Kubernetes documentation, Service (pods targeted by a selector; the Service's controller continuously scans for matching pods; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/concepts/services-networking/service/"
+  },
+  {
+   "title": "Kubernetes documentation, Labels and Selectors (labels do not provide uniqueness; the label selector is the core grouping primitive; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/"
+  },
+  {
+   "title": "Kubernetes documentation, Operating etcd clusters for Kubernetes (etcd as Kubernetes' backing store for all cluster data; back-up plan; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/"
+  },
+  {
+   "title": "Kubernetes documentation, Kubernetes Components (kube-apiserver, etcd, kube-controller-manager; a controller as a control loop; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/concepts/overview/components/"
+  },
+  {
+   "title": "Kubernetes documentation, Namespaces (isolating groups of resources within a single cluster; names unique within a namespace; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/"
+  },
+  {
+   "title": "Kubernetes documentation, Horizontal Pod Autoscaling (updates a workload resource such as a Deployment to match demand; 15-second default sync period; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/"
+  },
+  {
+   "title": "Kubernetes documentation, ReplicaSet (bare Pods should not have labels matching a ReplicaSet's selector; read 15 October 2026)",
+   "url": "https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.31, Separation of Development, Test and Production Environments (a summary of the control; read 15 October 2026)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-31-separation-of-development-test-production-environments-2022/"
+  }
+ ]
+}
