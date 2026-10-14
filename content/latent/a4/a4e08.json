@@ -1,5 +1,6 @@
 {
  "_changelog": [
+  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
   "v1.0.0 (2026-10-11) first version"
  ],
  "id": "a4e08",
@@ -35,11 +36,31 @@
   "blocks": [
    {
     "t": "p",
-    "text": "I'm on the data team at Hartsilver Court, a garden estate whose yew maze opens at night through October, lit by lanterns. Every night at 23:10 a cleaning agent fetches the day's bookings from our ticketing platform, Gatewicket, through a tool called export_bookings, cleans them in batches (duplicates, misspelt postcodes, children booked as adults) and loads them for the 07:30 report. A normal night is 60 steps, about 15 minutes. Our harness keeps a sliding window of the agent's last 10 steps, so its context never overflows and every step sends about 40,000 tokens and writes about 2,000. At our rate, $3 per million tokens in and $15 per million out, that's $0.15 a step. Its step limit is 2,000, set for the monthly backfill, the run that reloads a whole month."
+    "text": "I'm on the data team at Hartsilver Court, a garden estate whose yew maze opens at night through October, lit by lanterns. Every night at 23:10 a cleaning agent tidies the day's bookings. An agent, remember, is a language model that works in steps, using tools to act."
    },
    {
     "t": "p",
-    "text": "I was the night on-call on Friday, and my phone never rang. Orla, the morning on-call engineer, opened the run at 07:05, read the screen, and stopped it. The trace:"
+    "text": "Its night goes like this. First it fetches the bookings from our ticketing platform, Gatewicket, through a tool called export_bookings. Then it cleans them in batches, a small group at a time: duplicates, misspelt postcodes, children booked as adults. Last it loads them for the 07:30 report. A normal night is 60 steps, about 15 minutes."
+   },
+   {
+    "t": "p",
+    "text": "Our harness, the code that runs the agent's loop, keeps a sliding window: it sends the model only the agent's last 10 steps and drops older ones."
+   },
+   {
+    "t": "p",
+    "text": "So its context, everything the model reads at once, never overflows. Every step sends about 40,000 tokens, the pieces of text models are billed by, and writes about 2,000. At our rate, $3 per million tokens in and $15 per million out, that's $0.15 a step."
+   },
+   {
+    "t": "p",
+    "text": "Its step limit, the most steps one run may take, is 2,000, set for the monthly backfill, the run that reloads a whole month."
+   },
+   {
+    "t": "p",
+    "text": "I was the night on-call on Friday, the engineer who answers alarms overnight, and my phone never rang. Orla, the morning on-call engineer, opened the run at 07:05, read the screen, and stopped it."
+   },
+   {
+    "t": "p",
+    "text": "Below is the trace, the run's record of every step. Each line shows the step number, the time, and whether it is the agent's thought, the action it took, or the result that came back."
    },
    {
     "t": "log",
@@ -51,7 +72,15 @@
    },
    {
     "t": "p",
-    "text": "Gatewicket's own log has the rest. Every call got a 429 with Retry-After: 1800. Finance's 23:00 export had spent the quota on the key we share, and Gatewicket's docs say a call made before the Retry-After time restarts the wait. Our tool wrapper turns anything that isn't a success into \"request failed\". The agent asked again every 15 seconds, so the wait never ended."
+    "text": "Gatewicket's own log has the rest. Every call got a 429, the code a service sends back for too many requests. With it came Retry-After: 1800, meaning: don't ask again for 1,800 seconds."
+   },
+   {
+    "t": "p",
+    "text": "Finance's 23:00 export had spent the quota, the use Gatewicket allows in a period, on the key we share. A key is the secret code our programs show Gatewicket to get in. And Gatewicket's docs say a call made before the Retry-After time restarts the wait."
+   },
+   {
+    "t": "p",
+    "text": "Our tool wrapper, the code between the agent and Gatewicket, turns anything that isn't a success into \"request failed\". So each round went the same way. The agent called. Gatewicket refused and restarted its wait. The wrapper said only \"request failed\". The agent called again 15 seconds later, so the wait never ended."
    },
    {
     "t": "evidence",
@@ -121,7 +150,7 @@
    },
    {
     "t": "p",
-    "text": "The bill for one night: $285.00, more than the agent's budget for the whole month. Nothing crashed, so nothing paged me. Our step limit would have stopped it at 07:30, 25 minutes and $15.00 later. The 07:30 report went out empty, with half term coming. What do I change before tonight?"
+    "text": "The bill for one night: $285.00, more than the agent's budget for the whole month. Nothing crashed, so nothing paged me, the alert that wakes the on-call. Our step limit would have stopped it at 07:30, 25 minutes and $15.00 later. The 07:30 report went out empty, with half term, a school holiday, coming. What do I change before tonight?"
    }
   ]
  },
@@ -145,7 +174,7 @@
    "author": "u/more_steps_tuppence",
    "points": 98,
    "age": "7h",
-   "text": "A 429 is a transient error by definition: a rate limit passes. Every guide says retry transient errors, and your agent did exactly that. It didn't fail, it ran out of night. 2,000 steps is a toy limit for a production job anyway; your backfill will hit it one day. Raise it well past that and a stubborn rate limit gets outlasted. It just needed more steps to get through.",
+   "text": "A 429 is a transient error by definition, one that passes on its own: a rate limit, a cap on how many calls you may make, passes. Every guide says retry transient errors, and your agent did exactly that. It didn't fail, it ran out of night. 2,000 steps is a toy limit for a real job anyway; your backfill will hit it one day. Raise it well past that and a stubborn rate limit gets outlasted. It just needed more steps to get through.",
    "replies": [
     {
      "author": "u/maze_lantern_cadoc",
@@ -189,18 +218,18 @@
     "senior": "A step limit sized for the biggest job never fires on the small one, so it bounds nothing that matters at night. More steps help a run that is making progress; a run that repeats one call with one result is making none. Size limits per job, add limits on spend and time, and make sure the agent learns what the error means."
    },
    {
-    "text": "Cap steps, spend and time per run, stop when a call repeats, honour Retry-After, and hand over with the trace.",
+    "text": "Cap steps, spend and time per run, stop when a call repeats, honour Retry-After, and send someone the trace.",
     "tone": "ok",
     "verdict": "Senior answer",
-    "part2": "Cadoc gave the nightly run its own limits: 120 steps, $20 and one hour. He added a check that ends a run when the same call gets the same result 3 times in a row, changed the wrapper to wait the Retry-After seconds and pass Gatewicket's message through, and set any stopped run to send the night on-call its trace. On the next night the quota was spent. Step 1's call at 23:10:15 got the 429, the wrapper waited, tried again at 23:40:15 and got through: 60 steps, $9.00, done at 23:55:00, no limit near. To be sure the limits work, he replayed Friday with the backoff switched off and the old bare message: the repeat check ended it at 23:10:45 after 3 steps and $0.45, and his phone buzzed with the trace.",
-    "senior": "Each part covers a different hole. Backing off as Gatewicket asked fixes Friday itself; the caps bound what any loop can cost, whatever causes the next one; the repeat check catches the commonest loop in seconds; and the handover means a stopped run wakes a person instead of failing quietly. The limits live in your code, because the model, seeing 10 steps at a time, can't know it is looping."
+    "part2": "Cadoc gave the nightly run its own limits: 120 steps, $20 and one hour. He added a check that ends a run when the same call gets the same result 3 times in a row, changed the wrapper to wait the Retry-After seconds before asking again, called backing off, and pass Gatewicket's message through, and set any stopped run to send the night on-call its trace. On the next night the quota was spent. Step 1's call at 23:10:15 got the 429, the wrapper waited, tried again at 23:40:15 and got through: 60 steps, $9.00, done at 23:55:00, no limit near. To be sure the limits work, he replayed Friday with the backoff switched off and the old bare message: the repeat check ended it at 23:10:45 after 3 steps and $0.45, and his phone buzzed with the trace.",
+    "senior": "Each part covers a different hole. Backing off as Gatewicket asked fixes Friday itself; the caps bound what any loop can cost, whatever causes the next one; the repeat check catches the commonest loop in seconds; and the handover, sending a person the trace, means a stopped run wakes a person instead of failing quietly. The limits live in your code, because the model, seeing 10 steps at a time, can't know it is looping."
    },
    {
     "text": "Make the export tool report success on a rate limit, so the agent moves on and the rest of the night still runs.",
     "tone": "bad",
     "verdict": "The loop gone, the truth with it",
     "part2": "Cadoc's colleague changed export_bookings so a 429 came back as success with no rows. On the next rate-limited night the run finished at 23:10:30: 2 steps, $0.30, and a last line that read \"Done. Friday had 0 bookings to clean.\" Nothing looped and nobody was woken. At 07:30 the report showed a lantern night with no visitors, and the estate manager rang to ask whether the maze had been shut.",
-    "senior": "Hiding an error trades a loud, expensive failure for a quiet, wrong success, which is worse: nothing looks broken, and every report downstream inherits the lie. A tool should tell the agent the truth in words it can act on: what failed, whether it will pass, and what to do. The loop was the agent believing a bad message; the fix is a better message, not a false one."
+    "senior": "Hiding an error trades a loud, expensive failure for a quiet, wrong success, which is worse: nothing looks broken, and every report built on it inherits the lie. A tool should tell the agent the truth in words it can act on: what failed, whether it will pass, and what to do. The loop was the agent believing a bad message; the fix is a better message, not a false one."
    },
    {
     "text": "Run the agent only in the day, with someone watching its trace, and let the overnight cleaning wait until then.",
@@ -222,23 +251,23 @@
   "steps": [
    {
     "title": "The error said nothing it could act on.",
-    "text": "Gatewicket's answer was precise: 429, too many requests, Retry-After: 1800. The wrapper passed on two words, \"request failed\": a bare error. A rate limit is a transient error, worth retrying, but only after the wait, and the agent never learned there was a wait. With nothing else to go on, it did what a reasonable reader of \"request failed\" does: it tried again."
+    "text": "A tool call usually goes in three steps. First the agent asks for the call. Then the wrapper makes it and reads the full answer: the status code, a number saying how it went, and the headers, extra labels sent with it, such as Retry-After. Last, the wrapper writes what the agent gets back. On Friday the last step threw away everything useful. Gatewicket's answer was precise: 429, too many requests, Retry-After: 1800. The wrapper passed on two words, \"request failed\": a bare error, one that says nothing about why. A rate limit is a transient error, one that passes, worth retrying, but only after the wait, and the agent never learned there was a wait. With nothing else to go on, it did what a reasonable reader of \"request failed\" does: it tried again."
    },
    {
     "title": "Asking again restarted the wait.",
-    "text": "Gatewicket's rule is that a call before the Retry-After time restarts it, and Anthropic's own rate-limit docs say of their retry-after header that earlier retries will fail. Asking every 15 seconds meant the 30-minute wait never ran out. The quota would have been free at 23:40:15 if the agent had asked once and then waited. Persistence was the cause of the loop, not the cure."
+    "text": "Gatewicket's rule is that a call before the Retry-After time restarts it, and the rate-limit docs of Anthropic, the company that makes the Claude models, say of their retry-after header that earlier retries will fail. A good retry goes in steps. First, read how long the service says to wait. Then wait that long. Then ask once, and only then decide what to do next. Friday's agent skipped the waiting: asking every 15 seconds meant the 30-minute wait never ran out. The quota would have been free at 23:40:15 if the agent had asked once and then waited. Persistence was the cause of the loop, not the cure."
    },
    {
     "title": "From inside, the loop looked healthy.",
-    "text": "The sliding window kept the last 10 steps, so the context never overflowed and every step cost the same $0.15. That is good engineering for a long run, and it hid the loop: at step 1,900 the agent could see 10 failures, not 1,900, and each thought read a short run of bad luck as nearly done. Nothing crashed, the cost per step was flat, and the run reported itself as running. Only something counting from outside the window could see it."
+    "text": "The sliding window works in steps too. After each step, the harness adds the newest step to what the model will read. Then, if there are more than 10, it drops the oldest. So the context never overflowed and every step cost the same $0.15. That is good engineering for a long run, and it hid the loop: at step 1,900 the agent could see 10 failures, not 1,900, and each thought read a short run of bad luck as nearly done. Nothing crashed, the cost per step was flat, and the run reported itself as running. Only something counting from outside the window could see it."
    },
    {
     "title": "Budgets belong in your code.",
-    "text": "Give each run limits your code enforces: steps, spend and time, sized to the job, not to the biggest job you have. A 60-step night with a cap of 120, $20 and one hour has room to spare and a hard ceiling. Add a repeat check: the same call with the same result 3 times in a row ends the run. In the sim each alone stops Friday early: the repeat check at 23:10:45 for $0.45, 120 steps at 23:40:00 for $18.00, $20 at 23:43:15, one hour at 00:10:00 for $36.00. OWASP names the wider risk Unbounded Consumption, LLM10:2025."
+    "text": "Give each run limits your code enforces: steps, spend and time, sized to the job, not to the biggest job you have. A 60-step night with a cap of 120, $20 and one hour has room to spare and a hard ceiling. Add a repeat check: the same call with the same result 3 times in a row ends the run. Together they make a run guard, and it works in steps. Before each step, it checks steps used, money spent and time taken against the caps. After each step, it compares the last 3 calls and their results. If any check fails, it ends the run. What can go wrong: caps set too high never fire, and a loop whose calls differ slightly slips past the repeat check. In the sim each alone stops Friday early: the repeat check at 23:10:45 for $0.45, 120 steps at 23:40:00 for $18.00, $20 at 23:43:15, one hour at 00:10:00 for $36.00. OWASP, a security charity that lists common risks in AI apps, names the wider risk Unbounded Consumption, LLM10:2025."
    },
    {
     "title": "Back off as told, and hand over when stuck.",
-    "text": "Let the wrapper, which sees the status and the header, wait the Retry-After seconds before asking again: on Friday that is one retry at 23:40:15 and a finished run at 23:55:00 for $9.00. Doubling waits that ignore the header got through too, but only at 00:14:00, after 9 calls. Make the message the agent sees instructive, as in Hands It Can Use. And when any limit stops a run, send a person the trace, so a stopped run wakes someone instead of failing quietly."
+    "text": "Let the wrapper, which sees the status and the header, wait the Retry-After seconds before asking again: on Friday that is one retry at 23:40:15 and a finished run at 23:55:00 for $9.00. Doubling backoff, waiting 15 seconds, then 30, then 60 and so on, ignores the header; it got through too, but only at 00:14:00, after 9 calls. Make the message the agent sees instructive, saying what failed, whether it will pass and what to do, as in Hands It Can Use. And when any limit stops a run, hand over. That goes in steps: the code ends the run, gathers the trace, the last call and result, the spend and the reason it stopped, and sends it to the on-call phone. So a stopped run wakes someone instead of failing quietly."
    }
   ],
   "diagram": {
@@ -336,7 +365,7 @@
   "limits": [
    "Caps stop the damage, not the cause. A run that hits one still leaves the work undone and a person to wake, and limits must be sized per job: too high and they never fire, as 2,000 didn't; too low and they cut good nights short.",
    "The repeat check catches only exact repeats. An agent can circle through calls that differ slightly each time, so keep the spend and time caps behind it.",
-   "Retrying a call that writes, such as clean_batch, can do the work twice if the first try landed and only the answer was lost: retries deliver at least once, so writes need an idempotency key (Dead Letter's The Ticket Number)."
+   "Retrying a call that writes, such as clean_batch, can do the work twice if the first try landed and only the answer was lost: retries deliver at least once, meaning the work may land more than once, so writes need an idempotency key, a unique tag that lets the service spot and skip a repeat (Dead Letter's The Ticket Number)."
   ],
   "tradeoff": {
    "head": [
@@ -386,7 +415,7 @@
   "realWorld": [
    {
     "title": "OWASP LLM10:2025 Unbounded Consumption",
-    "text": "OWASP's Top 10 for LLM Applications (read 11 October 2026) says Unbounded Consumption occurs when a Large Language Model (LLM) application allows users to conduct excessive and uncontrolled inferences, leading to risks such as denial of service (DoS), economic losses, model theft, and service degradation. Friday's agent was its own user: nothing bounded its inferences.",
+    "text": "OWASP's Top 10 for LLM Applications (a security charity's list of the biggest risks in apps built on language models; read 11 October 2026) says Unbounded Consumption occurs when a Large Language Model (LLM) application allows users to conduct excessive and uncontrolled inferences (model calls), leading to risks such as denial of service (DoS, making a service unavailable), economic losses, model theft, and service degradation. Friday's agent was its own user: nothing bounded its inferences.",
     "source": 0
    },
    {
@@ -396,7 +425,7 @@
    },
    {
     "title": "OWASP: timeouts, throttling and resource allocation",
-    "text": "OWASP's mitigations include: set timeouts and throttle processing for resource-intensive operations to prevent prolonged resource consumption; monitor and manage resource allocation dynamically to prevent any single user or request from consuming excessive resources; and continuously monitor resource usage and implement logging to detect and respond to unusual patterns of resource consumption.",
+    "text": "OWASP's mitigations (ways to reduce the risk) include: set timeouts and throttle (slow down) processing for resource-intensive operations to prevent prolonged resource consumption; monitor and manage resource allocation dynamically to prevent any single user or request from consuming excessive resources; and continuously monitor resource usage and implement logging to detect and respond to unusual patterns of resource consumption.",
     "source": 0
    },
    {
@@ -406,12 +435,12 @@
    },
    {
     "title": "Anthropic: limits refill, they don't reset",
-    "text": "The same page says the API uses the token bucket algorithm, so capacity is continuously replenished up to your maximum limit, rather than being reset at fixed intervals. Gatewicket's rule, that an early call restarts the wait, is stricter; either way, the time to ask again is the one the service gives.",
+    "text": "The same page says the API uses the token bucket algorithm (an allowance that refills a little at a time, like a bucket under a dripping tap), so capacity is continuously replenished up to your maximum limit, rather than being reset at fixed intervals. Gatewicket's rule, that an early call restarts the wait, is stricter; either way, the time to ask again is the one the service gives.",
     "source": 1
    },
    {
     "title": "Anthropic: the same 429, a different meaning",
-    "text": "When an organisation reaches its monthly spend cap, the page says requests return HTTP 429 with error type rate_limit_error, the same as for a rate limit, but the response has no retry-after header, and retrying, including the SDK's automatic retries, fails until access resumes. Two errors with one status code need different handling, which is why a tool should pass on the details, not just \"request failed\".",
+    "text": "When an organisation reaches its monthly spend cap, the page says requests return HTTP 429 with error type rate_limit_error, the same as for a rate limit, but the response has no retry-after header, and retrying, including the SDK's (the ready-made code library's) automatic retries, fails until access resumes. Two errors with one status code need different handling, which is why a tool should pass on the details, not just \"request failed\".",
     "source": 1
    }
   ],
@@ -421,7 +450,7 @@
     "What budgets would you put on an agent?",
     "How should tools report errors to agents?"
    ],
-   "answer": "I assume an agent will loop one day, so I decide in advance what that can cost. My own code enforces budgets per run, sized to the job: a step cap, a spend cap and a wall-clock time cap, each with room above a normal run and a hard ceiling. On top I detect repeats: the same tool call with the same input and the same result a few times in a row ends the run, and a spend or time cap catches the near repeats that check misses. When a tool hits a rate limit, the wrapper backs off for the Retry-After the service gave, because asking earlier usually fails and can restart the wait; it retries writes only with an idempotency key. Tools return instructive errors: what failed, whether it is transient, how long to wait, and what to do next, never a bare \"request failed\" and never a false success. And when any limit stops a run, the agent hands over: a person gets the trace, the last call and result, the spend and the reason it stopped. The model sees only its window; the harness sees the whole run, so the stopping logic belongs there."
+   "answer": "I assume an agent will loop one day, so I decide in advance what that can cost. My own code enforces budgets per run, sized to the job: a step cap, a spend cap and a wall-clock time cap (time by the clock, waits included), each with room above a normal run and a hard ceiling. On top I detect repeats: the same tool call with the same input and the same result a few times in a row ends the run, and a spend or time cap catches the near repeats that check misses. When a tool hits a rate limit, the wrapper backs off for the Retry-After the service gave, because asking earlier usually fails and can restart the wait; it retries writes only with an idempotency key, a unique tag that stops the same write landing twice. Tools return instructive errors: what failed, whether it is transient, how long to wait, and what to do next, never a bare \"request failed\" and never a false success. And when any limit stops a run, the agent hands over: a person gets the trace, the last call and result, the spend and the reason it stopped. The model sees only its window; the harness, the code that runs the loop, sees the whole run, so the stopping logic belongs there."
   }
  },
  "terms": [
@@ -439,7 +468,7 @@
   },
   {
    "term": "Ticketing platform",
-   "def": "A service that sells and records tickets for an attraction. Hartsilver Court's is Gatewicket, which other teams reach through an API with a shared key."
+   "def": "A service that sells and records tickets for an attraction. Hartsilver Court's is Gatewicket, which teams' programs reach through its API, the agreed way to ask it for things, with a shared key."
   },
   {
    "term": "Gatewicket",
@@ -467,7 +496,7 @@
   },
   {
    "term": "Warehouse",
-   "def": "A data warehouse: the database a data team loads cleaned data into for reports."
+   "def": "A data warehouse: the big store of records a data team loads cleaned data into, like a library's stacks, so reports can be built from it."
   },
   {
    "term": "Postcode",
@@ -483,11 +512,11 @@
   },
   {
    "term": "Sliding window (of steps)",
-   "def": "The harness keeps the system prompt and only the most recent steps, here the last 10, dropping older ones. The context never overflows and each step costs about the same."
+   "def": "The harness keeps the agent's standing instructions and only the most recent steps, here the last 10, dropping older ones. The context never overflows and each step costs about the same."
   },
   {
    "term": "Tool wrapper",
-   "def": "The code between the agent's tool and the real service. It makes the call, sees the full response, status and headers, and writes what the agent gets back."
+   "def": "The code between the agent's tool and the real service, like a receptionist passing messages. It makes the call, sees the full answer, its status code and labels, and writes what the agent gets back."
   },
   {
    "term": "Quota",
@@ -495,7 +524,7 @@
   },
   {
    "term": "Shared key",
-   "def": "One API key used by more than one job, so one job's calls use up the others' quota too."
+   "def": "One key, the secret code a program shows a service to get in, used by more than one job, so one job's calls use up the others' quota too."
   },
   {
    "term": "Night on-call, morning on-call",
@@ -559,7 +588,7 @@
   },
   {
    "term": "Unbounded Consumption",
-   "def": "OWASP's LLM10:2025: an LLM application that allows excessive and uncontrolled inferences, risking denial of service, economic losses, model theft and service degradation."
+   "def": "OWASP's LLM10:2025: an AI app that lets model calls run without limit, risking an outage, big bills, a copied model and a slower service."
   },
   {
    "term": "LLM10:2025",
@@ -591,11 +620,11 @@
   },
   {
    "term": "rate_limit_error",
-   "def": "Anthropic's error type on a 429. A spend cap reached returns it too, but without a retry-after header."
+   "def": "Anthropic's label for the kind of error on a 429. A spend cap reached returns it too, but without a retry-after header saying how long to wait."
   },
   {
    "term": "Spend cap (Anthropic)",
-   "def": "The most an organisation can spend on Anthropic's API in a calendar month for its tier. When it is reached, requests return 429 until access resumes."
+   "def": "The most an organisation can spend on Anthropic's API in a calendar month, set by its usage level. When it is reached, requests return 429 until access resumes."
   },
   {
    "term": "Support agent",
@@ -607,11 +636,11 @@
   },
   {
    "term": "8.6 (capacity management)",
-   "def": "The ISO/IEC 27001:2022 Annex A control on capacity management: the use of resources is monitored and adjusted to current and expected capacity needs."
+   "def": "A rule in ISO/IEC 27001:2022 on capacity management: watch how much of each resource is used, and adjust it to what is needed now and expected later."
   },
   {
    "term": "ISO/IEC 27001:2022",
-   "def": "The international standard for an information security management system. Its Annex A lists controls, such as 8.6, an organisation can be certified against."
+   "def": "The international standard for running information security, which firms can be certified against. Its Annex A lists rules, called controls, such as 8.6."
   },
   {
    "term": "Half term",
@@ -630,12 +659,12 @@
    "def": "A run's dashboard saying it is still going with no errors raised. A loop that never errors looks healthy."
   }
  ],
- "atWork": "Find an agent at work that runs with nobody watching: a nightly data job, a support agent answering overnight, a research agent working through a queue. A common incident: a support agent looped on a broken search tool all night, each step reasoning that one more search would find the answer, and burned a month's model budget before anyone looked. Ask five things. What are its per-run limits on steps, spend and wall-clock time, enforced by your code, and are they sized to this job or to the biggest one? What ends a run that repeats the same call with the same result? When a tool fails, what exactly does the agent see: the service's status, how long to wait and what to do, or two words? Who backs off on a rate limit, and does it honour the Retry-After the service sends? And when a limit stops a run, who gets the trace, and would it wake them? Standards-readiness note: if your organisation holds or is pursuing ISO/IEC 27001:2022, an agent that can run up model spend or hammer a shared API without limit touches Annex A 8.6 (capacity management), which covers monitoring the use of resources and adjusting it to current and expected capacity needs. Per-run budgets, spend alerts and the handover trace are evidence for it, cheapest built into the first version rather than added before an audit.",
+ "atWork": "Find an agent at work that runs with nobody watching: a nightly data job, a support agent answering customers overnight, a research agent working through a queue. A common incident: a support agent looped on a broken search tool for the help centre, the company's library of help articles, all night, each step reasoning that one more search would find the answer, and burned a month's model budget before anyone looked. Ask five things. What are its per-run limits on steps, spend and wall-clock time (time by the clock, waits included), enforced by your code, and are they sized to this job or to the biggest one? What ends a run that repeats the same call with the same result? When a tool fails, what exactly does the agent see: the service's status, how long to wait and what to do, or two words? Who backs off on a rate limit, and does it honour the Retry-After the service sends? And when a limit stops a run, who gets the trace, and would it wake them? Standards-readiness note: if your organisation holds or is pursuing ISO/IEC 27001:2022, the security standard firms are certified against, an agent that can run up model spend or hammer a shared API (a service other teams also call) without limit touches Annex A 8.6 (capacity management, watching and adjusting how much is used), which covers monitoring the use of resources and adjusting it to current and expected capacity needs. Per-run budgets, spend alerts and the handover trace are evidence for it, cheapest built into the first version rather than added before an audit.",
  "board": {
   "cards": [
    {
     "id": "agent-failure-modes",
-    "title": "Agent failure modes"
+    "title": "How agents fail"
    },
    {
     "id": "loops",
@@ -712,7 +741,7 @@
   {
    "id": "a4e08-r1",
    "kind": "free",
-   "prompt": "Your company's support agent answers customer emails using a search tool over the help centre. One weekend the search service's credentials expired, and the tool returned the single word \"error\" for every query. By Monday the agent had searched thousands of times, every customer had been told \"I'm still looking into this\", and the model bill was a month's budget. What went wrong, and what would you change?",
+   "prompt": "Your company's support agent answers customer emails using a search tool over the help centre. One weekend the search service's credentials, the login details the tool uses, expired, and the tool returned the single word \"error\" for every query. By Monday the agent had searched thousands of times, every customer had been told \"I'm still looking into this\", and the model bill was a month's budget. What went wrong, and what would you change?",
    "keyIdeas": [
     {
      "idea": "The tool's error said nothing the agent could act on, so it kept making the same call: a loop",
@@ -766,12 +795,12 @@
      ]
     }
    ],
-   "model": "The tool's error was bare: one word, nothing about what failed or whether it would pass, so the agent did what a reasonable reader does and kept retrying the same call, round and round, a loop. Credentials that expired won't fix themselves, so every retry was wasted, and nothing in the code bounded the run. I'd give every run a step cap, a spend cap and a time cap in our own code, sized to a normal run, plus a repeat check that ends the run when the same call gets the same result a few times in a row. I'd make the tool's error instructive: authentication failed, not transient, don't retry, tell a person. And when any limit stops the run, it hands over to a person with the trace, so someone on call hears about it on Saturday, not Monday."
+   "model": "The tool's error was bare: one word, nothing about what failed or whether it would pass, so the agent did what a reasonable reader does and kept retrying the same call, round and round, a loop. Credentials that expired won't fix themselves, so every retry was wasted, and nothing in the code bounded the run. I'd give every run a step cap, a spend cap and a time cap in our own code, sized to a normal run, plus a repeat check that ends the run when the same call gets the same result a few times in a row. I'd make the tool's error instructive, telling the agent what to do: authentication failed (the login was refused), not transient, don't retry, tell a person. And when any limit stops the run, it hands over to a person with the trace, so someone on call hears about it on Saturday, not Monday."
   },
   {
    "id": "a4e08-r2",
    "kind": "mcq",
-   "prompt": "OWASP's LLM10:2025 is called Unbounded Consumption. Which describes it?",
+   "prompt": "OWASP, a security charity, keeps a list of the biggest risks in apps built on large language models (LLMs). Its LLM10:2025 is called Unbounded Consumption. Which describes it?",
    "options": [
     "A user's text that changes the model's instructions so it does what the attacker wants",
     "An LLM application that allows excessive and uncontrolled inferences, risking denial of service, economic losses, model theft and service degradation",
@@ -853,7 +882,7 @@
   }
  ],
  "coldCase": {
-  "update": "UPDATE, 4 months later. Thank you all. The nightly run now has its own limits, 120 steps, $20 and an hour, the repeat check, a wrapper that waits out Gatewicket's Retry-After, and a handover that sends me the trace. Two rate-limited nights since: both waited until 23:40:15 and finished at 23:55:00 for $9.00. Then in February, three nights running, the handover woke me at 23:40:00: step cap, 120 steps, $18.00, and the bookings never got past batch 17. The trace goes round like the maze: clean_batch(17) comes back \"row rejected\"; the agent reads the batch, changes a postcode, calls clean_batch(17) again; \"row rejected\"; reads it again, tries another postcode; and on until the cap. The repeat check never fired.",
+  "update": "UPDATE, 4 months later. Thank you all. The nightly run now has its own limits, 120 steps, $20 and an hour, the repeat check, a wrapper that waits out Gatewicket's Retry-After, and a handover that sends me the trace. Two rate-limited nights since: both waited until 23:40:15 and finished at 23:55:00 for $9.00. Then in February, three nights running, the handover woke me at 23:40:00: step cap, 120 steps, $18.00, and the bookings never got past batch 17. The trace goes round like the maze: clean_batch(17), the tool call that cleans and saves batch 17, comes back \"row rejected\"; the agent reads the batch, changes a postcode, calls clean_batch(17) again; \"row rejected\"; reads it again, tries another postcode; and on until the cap. The repeat check never fired.",
   "prompt": "Reply to OP. Why didn't the repeat check catch it, and what should change?",
   "keyIdeas": [
    {
