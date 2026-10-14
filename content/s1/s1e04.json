@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
     "v1.0.2 (2026-10-07) recall and cold-case match fragments that repeated their own question replaced with paraphrases, so repeating the question no longer scores",
     "v1.0.1 (2026-10-06) review fixes: sim.tryThis now says switch on the database, sign in again, then restart (the earlier restart had already wiped 7f3a, so restarting again taught the opposite lesson); the case now covers 401 Unauthorized for a missing or invalid session and 403 Forbidden for not allowed (RFC 9110 sections 15.5.2 and 15.5.4) in explain.steps[2], the fix and the interview answer, with new terms, and the sim answers 401 instead of 404 to PUT and DELETE with no valid session; steps[0] says the letters usually travel over a TCP connection from case 3, which can carry many letters one after another (RFC 9112 section 9.3); steps[3] notes that real session IDs are long and random, at least 64 bits of randomness by OWASP's advice, unlike the easy-to-guess 7f3a; new terms 401 Unauthorized, 403 Forbidden, OWASP and Bit, the Session ID term updated, and RFC 9112 and the OWASP Session Management Cheat Sheet added to sources",
     "v1.0.0 (2026-10-06) first version"
@@ -21,12 +22,15 @@
     "votes": 2650,
     "title": "I sort the mail at a hotel overnight. Since Monday, at three in the morning, the hotel forgets every guest it has.",
     "blocks": [
-      { "t": "p", "text": "I work the mailroom at the Hotel Ashgrove, eleven to seven. Letters, parcels, and since last year the request slips. Every room has a tablet now. A guest taps *extra blanket*, the tablet sends a request to the hotel's website, and a slip prints on my printer with the room number on top. I carry the blanket up." },
-      { "t": "p", "text": "Bram, our IT man, explained it to me as mail, which I appreciated. Each request is a letter. It starts with a method: GET means *send me something*, POST means *here is something for you*. Then a path saying which page it's about, like /requests, and headers, extra lines on the envelope. The website writes back a response with a status code: 200 means fine, 404 means *no such page*, 503 means *not now, try later*. Then the body, the letter itself. They call all of it HTTP." },
-      { "t": "p", "text": "\"The website remembers nothing between letters,\" Bram said. \"Every one arrives as if from a stranger.\" So when a guest signs in, the website gives the tablet a cookie: a claim ticket with a number on it, like sid=7f3a. It keeps the matching note, called a session, in its own memory: *7f3a is room 412*. The tablet shows its ticket on every letter after that." },
-      { "t": "p", "text": "Since Monday, this is my printer around three in the morning:" },
+      { "t": "p", "text": "I work the mailroom at the Hotel Ashgrove, eleven to seven. Letters, parcels, and since last year the request slips. Every room has a tablet now. A guest taps *extra blanket*, and the tablet sends a request to the hotel's website. The website is a server: a program on the hotel's computer that waits for requests and answers them. Then a slip prints on my printer with the room number on top. I carry the blanket up." },
+      { "t": "p", "text": "Bram, our IT man, who looks after the hotel's computers, explained it to me as mail, which I appreciated. Each request is a letter, written in a shared language called HTTP, short for Hypertext Transfer Protocol. It starts with a method, a word saying what you want: GET means *send me something*, POST means *here is something for you*." },
+      { "t": "p", "text": "Then comes a path saying which page it's about, like /requests. Then headers: extra lines on the envelope, each a name and a value." },
+      { "t": "p", "text": "The website writes back a letter called a response. On top is a status code, a number saying how it went: 200 means fine, 404 means *no such page*, 503 means *not now, try later*. Under it is the body, the letter itself." },
+      { "t": "p", "text": "\"The website remembers nothing between letters,\" Bram said. \"Every one arrives as if from a stranger.\" All it sees is the IP address the letter came from, the sender's number on the internet. So when a guest signs in, proving once who they are, the website gives the tablet a cookie: a claim ticket with a number on it, like sid=7f3a." },
+      { "t": "p", "text": "The website keeps the matching note: *7f3a is room 412*. That note is called a session. It lives in the website's memory, the working space a running program keeps its notes in. The tablet shows its ticket on every letter after that." },
+      { "t": "p", "text": "Since Monday, this is my printer around three in the morning. Each line shows the time, the method and path, the status code, then what the slip said. A restart means the website is switched off and on again. Retry-After: 30 is a header meaning *try again in 30 seconds*:" },
       { "t": "log", "text": "02:59:41  POST /requests  200  ROOM 412  extra blanket\n03:00:00  website restarts (every night)\n03:00:12  POST /requests  503  Retry-After: 30\n03:00:44  POST /requests  200  ROOM ???  extra blanket\n03:00:51  POST /requests  200  ROOM ???  extra blanket\n03:00:58  POST /requests  200  ROOM ???  is anyone there" },
-      { "t": "p", "text": "Bram checked the website's log. Same tablet. Same ticket, sid=7f3a, on every one of those letters. Room 412 is Mr. Okafor, who has stayed with us for nine years and has never once been called ???. After three, the website looks at his ticket as if it has never seen it before." },
+      { "t": "p", "text": "Bram checked the website's log, the diary it writes of every letter. Same tablet. Same ticket, sid=7f3a, on every one of those letters. Room 412 is Mr. Okafor, who has stayed with us for nine years and has never once been called ???. After three, the website looks at his ticket as if it has never seen it before." },
       { "t": "beat", "text": "A letter with no return address, from a man I can see on the guest list." },
       { "t": "p", "text": "Bram says the website restarts at 3:00 every night to stay healthy, and it never mattered until we added the sign-in. What should he change before tonight?" },
       {
@@ -65,7 +69,7 @@
           "op": true,
           "points": 25,
           "age": "3h",
-          "text": "Bram says the sessions live in the website's memory. He went very quiet after he said it."
+          "text": "Bram says the sessions live in the website's memory. Not in the guest database, the program that stores the hotel's records and keeps them through a restart. He went very quiet after he said it."
         }
       ]
     },
@@ -93,21 +97,21 @@
         "senior": "Never let a request simply claim who it's from. A cookie works because it's a random ticket that only the real guest's tablet holds, checked against the hotel's own records."
       },
       {
-        "text": "Keep the sessions somewhere that survives a restart, like the hotel's database, instead of in the website's memory. Give each session an end, such as checkout day.",
+        "text": "Keep the sessions in the hotel's database, which survives a restart, and end each at checkout.",
         "tone": "ok",
         "verdict": "Senior answer",
         "part2": "Bram moved the sessions into the guest database, which already survives every restart. At 3:00 the website restarted, answered 503 for half a minute, and came back. At 3:01 room 412 asked for a toothbrush, and the slip said ROOM 412. Every tablet's ticket still matched. Sessions now end at checkout. Last night at 3:14 a letter arrived carrying a ticket that ended in March, and the website turned it away, as it should. Bram says the tablet in that room has been unplugged since spring.",
         "senior": "HTTP forgets you between requests by design. Remembering is your job, and the memory has to live somewhere that outlasts a restart, because restarts, updates and crashes will happen."
       },
       {
-        "text": "Stop the nightly restart. If the website never restarts, it never forgets.",
+        "text": "Stop the nightly restart. If the website never restarts, it never forgets who has signed in.",
         "tone": "warn",
         "verdict": "Trade-off: works until it doesn't",
-        "part2": "No restart on Monday, and no ??? slips. On Wednesday the website crawled from 2 AM: the nightly restart had been hiding a slow leak, the website using a little more memory every hour. At 4:12 it crashed on its own, every guest was forgotten anyway, and the tablets got 503s for eleven minutes.",
-        "senior": "Removing the restart removes the symptom, not the cause. Websites restart for updates, crashes and moves. Anything kept only in memory will be lost the next time."
+        "part2": "No restart on Monday, and no ??? slips. On Wednesday the website crawled from 2 AM. The nightly restart had been hiding a slow leak: the website was using a little more memory every hour. At 4:12 it crashed on its own, every guest was forgotten anyway, and the tablets got 503s for eleven minutes.",
+        "senior": "Removing the restart removes the sign of the problem, not its cause. Websites restart for updates, crashes and moves. Anything kept only in memory will be lost the next time."
       },
       {
-        "text": "Remember guests by their IP address instead of a cookie. The address arrives with every request anyway.",
+        "text": "Remember guests by their IP address instead of a cookie, since it comes with every request.",
         "tone": "bad",
         "verdict": "Every tablet looks the same",
         "part2": "Bram tried it on the third floor. Every tablet in the hotel reaches the website through the hotel's one internet connection, so they all arrived with the same address. Room 301 opened its tablet and saw room 412's requests. Bram switched it off at 3:40 AM.",
@@ -126,23 +130,23 @@
     "steps": [
       {
         "title": "HTTP is letters, not a phone call.",
-        "text": "HTTP is the language browsers, apps and websites use. A client sends a request: a method, a path, headers, and sometimes a body. The server sends back a response: a status code, headers and a body. Then it's over. The letters usually travel over a TCP connection like the ones in case 3, and the tablet can keep that connection open and send letter after letter over it, so it doesn't pay for a new handshake every time. HTTP is still stateless: each request has to make sense on its own, and the server remembers nothing about the last one unless someone builds that memory on top."
+        "text": "HTTP is the language web browsers, apps and websites use. A client, the program that asks, sends a request: a method, a path, headers, and sometimes a body. The server sends back a response: a status code, headers and a body. Then it's over. The letters usually travel over a TCP connection like the ones in case 3: an open line, set up with a three-call handshake. The tablet can keep that line open and send letter after letter over it, so it doesn't pay for a new handshake every time. HTTP is still stateless, meaning it remembers nothing. Each request has to make sense on its own. The server remembers nothing about the last one unless someone builds that memory on top."
       },
       {
         "title": "Methods say what you want.",
-        "text": "GET asks for something and changes nothing. POST hands something over, like a new request for a blanket. PUT replaces something with the version you send, and DELETE removes it. GET, PUT and DELETE are idempotent: sending the same one twice leaves things just as sending it once would. POST isn't, which is why sending a POST twice can print two slips."
+        "text": "GET asks for something and changes nothing. POST hands something over, like a new request for a blanket. PUT replaces something with the version you send, and DELETE removes it. Sending the same GET, PUT or DELETE twice leaves things just as sending it once would, like pressing a lift button twice. That is called idempotent. POST isn't, which is why sending a POST twice can print two slips."
       },
       {
         "title": "Status codes say what happened, by family.",
-        "text": "The first digit is the family. 2xx: it worked (200 OK). 3xx: look elsewhere (301 Moved Permanently, with a Location header saying where). 4xx: a problem with your request (404 Not Found, or 429 Too Many Requests when you send too fast). Two 4xx codes are about who you are. 401 Unauthorized means you haven't proved it: no session, or one the server doesn't recognise, so sign in again. 403 Forbidden means the server knows who you are, or doesn't need to, and still won't do it, like room 309 trying to cancel room 412's requests. 5xx: a problem on the server's side (500 Internal Server Error when something broke, 503 Service Unavailable for not now). A 429 or a 503 can carry a Retry-After header saying when to try again, exactly as the website did at 03:00:12."
+        "text": "The first digit is the family, and xx stands for any two digits. 2xx: it worked (200 OK). 3xx: look elsewhere (301 Moved Permanently, with a Location header saying where). 4xx: a problem with your request (404 Not Found, or 429 Too Many Requests when you send too fast). Two 4xx codes are about who you are. 401 Unauthorized means you haven't proved it: no session, or one the server doesn't recognise, so sign in again. 403 Forbidden means the server knows who you are, or doesn't need to, and still won't do it. Room 309 trying to cancel room 412's requests would get one. 5xx: a problem on the server's side (500 Internal Server Error when something broke, 503 Service Unavailable for not now). A 429 or a 503 can carry a Retry-After header saying when to try again, exactly as the website did at 03:00:12."
       },
       {
         "title": "A cookie is a claim ticket. A session is the coat.",
-        "text": "To remember a guest, the website sends a Set-Cookie header (sid=7f3a) after sign-in. The tablet keeps it and sends it back in a Cookie header on every later request to that site. The cookie is just a ticket number. What the ticket means, *7f3a is room 412*, lives on the server side in a session. Both halves are needed: without the cookie, the website can't tell who you are, and a cookie with no matching session is no better. And 7f3a is far too easy to guess: four characters like that allow only 65,536 tickets. Real session IDs are long random strings. OWASP, a web security project, says they need at least 64 bits of randomness, so nobody can guess another guest's ticket."
+        "text": "To remember a guest, the website sends a Set-Cookie header (sid=7f3a) after sign-in. The tablet keeps it and sends it back in a Cookie header on every later request to that site. The cookie is just a ticket number, called the session ID. What the ticket means, *7f3a is room 412*, lives on the server side in a session. Both halves are needed. Without the cookie, the website can't tell who you are, and a cookie with no matching session is no better. And 7f3a is far too easy to guess: four characters like that allow only 65,536 tickets. Real session IDs are long random strings of letters and numbers. OWASP, a web security project, says they need at least 64 bits of randomness. A bit is the smallest piece of computer data, a 0 or a 1. That much randomness means nobody can guess another guest's ticket."
       },
       {
         "title": "The website kept its sessions in memory.",
-        "text": "The Ashgrove's website stored sessions in its own memory: the fastest place, and the one that empties when the program stops. At 3:00 the nightly restart wiped every session. For 30 seconds the website wasn't running, and a small program in front of it, a proxy, answered every letter with 503 and Retry-After: 30. Then the website came back with an empty memory. Mr. Okafor's tablet still sent 7f3a, which now matched nothing, so his letters were treated as a stranger's and printed ROOM ???."
+        "text": "The Ashgrove's website stored sessions in its own memory: the fastest place, and the one that empties when the program stops. At 3:00 the nightly restart wiped every session. For 30 seconds the website wasn't running. A small program in front of it, which passes letters through, answered every letter with 503 and Retry-After: 30. A program like that is called a proxy. Then the website came back with an empty memory. Mr. Okafor's tablet still sent 7f3a, which now matched nothing, so his letters were treated as a stranger's and printed ROOM ???."
       }
     ],
     "diagram": {
@@ -169,41 +173,41 @@
     "caption": "Read top to bottom. The cookie is the tablet's half of the ticket, and the session is the website's half. At 3:00 the website's half vanished. The tablet kept sending 7f3a, and the website had nothing to match it with.",
     "fix": {
       "title": "The fix: keep sessions where a restart can't reach them",
-      "text": "Store sessions somewhere that outlives the website program, such as the hotel's database or a store built for sessions. A restart then costs 30 seconds of 503s, not every guest's sign-in. Give every session an end, such as checkout day, and mark the cookie HttpOnly so scripts on the page can't read it. Treat a request with no valid session as a stranger on purpose: answer 401 Unauthorized, which tells the tablet to sign in again, instead of printing ROOM ???. Make session IDs long and random, not short like 7f3a. And have clients handle 503 and 429 politely: wait as long as Retry-After says, then try again, instead of hammering the door."
+      "text": "Store sessions somewhere that outlives the website program, such as the hotel's database or a store built for sessions. A restart then costs 30 seconds of 503s, not every guest's sign-in. Give every session an end, such as checkout day. Mark the cookie HttpOnly, a setting that stops scripts, small programs running inside the page, from reading it. Treat a request with no valid session as a stranger on purpose. Answer 401 Unauthorized, which tells the tablet to sign in again, instead of printing ROOM ???. Make session IDs long and random, not short like 7f3a. And have clients handle 503 and 429 politely: wait as long as Retry-After says, then try again, instead of hammering the door."
     },
     "limits": [
-      "A database for sessions is one more thing that can be slow or down, and every request now waits for a lookup. Teams keep that lookup fast and plan for what happens when the store is unavailable.",
-      "The cookie is the whole key. Anyone who copies it can act as that guest until the session ends, which is why sessions should expire and cookies should travel only over encrypted connections, the next case.",
-      "Retrying can make things worse. If every client retries the instant it sees a 5xx, a struggling server gets hit harder. Clients should wait longer after each failure, add a little randomness, and give up after a few tries."
+      "A database for sessions is one more thing that can be slow or down. And every request now waits while the website looks the session up. Teams keep that lookup fast and plan for what happens when the store is unavailable.",
+      "The cookie is the whole key. Anyone who copies it can act as that guest until the session ends. That's why sessions should expire, and cookies should travel only over encrypted connections, scrambled so only the two ends can read them. The next case covers those.",
+      "Retrying, sending a failed request again, can make things worse. If every client retries the instant it sees a 5xx, a struggling server gets hit harder. Clients should wait longer after each failure, add a little randomness, and give up after a few tries."
     ],
     "tradeoff": {
       "head": ["Where sessions live", "Good", "Bad"],
       "rows": [
         ["In the website's memory", "Fastest. Nothing extra to run.", "Lost on every restart or crash. Only that one copy of the website knows them."],
         ["In a database or session store", "Survives restarts. Every copy of the website can read it.", "One more system to run, and a lookup on every request."],
-        ["Inside a signed cookie", "The server stores nothing at all.", "Hard to end a session early, and the cookie grows. A later season covers this."]
+        ["Inside a signed cookie", "The cookie carries the session itself, stamped so any change shows. The server stores nothing at all.", "Hard to end a session early, and the cookie grows. A later season covers this."]
       ]
     },
-    "seniorTake": "HTTP forgets you between letters on purpose. That's what lets any server answer any request. Memory is something you add, and where you put it decides what a restart costs. Read status codes as instructions: 4xx, fix your letter. 5xx, not your fault. 429 and 503, wait and come back.",
+    "seniorTake": "HTTP forgets you between letters on purpose. That's what lets any server answer any request. Memory is something you add, and where you put it decides what a restart costs. Read status codes as instructions. 4xx: fix your letter. 5xx: not your fault. 429 and 503: wait and come back.",
     "realWorld": [
       {
         "title": "RFC 9110: the rules of the letter",
-        "text": "HTTP's meaning is defined in RFC 9110, published in June 2022. It defines HTTP as a stateless protocol, where each request can be understood on its own. It defines the methods GET, POST, PUT and DELETE, marks GET as safe and GET, PUT and DELETE as idempotent, and sets out the five status code families from 1xx to 5xx, including 301, 401, 403, 404, 500 and 503. It defines 401 as a request that lacks valid proof of who is asking, and 403 as one the server understood but refuses to carry out. MDN's reference lists the same codes in plain words.",
+        "text": "Internet rules are written down in numbered documents called RFCs, short for Request for Comments. HTTP's meaning is set out in RFC 9110, published in June 2022. It defines HTTP as a stateless protocol, a set of rules where each request can be understood on its own. It defines the methods GET, POST, PUT and DELETE. It marks GET as safe, meaning it changes nothing, and GET, PUT and DELETE as idempotent. It sets out the five status code families from 1xx to 5xx, including 301, 401, 403, 404, 500 and 503. It defines 401 as a request that lacks valid proof of who is asking, and 403 as one the server understood but refuses to carry out. MDN, Mozilla's free guide to the web, lists the same codes in plain words.",
         "source": 0
       },
       {
         "title": "429 and Retry-After",
-        "text": "429 Too Many Requests comes from RFC 6585, published in April 2012. It means the user has sent too many requests in a given amount of time, which is called rate limiting, and the response may include a Retry-After header saying how long to wait before asking again.",
+        "text": "429 Too Many Requests comes from RFC 6585, published in April 2012. It means the user has sent too many requests in a given amount of time. Capping requests like that is called rate limiting. The response may include a Retry-After header saying how long to wait before asking again.",
         "source": 1
       },
       {
         "title": "Cloudflare, November 18, 2025",
-        "text": "At 11:20 UTC, Cloudflare's network, which sits in front of many websites, began failing to deliver traffic, and visitors saw an error page pointing to a failure inside Cloudflare's network. A database permissions change had made a configuration file for its Bot Management system double in size, past a limit in the software that reads it. The file was rebuilt every five minutes, sometimes good and sometimes bad, so Cloudflare's graph of 5xx errors spiked, recovered and spiked again, and at first the team suspected an attack. Core traffic was largely flowing again by 14:30 UTC, and everything was normal by 17:06 UTC. Every one of those 5xx answers told visitors the truth: the problem was on the server side, not in their requests.",
+        "text": "At 11:20 UTC (the world clock engineers share), Cloudflare's network, which sits in front of many websites, began failing to deliver traffic. Visitors saw an error page pointing to a failure inside Cloudflare's network. A change to who could see what in a database had made a configuration file, a file of settings, double in size. The file belonged to Bot Management, Cloudflare's system for telling automated traffic from people. It grew past a limit in the software that reads it. The file was rebuilt every five minutes, sometimes good and sometimes bad. So Cloudflare's graph of 5xx errors spiked, recovered and spiked again, and at first the team suspected an attack. Core traffic was largely flowing again by 14:30 UTC, and everything was normal by 17:06 UTC. Every one of those 5xx answers told visitors the truth: the problem was on the server side, not in their requests.",
         "source": 3
       },
       {
         "title": "How AWS's own SDKs handle 5xx and throttling",
-        "text": "AWS's guide to its SDKs, the libraries programs use to call AWS, describes how they react to these codes. Transient errors, including any HTTP 500, 502, 503 or 504, and throttling errors, AWS's name for too many requests, are retried automatically with exponential backoff and jitter, with 3 attempts in all by default. Errors a retry can't fix, such as a validation error, come back at once. A retry quota makes a client stop retrying when failures are widespread, so it fails fast instead of piling onto a struggling service. The guide notes that some details are changing with updated retry behavior in 2026.",
+        "text": "AWS is Amazon Web Services, Amazon's rented computers and services. Its SDKs, short for software development kits, are ready-made code that programs use to call AWS. AWS's guide to them describes how they react to these codes. Some errors are passing ones, including any HTTP 500, 502, 503 or 504. Others are throttling errors, AWS's name for too many requests. Both are retried automatically, with 3 attempts in all by default. Each wait is longer than the last, called exponential backoff, plus a little randomness, called jitter. Errors a retry can't fix, such as a request with bad details in it, come back at once. A retry quota, a budget of retries, makes a client stop retrying when failures are widespread. It fails fast instead of piling onto a struggling service. The guide notes that some details are changing with updated retry behavior in 2026.",
         "source": 4
       }
     ],
@@ -212,7 +216,7 @@
         "What's the difference between a 4xx and a 5xx error, and what should a client do with each?",
         "HTTP is stateless. So how does a website keep you logged in?"
       ],
-      "answer": "4xx means the request was the problem: a wrong path (404), no valid sign-in (401), not allowed (403), or too many requests (429). Fix the request rather than retrying: for 401, sign in again; for 403, signing in again won't help. The exception is 429, which says wait and try again, often with Retry-After. 5xx means the server failed. Retrying can help for 502, 503 and 504, but with exponential backoff, jitter and a limit, and only for requests that are safe to repeat. HTTP keeps no memory between requests, so after sign-in the server sends a cookie holding a long random session ID with Set-Cookie, the browser sends it back in the Cookie header, and the server looks the session up. Then say where the session lives: kept in one server's memory, it dies with a restart and other servers can't see it, so production systems use a shared store or a signed token."
+      "answer": "4xx means the request was the problem: a wrong path (404), no valid sign-in (401), not allowed (403), or too many requests (429). Fix the request rather than retrying. For 401, sign in again. For 403, signing in again won't help. The exception is 429, which says wait and try again, often with Retry-After. 5xx means the server failed. Retrying can help for 502, 503 and 504. But wait longer each time (exponential backoff), add a little randomness (jitter), set a limit, and only repeat requests that are safe to repeat. HTTP keeps no memory between requests. So after sign-in, the server uses Set-Cookie to send a cookie holding a long random session ID. The browser sends it back in the Cookie header, and the server looks the session up. Then say where the session lives. Kept in one server's memory, it dies with a restart and other servers can't see it. So real systems serving real users use a shared store, or a signed token: a ticket that carries the session itself, stamped so any change shows."
     }
   },
   "terms": [
@@ -271,7 +275,7 @@
     { "term": "Bot Management", "def": "Cloudflare's feature for telling automated traffic from people." },
     { "term": "Application Load Balancer", "def": "An AWS service that receives HTTP requests and spreads them across several servers, called targets. It reports how many 4xx and 5xx responses it and its targets sent." }
   ],
-  "atWork": "If a web service your team runs on AWS sits behind an Application Load Balancer, open the load balancer's Monitoring tab in the EC2 console (read-only access is enough). Over the last day, compare the 5xx count sent by the load balancer itself with the 4xx and 5xx counts sent by your targets, the servers behind it. Find the biggest spike and ask whose problem it was: the clients' or yours? Then find out where your service keeps sessions (one server's memory, a database or cache, or a signed cookie) and what a restart would do to everyone signed in.",
+  "atWork": "Your team may run a web service on AWS, Amazon's rented computers, behind an Application Load Balancer: an AWS service that takes incoming requests and shares them out across several servers. If so, open the load balancer's Monitoring tab in the EC2 console, the web page where AWS lists your rented servers. Read-only access is enough. Over the last day, compare the 5xx count sent by the load balancer itself with the 4xx and 5xx counts sent by your targets, the servers behind it. Find the biggest spike and ask whose problem it was: the clients' or yours? Then find out where your service keeps sessions. It could be one server's memory, a database, a cache (a store of saved copies), or a signed cookie. Work out what a restart would do to everyone signed in.",
   "board": {
     "cards": [
       { "id": "http", "title": "HTTP" },
@@ -292,7 +296,7 @@
     {
       "id": "s1e04-r1",
       "kind": "free",
-      "prompt": "Your team's website logs everyone out every time it's deployed. People sign back in and everything works until the next deploy. What's probably happening, and what would you change?",
+      "prompt": "Your team's website logs everyone out every time it's deployed, meaning every time a new version is put live. People sign back in and everything works until the next deploy. What's probably happening, and what would you change?",
       "keyIdeas": [
         { "idea": "Sessions are kept in the server's memory and wiped when it restarts", "match": ["memory", "in-memory", "restart", "wiped", "lost", "cleared", "reboot", "in ram"] },
         { "idea": "The browser's cookie still arrives but matches no session", "match": ["cookie", "session id", "ticket", "sid", "no match", "doesn't match", "does not match", "unknown"] },
@@ -347,8 +351,8 @@
     }
   ],
   "coldCase": {
-    "update": "UPDATE, 5 months later. Bram moved the sessions into the database, and the hotel stopped forgetting guests at 3 AM. Now there's a new booking app. When a booking gets a 503, or no answer within one second, the app sends the same POST /bookings again every 100 milliseconds until something comes back. Friday was a slow night for the website, and three guests were booked twice. Bram's plan: make the website faster.",
-    "prompt": "Reply to OP. What's really going wrong, and what should the app do instead?",
+    "update": "UPDATE, 5 months later. Bram moved the sessions into the database, and the hotel stopped forgetting guests at 3 AM. Now there's a new booking app. When a booking gets a 503, or no answer within one second, the app sends the same POST /bookings again every 100 milliseconds, ten times a second, until something comes back. Friday was a slow night for the website, and three guests were booked twice. Bram's plan: make the website faster.",
+    "prompt": "Reply to the person who wrote the post. What's really going wrong, and what should the app do instead?",
     "keyIdeas": [
       { "idea": "Slow isn't failed: the first POST often worked, and POST isn't idempotent, so the retry booked twice", "match": ["second booking", "two bookings", "double", "duplicate", "already worked", "went through", "processed", "idempotent", "post isn't", "post is not"] },
       { "idea": "Respect Retry-After and back off with a little randomness instead of retrying every 100 ms", "match": ["retry-after", "back off", "backoff", "back-off", "jitter", "exponential", "random", "slow down", "wait longer"] },
