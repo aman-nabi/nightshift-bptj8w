@@ -1,0 +1,812 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-15) first version",
+    "v1.0.1 (2026-10-15) the post says why Hafwen's phone buzzed: an alert from the clients' website"
+  ],
+  "id": "s6e15",
+  "season": 6,
+  "n": 15,
+  "title": "Blueprints",
+  "setting": "an architect's drawers",
+  "core": false,
+  "minutes": 12,
+  "concepts": [
+    "infrastructure-as-code",
+    "environments"
+  ],
+  "prerequisites": [
+    "s3e12",
+    "s5e09",
+    "s5e13",
+    "s6e08"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/drawing_late_hafwen",
+    "flair": "Part 1",
+    "age": "5h",
+    "votes": 2984,
+    "title": "I draw late at an architects' practice. On Tuesday a colleague shut our clients' drawings folder to strangers. At 02:00 it opened itself again, and at 02:37 someone downloaded a family's house plans.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm Hafwen, one of nine architects at Harkaway. Past two on Wednesday morning I was still at my desk, drawing a staircase, when my phone buzzed with an alert from our clients' website. The Velloso house plans had just been downloaded by someone we don't know."
+      },
+      {
+        "t": "p",
+        "text": "Our clients sign in to a website, our portal, to see their drawings. The files sit in one storage folder that we rent from Amazon Web Services, AWS for short, Amazon's cloud: computers and storage you rent over the internet."
+      },
+      {
+        "t": "p",
+        "text": "Nobody here sets that folder up by clicking. Yestin, who looks after our computers, wrote it down as code: a text file that says what should exist, the way my drawing says what the builder should build. The tool that reads his file is called Terraform."
+      },
+      {
+        "t": "p",
+        "text": "Since Monday 14 September a pipeline runs his code every night at 02:00. A pipeline is a chain of automatic steps. First it compares the code with what really exists. Then it changes whatever differs until the two match. That second step is called apply."
+      },
+      {
+        "t": "p",
+        "text": "Here is the folder's setting in his code. The first line names the setting, the next names the folder, and the third says whether strangers are kept out. False means they are not."
+      },
+      {
+        "t": "log",
+        "text": "resource \"aws_s3_bucket_public_access_block\" \"drawings\" {\n  bucket                  = \"harkaway-client-drawings\"\n  restrict_public_buckets = false  # 2024: builders open drawings by link\n}"
+      },
+      {
+        "t": "p",
+        "text": "That false dates from 2024, when Yestin built the portal and builders opened drawings by a plain link. Since last year builders sign in like clients. Nobody removed the line, and as far as we knew, no link had left the portal."
+      },
+      {
+        "t": "p",
+        "text": "On Tuesday at 13:50 Mrs Velloso rang. A subcontractor had copied a link to her plans from the portal and pasted it on a public builders' forum, asking about a beam. At 14:10 Pirkko, our office manager, opened the cloud console, the AWS website full of switches for everything we rent, and turned public access off by hand. The link died."
+      },
+      {
+        "t": "p",
+        "text": "AWS keeps a change log: who changed which setting, and when. Our folder also logs every download. Each line shows the day and time; who acted (a person's sign-in name, the pipeline, or an internet address, the number of whoever's computer asked); what they did; and how, or with what result."
+      },
+      {
+        "t": "log",
+        "text": "Tue 14:10  pirkko        public access OFF        console\nTue 22:15  203.0.113.84  velloso-house-plans.pdf  refused\nWed 02:00  pipeline      public access ON         nightly apply\nWed 02:37  203.0.113.84  velloso-house-plans.pdf  downloaded"
+      },
+      {
+        "t": "beat",
+        "text": "Nobody was in the office but me. Nobody touched it."
+      },
+      {
+        "t": "evidence",
+        "label": "drawings_folder_tuesday_night.png",
+        "diagram": {
+          "type": "timeline",
+          "w": 740,
+          "aria": "The drawings folder from Tuesday 14:00 to Wednesday 03:00. Public until 14:10, when Pirkko turns public access off by hand. Closed from 14:10 to 02:00; a request from 203.0.113.84 at 22:15 is refused. At 02:00 the pipeline turns public access back on, and at 02:37 the same address downloads the Velloso plans.",
+          "start": "14:00:00",
+          "seconds": 46800,
+          "ticksEvery": 7200,
+          "rows": [
+            {
+              "label": "Public access",
+              "segments": [
+                [
+                  0,
+                  600,
+                  "bad"
+                ],
+                [
+                  600,
+                  43200,
+                  "ok"
+                ],
+                [
+                  43200,
+                  46800,
+                  "bad"
+                ]
+              ],
+              "gaps": []
+            }
+          ],
+          "markers": [
+            {
+              "t": 600,
+              "label": "off",
+              "tone": "ok"
+            },
+            {
+              "t": 29700,
+              "label": "refused",
+              "tone": "ok"
+            },
+            {
+              "t": 43200,
+              "label": "on",
+              "tone": "bad"
+            },
+            {
+              "t": 45420,
+              "label": "sent",
+              "tone": "bad"
+            }
+          ]
+        },
+        "caption": "Redrawn from the change log and the download log. Red is open to anyone with the link, green is closed. Pirkko closed it by hand at 14:10; the stranger was refused at 22:15; the pipeline opened it at 02:00; the plans went at 02:37."
+      },
+      {
+        "t": "p",
+        "text": "Yestin has a word for what Pirkko made: drift. The building no longer matched its drawing. Before September, a change made by hand simply stayed, because nothing ever put the code back. Pirkko did what everyone here has always done. At 03:05 Yestin turned public access off by hand again, from his kitchen."
+      },
+      {
+        "t": "p",
+        "text": "The next nightly run is at 02:00 tonight. What should we change before then?"
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 147,
+      "age": "4h",
+      "text": "Your drawing comparison is the right one. Terraform keeps state, its own notes of what it built and how it set each thing last time. When the real folder no longer matches the code, that is called drift, like a house that no longer matches its drawing. Two questions. At 02:00, which did the pipeline believe: Pirkko's switch, or the line that says false? And when Yestin turned it off again at 03:05, what did that change, and what did it leave alone?",
+      "replies": [
+        {
+          "author": "u/drawing_late_hafwen",
+          "op": true,
+          "points": 52,
+          "age": "3h",
+          "text": "Yestin made a plan an hour ago: Terraform's list of what apply would change, worked out and printed for a person to read, with nothing changed yet. It lists one change for 02:00 tonight: the folder's block on strangers, which he switched on by hand, goes back to off. His file hasn't changed since 2024."
+        }
+      ]
+    },
+    {
+      "author": "u/turn_it_off_csilla",
+      "points": 93,
+      "age": "4h",
+      "text": "Automation that undoes a security fix is worse than no automation. Turn it off. Pirkko did the right thing and a robot reversed it twelve hours later without asking anyone. Switch the nightly run off until somebody has read every line of that code. Hand fixes worked at Harkaway for two years."
+    },
+    {
+      "author": "u/harkaway_it_yestin",
+      "points": 71,
+      "age": "3h",
+      "text": "Yestin here. Before the code, half our setup was made by clicking, and I couldn't have rebuilt it: every machine was a one-off that nobody had written down. Martin Fowler calls such a machine a snowflake server, because no two are alike. The same code now builds three copies of the portal, called environments: development, test and production: one for me to break, one for checking, and the real one. When I switched the nightly run on in September, I first ran a plan and copied every old hand change into the code, so the first run changed nothing. Pirkko's switch on Tuesday was the first hand change since."
+    },
+    {
+      "author": "u/harkaway_office_pirkko",
+      "points": 48,
+      "age": "2h",
+      "text": "Pirkko. The Velloso plans went into the folder on Friday 9 October, for the builder's quote. I'll switch it off again tonight and leave a note on the folder in the console: DO NOT MAKE PUBLIC, CLIENT PLANS. Or I can make a new private folder by hand, move every drawing into it, and delete the old one, since that's the one that opened itself."
+    }
+  ],
+  "reply": {
+    "prompt": "The next nightly run is at 02:00 tonight. What should Harkaway change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Stop the nightly 02:00 run, so a fix made by hand in the console is never undone.",
+        "tone": "warn",
+        "verdict": "Safe tonight, a snowflake by spring",
+        "part2": "Yestin switched the nightly run off on Wednesday morning. Pirkko's switch held: in the sim, with the run off from Wednesday 03:05, the stranger's address asked every night at 02:37 and was refused, seven refusals in the week and no download after the first. But the code still said false, so the drift stayed all week: the folder no longer matched its drawing. In the sim, a test copy built from the code came up public. Over the next weeks other small fixes went in by hand, because nothing undid them, and none of them reached the code. By spring the real portal was a snowflake again, and the first time Yestin switched the run back on to ship a change, the next 02:00 would have opened the folder once more.",
+        "senior": "Switching off the automation removes the thing that told you the truth. The hand fix was right, but it lived only in the building, not in the drawing, so every copy built from the code, and every future apply, still makes the folder public. Drift doesn't stop growing when nobody looks for it. The fix belongs in the code, and the run should stay on to keep live and code alike."
+      },
+      {
+        "text": "Keep fixing it by hand, and leave a note in the console so nobody turns it back on.",
+        "tone": "bad",
+        "verdict": "The pipeline doesn't read notes",
+        "part2": "Pirkko left the note on the folder: DO NOT MAKE PUBLIC, CLIENT PLANS. At 02:00 on Thursday the pipeline compared the code with the folder, found one difference and applied the code: public access on. The note was still there. At 02:37 the same address downloaded the plans again. In the sim, fixing it by hand after every night still gives seven downloads in the week, one each night, because each 02:00 opens it before 02:37. On Friday the revised Velloso plans went up through the portal, into the same folder, and went the same way.",
+        "senior": "A note is for people; the pipeline only reads the code. While the code says public, every apply will make it public, however often someone closes it by hand, and the gap between the fix and the next run is exactly when the folder looks safe. A hand fix in the console is fine for the first ten minutes of an emergency, as long as the same change goes into the code before the next apply."
+      },
+      {
+        "text": "Put the fix in the code and apply it from there, and block changes made by hand.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "On Wednesday morning Yestin changed false to true in the code, and Pirkko read the change before it went in. He ran a plan: no changes, because the folder was already closed. He applied it: nothing to change, but now the code, the state and the folder all said the same thing. Then he gave the console a rule: only the pipeline's login may change the folder. In the sim, from Wednesday 03:05, the stranger's address was refused every night, seven refusals and no download after the first; a hand change was refused with \"change the code and apply it instead\"; drift stayed at none; and a test copy built from the code came up private. At 02:00 on Thursday the pipeline found nothing to do.",
+        "senior": "Make the code the only way the folder changes. A fix in the code survives every apply, reaches every copy built from it, and leaves a reviewed record of who changed what and why. Blocking hand changes stops new drift at the source; keep one emergency login for the night the pipeline itself is broken, and put whatever it does into the code the next morning."
+      },
+      {
+        "text": "Move the plans to a new private folder, and delete the old one that opened itself.",
+        "tone": "bad",
+        "verdict": "The drawing builds it again",
+        "part2": "On Wednesday Pirkko made harkaway-drawings-private by hand, moved every drawing into it and deleted the old folder. At 02:00 on Thursday the pipeline found the folder in its code missing and built it again, public and empty. The new private folder was in neither the code nor the state, so the pipeline never touched it, and nobody else would know how to build it. The portal still saves new drawings to the folder named in the code. On Friday at 10:00 I uploaded the revised Velloso plans; they landed in the rebuilt public folder. In the sim, from Saturday the stranger's address downloaded them at 02:37 every night: four more, five in the week counting Wednesday's.",
+        "senior": "Moving the files treats the folder as the problem, but the folder was only doing what its drawing said. The old line still makes a public folder, and the pipeline builds it again, while the new hand-made folder is a snowflake that no code describes. Fix the drawing, not the wall."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s6e15",
+    "title": "Run Harkaway's drawings folder through one week",
+    "lede": "You're Hafwen, starting on Tuesday 13 October at 14:00. The code says public access is on, and the live folder is public. Fixed events: Pirkko's hand fix at 14:10; an unknown address, 203.0.113.84, asking for the Velloso plans at 22:15 and at 02:37 every night; the nightly run at 02:00; Yestin's hand fix at Wednesday 03:05; and the revised plans uploaded through the portal on Friday at 10:00, into the folder named in the code. Step through the week, or change the setup at any moment: the code's line, the nightly run, a drift check that plans first and stops if the apply would undo a hand change, a block on hand changes, a note in the console. You can also apply now, switch public access off by hand, move the plans to a new folder by hand, or build a test copy from the code.",
+    "tryThis": "Try this: press Next event four times: off at 14:10, refused at 22:15, on at 02:00 by the pipeline, downloaded at 02:37. Press it once more for Yestin's 03:05 fix, turn on the note and play the week: seven downloads. Reset, step to 03:05, switch the nightly run off and play: one download, but the drift stays and a test copy from the code is public. Reset, step to 03:05, set the code to private, apply now, block hand changes and play: one download, no drift. Then try moving the plans to a new folder by hand, and the drift check on its own."
+  },
+  "explain": {
+    "oneLine": "Nobody touched it, because nobody had to. The code still said the folder was public, a line left from 2024. Pirkko's fix at 14:10 changed the building but not the drawing, and at 02:00 the pipeline did its job: it compared the two, found a difference, and made the building match the drawing again. The stranger, refused at 22:15, came back at 02:37 to an open folder.",
+    "steps": [
+      {
+        "title": "The code is the drawing; the cloud is the building.",
+        "text": "Infrastructure as code means the machines, folders and settings you rent are described in text files, and a tool builds them from those files. Terraform is one such tool; AWS CloudFormation is the same idea, made by AWS. The file says what should exist, like an architect's drawing says what the builder should build. Because it is text, every change can be read by a second person, saved with a note of who made it and why, and used again to build the same thing twice. What can go wrong here: a line written for one reason stays long after the reason has gone. Harkaway's false was written for builders' links in 2024, and nobody removed it when builders started signing in."
+      },
+      {
+        "title": "Plan, then apply.",
+        "text": "A Terraform run goes in steps. First it reads what really exists now, setting by setting. Second, it compares that with the code and with its own notes from last time. Third, it lists the changes that would make the real thing match the code: that list is the plan, and nothing has changed yet. Fourth, apply makes those changes and writes down what it did. Harkaway's pipeline runs all four steps at 02:00 with nobody reading the plan in between. What can go wrong: a plan nobody reads is just a step. The 02:00 plan said, in one line, that public access would go back on."
+      },
+      {
+        "title": "State: the tool's memory.",
+        "text": "Terraform keeps state, a file of what it built and how it set each thing, so it can match each block of code to one real folder or machine. When the real folder differs from the state, something outside Terraform changed it. What can go wrong: state that is lost, or kept on one person's laptop, leaves the tool unsure what it owns; teams usually keep it in shared, locked storage. And state only notices hand changes; it doesn't decide them. Unless told otherwise, the next apply simply puts the code back."
+      },
+      {
+        "title": "Drift: the building no longer matches the drawing.",
+        "text": "Drift is any difference between what is live and what the code says. Pirkko's switch at 14:10 made one. To find drift without changing anything, run a plan in refresh-only mode (terraform plan -refresh-only) and read what changed outside Terraform; CloudFormation has drift detection for the same job. Then decide, for each difference, which side is right. If the hand change is right, as Pirkko's was, copy it into the code. If the code is right, apply it. What can go wrong: a nightly apply that never looks first settles every drift in favour of the code, even a security fix, which is exactly what happened at 02:00."
+      },
+      {
+        "title": "Snowflakes and environments.",
+        "text": "A snowflake server is one built and fixed by hand until no two are alike and nobody could build it again. Infrastructure as code is the cure: development, test and production built from the same code, so the copy you test is the copy you run. Keep the differences between them small and written down, such as a smaller machine for development. What can go wrong: one hand fix in production, like Pirkko's, makes it differ from every copy built from the code, so a test copy looks fine while the real one doesn't, or the other way round."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 310,
+      "aria": "The fix. The code says public access off, true, and is read by the pipeline. The pipeline plans and applies to the live folder, and records what it set in the state. The cloud console's edge to the live folder is blocked: only the pipeline's login may change the folder.",
+      "nodes": [
+        {
+          "id": "code",
+          "label": "The code",
+          "sub": "restrict ... = true",
+          "meta": "read before it goes in",
+          "x": 120,
+          "y": 70,
+          "w": 200,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "pipeline",
+          "label": "Pipeline",
+          "sub": "plan, then apply",
+          "meta": "nightly, 02:00",
+          "x": 390,
+          "y": 70,
+          "w": 200,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "live",
+          "label": "Live folder",
+          "sub": "public access OFF",
+          "meta": "no drift",
+          "x": 640,
+          "y": 70,
+          "w": 170,
+          "h": 72,
+          "shape": "db",
+          "tone": "ok"
+        },
+        {
+          "id": "state",
+          "label": "State",
+          "sub": "what it last set",
+          "x": 390,
+          "y": 230,
+          "w": 200,
+          "h": 60,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "console",
+          "label": "Cloud console",
+          "sub": "hand changes refused",
+          "x": 640,
+          "y": 230,
+          "w": 170,
+          "h": 60,
+          "shape": "box",
+          "tone": "bad"
+        }
+      ],
+      "edges": [
+        {
+          "from": "code",
+          "to": "pipeline",
+          "label": "reads",
+          "tone": "ok"
+        },
+        {
+          "from": "pipeline",
+          "to": "live",
+          "label": "applies",
+          "tone": "ok"
+        },
+        {
+          "from": "pipeline",
+          "to": "state",
+          "label": "records",
+          "tone": "muted"
+        },
+        {
+          "from": "console",
+          "to": "live",
+          "label": "blocked",
+          "dash": true,
+          "tone": "bad"
+        }
+      ]
+    },
+    "caption": "The fix, drawn. The only way to change the folder is to change the code and let the pipeline plan and apply it; the state remembers what was set, and the console refuses hand changes. In the sim, from Wednesday 03:05 this gives no drift and no download after the first.",
+    "fix": {
+      "title": "The fix: change the drawing, not the wall",
+      "text": "Change the line in the code from false to true, have a second person read the change, and let the pipeline plan and apply it, so the code, the state and the folder all agree. Then make the code the only way in: give the console a rule that only the pipeline's login may change the folder, and keep one emergency login, recorded and alarmed, for the night the pipeline itself is broken; whatever it changes goes into the code the next morning. Add a drift check to the nightly run, a refresh-only plan first, that stops and alerts when it finds a hand change instead of quietly undoing it. In the sim, from Wednesday 03:05, the code set to private, applied, with hand changes blocked, gives one download all week (Wednesday's), no drift, and a test copy that is private too. Then the slow part: look through the rest of the code for lines like that false, written for a reason that has gone."
+    },
+    "limits": [
+      "Blocking hand changes makes the pipeline the only road in, so the night it breaks you need the emergency login, and that login must be watched, or it becomes the new console.",
+      "Code is only as right as its lines. Terraform faithfully built a public folder from a line nobody had read since 2024; reviews and automatic checks for public storage catch some of those, not all.",
+      "A drift check finds differences; it doesn't know which side is right. Someone still has to decide, each time, whether the hand change goes into the code or the code goes back on."
+    ],
+    "tradeoff": {
+      "head": [
+        "What we do",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "Hand fixes, nightly apply (as now)",
+          "Quick in an emergency.",
+          "Each 02:00 undoes it: seven downloads in the week in the sim."
+        ],
+        [
+          "Switch the nightly run off",
+          "The hand fix stays; one download all week.",
+          "Drift stays and grows; a copy built from the code is still public."
+        ],
+        [
+          "New folder by hand, old one deleted",
+          "The old drawings are safe tonight.",
+          "The pipeline rebuilds the public folder; the revised plans go there: five downloads."
+        ],
+        [
+          "Drift check only",
+          "Stops and alerts instead of undoing a hand fix: no download after the first.",
+          "The code still says public; every night stops until someone decides."
+        ],
+        [
+          "Fix in the code, applied, hand changes blocked",
+          "One download all week, no drift, every copy private.",
+          "Needs an emergency route for the night the pipeline is broken."
+        ]
+      ]
+    },
+    "seniorTake": "Infrastructure as code turns your cloud into a drawing you can read, review and build again. The price is that the drawing wins: a pipeline that applies the code will undo any change that isn't in it, including a good one. So decide that the code is the only way changes happen, and make that true. Put every fix in the code, even the urgent ones, and apply it from there. Block hand changes in the console, apart from one watched emergency route whose changes go into the code the next day. Plan before you apply, and read the plan, or have a drift check that stops and asks when live differs from what the tool last set. Keep the state safe and shared. Build development, test and production from the same code, with small written differences, so the thing you test is the thing you run. And read your old lines now and then: the most dangerous one is usually a sensible setting whose reason has gone.",
+    "realWorld": [
+      {
+        "title": "AWS CloudFormation: drift detection",
+        "text": "AWS's guide says users can change resources outside CloudFormation, and that \"Some changes may be accidental, and some may be made intentionally to respond to time-sensitive operational events.\" Drift detection \"enables you to detect whether a stack's actual configuration differs, or has drifted, from its expected configuration\". It also notes that CloudFormation only checks property values that are explicitly set.",
+        "source": 0
+      },
+      {
+        "title": "Terraform: plan",
+        "text": "HashiCorp's documentation: \"The terraform plan command creates an execution plan, which lets you preview the changes that Terraform plans to make to your infrastructure.\" It reads the current state of existing remote objects, compares the configuration with the prior state, and proposes changes that would make the remote objects match the configuration. \"The plan command alone does not actually carry out the proposed changes\".",
+        "source": 1
+      },
+      {
+        "title": "Terraform: state",
+        "text": "\"Terraform uses your workspace's state to map real world resources to your configuration\", and by default keeps it in a local file named terraform.tfstate.",
+        "source": 2
+      },
+      {
+        "title": "Terraform: finding drift with -refresh-only",
+        "text": "HashiCorp's drift tutorial says you can use a -refresh-only flag \"to inspect what the changes to your state file would be\", and that \"A refresh-only operation does not attempt to modify your infrastructure to match your Terraform configuration\". Its output reports \"changes made outside of Terraform since the last \"terraform apply\"\".",
+        "source": 3
+      },
+      {
+        "title": "Martin Fowler, SnowflakeServer (2012)",
+        "text": "Fowler's note of 10 July 2012 describes a server kept running by hand until \"The result is a unique snowflake - good for a ski resort, bad for a data center.\" He adds that \"The first problem with a snowflake server is that it's difficult to reproduce\", and that \"Using version-controlled recipes to define server configurations is an important part of Continuous Delivery.\"",
+        "source": 4
+      },
+      {
+        "title": "Kief Morris, Infrastructure as Code",
+        "text": "Kief Morris's book Infrastructure as Code (O'Reilly; first edition 2016, second 2020, now a third) is the usual long read on the practice: defining infrastructure in code, testing it, and building environments from it.",
+        "source": 5
+      },
+      {
+        "title": "Amazon S3: Block Public Access",
+        "text": "AWS's S3 guide says these settings \"override these policies and permissions so that you can limit public access\", and warns: \"removing a block public access setting causes a bucket or object with a public policy or ACL to again be publicly accessible.\" That is what the 02:00 apply did.",
+        "source": 6
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What is infrastructure as code?",
+        "What is drift, and how do you find it?",
+        "How do you keep environments alike?"
+      ],
+      "answer": "Infrastructure as code means describing your servers, networks, storage and their settings in text files, and letting a tool such as Terraform or CloudFormation build them. The benefits come from it being text: changes are reviewed, saved with history, and repeatable, so you can build the same thing again. Terraform works in steps: it reads what is live, compares it with the code and its state, the record of what it built, and makes a plan, a list of changes; then apply makes them and updates the state. Drift is any difference between what is live and what the code says, usually from someone changing things by hand in the cloud console. You find it with terraform plan -refresh-only, or CloudFormation's drift detection, ideally on a schedule that alerts rather than one that silently applies. Then you decide each difference: copy a good hand change into the code, or apply the code over a bad one. To keep environments alike, build development, test and production from the same code with a few written variables, such as sizes, and block hand changes so production can't drift into a snowflake, a one-off machine nobody can rebuild. A story I'd tell: a practice's storage folder was public in the code from an old setting. Someone closed it by hand in the console; the 02:00 nightly apply reopened it, and a stranger downloaded a client's plans at 02:37. The fix was to change the line in the code, apply it from the pipeline, block console changes, and add a drift check that stops instead of undoing."
+    }
+  },
+  "terms": [
+    {
+      "term": "Harkaway",
+      "def": "The architects' practice in this story: nine architects, a client portal, and one storage folder of drawings described in Yestin's code."
+    },
+    {
+      "term": "Portal",
+      "def": "A website where people sign in to see their own things. Harkaway's clients, and since 2025 its builders, sign in to it to see drawings."
+    },
+    {
+      "term": "Cloud",
+      "def": "Computers and storage rented from a company such as Amazon over the internet, instead of machines in your own building."
+    },
+    {
+      "term": "AWS",
+      "def": "Amazon Web Services, Amazon's cloud: computers, storage and services you rent by the hour and set up over the internet."
+    },
+    {
+      "term": "Storage folder (bucket)",
+      "def": "Rented online storage for files. AWS's kind is called a bucket, in Amazon S3, its object storage. Harkaway's is harkaway-client-drawings."
+    },
+    {
+      "term": "Public access",
+      "def": "Whether anyone on the internet with a file's link can open it without signing in. Harkaway's folder was public by a line in the code."
+    },
+    {
+      "term": "restrict_public_buckets",
+      "def": "One of Amazon S3's four Block Public Access settings. When true, a folder with a public policy can't be read by strangers. Harkaway's code said false."
+    },
+    {
+      "term": "Code",
+      "def": "Text written for a computer to follow. Here, a file that says what the cloud should hold, the way a drawing says what a builder should build."
+    },
+    {
+      "term": "Infrastructure as code",
+      "def": "Describing your servers, storage and settings in text files and letting a tool build them, so changes are reviewed, recorded and repeatable."
+    },
+    {
+      "term": "Terraform",
+      "def": "A tool from HashiCorp that reads infrastructure code and builds or changes the real things in a cloud to match, keeping a state file."
+    },
+    {
+      "term": "CloudFormation",
+      "def": "AWS's own infrastructure-as-code service: templates describe resources, and it builds them as a stack and can detect drift."
+    },
+    {
+      "term": "Pipeline",
+      "def": "A chain of automatic steps that runs by itself. Harkaway's runs the code every night at 02:00: compare, then change what differs."
+    },
+    {
+      "term": "Apply",
+      "def": "The step that changes the real things so they match the code, then records what it set in the state."
+    },
+    {
+      "term": "Plan",
+      "def": "A list of the changes apply would make, worked out by comparing the code with what is live. Making a plan changes nothing."
+    },
+    {
+      "term": "State",
+      "def": "Terraform's file of what it built and how it set each thing, so it can match each block of code to one real thing. Usually terraform.tfstate."
+    },
+    {
+      "term": "Drift",
+      "def": "A difference between what is live and what the code says, usually from a change made by hand, like a house that no longer matches its drawing."
+    },
+    {
+      "term": "terraform plan -refresh-only",
+      "def": "A Terraform plan that only reports what changed outside Terraform since the last apply. It changes nothing in the cloud."
+    },
+    {
+      "term": "Drift check",
+      "def": "Looking for drift before applying, and stopping to ask a person when live differs from what the tool last set, instead of undoing it."
+    },
+    {
+      "term": "Cloud console",
+      "def": "The cloud company's website of switches and forms for everything you rent. Changes made there are hand changes, outside the code."
+    },
+    {
+      "term": "Hand change",
+      "def": "A change made by a person directly on the live thing, such as a switch in the console, instead of through the code."
+    },
+    {
+      "term": "Block on hand changes",
+      "def": "A rule that only the pipeline's login may change something, so the console refuses people. Usually with one watched emergency login."
+    },
+    {
+      "term": "Emergency login",
+      "def": "A login kept for the night the pipeline itself is broken, recorded and alarmed when used. Whatever it changes goes into the code next day."
+    },
+    {
+      "term": "Login",
+      "def": "A named account a person or program signs in with. The change log records which login did what: pirkko, or pipeline."
+    },
+    {
+      "term": "Change log",
+      "def": "The cloud's record of who changed which setting, and when, by person or by program."
+    },
+    {
+      "term": "Internet address",
+      "def": "The number of a computer on the internet, its IP address, such as 203.0.113.84. It says which computer asked, not whose."
+    },
+    {
+      "term": "Snowflake server",
+      "def": "Martin Fowler's name for a machine set up and fixed by hand until it is unique and nobody can build it again."
+    },
+    {
+      "term": "Environment",
+      "def": "One full copy of a system, such as development, test or production. Built from the same code, they stay alike."
+    },
+    {
+      "term": "Development",
+      "def": "The copy where people build and try things freely. Yestin's is for breaking."
+    },
+    {
+      "term": "Test copy (staging)",
+      "def": "A copy of the real system, built from the same code, where changes are checked before they reach production."
+    },
+    {
+      "term": "Production",
+      "def": "The real, live system that customers use. Harkaway's real portal and folder."
+    },
+    {
+      "term": "ISO/IEC 27001:2022 A.8.32",
+      "def": "The ISO/IEC 27001 control on change management: changes to systems should follow a managed process."
+    },
+    {
+      "term": "ISO/IEC 27001:2022 A.8.9",
+      "def": "The ISO/IEC 27001 control on configuration management: settings should be set, recorded, watched and reviewed."
+    },
+    {
+      "term": "ISO/IEC 27001:2022 A.8.3",
+      "def": "The ISO/IEC 27001 control on information access restriction: only people allowed to see information should be able to."
+    },
+    {
+      "term": "SOC 2 CC8.1",
+      "def": "The SOC 2 criterion that changes to infrastructure, data, software and procedures are authorised, designed, tested, approved and recorded."
+    },
+    {
+      "term": "GDPR Article 32",
+      "def": "The EU data protection law's article on security: measures that fit the risk to the people whose personal data you hold."
+    },
+    {
+      "term": "PDPA and DPTM",
+      "def": "Singapore's Personal Data Protection Act, which asks organisations to protect personal data, and the Data Protection Trustmark, a certification for it."
+    }
+  ],
+  "atWork": "Look for places where your cloud is described in code but changed by hand. It is a common pattern for someone to fix a setting in the cloud console during an incident, a storage folder made private or a firewall rule opened, and for the next automated apply to put the old value back, often hours later when nobody is watching. Check four things. Does every urgent console fix have a follow-up that puts it into the code the same day? Does your pipeline plan before it applies, and does it stop and alert on drift instead of quietly undoing it (terraform plan -refresh-only, or CloudFormation drift detection)? Who can still change production by hand, and is there one watched emergency route instead? And are development, test and production built from the same code, with only small written differences? Then search your code for public storage and wide-open rules, and ask whether each one's reason still holds. Standards: if your company is pursuing ISO/IEC 27001:2022, controls A.8.32 (Change management) and A.8.9 (Configuration management) apply, and A.8.3 (Information access restriction) covers a folder open to anyone; if it is pursuing SOC 2, CC8.1 expects changes to infrastructure to be authorised, tested, approved and recorded. Clients' house plans with names and addresses are personal data, so GDPR Article 32 (security of processing) applies in the EU, and in Singapore the PDPA's protection obligation and the DPTM certification do too. Code that is the only way to change the cloud, with reviewed changes and a drift check, gives you that evidence from the first commit instead of at audit time.",
+  "board": {
+    "cards": [
+      {
+        "id": "infrastructure-as-code",
+        "title": "Infrastructure as code"
+      },
+      {
+        "id": "environments",
+        "title": "Environments"
+      }
+    ],
+    "strings": [
+      {
+        "from": "infrastructure-as-code",
+        "to": "ci-cd-pipelines",
+        "label": "applied nightly"
+      },
+      {
+        "from": "infrastructure-as-code",
+        "to": "object-storage",
+        "label": "the folder"
+      },
+      {
+        "from": "infrastructure-as-code",
+        "to": "config-safety",
+        "label": "change the code"
+      },
+      {
+        "from": "environments",
+        "to": "one-view-of-every-environment",
+        "label": "same code"
+      },
+      {
+        "from": "infrastructure-as-code",
+        "to": "environments",
+        "label": "one drawing, many"
+      },
+      {
+        "from": "environments",
+        "to": "deployments",
+        "label": "test what you run"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s6e15-r1",
+      "kind": "free",
+      "prompt": "During an outage last week, an engineer opened a firewall rule by hand in your cloud console so a supplier could connect. Your infrastructure files, which a pipeline applies every night, still hold the old rule, and the supplier has been cut off twice at night since. A colleague wants to switch the nightly run off. What do you do?",
+      "keyIdeas": [
+        {
+          "idea": "Put the rule into the infrastructure code, reviewed, and let the pipeline apply it",
+          "match": [
+            "in the code",
+            "into the code",
+            "change the code",
+            "update the code",
+            "edit the code",
+            "code change",
+            "add the rule to",
+            "from the pipeline",
+            "through the pipeline"
+          ]
+        },
+        {
+          "idea": "Find drift before applying: a refresh-only plan or a drift check that stops and alerts",
+          "match": [
+            "drift",
+            "refresh-only",
+            "refresh only",
+            "plan first",
+            "plan before",
+            "read the plan",
+            "detect the change",
+            "differs from the code"
+          ]
+        },
+        {
+          "idea": "Block hand changes in the console, apart from a watched emergency route",
+          "match": [
+            "block hand",
+            "block changes",
+            "block console",
+            "no hand changes",
+            "only the pipeline",
+            "break-glass",
+            "break glass",
+            "emergency login",
+            "lock down the console"
+          ]
+        }
+      ],
+      "model": "Don't switch the run off; the run is telling you the truth, that the fix lives only in the live system and not in the code. Put the supplier's rule into the code, have someone review it, and let the pipeline apply it, so live and code agree and every copy built from the code has it. Then stop it happening again: before each apply, run a refresh-only plan or a drift check that stops and alerts when it finds a hand change, instead of quietly undoing it. And block hand changes in the console, apart from one watched emergency login whose changes go into the code the next day."
+    },
+    {
+      "id": "s6e15-r2",
+      "kind": "mcq",
+      "prompt": "In infrastructure as code, what is drift?",
+      "options": [
+        "The pipeline running later each night",
+        "A difference between what is live and what the code says, usually from a change made by hand",
+        "Two developers editing the same file",
+        "The state file growing too large"
+      ],
+      "answer": 1,
+      "why": "Drift is the building no longer matching the drawing: something live was changed outside the code, like Pirkko's switch at 14:10. A refresh-only plan or CloudFormation's drift detection finds it."
+    },
+    {
+      "id": "s6e15-r3",
+      "kind": "mcq",
+      "prompt": "What does terraform plan do on its own?",
+      "options": [
+        "Lists the changes apply would make to match the code, and changes nothing",
+        "Makes the changes, then lists them",
+        "Deletes anything the files don't list",
+        "Copies hand changes back into the files"
+      ],
+      "answer": 0,
+      "why": "HashiCorp's documentation: the plan lets you preview the changes, and the plan command alone does not carry them out. Apply makes them."
+    },
+    {
+      "id": "s6e15-r4",
+      "kind": "mcq",
+      "prompt": "Your test copy and your real system were each set up by hand, months apart, and a change that worked in test fails for real. What usually keeps environments alike?",
+      "options": [
+        "Copying the real system's settings into test by hand every Friday",
+        "Testing only in the real system",
+        "Building development, test and production from the same code, with a few written differences, and no hand changes",
+        "Adding more checks to the test copy"
+      ],
+      "answer": 2,
+      "why": "Hand-built copies drift apart into snowflakes. Built from the same code, with small written differences such as sizes, the copy you test is the copy you run."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 5 months later. The code says private, the console refuses hand changes, and nothing has reopened. In February the portal's new scanning service couldn't read the folder during a client meeting, so Yestin used the emergency login and added a permission by hand, meaning to write it into Terraform's files next morning. A busy week followed. The nightly drift check has stopped and alerted every night since, and the team has learned to skip the alert. In March Yestin built a fresh test copy of the portal from the code to try a new upload page: the scanner fails there and works on the real portal, and he has spent two days hunting a bug in the test copy.",
+    "prompt": "Reply to OP. What went wrong, and what should change?",
+    "keyIdeas": [
+      {
+        "idea": "The emergency hand change never reached the code, so the real portal drifted and the test copy, built from the code, is the honest one",
+        "match": [
+          "never reached",
+          "never put",
+          "never went into",
+          "not in the code",
+          "isn't in the code",
+          "into the code",
+          "snowflake",
+          "test copy is right",
+          "test copy was right"
+        ]
+      },
+      {
+        "idea": "An emergency change needs a deadline to reach the code, and a drift alert must be acted on, not skipped",
+        "match": [
+          "deadline",
+          "same day",
+          "next day",
+          "follow-up",
+          "follow up",
+          "ticket",
+          "alert fatigue",
+          "act on the alert",
+          "treat the alert"
+        ]
+      },
+      {
+        "idea": "Add the permission to the code, review it, and apply it so every environment matches",
+        "match": [
+          "add the permission to",
+          "every environment",
+          "all environments",
+          "both copies",
+          "apply it",
+          "review it",
+          "through the pipeline"
+        ]
+      }
+    ],
+    "model": "The test copy isn't broken; it's the only honest copy. The emergency permission never reached the code, so the real portal drifted into a snowflake, and a test copy built from the code lacks it, exactly as the drift check has said every night. Add the permission to the code, review it, and apply it through the pipeline so every environment matches, and the scanner will work in both. Then fix the process: an emergency hand change gets a ticket with a same-day deadline to go into the code, and a drift alert is treated as work to finish, not noise to skip; an alert people have learned to skip is alert fatigue, and it hides the next real one."
+  },
+  "next": "Next, The Chaos Monkey: a zoo after closing, and breaking things on purpose, carefully, to learn how a system fails: chaos engineering and game days.",
+  "sources": [
+    {
+      "title": "AWS CloudFormation User Guide, Detect unmanaged configuration changes to stacks and resources with drift detection (\"Some changes may be accidental, and some may be made intentionally to respond to time-sensitive operational events\"; \"Drift detection enables you to detect whether a stack's actual configuration differs, or has drifted, from its expected configuration\"; only explicitly set properties are checked), read 15 October 2026",
+      "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-drift.html"
+    },
+    {
+      "title": "HashiCorp, Terraform CLI documentation, terraform plan command (\"creates an execution plan, which lets you preview the changes\"; reads the current state of remote objects, compares, proposes changes; \"alone does not actually carry out the proposed changes\"; refresh-only mode), read 15 October 2026",
+      "url": "https://developer.hashicorp.com/terraform/cli/commands/plan"
+    },
+    {
+      "title": "HashiCorp, Terraform documentation, State (\"Terraform uses your workspace's state to map real world resources to your configuration\"; terraform.tfstate by default), read 15 October 2026",
+      "url": "https://developer.hashicorp.com/terraform/language/state"
+    },
+    {
+      "title": "HashiCorp, Terraform tutorial, Manage resource drift (-refresh-only \"to inspect what the changes to your state file would be\"; \"does not attempt to modify your infrastructure\"; \"changes made outside of Terraform\"), read 15 October 2026",
+      "url": "https://developer.hashicorp.com/terraform/tutorials/state/resource-drift"
+    },
+    {
+      "title": "Martin Fowler, SnowflakeServer (10 July 2012): \"a unique snowflake - good for a ski resort, bad for a data center\"; \"difficult to reproduce\"; version-controlled recipes, read 15 October 2026",
+      "url": "https://martinfowler.com/bliki/SnowflakeServer.html"
+    },
+    {
+      "title": "Kief Morris, Infrastructure as Code (O'Reilly; first edition 2016, second edition 2020, third edition), the book's own page, read 15 October 2026",
+      "url": "https://infrastructure-as-code.com/book/"
+    },
+    {
+      "title": "Amazon S3 User Guide, Blocking public access to your Amazon S3 storage (four settings including RestrictPublicBuckets; \"removing a block public access setting causes a bucket or object with a public policy or ACL to again be publicly accessible\"), read 15 October 2026",
+      "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+    },
+    {
+      "title": "ISMS.online: ISO 27001:2022 Annex A 8.32, Change Management (a secondary guide; the control text is in the standard), read 15 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a/8-32-change-management-2022/"
+    },
+    {
+      "title": "ISMS.online: ISO 27001:2022 Annex A 8.9, Configuration Management (a secondary guide; the control text is in the standard), read 15 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a/8-9-configuration-management-2022/"
+    },
+    {
+      "title": "Cyberday: SOC 2 CC8.1, Change management procedures (\"The entity authorizes, designs, develops or acquires, configures, documents, tests, approves, and implements changes to infrastructure, data, software, and procedures to meet its objectives.\"), read 15 October 2026",
+      "url": "https://www.cyberday.ai/requirement/soc-2-cc8-1-change-management-procedures"
+    },
+    {
+      "title": "ISMS.online: ISO 27001:2022 Annex A 8.3, Information Access Restriction (a secondary guide; the control text is in the standard), read 15 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a/8-3-information-access-restriction-2022/"
+    },
+    {
+      "title": "GDPR, Article 32, Security of processing (the text of the regulation), read 15 October 2026",
+      "url": "https://gdpr-info.eu/art-32-gdpr/"
+    },
+    {
+      "title": "IMDA Singapore, Data Protection Trustmark (DPTM) Certification (named only), read 15 October 2026",
+      "url": "https://www.imda.gov.sg/how-we-can-help/data-protection-trustmark-certification"
+    },
+    {
+      "title": "PDPC Singapore, Data Protection Obligations under the PDPA, including the Protection Obligation (named only), read 15 October 2026",
+      "url": "https://www.pdpc.gov.sg/overview-of-pdpa/the-legislation/personal-data-protection-act/data-protection-obligations"
+    }
+  ]
+}
