@@ -1,0 +1,859 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version"
+ ],
+ "id": "s6e01",
+ "season": 6,
+ "n": 1,
+ "title": "Wait Longer",
+ "setting": "a door that knocks back",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "timeouts",
+  "retries",
+  "exponential-backoff",
+  "jitter"
+ ],
+ "prerequisites": [
+  "s4e07",
+  "s4e02",
+  "s2e06",
+  "s1e01",
+  "s1e02",
+  "s1e03",
+  "s1e04",
+  "s1e06",
+  "s2e01",
+  "s3e05",
+  "s2e15"
+ ],
+ "rule": {
+  "n": 2
+ },
+ "post": {
+  "author": "u/merriott_warden_ceridwen",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 3377,
+  "title": "I'm the night warden at a block of student halls. At 03:00 every door on every floor beeped at once, then kept knocking in time for twelve minutes.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Ceridwen, night warden at Merriott Halls: 600 student rooms on six floors. Each door has a card lock: a reader and a bolt. Every lock keeps a line open to one computer in the basement that checks each card tap. That computer is the access server, and a line kept open like that is called a connection."
+   },
+   {
+    "t": "p",
+    "text": "When a lock loses its line, it gets it back by itself, in steps. First it waits. Then it knocks: it asks the server for a new line. If the knock fails, the door gives a double beep, and the lock waits and knocks again. A knock after a failed one is called a retry."
+   },
+   {
+    "t": "p",
+    "text": "Each wait is longer than the last: 1 second, then 2, 4, 8, 16, 32. Doubling the wait each time is called exponential backoff. After 32 it stops growing and stays at 60 seconds; that ceiling is called the cap. Each wait is timed from the lock's last knock."
+   },
+   {
+    "t": "p",
+    "text": "A knock can fail in two ways. If the server is off, it refuses the knock at once. If it is on but busy, the lock waits up to 1 second for an answer, then gives up. That limit is called the timeout."
+   },
+   {
+    "t": "p",
+    "text": "Everard, from the estates team, set the locks up when they were fitted in September. Their settings file gives, line by line, the waits, the cap, the timeout per knock, and whether the waits are random:"
+   },
+   {
+    "t": "log",
+    "text": "wait     1s 2s 4s 8s 16s 32s\ncap      60s\ntimeout  1s\nrandom   off"
+   },
+   {
+    "t": "p",
+    "text": "Before this week, a line only ever dropped on its own, one door at a time. That lock knocked once, a second later, and the idle server let it straight back in. Nobody heard a thing."
+   },
+   {
+    "t": "p",
+    "text": "On Tuesday at 03:00 the server restarted for a security update, its first restart since September. All 600 lines dropped in the same instant. It was back at 03:00:40. It can let in about 50 new connections a second; the rest wait in line."
+   },
+   {
+    "t": "beat",
+    "text": "At 03:00:01 every door on every floor beeped at once."
+   },
+   {
+    "t": "p",
+    "text": "I was on the second floor. Again at 03:00:03. At :07. At :15. At :31. Each gap twice the last, every door together, down every corridor. Then half a minute of silence."
+   },
+   {
+    "t": "p",
+    "text": "Everard pulled the server's log, its diary of knocks. It starts at 03:01:03, since nothing was listening before 03:00:40. Each line shows the time, the knocks in that second, how many got in, and how many gave up after 1 second:"
+   },
+   {
+    "t": "log",
+    "text": "03:01:03  knocks 600  in 50  gave up 550\n03:02:03  knocks 550  in 50  gave up 500\n03:03:03  knocks 500  in 50  gave up 450\n...\n03:11:03  knocks 100  in 50  gave up 50\n03:12:03  knocks 50   in 50  gave up 0"
+   },
+   {
+    "t": "p",
+    "text": "So at four seconds past every minute the doors beeped again, fifty fewer each time. A lock without its line can't check a card, so it stays shut. Two students back from the bathroom stood in the corridor, tapping cards at doors that beeped back. The last lock came back at 03:12:03."
+   },
+   {
+    "t": "evidence",
+    "label": "doors_first_70_seconds.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "The first 70 seconds after 03:00:00. The access server is restarting until 03:00:40 and up after that. All 600 locks are out until 03:01:03. Markers show the moments all 600 locks knocked together: 03:00:01, then 2 seconds later, 4, 8, 16 and 32 seconds later, at 03:00:03, 03:00:07, 03:00:15, 03:00:31 and 03:01:03. Only at 03:01:03 is the server up, and 50 of the 600 get in.",
+     "start": "03:00:00",
+     "seconds": 70,
+     "ticksEvery": 10,
+     "rows": [
+      {
+       "label": "Access server",
+       "gaps": [
+        [
+         0,
+         40,
+         "restarting"
+        ]
+       ],
+       "segments": [
+        [
+         40,
+         70,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "600 locks",
+       "gaps": [
+        [
+         0,
+         63,
+         "all 600 out"
+        ]
+       ],
+       "segments": [
+        [
+         63,
+         70,
+         "warn"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 1,
+       "label": "1 s",
+       "tone": "bad"
+      },
+      {
+       "t": 3,
+       "label": "+2 s",
+       "tone": "bad"
+      },
+      {
+       "t": 7,
+       "label": "+4 s",
+       "tone": "bad"
+      },
+      {
+       "t": 15,
+       "label": "+8 s",
+       "tone": "bad"
+      },
+      {
+       "t": 31,
+       "label": "+16 s",
+       "tone": "bad"
+      },
+      {
+       "t": 40,
+       "label": "server back",
+       "tone": "ok"
+      },
+      {
+       "t": 63,
+       "label": "+32 s: 50 in",
+       "tone": "warn"
+      }
+     ]
+    },
+    "caption": "Redrawn from my notes and Everard's log. Each red mark is a moment all 600 locks knocked in the same second: 03:00:01, :03, :07, :15 and :31, each refused at once with 600 double beeps. The server came back at 03:00:40, so the knock at 03:01:03 was the first it heard: 50 got in, and 550 beeped at 03:01:04."
+   },
+   {
+    "t": "p",
+    "text": "Inside the cover of the night book, in the first warden's hand:"
+   },
+   {
+    "t": "note",
+    "title": "INSIDE THE COVER OF THE NIGHT BOOK",
+    "items": [
+     "IF YOU KNOCK AND NO ONE ANSWERS, WAIT.",
+     "THEN WAIT LONGER.",
+     "NEVER KNOCK IN THE SAME RHYTHM TWICE."
+    ],
+    "sig": "- the first warden, 1964"
+   },
+   {
+    "t": "p",
+    "text": "Everard says the locks did exactly what their settings said. They waited, then waited longer. Every one of them. What should he change before the next restart?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 164,
+   "age": "5h",
+   "text": "Two measures first. Line up every ordinary knock from fastest to slowest. The one in the middle is the p50, short for 50th percentile: half are faster. So: on an ordinary night, how long did a knock take at the p50, how slow were the slowest, and which was 1 second chosen from? Then your own times. When did each lock start its first wait? What would 600 timers that start in the same millisecond do after that, if each follows the same list? And at 03:01:03, how long would the 600th knock in the server's line have had to wait?",
+   "replies": [
+    {
+     "author": "u/merriott_warden_ceridwen",
+     "op": true,
+     "points": 58,
+     "age": "4h",
+     "text": "Everard timed knocks in September: the p50 was 0.1 seconds, and the p99, the slowest 1 in 100, was 0.4. He set 1 second, ten times the usual one, from the p50. He never looked at what a busy server does to the slow end. Tonight 600 knocks came in one second and the server lets in 50 a second, so the 600th would have waited 12 seconds."
+    }
+   ]
+  },
+  {
+   "author": "u/give_it_time_horatio",
+   "points": 97,
+   "age": "4h",
+   "text": "A longer timeout fixes everything. The server was back and answering; it just needed time. Your locks hung up after 1 second and then sat out a whole minute. Give each knock 5 seconds and a lock in the line stays on until its turn comes. Patient knockers get in. Impatient ones go to the back."
+  },
+  {
+   "author": "u/bigger_box_leopoldine",
+   "points": 61,
+   "age": "3h",
+   "text": "Or buy a server that lets in 100 new connections a second, or 600. Then a wave of 600 is one busy second, not twelve minutes. A faster box costs less than a corridor of students who can't get into their rooms."
+  }
+ ],
+ "reply": {
+  "prompt": "The server will restart again for the next security update. What should Everard change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Make each lock retry every second until it gets in, so no door stays locked out for long.",
+    "tone": "bad",
+    "verdict": "A storm at the door",
+    "part2": "Everard tried it in the sim before touching 600 locks, replaying Tuesday with every lock knocking every second. Until 03:00:40 every door beeped every second, 600 at a time. At 03:00:40 the first 50 knocks in the server's line got in. The other 550 gave up a second later and knocked again, but each new knock joined the back of the line, behind knocks whose locks had already hung up. The server can't tell a lock has gone, so it worked through those first, one every 20 thousandths of a second. Every new knock waited more than its 1 second. At 03:15:00 only 50 of 600 were back, and 430,550 knocks sat in the server's line from locks long gone. He put the settings back.",
+    "senior": "Retries are selfish: each one spends the server's time to raise one caller's chance. When the server is the scarce part, knocking faster only fills its line. Here 550 knocks a second met room for 50, and the server spent its time on knocks whose lock had already given up, so every fresh knock waited too long and none got in. Backoff exists to give a struggling server room to recover; take it away and the retries become the outage."
+   },
+   {
+    "text": "Give each lock a random wait up to its backoff, keep the cap, so knocks never line up.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Everard changed one line: random on. Each wait became a random time from zero up to its backoff: up to 1 second, then up to 2, up to 4, and so on, up to 60 with the cap. He replayed Tuesday in the sim first. While the server was down the doors chattered, hundreds of beeps in the first seconds but spread across each second, never one bang, then thinner and thinner. From 03:00:40 the knocks came about 10 a second, never more than 28 in one second, and not one knock timed out. The last lock was back at 03:01:38. Two weeks later the server restarted for the next update, and on the real night every door was back before 03:02.",
+    "senior": "Backoff spaces out one lock's knocks; it does nothing about 600 locks that started their timers in the same millisecond. A random wait up to the backoff, called full jitter, breaks that shared rhythm, so the server sees a trickle below what it can take instead of a wall of 600. Keep the cap so no lock sleeps too long, set the timeout from the slow end of real knock times, and retry only what is safe to repeat: asking for a new line is."
+   },
+   {
+    "text": "Raise the timeout per knock from 1 s to 5 s, so the server has time to answer every lock.",
+    "tone": "warn",
+    "verdict": "Fewer waves, still in step",
+    "part2": "Everard set the timeout to 5 seconds and replayed Tuesday in the sim. Until 03:00:40 nothing changed: the server was off and refused every knock at once. At 03:01:03 all 600 knocked in the same second again. This time a lock could wait 5 seconds in line, so 250 got in; 350 gave up and beeped at 03:01:08. At 03:02:03 those 350 knocked together and 250 got in; at 03:03:03 the last 100. The last lock was back at 03:03:04, nine minutes sooner. But every wave was still every door at once, and each wave only fits because 600 locks and 50 a second happen to suit a 5 second wait.",
+    "senior": "Choosing the timeout from the slow end of real times, not the usual one, is right, and here it lets each wave take 250 instead of 50. But it doesn't touch the rhythm: every lock still knocks in the same second, so the server still meets a wall, and more locks or a slower restart bring the waves back. A long timeout also means a lock holds a dead knock open for 5 seconds before it can try again."
+   },
+   {
+    "text": "Restart the access server only in the daytime, when the warden can watch over the doors.",
+    "tone": "bad",
+    "verdict": "Same knock, different hour",
+    "part2": "Everard moved security updates to Wednesdays at 14:00. At the next one every door beeped at 14:00:01, :03, :07, :15 and :31, then at four seconds past every minute, fifty fewer each time, and the last lock was back at 14:12:03: the same twelve waves. Most rooms were empty, but a student back from a lecture sat on the corridor floor for ten minutes. In the sim, a 14:00 restart gives exactly the same waves. And anything else that drops all 600 lines at once, a power cut or a network fault, at any hour, replays Tuesday.",
+    "senior": "Moving the restart removes tonight's trigger, not the cause. The cause is 600 locks with the same rule starting their timers in the same instant, so they knock in step whenever they lose their lines together, whether a person chose the moment or not. Plan for the failure you didn't schedule."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s6e01",
+  "title": "Replay the restart at Merriott Halls",
+  "lede": "You're Everard, at 02:59:55 on Tuesday, with 600 of 600 locks connected. At 03:00:00 the access server restarts and every line drops. Each lock waits 1, 2, 4, 8, 16, 32 seconds between knocks, then 60 (the cap), each wait timed from its last knock. While the server is down, until 03:00:40, it refuses every knock at once. Once it is back it lets in one new connection every 20 thousandths of a second, 50 a second, first come, first served. A lock still in line when its 1 second timeout runs out gives up and beeps, but the server doesn't know and still works through that knock. Set the random wait, the cap, the timeout, the server's speed and the restart time, then play the 15 minutes.",
+  "tryThis": "Try this: press Next knocks as built and watch 600 knock at 03:00:01, :03, :07, :15, :31, then 03:01:03, where 50 get in and 550 give up. Play to the end: the last lock at 03:12:03. Now try each idea. Timeout 5 s: 250 a wave, last lock 03:03:04, still in step. Server 100 a second: last lock 03:06:03. Restart at 14:00: the same waves, 14:12:03. Cap 1 s, a knock every second: only 50 ever get in. Random wait, full: never more than 28 knocks in a second after 03:00:40, and the last lock at 03:01:38."
+ },
+ "explain": {
+  "oneLine": "Nothing was broken, and nothing was slow. Every lock ran the same retry rule from the same millisecond, so 600 timers stayed in step. Each wave met a server that lets in 50 a second; 550 timed out together and came back together a minute later, fifty fewer each time, twelve times over.",
+  "steps": [
+   {
+    "title": "One restart started 600 timers at once.",
+    "text": "A retry with backoff works in steps. First the lock waits its first wait, 1 second. Then it knocks. If the knock fails, it beeps, doubles its wait and knocks again, until the wait reaches the cap. What went wrong: on every earlier night a line dropped alone, at its own moment, so each lock's timer was its own. On Tuesday all 600 lines dropped in the same millisecond, so all 600 timers started together and, following the same list, stayed together: 03:00:01, then 2 seconds later, 4, 8, 16, 32. Nothing in the rule could ever pull them apart."
+   },
+   {
+    "title": "Backoff spaced each lock's knocks, not the locks from each other.",
+    "text": "Exponential backoff answers one question: how long should this one caller wait? Doubling is right for that. It gives a struggling server more and more room. The cap stops one lock waiting forever. But neither says anything about the other 599 locks. Five waves of 600 hit a server that was refusing at once while it restarted, then 600 hit it in one second at 03:01:03, then 550, 500 and so on, each a minute after the last. The AWS article warns of exactly this: once everyone reaches the cap, all of them retry at the capped rate together."
+   },
+   {
+    "title": "The 1 second timeout came from the usual knock, not the slow end.",
+    "text": "A timeout is a guess at how long a good answer can take. Everard took the p50, 0.1 seconds, and allowed ten times that. The useful guide is the slow end, the tail: the p99 or beyond, measured when the server is busy. Waiting in line is what makes the tail long. At 50 a second, a line of 600 means the last knock waits 12 seconds, so with 1 second only the first 50 could ever get in. The same idea, the other way round, speeds up reads: a hedged request sends a second copy of a request to another server if the first hasn't answered by about the p95. Dean and Barroso found that this costs about 5% more load, and it is only safe for reads, such as a card check that changes nothing."
+   },
+   {
+    "title": "A wave into a door that lets in 50 a second wastes most of the server's time.",
+    "text": "Each wave went like this. 600 knocks arrived in one second and queued. The server let in one every 20 thousandths of a second. After 1 second, the 550 still in line gave up and beeped. The server could not tell, so it spent the next 11 seconds working through knocks nobody was waiting for: 3,300 wasted knocks over the night. Retries are selfish, the AWS article says: each one spends the server's time to raise one caller's chance. Knocking every second makes it a retry storm. Every fresh knock lands behind wasted ones, waits too long and gives up, so after the first 50 nobody gets in at all."
+   },
+   {
+    "title": "Randomness breaks the rhythm.",
+    "text": "Full jitter keeps the backoff and the cap but makes each wait a random time from zero up to the backoff. Two locks that dropped together now wait, say, 0.3 and 0.8 seconds, then 1.1 and 0.2, and drift further apart with every knock. In the sim the knocks after 03:00:40 average about 10 a second, never more than 28, far under the 50 the server can take, so no knock times out and the last lock is back at 03:01:38. That is Rule 2: wait, then wait longer, and never knock in the same rhythm twice. Its cousin is Rule 7 (s2e06): when the doors open, let them in a few at a time. And Rule 3 (s4e07) still holds: retry only what is safe to repeat. Asking for a new line is; a request that unlocks or charges something needs a ticket number first."
+   }
+  ],
+  "diagram": {
+   "type": "timeline",
+   "w": 740,
+   "aria": "From 03:00:00 to 03:13:00. The access server is down until 03:00:40. As built, locks are still out until the last one gets in at 03:12:03. With a random wait up to the backoff, locks are out only until 03:01:38. Markers: 03:01:03, the first wave in as built; 03:01:38, all back with random waits; 03:12:03, all back as built.",
+   "start": "03:00:00",
+   "seconds": 780,
+   "ticksEvery": 120,
+   "rows": [
+    {
+     "label": "Access server",
+     "gaps": [
+      [
+       0,
+       40,
+       "down"
+      ]
+     ],
+     "segments": [
+      [
+       40,
+       780,
+       "ok"
+      ]
+     ]
+    },
+    {
+     "label": "As built",
+     "gaps": [
+      [
+       0,
+       723,
+       "locks still out, waves every minute"
+      ]
+     ],
+     "segments": [
+      [
+       723,
+       780,
+       "ok"
+      ]
+     ]
+    },
+    {
+     "label": "Random waits",
+     "gaps": [
+      [
+       0,
+       98,
+       "out"
+      ]
+     ],
+     "segments": [
+      [
+       98,
+       780,
+       "ok"
+      ]
+     ]
+    }
+   ],
+   "markers": [
+    {
+     "t": 63,
+     "label": "first wave in",
+     "tone": "warn"
+    },
+    {
+     "t": 98,
+     "label": "all back, random",
+     "tone": "ok"
+    },
+    {
+     "t": 723,
+     "label": "all back, as built",
+     "tone": "bad"
+    }
+   ]
+  },
+  "caption": "The fix, drawn against Tuesday. As built, the locks come back in twelve waves a minute apart and the last is in at 03:12:03. With each wait a random time up to its backoff, the same 600 locks reach the server about 10 a second and the last is in at 03:01:38, in the sim.",
+  "fix": {
+   "title": "The fix: random waits up to the backoff, the cap kept, the timeout from the slow end",
+   "text": "Change one line of the settings file, random from off to full: each wait becomes a random time from zero up to that step's backoff, 1, 2, 4, 8, 16, 32, then 60 seconds. Keep the cap, so no lock waits more than a minute. Then measure knock times on a busy night as well as a quiet one, and set the timeout from the p99, not the p50. Check it in the sim: 600 of 600 back by 03:01:38, never more than 28 knocks in a second, no knock left in the server's line. Retry only the knock for a new line, which is safe to repeat."
+  },
+  "limits": [
+   "Jitter spreads knocks that start together, but it can't make a server take more than it can. If 6,000 locks dropped at once, even a perfect spread would take two minutes at 50 a second, and the cap decides how long the slowest lock waits.",
+   "Random waits make one lock's time back unpredictable: an unlucky lock can wait almost a full backoff after the server is ready. Here the worst was 03:01:38, about a minute after the server came back.",
+   "Telling whether a line is truly dead, rather than slow, is a separate question, covered later in Silence Isn't Death."
+  ],
+  "tradeoff": {
+   "head": [
+    "Retry rule",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "As built: backoff, cap 60 s, timeout 1 s",
+     "A single dropped lock is back in a second; a down server is never hammered.",
+     "600 locks in step: 12 waves, last lock 03:12:03."
+    ],
+    [
+     "Retry every second",
+     "Fast for one lock alone.",
+     "A storm: only 50 of 600 back by 03:15:00; the server's line fills with knocks nobody waits for."
+    ],
+    [
+     "Timeout 5 s",
+     "250 a wave; last lock 03:03:04.",
+     "Still in step; a dead knock is held 5 s."
+    ],
+    [
+     "Server lets in 100 a second",
+     "Last lock 03:06:03.",
+     "Still waves; costs money; a bigger crowd brings them back."
+    ],
+    [
+     "Restart only at 14:00",
+     "Fewer people locked out.",
+     "Same 12 waves, last at 14:12:03; a power cut at night replays Tuesday."
+    ],
+    [
+     "Full jitter, cap kept",
+     "About 10 knocks a second, no line; last lock 03:01:38.",
+     "One lock's wait is unpredictable."
+    ]
+   ]
+  },
+  "seniorTake": "Design retries as a group, not one caller at a time. Decide first whether the thing is safe to repeat; if not, don't retry it without an idempotency key. Set the timeout from the slow end of real answer times under load, the p99 or beyond, not the usual time. Back off exponentially so a struggling server gets room, cap the wait so nobody sleeps for an hour, and add jitter so callers that failed together don't come back together. Then ask the question nobody asked at Merriott: what happens when every caller loses its connection in the same instant? A restart, a deploy, a network blip or a power cut can line up thousands of timers, and a retry rule that is polite for one caller becomes a drum for all of them. For reads, hedged requests can trim the slow tail at a small, measured cost; for writes, they can't.",
+  "realWorld": [
+   {
+    "title": "AWS Builders' Library: choosing a timeout from the slow end",
+    "text": "Marc Brooker's article says: \"Typically, the most difficult problem is choosing a timeout value to set.\" Amazon's way is to start from the downstream service's latency: \"Then, we look at the corresponding latency percentile on the downstream service (p99.9 in this example).\" That is the slow end, not the usual time Merriott used.",
+    "source": 0
+   },
+   {
+    "title": "AWS Builders' Library: retries are selfish",
+    "text": "\"Retries are 'selfish.'\" The article explains: \"In other words, when a client retries, it spends more of the server's time to get a higher chance of success.\" And: \"If a client is too selfish it can create wide-ranging problems.\"",
+    "source": 0
+   },
+   {
+    "title": "AWS Builders' Library: backoff, the cap, and its catch",
+    "text": "\"The most common pattern is an exponential backoff, where the wait time is increased exponentially after every attempt.\" Then: \"To avoid retrying for too long, implementations typically cap their backoff to a maximum value.\" The article warns that this brings its own problem: \"Now all of the clients are retrying constantly at the capped rate.\"",
+    "source": 0
+   },
+   {
+    "title": "AWS Builders' Library: jitter",
+    "text": "\"Jitter adds some amount of randomness to the backoff to spread the retries around in time.\" Without it: \"If all the failed calls back off to the same time, they cause contention or overload again when they are retried.\" And, more widely: \"Jitter isn't only for retries.\"",
+    "source": 0
+   },
+   {
+    "title": "AWS Builders' Library: retry only what is safe",
+    "text": "\"In general, our view is that APIs with side effects aren't safe to retry unless they provide idempotency.\" Idempotency, the article says, \"guarantees that the side effects happen only once no matter how often you retry.\" That is Rule 3 from s4e07.",
+    "source": 0
+   },
+   {
+    "title": "AWS Architecture Blog, 2015: Exponential Backoff And Jitter",
+    "text": "Marc Brooker's post defines the pattern: \"Capped exponential backoff means that clients multiply their backoff by a constant after each attempt, up to some maximum value.\" Without randomness, his simulation found \"there are still clusters of calls.\" The post names the version that waits a random time between zero and the capped backoff \"Full Jitter\", compares it with two others, and concludes: \"The no-jitter exponential backoff approach is the clear loser.\" With 100 competing clients, \"we've reduced our call count by more than half.\"",
+    "source": 1
+   },
+   {
+    "title": "Dean and Barroso, The Tail at Scale (CACM, 2013): why the tail matters",
+    "text": "The paper considers \"a system where each server typically responds in 10ms but with a 99th-percentile latency of one second.\" Then \"one user request in 100 will be slow (one second)\", and if a request must collect answers from 100 such servers, \"63% of user requests will take more than one second.\"",
+    "source": 2
+   },
+   {
+    "title": "Dean and Barroso: hedged requests",
+    "text": "Hedged requests \"issue the same request to multiple replicas and use the results from whichever replica responds first.\" To keep the cost down, one approach is \"to defer sending a secondary request until the first request has been outstanding for more than the 95th-percentile expected latency for this class of requests,\" which \"limits the additional load to approximately 5%\". In a Google benchmark reading 1,000 keys from 100 servers, a hedging request after 10ms cut the 99.9th-percentile latency \"from 1,800ms to 74ms while sending just 2% more requests.\"",
+    "source": 2
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you design retries?",
+    "What is jitter for?",
+    "What is a hedged request, and when is it safe?"
+   ],
+   "answer": "First I ask whether the call is safe to repeat. Reads usually are; anything with a side effect needs an idempotency key, or I don't retry it automatically. Then the timeout: I set it from the slow end of real latency under load, around the p99 or p99.9, because a timeout taken from the average fires on perfectly good answers just when the server is busiest. Then a limited number of retries with exponential backoff, capped so no one waits too long, and with jitter: a random wait between zero and the capped backoff, the AWS 'full jitter' pattern. Jitter is for callers that fail together. A restart or a network blip drops thousands of clients in the same instant, and identical backoff keeps them in step, so the server meets the whole crowd again on every round. Randomness spreads them to a trickle the server can take. I'd also keep a retry budget so retries can't multiply load. A story I'd tell: 600 student-hall door locks lost their connections in one restart and, with backoff but no jitter, knocked in the same second every minute; a server taking 50 a second let in 50 a wave and the last lock waited twelve minutes. Full jitter brought them all back in about a minute and a half. A hedged request goes the other way: for a read, if the first server hasn't answered by about its p95, send the same request to a second one and use whichever answers first. Dean and Barroso report it costs about 5% more load and cuts the slow tail sharply. It's safe only for reads or idempotent calls, because both copies may run."
+  }
+ },
+ "terms": [
+  {
+   "term": "Merriott Halls",
+   "def": "The student halls in this story: 600 rooms on six floors, each door with a card lock."
+  },
+  {
+   "term": "Night warden",
+   "def": "The person in charge of a hall of residence overnight, who walks the floors and deals with lock-outs and alarms."
+  },
+  {
+   "term": "Card lock",
+   "def": "A door lock with a card reader, a bolt and a small computer inside. It asks the access server whether each card may open the door."
+  },
+  {
+   "term": "Access server",
+   "def": "The one computer in the basement that every lock asks before it opens. It checks each card tap."
+  },
+  {
+   "term": "Connection (line)",
+   "def": "A line kept open between a lock and the server, so each card check is quick. Like a phone call left open rather than dialled each time."
+  },
+  {
+   "term": "Knock",
+   "def": "In this story, one try by a lock to get a new connection: it asks the server for a new line."
+  },
+  {
+   "term": "Retry",
+   "def": "Trying again after a try fails. Here, a knock after a failed knock."
+  },
+  {
+   "term": "Double beep",
+   "def": "The sound a Merriott lock makes each time a knock fails, whether the server refused it or the lock gave up waiting."
+  },
+  {
+   "term": "Exponential backoff",
+   "def": "Waiting longer after each failure, doubling the wait each time: 1, 2, 4, 8 seconds. It gives a struggling server more and more room."
+  },
+  {
+   "term": "Backoff",
+   "def": "The wait before the next try. With exponential backoff it doubles after every failure, up to the cap."
+  },
+  {
+   "term": "Cap",
+   "def": "The longest a wait may grow to. At Merriott, 60 seconds: after 32 the wait stops doubling."
+  },
+  {
+   "term": "Timeout",
+   "def": "How long a caller waits for an answer before giving up. Each Merriott knock had 1 second."
+  },
+  {
+   "term": "Refused at once",
+   "def": "While the server is restarting, nothing is there to answer, so a knock fails the moment it is made instead of waiting out its timeout."
+  },
+  {
+   "term": "Settings file",
+   "def": "A short file of settings a program reads, one per line. The locks' gives the waits, the cap, the timeout and whether waits are random."
+  },
+  {
+   "term": "Security update",
+   "def": "A new version of a program that fixes a weakness. Installing one on the server meant restarting it."
+  },
+  {
+   "term": "Server's line",
+   "def": "Knocks waiting for the server to reach them, first come, first served. The server takes one every 20 thousandths of a second, 50 a second."
+  },
+  {
+   "term": "Wasted knock",
+   "def": "A knock the server worked on after its lock had already given up. The server can't tell, so the work is spent and nobody gets in."
+  },
+  {
+   "term": "Percentile",
+   "def": "Line up many measurements from smallest to largest; the 95th percentile is the one that 95 in 100 are at or below."
+  },
+  {
+   "term": "p50",
+   "def": "The 50th percentile, the middle value: half the knocks were faster. Everard's was 0.1 seconds."
+  },
+  {
+   "term": "p95",
+   "def": "The 95th percentile: 95 in 100 answers come at or before it. Used as the wait before sending a hedged request."
+  },
+  {
+   "term": "p99",
+   "def": "The 99th percentile: 99 in 100 are at or below it. Everard's quiet-night knock p99 was 0.4 seconds."
+  },
+  {
+   "term": "Tail (latency)",
+   "def": "The slow end of the answer times, the p99 and beyond. Queues and busy servers make it long. Latency is how long an answer takes."
+  },
+  {
+   "term": "In step",
+   "def": "Many callers acting in the same moment because they started together and follow the same rule. Also called synchronized."
+  },
+  {
+   "term": "Jitter",
+   "def": "Randomness added to a wait so callers that failed together come back at different moments."
+  },
+  {
+   "term": "Full jitter",
+   "def": "Waiting a random time between zero and the backoff, instead of the backoff exactly. Named in Marc Brooker's 2015 AWS post."
+  },
+  {
+   "term": "Retry storm",
+   "def": "So many retries that the server spends its time on them and real work can't get through, so retrying makes the outage longer."
+  },
+  {
+   "term": "Selfish (retries)",
+   "def": "AWS's word for retries: each one spends more of the server's time to raise one caller's chance of success."
+  },
+  {
+   "term": "Hedged request",
+   "def": "Sending the same read to a second server if the first hasn't answered by about the p95, and using whichever answers first. Safe only when doing it twice is harmless."
+  },
+  {
+   "term": "Read",
+   "def": "A request that only looks something up and changes nothing, such as checking whether a card may open a door."
+  },
+  {
+   "term": "Idempotency key",
+   "def": "A unique name sent with a request so that a repeat returns the first result instead of doing it again (s4e07)."
+  },
+  {
+   "term": "Retry budget",
+   "def": "A limit on how many retries a caller may make compared with its first tries, so retries can't multiply the load."
+  },
+  {
+   "term": "Millisecond",
+   "def": "A thousandth of a second. The server takes 20 of them to let in each new connection."
+  },
+  {
+   "term": "Rule 2",
+   "def": "If you knock and no one answers, wait. Then wait longer. Never knock in the same rhythm twice. Back off, and add randomness so callers that failed together drift apart."
+  },
+  {
+   "term": "Rule 7",
+   "def": "When the doors open at 6 AM, let them in a few at a time (s2e06). The cousin of Rule 2."
+  },
+  {
+   "term": "Rule 3",
+   "def": "If the register asks you to charge a customer again, check the ticket number first (s4e07). Retry only what is safe to repeat."
+  },
+  {
+   "term": "Deploy",
+   "def": "Putting a new version of a program into service, which usually means restarting it, so every client loses its connection."
+  },
+  {
+   "term": "Side effect",
+   "def": "A change a request makes in the world, such as unlocking a door or taking money. A request with one is not safe to repeat blindly."
+  },
+  {
+   "term": "Contention",
+   "def": "Many callers competing for the same thing at the same moment, so most have to wait or fail."
+  },
+  {
+   "term": "Builders' Library",
+   "def": "Amazon's collection of articles on how it builds and runs its systems, now on the AWS Builder Center site."
+  },
+  {
+   "term": "CACM",
+   "def": "Communications of the ACM, the monthly magazine of the Association for Computing Machinery, where The Tail at Scale appeared in 2013."
+  },
+  {
+   "term": "Replica",
+   "def": "A copy of the same data or service on another server, any of which can answer a read."
+  },
+  {
+   "term": "Build Night G6",
+   "def": "The hands-on project after s6e01 to s6e03: timeouts, retries with backoff and jitter on safe calls only, a breaker and a limiter."
+  },
+  {
+   "term": "SOC 2",
+   "def": "An audit report, written by an outside checker, on a company's controls against the AICPA's Trust Services Criteria."
+  },
+  {
+   "term": "A1.1 (SOC 2)",
+   "def": "A SOC 2 availability criterion: the company maintains, monitors and evaluates current processing capacity and use of system components."
+  }
+ ],
+ "atWork": "Look for anything with many clients that all reconnect when one server restarts: a phone app holding an open connection, devices in a building or a fleet, workers that keep asking a server for jobs. It is a common pattern, and it hides on quiet days because clients only drop one at a time. Check four things. Does every client retry with the same schedule, and is there any randomness in the wait? Is there a cap, and is the timeout set from the slow end of real answer times under load, or from the average? Are only safe calls retried? And what did your server see in the first minutes after its last restart: a smooth climb, or a staircase of spikes? Build Night G6 builds exactly this: timeouts, retries with backoff and jitter on safe methods only. Standards: if your company is pursuing SOC 2 availability, criterion A1.1 expects it to maintain, monitor and evaluate current processing capacity and use of system components; a reconnect wave after every deploy is that kind of capacity risk, so test restarts under full load now rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "timeouts",
+    "title": "Timeouts"
+   },
+   {
+    "id": "retries",
+    "title": "Retries"
+   },
+   {
+    "id": "exponential-backoff",
+    "title": "Exponential backoff"
+   },
+   {
+    "id": "jitter",
+    "title": "Jitter"
+   }
+  ],
+  "strings": [
+   {
+    "from": "timeouts",
+    "to": "retries",
+    "label": "when to give up"
+   },
+   {
+    "from": "exponential-backoff",
+    "to": "retries",
+    "label": "wait longer"
+   },
+   {
+    "from": "jitter",
+    "to": "exponential-backoff",
+    "label": "breaks the rhythm"
+   },
+   {
+    "from": "retries",
+    "to": "idempotency-keys",
+    "label": "safe to repeat"
+   },
+   {
+    "from": "jitter",
+    "to": "thundering-herd",
+    "label": "Rule 7's cousin"
+   },
+   {
+    "from": "retries",
+    "to": "websockets",
+    "label": "reconnects"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s6e01-r1",
+   "kind": "free",
+   "prompt": "Your phone app keeps an open connection to a chat server. A deploy restarts the server at 10:00. Its graphs show huge spikes of reconnects at 10:00:01, 10:00:03, 10:00:07, 10:00:15 and then once a minute, and users say the app spins for ten minutes. The app retries with exponential backoff capped at 60 s and a 2 s timeout. What is going on, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "Every client lost its connection in the same instant and follows the same schedule, so their retries stay synchronized and arrive together",
+     "match": [
+      "same instant",
+      "same moment",
+      "in step",
+      "lined up",
+      "line up",
+      "synchroni",
+      "same schedule",
+      "same rhythm",
+      "all at once",
+      "together"
+     ]
+    },
+    {
+     "idea": "Add jitter: wait a random time up to the backoff, keeping the backoff and the cap",
+     "match": [
+      "jitter",
+      "random",
+      "spread them",
+      "spread the",
+      "spread out"
+     ]
+    },
+    {
+     "idea": "A longer timeout or a bigger server only changes the size of each wave; the rhythm stays",
+     "match": [
+      "longer timeout",
+      "bigger server",
+      "more servers",
+      "more capacity",
+      "still in step",
+      "still waves",
+      "rhythm stays",
+      "only shortens",
+      "size of each wave"
+     ]
+    }
+   ],
+   "model": "The restart dropped every client in the same instant, and every client runs the same backoff list, so their retries stay in step: all of them reconnect at 1, 3, 7 and 15 seconds, then together once a minute at the cap. Each wave is far more than the server can take in a second, so most time out together and come back together. Add jitter: make each wait a random time from zero up to the backoff, keeping the exponential backoff and the 60 s cap, so the reconnects spread out into a trickle the server can absorb. A longer timeout or a bigger server would only change the size of each wave; the rhythm stays. I'd also check the timeout is set from the p99 under load, and that the app only retries calls that are safe to repeat."
+  },
+  {
+   "id": "s6e01-r2",
+   "kind": "mcq",
+   "prompt": "600 locks lose their connection at 03:00:00. Each waits 1, 2, 4, 8, 16, then 32 seconds between knocks, each wait timed from its last knock, and the server refuses every knock until 03:00:40. When do all 600 knock for the sixth time?",
+   "options": [
+    "03:00:32",
+    "03:01:03",
+    "03:01:04",
+    "Spread across the minute, since each lock keeps its own timer"
+   ],
+   "answer": 1,
+   "why": "The knocks come at 1, 1 + 2 = 3, 3 + 4 = 7, 15, 31, then 31 + 32 = 63 seconds after the drop: 03:01:03. Every lock started its timer in the same millisecond and follows the same list, so all 600 knock in the same second. Their own timers don't help when they all started together."
+  },
+  {
+   "id": "s6e01-r3",
+   "kind": "mcq",
+   "prompt": "A card check is a read: it changes nothing. Two access servers can answer it, and 95 in 100 checks are answered within 0.2 seconds. When is it reasonable to send the same check to the second server as well?",
+   "options": [
+    "Always: send every check to both servers at once",
+    "If the first hasn't answered by about 0.2 seconds, the p95; fine here because it is a read",
+    "Only after a 1 second timeout, and then to the same server",
+    "Never: sending a request twice is never safe"
+   ],
+   "answer": 1,
+   "why": "That is a hedged request. Waiting until the p95 means only about 5 in 100 checks get a second copy, which Dean and Barroso found adds about 5% load while cutting the slow tail. It is safe because a read can run twice harmlessly; an unlock or a charge could not be hedged without an idempotency key."
+  },
+  {
+   "id": "s6e01-r4",
+   "kind": "mcq",
+   "prompt": "A service answers at a p50 of 80 ms and a p99 of 900 ms. A teammate sets the client's timeout to 200 ms, more than twice the usual answer. What happens?",
+   "options": [
+    "About 1 call in 100 times out",
+    "More than 1 call in 100 times out and is retried, adding load just when the service is slowest",
+    "No calls time out, since 200 ms is more than twice the p50",
+    "Only calls that would have failed anyway time out"
+   ],
+   "answer": 1,
+   "why": "The p99 is 900 ms, so more than 1 call in 100 takes longer than 200 ms: those good answers are thrown away and retried. The slow ones usually come when the service is busy, so the retries land at the worst moment. A timeout set from the usual time fires on the tail; set it from the p99 or beyond."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. Random waits work: the last four restarts had every lock back within two minutes. In February Everard added a nightly battery report: at 02:00:00 sharp, every lock sends its battery level over its open line. The server can handle about 50 reports a second, and a report that waits more than 1 second times out and is retried with the new random waits. Every night the server log shows 600 reports arriving in one second at 02:00:00, 550 timeouts, and every report in by about 02:01. Nothing is lost, but the error alarm wakes Everard every night.",
+  "prompt": "Reply to OP. Why do 550 reports time out every night even with random waits on, and how should the 02:00 report be scheduled?",
+  "keyIdeas": [
+   {
+    "idea": "All 600 locks use the same clock time for their first send, so the first reports line up; jitter on retries only spreads the second tries",
+    "match": [
+     "first send",
+     "first report",
+     "first try",
+     "same clock",
+     "synchroni",
+     "line up",
+     "lined up",
+     "all at once",
+     "in step",
+     "only the retries"
+    ]
+   },
+   {
+    "idea": "Add a random offset to each lock's scheduled time, spreading the first sends across a window",
+    "match": [
+     "random offset",
+     "random delay",
+     "random start",
+     "random time",
+     "random minute",
+     "spread them",
+     "spread the",
+     "jitter the schedule",
+     "jitter the start",
+     "stagger"
+    ]
+   },
+   {
+    "idea": "Spread over an hour, 600 reports is one every 6 seconds, far below 50 a second, so none time out",
+    "match": [
+     "over an hour",
+     "over the hour",
+     "across the hour",
+     "window",
+     "under 50",
+     "below 50",
+     "well under",
+     "no timeouts",
+     "none time out"
+    ]
+   }
+  ],
+  "model": "Jitter on the retries only helps after a failure. The first sends are scheduled by the clock, 02:00:00 sharp, so all 600 locks still send in step, the same wall the restart made, just on a timer instead of by accident. That is what the AWS article means by jitter isn't only for retries. Give each lock a random offset for its scheduled time: for example a random time across the hour from 02:00 to 03:00, chosen once per lock. Spread over an hour, 600 reports is one every 6 seconds, well under 50 a second, so no line forms and none time out. The random waits stay for real failures, and the alarm goes quiet."
+ },
+ "next": "Next, The Breaker Box: an old apartment block, and how circuit breakers, bulkheads and fallbacks keep one failing part from taking everything else down with it.",
+ "sources": [
+  {
+   "title": "Marc Brooker, Timeouts, retries, and backoff with jitter, Amazon Builders' Library, 2019, now on AWS Builder Center (choosing a timeout from a latency percentile such as p99.9; retries are selfish; exponential backoff and capping it; jitter; APIs with side effects aren't safe to retry without idempotency)",
+   "url": "https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter"
+  },
+  {
+   "title": "Marc Brooker, Exponential Backoff And Jitter, AWS Architecture Blog, 4 March 2015 (capped exponential backoff; clusters of calls without jitter; Full Jitter; the no-jitter approach is the clear loser)",
+   "url": "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/"
+  },
+  {
+   "title": "Jeffrey Dean and Luiz Andre Barroso, The Tail at Scale, Communications of the ACM 56(2), 2013 (99th-percentile latency and fan-out; hedged requests deferred to the 95th percentile, about 5% extra load; 1,800ms to 74ms with 2% more requests)",
+   "url": "https://www.barroso.org/publications/TheTailAtScale.pdf"
+  },
+  {
+   "title": "Linford & Co: Availability Trust Services Criteria in a SOC 2 Audit (A1.1: the entity maintains, monitors, and evaluates current processing capacity and use of system components)",
+   "url": "https://linfordco.com/blog/availability-soc-2-trust-service-principle/"
+  }
+ ]
+}
