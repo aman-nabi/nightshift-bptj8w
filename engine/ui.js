@@ -1,9 +1,15 @@
-/* engine/ui-v1.2.3.js
+/* engine/ui-v1.2.4.js
    Dead Letter UI (DL.ui): the shell, router wiring and every view. Published as engine/ui.js.
    Contract: docs/dead-letter-engine-contract-v1.1.0.md, sections 6 and 9.9. Needs engine/core-v1.2.0.js (the merged
    catalog, state v2, DL.builds, DL.credits, decision cards; DL.sync, DL.prompts and the #interview/<id> route from
    v1.1). Styles: index-v1.1.0.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
    CHANGELOG
+   v1.2.4 (2026-10-14) "How it works" (#guide), in plain words, for readers who have never studied computers: what
+        the site is, each part of a case in order, what cold cases are and when they come back (1, 3, 7, 21, 60
+        and 120 days, moved by your grade), why you answer from memory, how to remember more, the rest of the site,
+        and how to move progress between devices. Linked from the menu, from a dismissable first-visit callout on
+        Tonight ("dl.guide.seen" in localStorage, every access in try/catch), from the first-shift card and from
+        the Cold cases page. Bold runs in the guide render as <strong> (DL.util.md does italics only).
    v1.2.3 (2026-10-07) the first-shift card's date hint matches the default plan: "About 4 months out fits both courses in
         parallel at the default nights." (it said 3 months, from before plan B).
    v1.2.2 (2026-10-07) cold-case and decision-card replies come from the case's own course guide (the course
@@ -100,14 +106,15 @@
   var AI_NOTICE = "Your free-text answers are sent to Claude for grading. Turn this off to self-grade.";
   var NAV = [
     ["tonight", "Tonight"], ["reviews", "Cold cases"], ["seasons", "Seasons"], ["rules", "Rulebook"],
-    ["board", "Evidence"], ["notes", "Notes"], ["settings", "Settings"]
+    ["board", "Evidence"], ["notes", "Notes"], ["guide", "How it works"], ["settings", "Settings"]
   ];
-  var ROUTES = { tonight: 1, "case": 1, interview: 1, build: 1, reviews: 1, rules: 1, board: 1, seasons: 1, notes: 1, settings: 1 };
+  var ROUTES = { tonight: 1, "case": 1, interview: 1, build: 1, reviews: 1, rules: 1, board: 1, seasons: 1, notes: 1, guide: 1, settings: 1 };
   var ARG_ROUTES = { "case": 1, interview: 1, build: 1 };
   /* Routes core's router knows, used when DL.router.ROUTES is missing. Anything else (build) is routed here. */
   var CORE_ROUTES = ["tonight", "case", "interview", "reviews", "rules", "board", "seasons", "notes", "settings"];
   var DL_TAGLINE = "Stories from people who work while you sleep.";
   var BOARD_KEY = "dl.board";
+  var GUIDE_SEEN_KEY = "dl.guide.seen";
   var CHECKS_KEY = "dl.build.checks.";
   var DEFAULT_OWNER = "aman-nabi";
   var GH_OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/;
@@ -674,7 +681,7 @@
      ====================================================================== */
   var VIEWS = {
     tonight: viewTonight, "case": viewCase, interview: viewInterview, build: viewBuild, reviews: viewReviews,
-    seasons: viewSeasons, rules: viewRules, board: viewBoard, notes: viewNotes, settings: viewSettings
+    seasons: viewSeasons, rules: viewRules, board: viewBoard, notes: viewNotes, guide: viewGuide, settings: viewSettings
   };
 
   function runCleanups() {
@@ -1107,7 +1114,8 @@
       h("header", { class: "sec-head" }, [
         h("p", { class: "eyebrow", text: "Your first shift" }),
         h("h1", { id: "fs-h", text: "Set your pace" }),
-        h("p", { class: "lede", text: "Pick a date to finish by and how long a normal night is. If you miss a night, the rest spreads out again on its own. Nothing nags." })
+        h("p", { class: "lede", text: "Pick a date to finish by and how long a normal night is. If you miss a night, the rest spreads out again on its own. Nothing nags." }),
+        h("p", { class: "muted" }, ["New here? ", link("Read how it works first", "guide"), ": what each part of a case is for, and how cold cases help you remember."])
       ]),
       h("div", { class: "fields" }, [
         field("Finish by", target, "About 4 months out fits both courses in parallel at the default nights."),
@@ -1148,6 +1156,8 @@
     var p = paceNow(), out = p.out;
     var sec = h("section", { class: "wrap section" });
     sec.appendChild(head("Tonight · " + weekdayOf(t) + " " + fmtDate(t), "Tonight's shift"));
+    var guideTip = guideCallout();
+    if (guideTip) sec.appendChild(guideTip);
 
     var box = h("div", { class: "pace-box", "data-status": out.status || "on-track" }, h("p", { class: "pace", text: paceText(out, p.target, p.waiting) }));
     var sub = [];
@@ -2159,6 +2169,7 @@
   }
   function viewReviews(ctx) {
     var sec = h("section", { class: "wrap section" }, head("Reopened files", "Cold cases", "Old cases come back right before you'd forget them. Answer from memory, no re-reading."));
+    sec.appendChild(h("p", { class: "muted" }, ["New to cold cases? ", link("How they work", "guide")]));
     ctx.root.appendChild(sec);
     var queue = dueList().map(function (d) { return d.id; });
     if (!queue.length) { sec.appendChild(emptyReviews()); return null; }
@@ -2422,6 +2433,101 @@
     [a, b].forEach(function (w) { var sp = h("span"); sp.style.width = w + "%"; wrap.appendChild(sp); });
     return wrap;
   }
+  /* ======================================================================
+     View: how it works  #guide   (v1.2.4)
+     ====================================================================== */
+  var GUIDE = [
+    { h: "What this is", p: [
+      "Every case is a short story from someone who works at night: a radio producer, a nurse, a train dispatcher. Something eerie happens to them. Behind it is a real lesson about how computer systems work.",
+      "You can start knowing nothing about computers. Case by case you build up what a senior engineer knows: not just the words, but why systems break and how to choose a fix.",
+      "There are two courses. **Dead Letter** teaches system design: how websites and apps, and the data behind them, are built so they keep working. **LATENT** teaches AI engineering: how to build useful, safe products on top of AI models."
+    ] },
+    { h: "A case, step by step", list: [
+      "**The post.** Someone tells you what happened. Read it like a mystery: the clue is always in there.",
+      "**The comments.** Other people reply. One asks good questions and points at the evidence. Others argue for answers that sound right but aren't. Not everyone in the comments is right.",
+      "**Your reply.** Pick the advice you would give. A wrong pick costs nothing. You then see what happens next (Part 2), and that is where most of the learning is.",
+      "**Break it yourself.** A small simulator of the system in the story. Change its settings and watch it fail, then recover.",
+      "**What actually happened.** The explanation, step by step. Then the fix, its limits, the trade-off, how a senior engineer thinks about it, a real incident, and how job interviews ask about it.",
+      "**Words used here.** Every technical word in the case, in plain words. Open it whenever a word is new or fuzzy.",
+      "**Spot it at work.** Where you would meet this in a real job.",
+      "**Pin it.** One question, answered from memory, before you close the case.",
+      "**Explain it in your own words.** One or two sentences. Your note comes back to you later.",
+      "**Close the case.** This starts the case's cold cases."
+    ] },
+    { h: "Cold cases", p: [
+      "A cold case is a case you have already closed, coming back. The person from the story posts an UPDATE, and you answer one question from memory, without re-reading the case first.",
+      "Each one comes back right before you would start to forget: 1 day after you close the case, then 3 days later, 7 days, 3 weeks, 2 months and 4 months. How you grade your answer moves it:"
+    ], list: [
+      "**Missed:** it comes back tomorrow, and the gaps start again.",
+      "**Partly:** the same gap again.",
+      "**Got it:** the next, longer gap.",
+      "**Easy:** it skips a gap."
+    ], after: [
+      "A cold case more than 3 days late starts to fade, and its card on the Evidence board cracks. Do your cold cases first each night. They take a few minutes."
+    ] },
+    { h: "Why from memory", p: [
+      "Reading something again feels like learning, but most of it slips away within days. Pulling an answer out of your own memory, even a half answer or a wrong one, is what makes it stay.",
+      "Getting it wrong is part of the method, not a failure. A missed cold case simply comes back sooner."
+    ] },
+    { h: "How to remember more", list: [
+      "**Answer before you look.** Even a guess helps more than re-reading.",
+      "**Say it out loud,** as if explaining it to a friend who has never heard of it.",
+      "**Write your note in your own words,** one or two plain sentences. Don't copy the explanation.",
+      "**Draw it.** Boxes and arrows on paper, like the case's diagrams.",
+      "**Connect it.** Open the Evidence board and find which earlier case this one explains.",
+      "**Little and often.** One case a night plus your cold cases beats a long weekend session.",
+      "**When a word feels fuzzy,** open “Words used here” in its case."
+    ] },
+    { h: "The rest of the site", list: [
+      "**Tonight:** your plan for this night. Cold cases that are due, then new cases.",
+      "**Cold cases:** the ones due today.",
+      "**Seasons:** every case in order, and where you are.",
+      "**Rulebook:** short rules from the stories, each a real engineering habit. You learn why when you close its case.",
+      "**Evidence:** a board of your closed cases, joined with red string where they explain each other.",
+      "**Notes:** your own explanations, newest first.",
+      "**Build Nights:** small real projects that use what a few cases taught. They unlock as you go.",
+      "**Interviews:** practice for job interview questions on what you have learned."
+    ] },
+    { h: "Studying on two devices", p: [
+      "Your progress is saved in this browser on this device. To carry it to your phone or another computer, open **Settings**, find **Move my progress to another device**, copy the link, and open it on the other device. It merges the two, keeping the most recent work.",
+      "Automatic syncing between devices is being built."
+    ] }
+  ];
+  /* The guide's own text: **bold** runs become <strong>; the rest goes through md (italics only). */
+  function guideText(tag, t) {
+    var parts = String(t).split(/\*\*(.+?)\*\*/), kids = [];
+    parts.forEach(function (p, i) {
+      if (!p) return;
+      kids.push(i % 2 ? h("strong", { text: p }) : h("span", { md: p }));
+    });
+    return h(tag, null, kids);
+  }
+  function viewGuide(ctx) {
+    lsSet(GUIDE_SEEN_KEY, "1");
+    var sec = h("section", { class: "wrap section guide" }, head("Start here", "How it works",
+      "What each part of a case is for, what cold cases are, and how to make it stick."));
+    GUIDE.forEach(function (g) {
+      var kids = [h("h2", { text: g.h })].concat((g.p || []).map(function (t) { return guideText("p", t); }));
+      if (g.list) kids.push(h("ul", null, g.list.map(function (t) { return guideText("li", t); })));
+      (g.after || []).forEach(function (t) { kids.push(guideText("p", t)); });
+      sec.appendChild(h("div", { class: "block" }, kids));
+    });
+    sec.appendChild(h("p", null, link("Back to tonight", "tonight", "btn btn-primary")));
+    ctx.root.appendChild(sec);
+    return null;
+  }
+  /* First-visit pointer to the guide on Tonight. Gone once the guide is opened or this is dismissed. */
+  function guideCallout() {
+    if (lsGet(GUIDE_SEEN_KEY)) return null;
+    var dismiss = h("button", { class: "btn btn-small btn-ghost", type: "button", text: "Dismiss" });
+    var box = h("div", { class: "callout" }, [
+      guideText("p", "New here? Read **How it works**: what each part of a case is for, what cold cases are, and how to remember more."),
+      h("div", null, [link("How it works", "guide", "btn btn-primary"), dismiss])
+    ]);
+    dismiss.addEventListener("click", function () { lsSet(GUIDE_SEEN_KEY, "1"); removeNode(box); });
+    return box;
+  }
+
   function viewRules(ctx) {
     ctx.rerender = true;
     var t = today();
