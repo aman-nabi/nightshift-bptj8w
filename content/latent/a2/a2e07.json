@@ -1,5 +1,6 @@
 {
   "_changelog": [
+    "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
     "v1.0.1 (2026-10-11) review fixes: a2e07-r4 keyIdeas[2] match fragment 'cost' replaced with 'what it cost' and 'the bill'",
     "v1.0.0 (2026-10-11) first version"
   ],
@@ -47,11 +48,23 @@
     "blocks": [
       {
         "t": "p",
-        "text": "I'm a junior developer, and on Thursdays I volunteer at the Polgrean Head telegraph office, a museum now, open late until midnight. In the spring I built its telegram desk. A visitor types a question, my app sends it to a model along with the day's harbour notices, and the reply prints on the office's old tape printer. The app turns streaming on, so the reply arrives a few words at a time as the model writes it, and the printer clatters along with it. When a telegram is done, the app stamps it DELIVERED and rings the brass bell over the counter."
+        "text": "I'm a junior developer, someone paid to write software, and on Thursdays I volunteer at the Polgrean Head telegraph office, a museum now, open late until midnight. In the spring I built its telegram desk. A visitor types a question. My app, a small program on the office computer, sends it to a language model (a program trained to write text) along with the day's harbour notices. The reply prints on the office's old tape printer."
       },
       {
         "t": "p",
-        "text": "At 23:47 last night the last visitor, Mrs Borlase, asked how to get out to Pendour tonight. The printer started almost at once. Three seconds in, the Wi-Fi bridge to the harbour office restarted, as it does in a gale, and the connection was lost. This is from the app's log:"
+        "text": "The model is run by a provider, a company that sells access to models. My app reaches it through the provider's API, short for application programming interface: the agreed way one program asks another for something, like an order form at a counter. Each question goes as an HTTP request, the web's way of asking, and comes back as a response."
+      },
+      {
+        "t": "p",
+        "text": "The app turns on streaming: the reply comes back a few words at a time, while the model is still writing it. It goes in steps. First the app sends the question. The provider answers at once and keeps the line open. Then it sends small messages, called events, each carrying a few more words, and the printer clatters along. Last comes a closing event that says the reply is finished and why it stopped: its stop reason, which we met in case 1. When a telegram is done, the app stamps it DELIVERED and rings the brass bell over the counter."
+      },
+      {
+        "t": "p",
+        "text": "At 23:47 last night the last visitor, Mrs Borlase, asked how to get out to Pendour tonight. The printer started almost at once. Three seconds in, the Wi-Fi bridge to the harbour office restarted, as it does in a gale, and the connection was lost. A Wi-Fi bridge is a pair of radios linking two buildings without a cable."
+      },
+      {
+        "t": "p",
+        "text": "Here is the app's log. Each line shows the time to a tenth of a second, what happened, and a detail. POST is my app sending the question, with streaming on; 200 OK and message_start mean the provider accepted it and began the reply."
       },
       {
         "t": "log",
@@ -67,7 +80,7 @@
       },
       {
         "t": "p",
-        "text": "Mrs Borlase tore off the tape, folded it into her glove, thanked me and went down the hill in the rain. I was counting the till. The app said the telegram was finished, because the text had stopped arriving, and I believed it."
+        "text": "Mrs Borlase tore off the tape, folded it into her glove, thanked me and went down the hill in the rain. I was counting the till, the cash drawer. The app said the telegram was finished, because the text had stopped arriving, and I believed it."
       },
       {
         "t": "p",
@@ -202,14 +215,14 @@
       "author": "u/gradient_ghost",
       "points": 171,
       "age": "7h",
-      "text": "Nothing in the telegraph office is haunted, though I'd keep that tape somewhere safe. With streaming on, the API answers over one HTTP response that stays open, and sends the reply as server-sent events. An event is one small text message in that response: a line naming its type, like event: message_start, and a line of JSON data. A delta is one small piece of the reply's text, carried by an event called content_block_delta. The stop reason you met in case 1 of this season rides in one of these events too. Two questions. In your log, which event types arrived at 23:47, and which of the ones in this morning's replay never came last night? And in your code, what exactly makes the app stamp DELIVERED?",
+      "text": "Nothing in the telegraph office is haunted, though I'd keep that tape somewhere safe. With streaming on, the HTTP response (the provider's answer to your app's request) stays open, like a phone line left off the hook. The events come down it in a standard format called server-sent events. Each event is two short lines: one naming its type, like event: message_start, and one line of data. A piece of new reply text is called a delta, and it rides in an event called content_block_delta. The stop reason rides in a closing event near the end. Two questions. In your log, which event types arrived at 23:47, and which of the ones in this morning's replay never came last night? And in your code, what exactly makes the app stamp DELIVERED?",
       "replies": [
         {
           "author": "u/tape_printer_senara",
           "op": true,
           "points": 83,
           "age": "6h",
-          "text": "Last night: message_start, content_block_start, one ping, then eight content_block_delta events, one word each, the first at 1.2 seconds and the eighth at 3.3. Then the connection was lost at 3.4. This morning's replay had 26 deltas, the last at 8.7 seconds, then content_block_stop, message_delta with stop_reason end_turn, and message_stop at 9.0. Last night none of those three came. As for my code: the app stamps DELIVERED when the stream ends. My read loop ends when the connection does, and the catch around it was empty."
+          "text": "Last night: message_start (the reply begins), content_block_start (the text begins), one ping (a check-in with no words in it), then eight content_block_delta events, one word each, the first at 1.2 seconds and the eighth at 3.3. Then the connection was lost at 3.4. This morning's replay had 26 deltas, the last at 8.7 seconds. Then came three closing events: content_block_stop (the text ends), message_delta with stop_reason end_turn (the stop reason: end_turn means the model finished on its own; the other common one, max_tokens, means the reply hit the length cap I set, the most tokens, or pieces of text, it may write), and message_stop at 9.0 (the reply ends). Last night none of those three came. As for my code: the app stamps DELIVERED when the stream ends. The part that reads events, my read loop, goes round until the connection closes. And the catch around it, the code meant to handle errors, was empty, so any error it caught simply vanished."
         }
       ]
     },
@@ -217,7 +230,7 @@
       "author": "u/chat_widget_tolver",
       "points": 96,
       "age": "6h",
-      "text": "Silence means done. Every chat app works that way: if no new text has arrived for 5 seconds, the reply is finished, so stamp it and move on. Waiting on the connection was the mistake, because connections do strange things through old Wi-Fi bridges, and a timer doesn't care what the network does. Our support widget has run on a 5-second rule for two years."
+      "text": "Silence means done. Every chat app works that way. Start a timer each time a piece of text arrives. If no new text has arrived for 5 seconds, the reply is finished, so stamp it and move on. Waiting on the connection was the mistake, because connections do strange things through old Wi-Fi bridges, and a timer doesn't care what the network does. Our support widget, the little chat box on our website, has run on a 5-second rule for two years."
     },
     {
       "author": "u/north_steps_endellion",
@@ -238,39 +251,39 @@
       "author": "u/support_queue_kitto",
       "points": 64,
       "age": "3h",
-      "text": "Same at work, without the bell. Our help-desk chat saved each reply as the answer once the text stopped coming, and reused saved answers for similar questions. When we finally searched them, a few dozen stopped mid-sentence, some mid-word. Nothing had errored. Every one of them had looked finished to the code that saved it."
+      "text": "Same at work, without the bell. Our help-desk chat, where customers ask us questions, worked in two steps. Once the text stopped coming, it saved the reply as the answer. Later, when someone asked a similar question, it handed them that saved answer. When we finally searched them, a few dozen stopped mid-sentence, some mid-word. Nothing had errored. Every one of them had looked finished to the code that saved it."
     }
   ],
   "reply": {
     "prompt": "The desk opens again on Thursday night. What should Senara change? Part 2 follows your advice.",
     "options": [
       {
-        "text": "Stamp DELIVERED only after message_stop, and only if message_delta said end_turn. A dropped line, an error mid-stream or a max_tokens cut prints as partial, and the visitor can ask again.",
+        "text": "Stamp DELIVERED only after message_stop, and only if message_delta said end_turn. A dropped line, an error partway through or a max_tokens cut prints as partial; the visitor can ask again.",
         "tone": "ok",
         "verdict": "Senior answer",
-        "part2": "I changed the rule and played last night back in the stream lab. The line drops after word 8, and at 23:47:03.4 the app marks the telegram INCOMPLETE, prints [PARTIAL] after the boat is, and offers to ask again. No bell. An error event after word 8 is marked the same way at 3.4 seconds, and a max_tokens cut, does not sail until, at 6.9. A full reply is stamped DELIVERED at 9.0 seconds, the moment message_stop arrives. On Thursday the bridge dropped once more, mid-reply. The strip said PARTIAL, the visitor pressed ask again, and the second reply printed in full on a fresh strip, bell and all.",
-        "senior": "A stream is finished only when it says so: message_stop, with a stop reason you check. Everything else, a drop, an error event, a cut at max_tokens, a press of stop, is partial, and the interface should say so and let the person ask again."
+        "part2": "I changed the rule and played last night back in the stream lab, a test copy of the desk that replays a stream event by event. The line drops after word 8, and at 23:47:03.4 the app marks the telegram INCOMPLETE, prints [PARTIAL] after the boat is, and offers to ask again. No bell. An error event after word 8, the provider reporting a fault partway through, is marked the same way at 3.4 seconds. A max_tokens cut, which ends on does not sail until, is marked at 6.9. A full reply is stamped DELIVERED at 9.0 seconds, the moment message_stop arrives. On Thursday the bridge dropped once more, mid-reply. The strip said PARTIAL, the visitor pressed ask again, and the second reply printed in full on a fresh strip, bell and all.",
+        "senior": "A stream is finished only when it says so: message_stop, with a stop reason you check. Everything else is partial: a drop, an error event, a cut at max_tokens, or a press of a stop button. The screen should say so and let the person ask again."
       },
       {
         "text": "Stop trusting the connection and add a timer: if no new text has arrived for 5 seconds, the telegram is done, so stamp it and ring the bell. A timer doesn't care what the Wi-Fi bridge does.",
         "tone": "bad",
         "verdict": "The same half telegram, later",
         "part2": "I put in the 5-second timer and played last night back in the lab. The line drops after word 8 at 3.4 seconds; five seconds after the last word, at 8.3, the app stamps the same eight words DELIVERED and rings the bell. The same half telegram, 4.9 seconds later. A max_tokens cut, does not sail until, is stamped at 11.6. And a full reply now waits until 13.7 seconds for its stamp, 4.7 seconds after message_stop had already said it was done.",
-        "senior": "Silence can't tell finished from stalled. Anthropic's docs say a stream may carry any number of ping events, and that with tools there may be delays between streaming events while the model is working. A timeout has one job: deciding a stream is dead, and then marking it incomplete. It can't declare one done."
+        "senior": "Silence can't tell finished from stalled, stuck with nothing coming. Anthropic's docs say a stream may carry any number of ping events, and that with tools (actions the model asks your app to run) there may be delays between streaming events while the model is working. A timeout, a timer that gives up waiting, has one job: deciding a stream is dead, and then marking it incomplete. It can't declare one done."
       },
       {
         "text": "Turn streaming off, so the app gets the whole reply in one response and prints it in one go. A telegram can never be stamped halfway, and visitors wait only a few seconds more at the desk.",
         "tone": "bad",
         "verdict": "Safe-looking, and the first word waits",
-        "part2": "I turned streaming off and tried the same question in the lab. A full reply now arrives in one response at 9.0 seconds, all 26 words at once, and the printer sits silent until then, where streaming printed Come at 1.2. With the line dropping after word 8, nothing printed at all: the single response never arrived, my app, which reads the response itself, showed an error, and the visitor had to ask again anyway. Two visitors walked away from the silent printer on Thursday before it moved.",
-        "senior": "Not streaming avoids half telegrams only by making the first word wait for the last. A broken connection still loses the reply, all of it this time, and a max_tokens cut still arrives looking whole. You need a rule for when a reply is complete either way; streaming just makes you write it down."
+        "part2": "I turned streaming off and tried the same question in the lab. A full reply now arrives in one response at 9.0 seconds, all 26 words at once, and the printer sits silent until then, where streaming printed Come at 1.2. With the line dropping after word 8, nothing printed at all. The single response never arrived, so my app, which reads the response itself, showed an error, and the visitor had to ask again anyway. Two visitors walked away from the silent printer on Thursday before it moved.",
+        "senior": "Not streaming avoids half telegrams only by making the first word wait for the last. A broken connection still loses the reply, all of it this time. A max_tokens cut still arrives looking whole. You need a rule for when a reply is complete either way; streaming just makes you write it down."
       },
       {
         "text": "Whenever a stream breaks before it ends, have the app send the whole question again at once, and keep printing until one reply makes it through. Visitors always get a full telegram.",
         "tone": "warn",
         "verdict": "Trade-off: double prints, double acts",
-        "part2": "I set the app to send the question again whenever a stream broke, and replayed last night: eight words, then the whole reply from the start on the same strip, 34 words, with Come down to the harbour, the boat is printed twice. The bell rang for the second. Then a visitor pressed stop on a reply he didn't want, the app took that for a broken stream, and asked again. Our desk only prints; if a reply ever triggered something, a booking or a message to the harbour office, a broken stream would trigger it twice.",
-        "senior": "Asking again is often right, but decide it, don't fire it blindly. Mark the partial as partial, start a fresh strip, never retry a press of stop, and make anything with a side effect safe to repeat, for example with an idempotency key. Anthropic's docs also describe resuming from the partial text instead of starting over."
+        "part2": "I set the app to send the question again whenever a stream broke, and replayed last night: eight words, then the whole reply from the start on the same strip, 34 words, with Come down to the harbour, the boat is printed twice. The bell rang for the second. Then a visitor pressed stop on a reply he didn't want, the app took that for a broken stream, and asked again. Our desk only prints. But if a reply ever set something off, a booking or a message to the harbour office, a broken stream would set it off twice.",
+        "senior": "Asking again, a retry, is often right, but decide it; don't fire it blindly. Mark the partial as partial, start a fresh strip, and never retry a press of stop. Make anything with a side effect (a change in the world, like a booking) safe to repeat. One way is an idempotency key: a label on each request, so a repeat is spotted and done only once. Anthropic's docs also describe resuming from the partial text instead of starting over."
       }
     ]
   },
@@ -281,27 +294,27 @@
     "tryThis": "Try this: you start at 23:47:00 on last night's stream. The line drops after word 8, and the museum's rule stamps DELIVERED at 3.4 seconds on Come down to the harbour, the boat is. The table shows the 5-second rule stamping the same eight words at 8.3. Pick message_stop with the stop reason checked: INCOMPLETE at 3.4, printed as partial. Switch the line to an error event: the same stamp at 3.4, and overloaded_error in the event stream. Let the line hold: every rule is right, but the 5-second rule waits until 13.7, 4.7 seconds after message_stop. Set the stop reason to max_tokens: the tape ends on until, and only the checked rule says so; message_stop alone stamps it DELIVERED at 6.9. Back on end_turn, press stop at about two seconds: three words, Come down to, marked STOPPED. Compare the first word: 1.2 seconds streamed, 9.0 not streamed."
   },
   "explain": {
-    "oneLine": "Nothing at Polgrean Head is haunted. The reply was streaming, and the app took the end of the connection for the end of the telegram: at 23:47:03.4 the line dropped after word 8, before content_block_stop, message_delta and message_stop ever came, and a stream is finished only when message_stop arrives with a stop reason you have checked.",
+    "oneLine": "Nothing at Polgrean Head is haunted. The reply was streaming, arriving word by word, and the app took the end of the connection for the end of the telegram. At 23:47:03.4 the line dropped after word 8, before the three closing events, content_block_stop, message_delta and message_stop, ever came. A stream is finished only when message_stop arrives and you have checked the stop reason, the reason the reply ended.",
     "steps": [
       {
         "title": "Why stream: the first word much sooner, the last word about the same.",
-        "text": "Without streaming, the API sends the whole reply in one HTTP response once the model has written all of it. OpenAI's streaming guide puts it plainly: by default, we generate the model's entire output before sending it back in a single HTTP response, and streaming lets you start printing or processing the beginning of the model's output while it continues generating the full response. Anthropic's latency guide names the number that changes, time to first token (TTFT): the time it takes for the model to generate the first token of the response, from when the prompt was sent. It says streaming can significantly improve the perceived responsiveness of your application, as users can see the model's output in real time. At Polgrean Head that is the difference between Come at 1.2 seconds and a silent printer for 9.0. The last word arrives at roughly the same time either way, so streaming changes how fast a reply feels, not how long it takes. It has a second use: Anthropic's errors page suggests the streaming Messages API for long-running requests that would otherwise time out, and its SDKs require streaming for large max_tokens values to avoid HTTP timeouts."
+        "text": "Without streaming, the API sends the whole reply in one HTTP response, once the model has written all of it. With streaming, it goes in steps. First the app sends its request. Then the model writes its reply one token (a small piece of text) at a time, and the pieces are usually sent on as soon as they are written. Last, a closing event says the reply is done and why. OpenAI's streaming guide puts it plainly: by default, we generate the model's entire output before sending it back in a single HTTP response, and streaming lets you start printing or processing the beginning of the model's output while it continues generating the full response. Anthropic's latency guide (latency means time spent waiting) names the number that changes, time to first token (TTFT): the time it takes for the model to generate the first token of the response, from when the prompt was sent. The prompt is the text you sent. The guide says streaming can significantly improve the perceived responsiveness of your application, as users can see the model's output in real time. In plain words, the app feels quicker. At Polgrean Head that is the difference between Come at 1.2 seconds and a silent printer for 9.0. The last word arrives at roughly the same time either way, so streaming changes how fast a reply feels, not how long it takes. It has a second use. Anthropic's errors page suggests the streaming Messages API (Anthropic's API for sending a conversation to a model) for long-running requests that would otherwise time out, meaning be given up on for taking too long. Its SDKs, ready-made code libraries for calling the API, require streaming for large max_tokens values to avoid HTTP timeouts."
       },
       {
         "title": "Server-sent events: one HTTP response that stays open.",
-        "text": "Set stream to true on a Messages API request and the reply comes back as server-sent events (SSE). MDN describes SSE as a one-way connection: the server responds using the MIME type text/event-stream, and each notification is sent as a block of text terminated by a pair of newlines, made of fields such as event and data. A line that starts with a colon is a comment, which a server can send to keep a connection from timing out. The WHATWG HTML Standard, section 9.2, adds a rule the telegram desk never met: if the file ends in the middle of an event, before the final empty line, the incomplete event is not dispatched. So a broken connection can cost you at most the event in flight; it never tells you the reply was finished. The standard also warns that legacy proxy servers are known to, in certain cases, drop HTTP connections after a short timeout. One trap: the browser's EventSource object reconnects by itself when a connection closes, but apps usually read the API's POST stream with fetch or an SDK, and a broken stream there is not picked up again for you."
+        "text": "Set stream to true on a Messages API request and the reply comes back as server-sent events (SSE), a standard way for a server (the computer that answers) to keep sending small messages down one open response. It works in steps. First the server answers the request and leaves the response open. Then, each time it has something new, it writes one event: a few short lines of text, then a blank line to mark the end. Last, when the reply is done, it sends its closing events and shuts the response. MDN (Mozilla's reference site for web builders) describes SSE as a one-way connection: the server responds using the MIME type text/event-stream, and each notification is sent as a block of text terminated by a pair of newlines, made of fields such as event and data. A MIME type is a label saying what kind of content a response holds. A line that starts with a colon is a comment, ignored by the reader, which a server can send to keep a connection from timing out. The WHATWG HTML Standard, section 9.2, adds a rule the telegram desk never met. (The WHATWG is the group that writes the rules web browsers follow.) If the file ends in the middle of an event, before the final empty line, the incomplete event is not dispatched, meaning not handed to your code. So a broken connection can cost you at most the event in flight; it never tells you the reply was finished. The standard also warns that legacy proxy servers are known to, in certain cases, drop HTTP connections after a short timeout. A proxy is a go-between machine that passes connections along, and legacy means old. One trap: a web browser's built-in reader for these events, called EventSource, reconnects by itself when a connection closes. But apps usually read the API's stream with fetch (the browser's standard way to make a request) or an SDK, and a broken stream there is not picked up again for you."
       },
       {
         "title": "The event sequence, and where the stop reason travels.",
-        "text": "Anthropic's streaming page lists the flow every stream follows: message_start, which contains a Message object with empty content; a series of content blocks, each of which has a content_block_start, one or more content_block_delta events, and a content_block_stop event; one or more message_delta events, indicating top-level changes to the final Message object; and a final message_stop event. Event streams may also include any number of ping events. For text, each delta is a text_delta with a few characters or words; the sim gives each word its own delta, a teaching simplification. The stop reasons page says where the verdict lives: stop_reason is null in the initial message_start event, provided in the message_delta event, and not provided in any other events. The streaming page adds that the token counts in message_delta's usage are cumulative, and that in accordance with its versioning policy, new event types may be added, so code should handle unknown event types gracefully. Last night the desk received message_start, content_block_start, one ping and eight content_block_delta events. It never received content_block_stop, message_delta or message_stop: no stop reason at all."
+        "text": "A reply is made of content blocks: parts such as a run of text, or a request to use a tool. Anthropic's streaming page lists the flow every stream follows: message_start, which contains a Message object with empty content; a series of content blocks, each of which has a content_block_start, one or more content_block_delta events, and a content_block_stop event; one or more message_delta events, indicating top-level changes to the final Message object; and a final message_stop event. The Message object is the whole reply as one record. In order, then: first the reply opens, still empty. Second, each block opens, fills piece by piece, and closes. Third, message_delta brings the last details, including the stop reason. Fourth, message_stop ends the reply. Event streams may also include any number of ping events, check-ins with nothing of the reply in them. For text, each delta is a text_delta with a few characters or words; the sim gives each word its own delta, a teaching simplification. The stop reasons page says where the verdict lives: stop_reason is null (empty) in the initial message_start event, provided in the message_delta event, and not provided in any other events. The streaming page adds that the token counts in message_delta's usage are cumulative, meaning totals so far, not just the latest part. It also says that in accordance with its versioning policy (its published rules for how the API may change), new event types may be added, so code should handle unknown event types gracefully, by skipping them rather than crashing. Last night the desk received message_start, content_block_start, one ping and eight content_block_delta events. It never received content_block_stop, message_delta or message_stop: no stop reason at all."
       },
       {
         "title": "A stream is finished only when it says so, and errors can arrive after 200 OK.",
-        "text": "The rule is short: a reply is complete when message_stop has arrived and the stop reason in message_delta was end_turn, which the stop reasons page describes as Claude finished its response naturally. A stop reason of max_tokens means the response reached your max_tokens limit; the page's advice for truncated responses is to append a notice so the reader knows the output is incomplete. Anything else is not a completion. A drop sends no event at all. An error can arrive inside a stream that began with 200 OK: the errors page says an error can occur after the API returns a 200 response, and in that case error handling doesn't follow these standard mechanisms, and the streaming page shows the shape: event: error, with an overloaded_error, which would normally correspond to an HTTP 529 in a non-streaming context. The 5-second rule fails the same way the museum's did: in the sim it stamps last night's eight words at 8.3 seconds instead of 3.4. Silence can mean a stall, a slow stretch, or a model working on a tool call: the docs warn there may be delays between streaming events while the model is working. A timeout still has a job, which is declaring a stream dead and marking it incomplete, never declaring it done."
+        "text": "The rule is short. A reply is complete when message_stop has arrived and the stop reason in message_delta was end_turn, which the stop reasons page describes as Claude finished its response naturally. (Claude is Anthropic's family of models.) A stop reason of max_tokens means the response reached your max_tokens limit; the page's advice for truncated responses, ones cut short, is to append a notice so the reader knows the output is incomplete. So the app checks in steps. First, did message_stop arrive? If not, the reply is incomplete. Second, what did message_delta say? end_turn means complete; max_tokens means cut off. Anything else is not a completion. A drop sends no event at all. An error can arrive inside a stream that began with 200 OK, the code for success. The errors page says an error can occur after the API returns a 200 response, and in that case error handling doesn't follow these standard mechanisms. The streaming page shows the shape: event: error, with an overloaded_error, which would normally correspond to an HTTP 529 in a non-streaming context. That is the API saying it is too busy; 529 is the code it would send without streaming. The 5-second rule fails the same way the museum's did: in the sim it stamps last night's eight words at 8.3 seconds instead of 3.4. Silence can mean a stall, where the line stays open but nothing comes. It can mean a slow stretch, or a model working on a tool call, a request to run one of your app's actions. The docs warn there may be delays between streaming events while the model is working. A timeout, a timer that gives up waiting, still has a job: declaring a stream dead and marking it incomplete, never declaring it done."
       },
       {
         "title": "Cancelling, partial text, and partial structured output.",
-        "text": "A stop button is the user cancelling from the client. Anthropic's TypeScript SDK says: If you need to cancel a stream, you can break from the loop or call stream.controller.abort(). What you have afterwards is what arrived before you stopped: the partial text, and no message_delta, so no stop reason and no final usage count. The docs I read don't say how the tokens generated before a cancel are billed, so check your usage page rather than assume. Show what you have as partial, in the transcript and in anything you save. If you want the rest, the streaming page's error recovery section describes capturing the partial response and asking for a continuation; for Claude 4.6 and later models, by adding a user message that instructs the model to continue from where it left off. It adds that tool use and thinking blocks cannot be partially recovered. The same caution applies to structured output, case 3's lesson: a tool_use block streams its input as input_json_delta events, partial JSON strings, and the docs say to accumulate them and parse the JSON once you receive a content_block_stop event. Half a JSON object is not a smaller valid one, and an argument cut off mid-stream must never be acted on."
+        "text": "A stop button is the user cancelling from the client, the app's side of the line. Cancelling goes in steps. First the person presses stop. Then the app stops reading and closes the stream, which usually tells the provider to stop sending. Last, the app keeps what had already arrived. Anthropic's TypeScript SDK (its code library for the TypeScript language) says: If you need to cancel a stream, you can break from the loop or call stream.controller.abort(). Breaking from the loop means leaving the read loop; abort means end it early. What you have afterwards is what arrived before you stopped: the partial text, and no message_delta, so no stop reason and no final usage count, the tally of tokens used. The docs I read don't say how the tokens generated before a cancel are billed, so check your usage page rather than assume. Show what you have as partial, in the transcript (the saved conversation) and in anything you save. If you want the rest, the streaming page's error recovery section describes capturing the partial response and asking for a continuation. That works in steps too: keep the partial text, send it back in a new request, and ask the model to carry on. For Claude 4.6 and later models, you do that by adding a user message that instructs the model to continue from where it left off. The page adds that tool use and thinking blocks (the model's working notes) cannot be partially recovered. The same caution applies to structured output, case 3's lesson: replies in a fixed format, usually JSON (a plain-text format of labelled values). A tool_use block, the model's request to run a tool, streams its input as input_json_delta events, partial JSON strings. The docs say to accumulate them (keep joining each piece onto the last) and parse the JSON (read it into values) once you receive a content_block_stop event. Half a JSON object is not a smaller valid one, and an argument (one value handed to the tool) cut off mid-stream must never be acted on."
       }
     ],
     "diagram": {
@@ -380,15 +393,15 @@
         }
       ]
     },
-    "caption": "Read top to bottom. The app asks with stream: true and the API answers 200 OK with message_start, then the content block: content_block_start, a ping now and then, and a content_block_delta for each piece of text, printed as it comes and shown as partial, with a stop button live. Then content_block_stop, message_delta carrying the stop reason, and message_stop. Only then does the app check the stop reason and, on end_turn, stamp the reply DELIVERED. A drop, an error event, a max_tokens cut or a press of stop ends as PARTIAL.",
+    "caption": "Read top to bottom. The app asks with stream: true, and the API answers 200 OK (success) with message_start, the reply opening. Then comes the block of text: content_block_start, a ping now and then, and a content_block_delta for each piece of text. Each piece is printed as it comes and shown as partial, with a stop button ready. Then content_block_stop closes the block, message_delta carries the stop reason, and message_stop ends the reply. Only then does the app check the stop reason and, on end_turn, stamp the reply DELIVERED. A drop, an error event, a max_tokens cut or a press of stop ends as PARTIAL.",
     "fix": {
       "title": "The fix: finished means message_stop with end_turn",
-      "text": "Track the stream's state instead of its silence. Keep the stop reason from message_delta, and stamp a telegram DELIVERED only when message_stop arrives and that stop reason was end_turn. On max_tokens, print a notice that the reply was cut off. On an error event, a lost connection or a stall caught by an idle timeout, mark the strip INCOMPLETE. On a press of stop, close the stream with the SDK's abort or by leaving the read loop, and mark it STOPPED. In every case keep what arrived, show it as partial, never ring the bell for it, and offer to ask again rather than doing it silently. Never let a catch end the loop quietly, and log every stream's last event, so a half telegram can't hide. Test the ugly cases on purpose: drop the line and inject an error mid-reply in testing, as the sim does. In the sim the fix marks last night's eight words INCOMPLETE at 3.4 seconds, marks a max_tokens cut at 6.9, and stamps a full reply at 9.0, the moment message_stop arrives."
+      "text": "Track which events have arrived, not how long it has been quiet. The app's steps become these. First, keep the stop reason when message_delta brings it. Second, stamp a telegram DELIVERED only when message_stop arrives and that stop reason was end_turn. Third, on max_tokens, print a notice that the reply was cut off. On an error event, a lost connection, or a stall caught by an idle timeout (a timer that gives up after too long with no events at all), mark the strip INCOMPLETE. On a press of stop, close the stream with the SDK's abort or by leaving the read loop, and mark it STOPPED. In every case keep what arrived, show it as partial, never ring the bell for it, and offer to ask again rather than doing it silently. Never let a catch, the error-handling code, end the loop quietly. Log every stream's last event, so a half telegram can't hide. Test the ugly cases on purpose: drop the line and inject an error mid-reply in testing, meaning cause one deliberately, as the sim does. In the sim the fix marks last night's eight words INCOMPLETE at 3.4 seconds, marks a max_tokens cut at 6.9, and stamps a full reply at 9.0, the moment message_stop arrives."
     },
     "limits": [
-      "A drop doesn't always close anything. A dead Wi-Fi bridge can leave a connection open and silent, with no event and no close, ever. Keep an idle timeout longer than the pauses you expect, pings and tool use included, whose only job is to declare the stream dead and mark it incomplete. In the sim a drop closes the connection at once, a teaching simplification.",
-      "Asking again isn't free, and isn't always safe. A new request is a new reply, worded differently and paid for again; resuming from the partial text can't recover tool use or thinking blocks, by Anthropic's own docs; and anything a reply triggered must be safe to repeat, or a retry does it twice.",
-      "The timings are teaching values: one word per delta every 0.3 seconds, and the last word at about the same time streamed or not. Real deltas carry varying amounts of text, and real times vary with the model, the load and the length of the reply, so measure time to first token and total time on your own traffic."
+      "A drop doesn't always close anything. A dead Wi-Fi bridge can leave a connection open and silent, with no event and no close, ever. Keep an idle timeout, a timer for silence, set longer than the pauses you expect, including pings and pauses while a tool runs. Its only job is to declare the stream dead and mark it incomplete. In the sim a drop closes the connection at once, a teaching simplification.",
+      "Asking again isn't free, and isn't always safe. A new request is a new reply, worded differently and paid for again. Resuming from the partial text can't recover tool use or thinking blocks, by Anthropic's own docs. And anything a reply set off, like a booking, must be safe to repeat, or a retry does it twice.",
+      "The timings are teaching values: one word per delta every 0.3 seconds, and the last word at about the same time streamed or not. Real deltas carry varying amounts of text. Real times vary with the model, how busy the provider is and the length of the reply, so measure time to first token and total time on your own traffic, your app's real requests."
     ],
     "tradeoff": {
       "head": [
@@ -429,21 +442,21 @@
         ]
       ]
     },
-    "seniorTake": "Stream for the person waiting, and finish on the protocol, never on the clock. A streamed reply is complete only when its final event says so and you have checked why it stopped. Everything else, a drop, an error after 200 OK, a length cut, a cancel, is partial: keep it, label it, and let the person decide to ask again. Wait for a block to close before you act on anything structured in it, and make whatever a reply can trigger safe to repeat.",
+    "seniorTake": "Stream for the person waiting, and decide a reply is finished by the events the provider sends, never by the clock. A streamed reply is complete only when its final event says so and you have checked why it stopped. Everything else is partial: a drop, an error after 200 OK, a length cut, a cancel. Keep it, label it, and let the person decide to ask again. Wait for a block to close before you act on anything in a fixed format inside it, such as a tool's input. And make whatever a reply can set off safe to repeat.",
     "realWorld": [
       {
         "title": "Anthropic: the event flow of a stream",
-        "text": "Anthropic's Streaming messages page says that when creating a Message you can set stream to true to incrementally stream the response using server-sent events (SSE). Each server-sent event includes a named event type and associated JSON data. Each stream uses the following event flow: message_start, a series of content blocks (content_block_start, one or more content_block_delta events, content_block_stop), one or more message_delta events, and a final message_stop event, with any number of ping events. For a tool_use block the deltas are partial JSON strings, and you can accumulate the string deltas and parse the JSON once you receive a content_block_stop event.",
+        "text": "Anthropic's Streaming messages page says that when creating a Message you can set stream to true to incrementally stream the response using server-sent events (SSE). Each server-sent event includes a named event type and associated JSON data (labelled values written as text). Each stream uses the following event flow: message_start, a series of content blocks (content_block_start, one or more content_block_delta events, content_block_stop), one or more message_delta events, and a final message_stop event, with any number of ping events. For a tool_use block (the model's request to run a tool) the deltas are partial JSON strings, and you can accumulate the string deltas and parse the JSON once you receive a content_block_stop event.",
         "source": 0
       },
       {
         "title": "Anthropic: the stop reason comes in message_delta",
-        "text": "Anthropic's Handling stop reasons page says that when streaming, stop_reason is null in the initial message_start event, provided in the message_delta event, and not provided in any other events. end_turn means Claude finished its response naturally; max_tokens means the response reached your max_tokens limit, and the page's advice is to raise max_tokens or continue the response, and, for truncated responses, to append a notice so the reader knows the output is incomplete.",
+        "text": "Anthropic's Handling stop reasons page says that when streaming, stop_reason is null in the initial message_start event, provided in the message_delta event, and not provided in any other events. end_turn means Claude finished its response naturally; max_tokens means the response reached your max_tokens limit, and the page's advice is to raise max_tokens or continue the response, and, for truncated responses (ones cut short), to append a notice so the reader knows the output is incomplete.",
         "source": 1
       },
       {
         "title": "Anthropic: errors after a 200",
-        "text": "Anthropic's API errors page says that when receiving a streaming response over server-sent events (SSE), an error can occur after the API returns a 200 response, and in that case error handling doesn't follow these standard mechanisms. The streaming page gives the example: during periods of high usage you may receive an overloaded_error, which would normally correspond to an HTTP 529 in a non-streaming context, sent as event: error.",
+        "text": "Anthropic's API errors page says that when receiving a streaming response over server-sent events (SSE), an error can occur after the API returns a 200 response, and in that case error handling doesn't follow these standard mechanisms. The streaming page gives the example: during periods of high usage you may receive an overloaded_error (the API too busy to answer), which would normally correspond to an HTTP 529 in a non-streaming context, sent as event: error.",
         "source": 2
       },
       {
@@ -463,17 +476,17 @@
       },
       {
         "title": "MDN: using server-sent events",
-        "text": "MDN's guide calls SSE a one-way connection, so you can't send events from a client to a server. The server responds using the MIME type text/event-stream; each notification is sent as a block of text terminated by a pair of newlines, with the fields event, data, id and retry. A colon as the first character of a line is in essence a comment, and the comment line can be used to prevent connections from timing out. By default, if the connection between the client and server closes, the browser's EventSource restarts it.",
+        "text": "MDN's guide (MDN is Mozilla's reference site for web builders) calls SSE a one-way connection, so you can't send events from a client to a server. The server responds using the MIME type (a label for the kind of content) text/event-stream; each notification is sent as a block of text terminated by a pair of newlines, with the fields event, data, id and retry. A colon as the first character of a line is in essence a comment, and the comment line can be used to prevent connections from timing out. By default, if the connection between the client and server closes, the browser's EventSource (its built-in reader for these events) restarts it.",
         "source": 5
       },
       {
         "title": "WHATWG: an unfinished event is dropped",
-        "text": "The HTML Standard's section 9.2, Server-sent events, says that once the end of the file is reached, any pending data must be discarded: if the file ends in the middle of an event, before the final empty line, the incomplete event is not dispatched. Its authoring notes add that legacy proxy servers are known to, in certain cases, drop HTTP connections after a short timeout, and suggest a comment line every 15 seconds or so.",
+        "text": "The HTML Standard's section 9.2, Server-sent events (the WHATWG writes the rules web browsers follow), says that once the end of the file is reached, any pending data must be discarded: if the file ends in the middle of an event, before the final empty line, the incomplete event is not dispatched. Its authoring notes add that legacy proxy servers (old go-between machines that pass connections along) are known to, in certain cases, drop HTTP connections after a short timeout, and suggest a comment line every 15 seconds or so.",
         "source": 6
       },
       {
         "title": "OpenAI: the same shape, other names",
-        "text": "OpenAI's streaming guide says that by default the API generates the model's entire output before sending it back in a single HTTP response, and that streaming responses lets you start printing or processing the beginning of the model's output while it continues generating the full response. It streams over server-sent events, with events such as response.created, response.output_text.delta, response.completed and error. It also notes that streaming makes it more difficult to moderate the content of the completions, as partial completions may be more difficult to evaluate.",
+        "text": "OpenAI's streaming guide says that by default the API generates the model's entire output before sending it back in a single HTTP response, and that streaming responses lets you start printing or processing the beginning of the model's output while it continues generating the full response. It streams over server-sent events, with events such as response.created, response.output_text.delta, response.completed and error. It also notes that streaming makes it more difficult to moderate (check for harmful material) the content of the completions, as partial completions may be more difficult to evaluate.",
         "source": 7
       }
     ],
@@ -483,7 +496,7 @@
         "How do you know a streamed response is complete?",
         "What happens to a stream when the user hits stop?"
       ],
-      "answer": "I'd stream from my own backend, which holds the API key, to the browser, and turn stream on in the request. The backend reads the server-sent events in order: message_start, then each content block's start, deltas and stop, then message_delta and message_stop, ignoring pings and any event type it doesn't know. Each text delta is appended to the message on screen right away, so the first words show in about the time to first token instead of after the whole reply. While it streams, the message is visibly in progress and a stop button is live. A streamed response is complete only when message_stop arrives and the stop reason, which comes in message_delta and nowhere else, is end_turn. On max_tokens I show that it was cut off and offer to continue. An error event can arrive after a 200, such as overloaded_error, and a connection can drop or simply stall, which an idle timeout catches; all of those leave the message marked incomplete, never complete, with an offer to ask again. Silence is never treated as completion. For tool calls, I accumulate the input_json_delta strings and parse only after content_block_stop, and run nothing until the message ends with stop_reason tool_use. When the user hits stop, the client aborts: in the TypeScript SDK, break out of the loop or call stream.controller.abort(), and the backend closes its upstream stream too. What arrived stays on screen and in history, labelled stopped. There is no message_delta, so no stop reason and no final usage count, and I wouldn't assume anything about billing for what was already generated. A stop is never retried automatically. I'd also save partial replies as partial in storage, make anything a reply can trigger safe to repeat, test drops and injected errors on purpose, and measure time to first token and total time."
+      "answer": "I'd stream through my own backend, the server-side part of the app that holds the API key (the secret that says who is calling), on to the browser, and turn stream on in the request. The backend reads the server-sent events in order: message_start, then each content block's start, deltas and stop, then message_delta and message_stop. It ignores pings and any event type it doesn't know. Each text delta is added to the message on screen right away, so the first words show in about the time to first token instead of after the whole reply. While it streams, the message is visibly in progress and a stop button is ready. A streamed response is complete only when message_stop arrives and the stop reason, which comes in message_delta and nowhere else, is end_turn. On max_tokens I show that it was cut off and offer to continue. An error event can arrive after a 200, such as overloaded_error. A connection can drop, or simply stall, which an idle timeout catches. All of those leave the message marked incomplete, never complete, with an offer to ask again. Silence is never treated as completion. For tool calls, I accumulate the input_json_delta strings, joining each piece on, and parse only after content_block_stop. I run nothing until the message ends with stop_reason tool_use. When the user hits stop, the client aborts: in the TypeScript SDK, break out of the loop or call stream.controller.abort(). The backend closes its own stream to the API too. What arrived stays on screen and in history, labelled stopped. There is no message_delta, so no stop reason and no final usage count, and I wouldn't assume anything about billing for what was already generated. A stop is never retried automatically. I'd also save partial replies as partial in storage and make anything a reply can set off safe to repeat. I'd test drops and injected errors on purpose, and measure time to first token and total time."
     }
   },
   "terms": [
@@ -497,19 +510,19 @@
     },
     {
       "term": "Event (SSE)",
-      "def": "One message in a server-sent event stream: a line naming its type, such as event: message_stop, and a line of data, here JSON, ended by a blank line."
+      "def": "One small message in a stream of server-sent events, like one telegram in a run of them: a line naming its type, such as event: message_stop, a line of data, then a blank line to end it."
     },
     {
       "term": "text/event-stream",
-      "def": "The MIME type a server sends for a stream of server-sent events."
+      "def": "The label a server puts on a stream of server-sent events, so the reader knows what kind of content is coming."
     },
     {
       "term": "MIME type",
-      "def": "A label saying what kind of content a response holds, such as application/json, sent in the Content-Type header."
+      "def": "A label saying what kind of content a response holds, like the label on a parcel. text/event-stream means a stream of events."
     },
     {
       "term": "Delta",
-      "def": "One small piece of change to the reply. A text_delta carries a little more text; an input_json_delta carries a little more of a tool call's input."
+      "def": "One small new piece of the reply, like one strip of tape added to a telegram. A text_delta carries a little more text; an input_json_delta carries a little more of a tool's input."
     },
     {
       "term": "text_delta",
@@ -517,27 +530,27 @@
     },
     {
       "term": "Content block",
-      "def": "One part of a model's reply, such as a block of text, a tool_use request or a thinking block. A streamed reply builds each one with start, delta and stop events."
+      "def": "One part of a model's reply, such as a run of text or a request to use a tool. A streamed reply builds each part in three steps: a start event, pieces, then a stop event."
     },
     {
       "term": "message_start",
-      "def": "The first event of a stream: a Message object with empty content and a stop_reason of null."
+      "def": "The first event of a stream: the reply opens, still empty, with no stop reason yet."
     },
     {
       "term": "content_block_start",
-      "def": "The event that opens a content block, giving its index and type."
+      "def": "The event that opens one part of the reply and says what kind of part it is, such as text."
     },
     {
       "term": "content_block_delta",
-      "def": "The event that carries a delta, one more piece of a content block."
+      "def": "The event that carries a delta: one more piece of a part of the reply."
     },
     {
       "term": "content_block_stop",
-      "def": "The event that closes a content block. Only after it is a block's partial JSON input complete enough to parse."
+      "def": "The event that closes one part of the reply. Only after it is a tool's input whole enough to read and act on."
     },
     {
       "term": "message_delta",
-      "def": "The event, near the end of a stream, with top-level changes to the message: the stop reason, and cumulative usage counts."
+      "def": "The event near the end of a stream that brings the reply's last details: the stop reason, and the running total of tokens used."
     },
     {
       "term": "message_stop",
@@ -549,11 +562,11 @@
     },
     {
       "term": "Error event",
-      "def": "An event of type error inside a stream that began with 200 OK, carrying an error such as overloaded_error. The reply is not complete."
+      "def": "An event saying something went wrong, arriving in a stream that began with 200 OK (success), such as overloaded_error. The reply is not complete."
     },
     {
       "term": "overloaded_error",
-      "def": "Anthropic's error type for the API being temporarily overloaded: HTTP 529 without streaming, an error event mid-stream."
+      "def": "Anthropic's error for the API being too busy for now. Without streaming it comes as the code 529; during a stream it comes as an error event."
     },
     {
       "term": "Time to first token (TTFT)",
@@ -605,11 +618,11 @@
     },
     {
       "term": "input_json_delta",
-      "def": "The kind of delta that streams a tool call's input, as partial JSON strings to be joined and parsed after content_block_stop."
+      "def": "The kind of delta that carries a piece of a tool's input. The pieces are joined, then read only after content_block_stop closes the part."
     },
     {
       "term": "Partial JSON",
-      "def": "The first part of a JSON text, which is usually not valid JSON yet. Half an object is not a smaller valid object."
+      "def": "The first part of a JSON text (labelled values written as text), which usually can't be read yet. Like half a form, it is not a shorter complete one."
     },
     {
       "term": "Accumulate",
@@ -621,7 +634,7 @@
     },
     {
       "term": "Message object",
-      "def": "The full reply the Messages API returns: its role, content blocks, stop reason and usage."
+      "def": "The full reply as one record: who wrote it, its parts, its stop reason and how many tokens it used."
     },
     {
       "term": "EventSource",
@@ -629,7 +642,7 @@
     },
     {
       "term": "fetch",
-      "def": "The browser's standard way for code to make an HTTP request and read the response, including one that streams."
+      "def": "The web browser's standard way for code to send a request and read the answer, including one that arrives a piece at a time."
     },
     {
       "term": "Comment line (SSE)",
@@ -693,19 +706,19 @@
     },
     {
       "term": "Processing integrity",
-      "def": "One of the optional categories of the SOC 2 Trust Services Criteria: whether a system's processing is complete, valid and accurate."
+      "def": "One optional part of SOC 2, a checklist auditors use to report on a company's systems: whether the system's work is complete, valid and accurate."
     },
     {
       "term": "Accuracy principle",
-      "def": "GDPR Article 5(1)(d): personal data must be accurate and, where necessary, kept up to date, with every reasonable step taken to erase or rectify inaccurate data without delay."
+      "def": "A rule in the GDPR, the EU's data protection law, Article 5(1)(d): personal data must be accurate and kept up to date where needed, and wrong data fixed or deleted without delay."
     }
   ],
-  "atWork": "Find one place where your team streams a model's reply: a chat window, a support assistant, an agent that calls tools. Read the code that decides a reply is finished. Does it wait for message_stop and check the stop reason, or does it end when the connection ends, or after a few quiet seconds, with a catch that swallows errors? Then look in what you store: saved answers, transcripts, tickets. Count the ones that end mid-sentence, without a full stop, or exactly at max_tokens; each is a reply your code called complete. Two common incidents: a support chat that saves whatever has streamed when the text stops as the answer, and later serves those half answers to new customers; and an agent that parses a tool call's arguments while they are still streaming, and acts on half an argument, an account number with digits missing or a list cut short. Wait for content_block_stop before parsing tool input, and for the message to end before running anything. Then test it: cut a stream and inject an error event mid-reply in testing, and check that the app marks both incomplete. Standards-readiness note: if your company is pursuing a SOC 2 report that includes processing integrity, those criteria cover whether processing is complete, valid and accurate, and a truncated reply stored as an answer is that kind of gap. If stored replies hold personal data under the GDPR, its accuracy principle, Article 5(1)(d), asks that every reasonable step be taken to rectify inaccurate data. Build the completion rule and the partial label in from the first version; it is far cheaper than finding half answers before an audit.",
+  "atWork": "Find one place where your team streams a model's reply: a chat window, a support assistant, an agent (a model that calls tools to get a job done). Read the code that decides a reply is finished. Does it wait for message_stop and check the stop reason? Or does it end when the connection ends, or after a few quiet seconds, with a catch that swallows errors? Then look in what you store: saved answers, transcripts, tickets (logged customer requests). Count the ones that end mid-sentence, without a full stop, or exactly at max_tokens; each is a reply your code called complete. Two common incidents. One: a support chat saves whatever has streamed when the text stops as the answer, and later serves those half answers to new customers. Two: an agent reads a tool call's arguments, the values it hands the tool, while they are still streaming, and acts on half an argument: an account number with digits missing, or a list cut short. Wait for content_block_stop before reading tool input, and for the message to end before running anything. Then test it: cut a stream and inject an error event mid-reply in testing, and check that the app marks both incomplete. Standards-readiness note: SOC 2 is a report auditors write on a company's systems. If your company is pursuing one that includes processing integrity, those criteria cover whether processing is complete, valid and accurate, and a cut-short reply stored as an answer is that kind of gap. The GDPR is the EU's data protection law. If stored replies hold personal data under it, its accuracy principle, Article 5(1)(d), asks that every reasonable step be taken to correct inaccurate data. Build the completion rule and the partial label in from the first version; it is far cheaper than finding half answers before an audit.",
   "board": {
     "cards": [
       {
         "id": "streaming-responses",
-        "title": "Streaming responses"
+        "title": "Streaming replies"
       },
       {
         "id": "partial-output",
@@ -717,7 +730,7 @@
       },
       {
         "id": "ux",
-        "title": "UX"
+        "title": "User experience"
       }
     ],
     "strings": [
@@ -787,7 +800,7 @@
     {
       "id": "a2e07-r1",
       "kind": "free",
-      "prompt": "Your team's chat assistant streams its replies. Users report answers that end mid-sentence, and the saved history shows them as finished. The client treats a reply as done when the HTTP stream closes. What is going on, and what do you change?",
+      "prompt": "Your team's chat assistant streams its replies, word by word. Users report answers that end mid-sentence, and the saved history shows them as finished. The app on the user's side treats a reply as done when the HTTP stream closes. What is going on, and what do you change?",
       "keyIdeas": [
         {
           "idea": "A stream that ends isn't a finished reply: drops and mid-stream error events end it early",
@@ -833,7 +846,7 @@
           ]
         }
       ],
-      "model": "The client is taking the end of the stream for the end of the reply. A stream can end early for reasons that have nothing to do with the model finishing: the connection drops, a proxy cuts it, or an error event such as overloaded_error arrives mid-stream after a 200 OK. Each of those leaves half an answer that the client then saves as finished. I'd change the completion rule: a reply is done only when message_stop arrives and the stop reason, which comes in message_delta, was end_turn. If it was max_tokens, the reply was truncated and the UI should say so. Anything else, a drop, an error event, a stall caught by an idle timeout, is marked incomplete: kept, shown and saved as partial, with a way to ask again or continue. Then I'd find the half answers already in history and test the fix by cutting streams on purpose."
+      "model": "The app is taking the end of the stream for the end of the reply. A stream can end early for reasons that have nothing to do with the model finishing. The connection drops, a proxy (a go-between machine) cuts it, or an error event such as overloaded_error arrives mid-stream after a 200 OK. Each of those leaves half an answer that the app then saves as finished. I'd change the completion rule: a reply is done only when message_stop arrives and the stop reason, which comes in message_delta, was end_turn. If it was max_tokens, the reply was cut off at the length limit and the screen should say so. Anything else, a drop, an error event, a stall caught by an idle timeout, is marked incomplete: kept, shown and saved as partial, with a way to ask again or continue. Then I'd find the half answers already in history and test the fix by cutting streams on purpose."
     },
     {
       "id": "a2e07-r2",
@@ -926,7 +939,7 @@
     {
       "id": "a2e07-r5",
       "kind": "mcq",
-      "prompt": "An agent streams a tool call. Its input arrives as input_json_delta events. When may the agent parse the input?",
+      "prompt": "An agent streams a tool call. Its input arrives as input_json_delta events. When may the agent parse the input, reading it into values?",
       "options": [
         "As soon as the joined pieces happen to parse as valid JSON",
         "After that block's content_block_stop, once the input is whole",
@@ -938,7 +951,7 @@
     }
   ],
   "coldCase": {
-    "update": "UPDATE, 4 months later. The desk hasn't stamped a half telegram since, and every partial strip says PARTIAL. Now the harbour office wants a second desk where visitors can book a seat on the morning crossing: the model will call a book_seat tool with the visitor's name and the date. Mr Truscott, the museum's treasurer, has two ideas to keep it simple. Go back to a 3-second silence rule, since checking why each reply ended is extra code, and if a stream breaks, send the whole request again automatically, up to three times, booking and all.",
+    "update": "UPDATE, 4 months later. The desk hasn't stamped a half telegram since, and every partial strip says PARTIAL. Now the harbour office wants a second desk where visitors can book a seat on the morning crossing: the model will call a book_seat tool, an action the app runs for it, with the visitor's name and the date. Mr Truscott, the museum's treasurer, has two ideas to keep it simple. Go back to a 3-second silence rule, since checking why each reply ended is extra code, and if a stream breaks, send the whole request again automatically, up to three times, booking and all.",
     "prompt": "Reply to OP. What would you tell Mr Truscott, and how should the booking desk handle its streams?",
     "keyIdeas": [
       {
@@ -997,7 +1010,7 @@
         ]
       }
     ],
-    "model": "Mr Truscott, the stop reason check is what fixed the desk. Silence can't tell a finished reply from a stalled one, so a 3-second rule would stamp half telegrams again, and with tools there are pauses while the model works. Keep the rule: done only on message_stop with the stop reason checked, and use a timer only to declare a stalled stream dead and mark it incomplete. The booking desk needs more care than the printer. A tool call's input streams as input_json_delta pieces, so parse it only after content_block_stop, and book nothing until the message ends with stop_reason tool_use. Retrying blindly is how a visitor gets booked twice: if a stream breaks after the booking ran, sending everything again runs it again. Give each booking an idempotency key so a repeat is recognised, never retry a press of stop, and let the visitor see the partial and choose to ask again. Then prove it before opening: cut streams and inject error events in testing and check every case ends as PARTIAL or one booking, never two."
+    "model": "Mr Truscott, the stop reason check is what fixed the desk. Silence can't tell a finished reply from a stalled one, so a 3-second rule would stamp half telegrams again, and with tools there are pauses while the model works. Keep the rule: done only on message_stop with the stop reason checked, and use a timer only to declare a stalled stream dead and mark it incomplete. The booking desk needs more care than the printer. A tool call's input streams as input_json_delta pieces, so parse it only after content_block_stop, and book nothing until the message ends with stop_reason tool_use. Retrying blindly is how a visitor gets booked twice: if a stream breaks after the booking ran, sending everything again runs it again. Give each booking an idempotency key, a label that travels with the request, so a repeat is recognised and done only once. Never retry a press of stop, and let the visitor see the partial and choose to ask again. Then prove it before opening: cut streams and inject error events in testing and check every case ends as PARTIAL or one booking, never two."
   },
   "next": "Next, Which Mind to Ask: a council of oracles, and model selection and routing: quality against cost and latency, and open against closed models.",
   "sources": [
