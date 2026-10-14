@@ -1,5 +1,6 @@
 {
  "_changelog": [
+  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
   "v1.0.0 (2026-10-11) first version"
  ],
  "id": "s4e10",
@@ -39,7 +40,15 @@
   "blocks": [
    {
     "t": "p",
-    "text": "I keep the night desk at the flood warning office in Ollerby, a river town on the Quarrow. Upstream there's a gauge that measures the river, and a program Florimond, our developer, wrote years ago: the gauge service. When the river crosses its warning level, the gauge service warns the town on four alert channels: a text (SMS) to every phone signed up, a banner on our website, the town's sirens, and Quarrow Sound, the local radio station, which breaks into whatever is playing. Each one is a call. The gauge service asks a channel to send and waits for its answer before it calls the next: SMS, website, sirens, radio. Florimond calls it the chain."
+    "text": "I keep the night desk at the flood warning office in Ollerby, a river town on the Quarrow. Upstream there's a gauge, an instrument that measures how high the river is. Florimond, our developer, wrote a program years ago that reads it: the gauge service. When the river crosses its warning level, the gauge service warns the town in four ways. Florimond calls each way an alert channel."
+   },
+   {
+    "t": "p",
+    "text": "The four are a text message to every phone signed up (SMS, short for short message service), a banner on our website, the town's sirens, and Quarrow Sound. That's the local radio station, which breaks into whatever is playing. A company we pay, the SMS provider, sends the texts for us."
+   },
+   {
+    "t": "p",
+    "text": "The gauge service warns them in steps. First it asks the SMS provider to send, and waits for the answer. Only when the answer comes does it ask the website, then the sirens, then the radio. One program asking another and waiting for the answer is called a call. Four calls in a row, each waiting for the last, Florimond calls the chain. A call that fails is usually tried again later."
    },
    {
     "t": "beat",
@@ -50,12 +59,16 @@
     "text": "On Tuesday night the river crossed the level at 02:31. The siren mast is across the road from my window, and I stood up to watch it. It stayed silent. At about 02:33 the river came over the wall into Doveridge Square, the lowest part of town, where people leave their cars overnight. The sirens started at 02:34. By then the water was round the wheels."
    },
    {
+    "t": "p",
+    "text": "Florimond's log, the record each program writes as it works, is below. Each line shows the time, who wrote it (gauge-svc is the gauge service; square-sensor is a water sensor in the square), and what happened. Timed out means it gave up waiting, and try 3 means the third attempt."
+   },
+   {
     "t": "log",
     "text": "02:31:00  gauge-svc      level crossed warning: calling sms\n02:32:50  square-sensor  water on the paving\n02:34:00  gauge-svc      sms: no answer, timed out after 180 s\n02:34:00  gauge-svc      calling website\n02:34:01  gauge-svc      website: ok\n02:34:01  gauge-svc      calling sirens\n02:34:03  gauge-svc      sirens: ok\n02:34:03  gauge-svc      calling radio\n02:34:04  gauge-svc      radio: ok\n02:38:02  gauge-svc      sms: ok (try 3)"
    },
    {
     "t": "p",
-    "text": "Nobody was hurt. Cars and cellars flooded. The texts reached phones at 02:38, when people were already standing in their cellars in wet socks. Florimond pulled the logs. The SMS provider had hung, and the gauge service waited the full 180-second timeout for an answer that never came, with the sirens waiting their turn behind it. The provider says it was back by 02:37."
+    "text": "Nobody was hurt. Cars and cellars flooded. The texts reached phones at 02:38, when people were already standing in their cellars in wet socks. Florimond read the logs. The SMS provider had hung: it sent no answer and no error, so the gauge service just kept waiting. Every call has a timeout, the longest it waits before giving up. Ours is 180 seconds. The gauge service waited all of it for an answer that never came, and the sirens waited their turn behind it. The provider says it was back by 02:37."
    },
    {
     "t": "beat",
@@ -140,14 +153,14 @@
    "author": "u/grey_pager",
    "points": 142,
    "age": "4h",
-   "text": "Some words first. A call means one program asks another and waits for the answer; your chain is four calls in a row, so each channel waits for every one before it. A thread is a separate line of work inside one program, so one program can make several calls at once. Publish and subscribe, pub/sub for short, works the other way round: a program publishes a message to a topic, a named place for one kind of message, and each subscriber to the topic gets its own copy. The publisher doesn't know who they are. Now the evidence. What were the sirens doing between 02:31:00 and 02:34:01? When the SMS call failed, which program remembered that the text still had to go, and where did it keep that? And what would have happened to that memory if the program had restarted at 02:32?",
+   "text": "Some words first. Your chain is four calls in a row, so each channel waits for every one before it. A program can do more than one thing at once: each separate line of work inside it is called a thread, so one program can make several calls at the same time. And remember a queue, a waiting line that holds each message until it is taken. A worker, a small program, takes a message, does the job, and only then deletes it. If the job fails, the message stays and is tried again later: a retry. Now the evidence. What were the sirens doing between 02:31:00 and 02:34:01? When the SMS call failed, which program remembered that the text still had to go, and where did it keep that? And what would have happened to that memory if the program had restarted at 02:32?",
    "replies": [
     {
      "author": "u/flood_desk_ceinwen",
      "op": true,
      "points": 47,
      "age": "3h",
-     "text": "Florimond says the sirens did nothing at all until 02:34:01. They were never asked. The gauge service keeps its list of channels still to try again in its own memory. It restarted once last spring for an automatic update, he says, on a dry night, so nobody noticed."
+     "text": "Florimond says the sirens did nothing at all until 02:34:01. They were never asked. The gauge service keeps its list of channels still to try again in its own memory, the scratch space a program loses when it restarts. It restarted once last spring for an automatic update, he says, on a dry night, so nobody noticed. One of his four changes works the other way round. Instead of calling each channel, the gauge service would hand one message to a named place for one kind of message, called a topic. That's publishing. Programs that sign up to the topic are its subscribers, and the topic gives each one its own copy, without the publisher knowing who they are. That's publish and subscribe, pub/sub for short. It goes in steps. First the gauge service publishes one warning and is done. Next the topic copies it into a queue for each channel. Then each channel's worker takes its copy and calls its channel. One message in and a copy per subscriber out is called fan-out."
     }
    ]
   },
@@ -171,29 +184,29 @@
     "text": "Move the sirens to the front of the chain, so the call that matters most is never left waiting.",
     "tone": "bad",
     "verdict": "Sirens on time, the rest still wait",
-    "part2": "Florimond moved the siren call to the top of the list and replayed Tuesday in his lab. The sirens sounded at 02:31:02, 108 seconds before the water. Then the SMS call hung, exactly as before, and the rest of the chain waited behind it: the website at 02:34:03, the radio at 02:34:04, the texts at 02:38:04. Three of the four channels still after the water. Then he replayed it with the siren controller hanging instead of the SMS provider. The siren call timed out at 02:34:00, the texts went at 02:34:02, the website at 02:34:03, the radio at 02:34:04, and the sirens themselves at 02:38:02, on their third try. Every channel after the water. In January the siren controller's line did hang, on a night the river was rising. I sat at the desk and watched our website show no warning at all for three minutes, because it was waiting its turn behind a siren that wasn't answering.",
-    "senior": "Reordering a chain chooses which channel goes first; it doesn't stop one slow channel holding up the rest. Whatever sits first can hang, and then everything behind it waits the full timeout. The channels have to stop sharing one line of calls, so that each succeeds or fails on its own."
+    "part2": "Florimond moved the siren call to the top of the list. Then he replayed Tuesday in his lab, a test copy of our system, running the night again from the logs. The sirens sounded at 02:31:02, 108 seconds before the water. Then the SMS call hung, exactly as before, and the rest of the chain waited behind it: the website at 02:34:03, the radio at 02:34:04, the texts at 02:38:04. Three of the four channels still after the water. Then he replayed it with the siren controller hanging instead of the SMS provider. The siren call timed out at 02:34:00, the texts went at 02:34:02, the website at 02:34:03, the radio at 02:34:04, and the sirens themselves at 02:38:02, on their third try. Every channel after the water. In January the siren controller's line did hang, on a night the river was rising. I sat at the desk and watched our website show no warning at all for three minutes, because it was waiting its turn behind a siren that wasn't answering.",
+    "senior": "Changing the order of a chain only chooses which channel goes first. It doesn't stop one slow channel holding up the rest. Whatever sits first can hang, and then everything behind it waits the full timeout, the longest a call waits before giving up. The channels have to stop sharing one line of calls, so that each succeeds or fails on its own."
    },
    {
     "text": "Have the gauge service call all four channels at once, each in its own thread, so none waits.",
     "tone": "bad",
     "verdict": "Fast, until the gauge service restarts",
-    "part2": "Florimond gave each channel its own thread in the gauge service and replayed Tuesday. The website and the radio went at 02:31:01 and the sirens at 02:31:02; the SMS call hung on its own, timed out at 02:34:00 and went at 02:38:02 on its third try. Only the texts after the water. Then he replayed it with two things that had each happened before, though never together: the radio studio's line down until 02:32:30, and the gauge service restarting for an automatic update at 02:32:00. The radio thread was refused at 02:31:01 and 02:31:32, and its next try was due at 02:32:02. The restart came first. The retries lived in the gauge service's memory, and the gauge service sends only when the level crosses, so nothing went again. One alert lost. In February those two things did happen together. Quarrow Sound played music through the whole flood, and the presenter heard about it from a listener who rang in.",
-    "senior": "Threads stop the channels waiting on each other, which fixes Tuesday. But the gauge service still owns every retry, in memory, so it has to stay up until the slowest channel succeeds; a restart, a crash or a deploy in that window loses whatever was still to send. And every new channel is a change to the gauge service. Hand the warning to something durable that keeps a copy per channel, and let the gauge service forget it."
+    "part2": "Florimond gave each channel its own thread in the gauge service and replayed Tuesday. The website and the radio went at 02:31:01 and the sirens at 02:31:02; the SMS call hung on its own, timed out at 02:34:00 and went at 02:38:02 on its third try. Only the texts after the water. Then he replayed it with two things that had each happened before, though never together: the radio studio's line down until 02:32:30, and the gauge service restarting for an automatic update at 02:32:00. The radio thread was refused at 02:31:01 and 02:31:32, and its next try was due at 02:32:02. The restart came first. The retries lived in the gauge service's memory, and the gauge service sends only when the level crosses, so nothing went again. The restart wiped that memory, and with it the radio's retry. One alert lost. In February those two things did happen together. Quarrow Sound played music through the whole flood, and the presenter heard about it from a listener who rang in.",
+    "senior": "Threads, separate lines of work in one program, stop the channels waiting on each other, which fixes Tuesday. But the gauge service still owns every retry, in its memory, so it has to stay up until the slowest channel succeeds. A restart, a crash or a deploy (putting new code live) in that window loses whatever was still to send. And every new channel is a change to the gauge service. Hand the warning to something durable, something that keeps it safe through a restart, with a copy per channel, and let the gauge service forget it."
    },
    {
     "text": "Have each channel ask the gauge every 10 seconds whether a warning is up, and send it if so.",
     "tone": "warn",
     "verdict": "Trade-off: up to 10 seconds late, and polls all day",
-    "part2": "Florimond turned the gauge service into something that only answers one question, is a warning up, and gave each channel a small poller that asks every 10 seconds, each at its own second, and sends the warning once. Tuesday replayed: the radio at 02:31:03, the website at 02:31:08, the sirens at 02:31:11, 99 seconds before the water. The SMS poller hung on its own and sent at 02:37:26 on its third try. A restart costs nothing; the warning is still there at the next poll. But four channels asking six times a minute is 34,560 polls a day, for a warning that comes on only a handful of nights, and adding the town's app as a fifth channel makes it 43,200. Each poller also has to remember, on its own, what it has already sent. The council's IT manager asked why the gauge was the busiest machine in the building on dry days.",
-    "senior": "Polling makes each channel independent and lets the source forget, which is most of what you want. You pay with a delay of up to one interval and steady load that grows with every channel, almost all of it asking a question whose answer is no. A shorter interval cuts the delay and raises the load. Push the event once instead, and it arrives in about the time of one call."
+    "part2": "Florimond turned the gauge service into something that only answers one question: is a warning up? Asking a source again and again on a timer is called polling. He gave each channel a small program, a poller, that works in steps. Every 10 seconds, each at its own second, it asks the gauge. If a warning is up and it hasn't sent it yet, it sends it once. Tuesday replayed: the radio at 02:31:03, the website at 02:31:08, the sirens at 02:31:11, 99 seconds before the water. The SMS poller hung on its own and sent at 02:37:26 on its third try. A restart costs nothing; the warning is still there at the next poll. But four channels asking six times a minute is 34,560 polls a day, for a warning that comes on only a handful of nights, and adding the town's app as a fifth channel makes it 43,200. Each poller also has to remember, on its own, what it has already sent. The council's IT (information technology) manager asked why the gauge was the busiest machine in the building on dry days.",
+    "senior": "Polling, asking on a timer, makes each channel independent and lets the source forget, which is most of what you want. You pay in two ways. There is a delay of up to one interval, the gap between asks. And there is steady load, work for the gauge, that grows with every channel, almost all of it asking a question whose answer is no. A shorter interval cuts the delay and raises the load. Push the event once instead, sending it out the moment it happens, and it arrives in about the time of one call."
    },
    {
     "text": "Publish one warning to a topic; each channel gets its own queue, retries alone, fails alone.",
     "tone": "ok",
     "verdict": "Senior answer",
-    "part2": "Florimond set up a warnings topic with four subscriptions, each a queue of its own, and a small worker per channel that takes the warning from its queue, calls its channel, and deletes the message only when the channel has answered. At 02:31:00 the gauge service now does one thing: it publishes the warning, and it is done. Tuesday replayed: the website and the radio at 02:31:01, the sirens at 02:31:02, 108 seconds before the water. The SMS worker hung on its own, timed out at 02:34:00, tried again at 02:34:30, and sent at 02:38:02 on its third try; nothing waited behind it. With the siren controller hanging instead, every other channel was out by 02:31:02. With the radio line down and the gauge service restarting at 02:32:00, the warning sat in the radio queue and went at 02:32:34 on the fourth try. In February the town added a push alert in its app as a fifth subscription; nobody touched the gauge service. In March the river crossed again at night. The mast across the road went off before I had got out of my chair.",
-    "senior": "Publish the event once, and give each consumer its own queue, so each channel retries, waits and fails on its own, and a slow or dead one holds up nobody. The publisher forgets the warning once the topic has it; the queues keep it through restarts, and a dead-letter queue catches a channel that never recovers. Adding a channel is a new subscription, not a change to the publisher. The cost is more moving parts to watch, and a flow you can no longer read in one program."
+    "part2": "Florimond set up a warnings topic with four subscriptions, the sign-ups that say where each copy goes. Each one delivers into a queue of its own. Each channel has a small worker that works in steps: it takes the warning from its queue, calls its channel, and deletes the message only when the channel has answered. At 02:31:00 the gauge service now does one thing: it publishes the warning, and it is done. Tuesday replayed: the website and the radio at 02:31:01, the sirens at 02:31:02, 108 seconds before the water. The SMS worker hung on its own, timed out at 02:34:00, tried again at 02:34:30, and sent at 02:38:02 on its third try; nothing waited behind it. With the siren controller hanging instead, every other channel was out by 02:31:02. With the radio line down and the gauge service restarting at 02:32:00, the warning sat in the radio queue and went at 02:32:34 on the fourth try. In February the town added a push alert, a message that pops up in its phone app, as a fifth subscription; nobody touched the gauge service. In March the river crossed again at night. The mast across the road went off before I had got out of my chair.",
+    "senior": "Publish the event, the note of what happened, once. Give each consumer, each program that acts on it, its own queue. Then each channel retries, waits and fails on its own, and a slow or dead one holds up nobody. The publisher forgets the warning once the topic has it. The queues keep it through restarts. A dead-letter queue, a side queue for messages that keep failing, catches a channel that never recovers. Adding a channel is a new subscription, not a change to the publisher. The cost is more moving parts to watch, and a flow you can no longer read in one program."
    }
   ]
  },
@@ -204,27 +217,27 @@
   "tryThis": "Try this: press Skip to 02:45 as it is: the sirens at 02:34:03, 73 s after the water, and the texts at 02:38:02. Put the sirens first, then make the siren controller hang. Try parallel threads, then turn on the radio line down and the restart. Try polling and read the polls a day. Last, the topic: try every setting, then add the town app and watch the changes to the gauge service."
  },
  "explain": {
-  "oneLine": "Nothing silenced the sirens. The gauge service called its four channels one after another and waited for each answer, so when the SMS provider hung, the sirens sat in line for the full 180-second timeout and sounded at 02:34:03, 73 seconds after the water reached the square.",
+  "oneLine": "Nothing silenced the sirens. The gauge service called its four channels one after another and waited for each answer. So when the SMS provider hung, giving no answer at all, the sirens sat in line for the full 180-second timeout and sounded at 02:34:03, 73 seconds after the water reached the square.",
   "steps": [
    {
     "title": "A chain of calls moves at the pace of its slowest link.",
-    "text": "Each channel was a call: the gauge service asked, then waited for the answer before asking the next. Four calls that work take 6 seconds in a row. One that hangs takes the whole timeout, 180 seconds, and every call behind it waits. The sirens didn't fail on Tuesday; they weren't asked until 02:34:01. Putting them first only changes which channel waits behind which: on a night the siren controller hangs, everything waits for it."
+    "text": "Each channel was a call, and the chain ran in steps. First the gauge service asked the SMS provider and waited. When the answer came, or the timeout ran out, it asked the website. Then the sirens, then the radio. Last, it tried any failed call again. Four calls that work take 6 seconds in a row. One that hangs, giving no answer and no error, takes the whole timeout, 180 seconds, and every call behind it waits. The sirens didn't fail on Tuesday; they weren't asked until 02:34:01. Putting them first only changes which channel waits behind which: on a night the siren controller hangs, everything waits for it."
    },
    {
     "title": "Threads stop the waiting, not the owning.",
-    "text": "Calling all four at once sends the sirens at 02:31:02. But the gauge service still owns every channel's retry, in its memory, until the slowest channel succeeds. A restart in that window loses what was left: in the sim, the radio's try due at 02:32:02 dies with the restart at 02:32:00, and the gauge service, which sends only when the level crosses, never sends it again. Every new channel is also a change to the gauge service."
+    "text": "With threads, separate lines of work inside one program, the steps change. First the gauge service starts four threads at once, one per channel. Each thread calls its channel and waits only for that answer. If a call fails, its thread keeps a note to try again, in the gauge service's memory. Calling all four at once sends the sirens at 02:31:02. But the gauge service still owns every channel's retry, in its memory, until the slowest channel succeeds. Memory is wiped when a program restarts, so a restart in that window loses what was left: in the sim, the radio's try due at 02:32:02 dies with the restart at 02:32:00, and the gauge service, which sends only when the level crosses, never sends it again. Every new channel is also a change to the gauge service."
    },
    {
     "title": "Publish once, and let the topic make the copies.",
-    "text": "With pub/sub the gauge service publishes one warning to a topic and is finished. Each channel has a subscription, and the topic gives every subscription its own copy. That is fan-out: one message in, one copy per subscriber out. Make each subscription a queue, and each channel's worker takes the warning from its own queue, calls its channel, and deletes the message only when the channel answers. A hung SMS provider now holds up the SMS queue and nothing else."
+    "text": "With pub/sub, publish and subscribe, the process runs in steps. First the gauge service publishes one warning to a topic, a named place for one kind of message, and is finished. Next the topic looks at its subscriptions, each channel's sign-up, and gives every one its own copy. That is fan-out: one message in, one copy per subscriber out. Make each subscription deliver into a queue, a waiting line that holds the message until it is taken. Then each channel's worker takes the warning from its own queue and calls its channel. Last, it deletes the message, but only when the channel answers. A hung SMS provider now holds up the SMS queue and nothing else."
    },
    {
     "title": "Each queue retries and fails alone.",
-    "text": "The queue keeps the message until it's deleted, so a failed try waits on that queue and is tried again, with a visibility timeout and a dead-letter queue like any other queue (Dead Letters). The gauge service can restart, crash or be deployed the moment it has published. A channel that never recovers ends up in its own dead-letter queue, with an alarm on it, instead of in a lost memory."
+    "text": "The queue keeps the message until it's deleted, so a failed try goes in steps. First the worker takes the message, and the queue hides it from other workers for a while; that while is the visibility timeout. If the worker's call fails, it doesn't delete the message. When the visibility timeout runs out, the message shows again and is tried again. On most queue systems, after too many failed tries, the queue moves it to a dead-letter queue, a side queue for messages that keep failing, like any other queue (Dead Letters). The gauge service can restart, crash or be deployed, have new code put live, the moment it has published. A channel that never recovers ends up in its own dead-letter queue, with an alarm on it, instead of in a lost memory."
    },
    {
     "title": "The contract is the event, not the call.",
-    "text": "The publisher no longer knows its subscribers, so the event has to carry what they all need: an event contract, the fields every subscriber can rely on, such as the gauge, the level, the time it crossed and an event id. A subscriber that wants only some warnings sets a filter on its own subscription, instead of asking the publisher to change. Adding the town app is one more subscription. Each queue is at least once, so each worker should skip an event id it has already sent (At Least Once)."
+    "text": "The publisher no longer knows its subscribers, so the event, the note of what happened, has to carry what they all need. The set of fields, the named pieces of information every subscriber can rely on, is called the event contract. Here they are the gauge, the level, the time it crossed and an event id, a label unique to this warning. A subscriber that wants only some warnings sets a filter, a rule that lets only some messages through, on its own subscription, instead of asking the publisher to change. Adding the town app is one more subscription. Each queue is at least once: it may hand over the same message more than once, but it won't drop it. So each worker should check the event id and skip one it has already sent (At Least Once)."
    }
   ],
   "diagram": {
@@ -387,12 +400,12 @@
   "caption": "The fix, drawn for the next high water. The gauge service publishes one warning and is done. The topic copies it into a queue per channel, and each channel's worker calls its own channel. The SMS provider still hangs, but only the SMS queue waits: the sirens sound at 02:31:02, 108 seconds before the water.",
   "fix": {
    "title": "The fix: publish once, a queue per channel",
-   "text": "Create a warnings topic. Give each channel a subscription that delivers into a queue of its own, and a small worker that receives the warning from that queue, calls its channel, and deletes the message only when the channel has answered. The gauge service publishes one warning when the level crosses, with the gauge, the level, the time and an event id, and does nothing more. Give every queue a dead-letter queue with an alarm on its depth, and an alarm on the age of its oldest message, so a channel that is failing alone is still seen. Make each worker skip an event id it has already sent. To add a channel, add a subscription and a queue; the gauge service doesn't change."
+   "text": "Create a warnings topic. Give each channel a subscription that delivers into a queue of its own, and a small worker that works in steps: it receives the warning from that queue, calls its channel, and deletes the message only when the channel has answered. The gauge service publishes one warning when the level crosses, with the gauge, the level, the time and an event id, and does nothing more. Give every queue a dead-letter queue, the side queue for messages that keep failing, with an alarm on its depth, how many messages it holds. Add an alarm on the age of each queue's oldest message, so a channel that is failing alone is still seen. Make each worker skip an event id it has already sent. To add a channel, add a subscription and a queue; the gauge service doesn't change."
   },
   "limits": [
-   "It doesn't make a hung channel faster. The SMS provider still hung until 02:37, and the texts still went at 02:38:02 in the sim; a second SMS provider, or a worker timeout shorter than 180 seconds, is what would change that.",
-   "Each queue is at least once, so a worker that crashes after its channel answers and before it deletes the message sends that warning again; each worker has to skip an event id it has already sent. And the flow is now spread over a topic, four queues and four workers: you can't read it in one program, so each queue's depth, its oldest message's age and its dead-letter queue need watching.",
-   "The publish itself must not be lost. If the gauge service crashes after deciding to warn and before the topic accepts the warning, no queue holds anything. Retry the publish until the topic accepts it, or write the warning to an outbox first (The Letter That Never Left)."
+   "It doesn't make a hung channel faster. The SMS provider still hung until 02:37, and the texts still went at 02:38:02 in the sim; a second SMS provider, or a worker that gives up waiting sooner than 180 seconds, is what would change that.",
+   "Each queue is at least once, which means a message can arrive more than once. A worker that crashes after its channel answers and before it deletes the message sends that warning again. So each worker has to skip an event id it has already sent. And the flow is now spread over a topic, four queues and four workers. You can't read it in one program, so each queue's depth (how many messages wait), its oldest message's age and its dead-letter queue need watching.",
+   "The publish itself must not be lost. If the gauge service crashes after deciding to warn and before the topic accepts the warning, no queue holds anything. Retry the publish until the topic accepts it. Or write the warning first to an outbox, a table saved alongside the program's own records, and send it from there (The Letter That Never Left)."
   ],
   "tradeoff": {
    "head": [
@@ -428,31 +441,31 @@
     ]
    ]
   },
-  "seniorTake": "When one event has several consumers, don't make the producer call them in turn and hold their retries. Publish the event once to a topic, give each consumer its own queue, and let each one retry, wait and fail alone, with its own dead-letter queue and alarm. The producer's job ends when the topic has the event, and its contract is the event's fields, not a list of who listens. Then say the cost out loud: more moving parts, at-least-once copies to skip, and a flow you see in monitoring rather than in one program.",
+  "seniorTake": "When one event has several consumers, programs that act on it, don't make the producer, the program that noticed it, call them in turn and hold their retries. Publish the event once to a topic. Give each consumer its own queue, and let each one retry, wait and fail alone, with its own dead-letter queue and alarm. The producer's job ends when the topic has the event. Its promise to the others is the event's fields, not a list of who listens. Then say the cost out loud: more moving parts, at-least-once copies (the same message arriving twice) to skip, and a flow you see in monitoring, watching the live system, rather than in one program.",
   "realWorld": [
    {
     "title": "Martin Fowler, 2017: event notification",
-    "text": "In \"What do you mean by 'Event-Driven'?\", Martin Fowler describes event notification as a system sending event messages to notify other systems of a change in its domain, and says that a key element of event notification is that the source system doesn't really care much about the response. That is the gauge service after the fix: it publishes the warning and waits for no channel.",
+    "text": "In \"What do you mean by 'Event-Driven'?\", Martin Fowler describes event notification as a system sending event messages to notify other systems of a change in its domain (the part of the world it looks after), and says that a key element of event notification is that the source system doesn't really care much about the response. That is the gauge service after the fix: it publishes the warning and waits for no channel.",
     "source": 0
    },
    {
     "title": "Fowler's warning about the flow",
-    "text": "The same article warns that it's very easy to make nicely decoupled systems with event notification, without realizing that you're losing sight of that larger-scale flow, and that often the only way to figure out this flow is from monitoring a live system. It is why the fix puts an alarm on every queue.",
+    "text": "The same article warns that it's very easy to make nicely decoupled (not tied to each other) systems with event notification, without realizing that you're losing sight of that larger-scale flow, and that often the only way to figure out this flow is from monitoring a live system. It is why the fix puts an alarm on every queue.",
     "source": 0
    },
    {
     "title": "Amazon SNS to SQS: fanning out",
-    "text": "AWS's page on fanning out Amazon SNS notifications to Amazon SQS queues says that when you subscribe an Amazon SQS queue to an Amazon SNS topic, you can publish a message to the topic and Amazon SNS sends an Amazon SQS message to the subscribed queue, and that the messages also persist in an Amazon SQS queue for other applications to process later. The same page says SNS sends to multiple subscribers through a push mechanism, which removes the need to check or poll for updates.",
+    "text": "AWS's (Amazon Web Services, Amazon's cloud) page on fanning out Amazon SNS (Simple Notification Service, its pub/sub service) notifications to Amazon SQS (Simple Queue Service, its queue service) queues says that when you subscribe an Amazon SQS queue to an Amazon SNS topic, you can publish a message to the topic and Amazon SNS sends an Amazon SQS message to the subscribed queue, and that the messages also persist (stay stored) in an Amazon SQS queue for other applications to process later. The same page says SNS sends to multiple subscribers through a push mechanism (sending without being asked), which removes the need to check or poll for updates.",
     "source": 1
    },
    {
     "title": "Filters belong to the subscription",
-    "text": "SNS's message filtering page says that by default a topic subscriber receives every message published to the topic, and that to receive only a subset of the messages, a subscriber must assign a filter policy to the topic subscription. The publisher doesn't change.",
+    "text": "SNS's message filtering page says that by default a topic subscriber receives every message published to the topic, and that to receive only a subset of the messages, a subscriber must assign a filter policy (a rule saying which messages it wants) to the topic subscription. The publisher doesn't change.",
     "source": 2
    },
    {
     "title": "EventBridge rules",
-    "text": "EventBridge's rules page says a rule specifies which events to send to which targets, and a single rule can send an event to multiple targets, which then run in parallel.",
+    "text": "EventBridge's (another Amazon service that routes events) rules page says a rule specifies which events to send to which targets (the places events go), and a single rule can send an event to multiple targets, which then run in parallel.",
     "source": 3
    }
   ],
@@ -462,7 +475,7 @@
     "What is pub/sub fan-out?",
     "How do you stop one slow consumer slowing the rest?"
    ],
-   "answer": "Start by separating the thing that decides to notify from the things that deliver. The producer, say an order service or a sensor, publishes one event to a topic, with a stable contract: what happened, when, the fields the channels need, and an event id. Each delivery channel, email, SMS, push, webhooks, has its own subscription into its own queue and its own workers. That's fan-out: one event in, one copy per subscriber out, and each copy retries, waits and fails on its own, so a slow email provider backs up the email queue and nothing else. Size each worker's timeout to its channel, put a dead-letter queue and an alarm on every queue, and alarm on the oldest message's age so a channel failing alone is still seen. Subscribers that want some events use a filter on their subscription, and a new channel is a new subscription, with no change to the producer. Then the costs: queues are at least once, so workers skip event ids they've already sent; the publish has to be made safe, with retries or an outbox; and the end-to-end flow lives in monitoring, not in one program. Calling the channels in a chain, or in threads inside the producer, keeps all the retries in one process, and a restart there loses them."
+   "answer": "Start by separating the thing that decides to notify from the things that deliver. The producer, say an order service or a sensor, publishes one event to a topic. The event has a stable contract, fields that don't change without warning: what happened, when, the fields the channels need, and an event id. Each delivery channel (email, SMS, push alerts on a phone, webhooks, which are calls to a web address another system gave you) has its own subscription into its own queue and its own workers. That's fan-out: one event in, one copy per subscriber out. Each copy retries, waits and fails on its own, so a slow email provider backs up the email queue and nothing else. Set each worker's timeout, how long it waits, to suit its channel. Put a dead-letter queue and an alarm on every queue, and alarm on the oldest message's age so a channel failing alone is still seen. Subscribers that want some events use a filter on their subscription, and a new channel is a new subscription, with no change to the producer. Then the costs. Queues are at least once, so a message can come twice, and workers skip event ids they've already sent. The publish has to be made safe, with retries or an outbox, a table the event is saved to first and sent from. And the end-to-end flow lives in monitoring, not in one program. Calling the channels in a chain, or in threads inside the producer, keeps all the retries in one running program's memory, and a restart there loses them."
   }
  },
  "terms": [
@@ -516,7 +529,7 @@
   },
   {
    "term": "Parallel threads",
-   "def": "Making several calls at once, each in its own thread inside one program, so none waits for another."
+   "def": "Making several calls at once, each in its own thread, a separate line of work inside one program, so none waits for another. Like one cook watching four pans instead of one."
   },
   {
    "term": "Pub/sub (publish and subscribe)",
@@ -560,7 +573,7 @@
   },
   {
    "term": "Event id",
-   "def": "A unique id carried in an event, so a worker can tell a repeat of an event it has already handled."
+   "def": "A label unique to one event, carried inside it, so a worker can tell a repeat of an event it has already handled. Like the number on a raffle ticket."
   },
   {
    "term": "Filter (subscription)",
@@ -568,15 +581,15 @@
   },
   {
    "term": "Filter policy",
-   "def": "Amazon SNS's name for a subscription's filter: a JSON object saying which messages that subscriber receives."
+   "def": "Amazon SNS's name for a subscription's filter: a short written rule, in a format called JSON (JavaScript Object Notation), saying which messages that subscriber receives."
   },
   {
    "term": "Amazon SNS",
-   "def": "Simple Notification Service: AWS's managed pub/sub. A topic can deliver to SQS queues, functions, email, SMS and more."
+   "def": "Simple Notification Service: pub/sub that Amazon runs for you on AWS, its cloud. A topic can deliver to queues in SQS (Simple Queue Service), small programs, email, SMS and more."
   },
   {
    "term": "EventBridge rule",
-   "def": "In Amazon EventBridge, a rule that matches events and sends them to one or more targets."
+   "def": "In Amazon EventBridge, Amazon's service for passing events around, a rule that picks out matching events and sends them to one or more places, called targets. Like a post-room sorting rule."
   },
   {
    "term": "Target (EventBridge)",
@@ -616,10 +629,10 @@
   },
   {
    "term": "Criterion A1 (SOC 2)",
-   "def": "The SOC 2 availability criteria: evidence that a system stays available as its commitments say."
+   "def": "Part of SOC 2 (System and Organization Controls 2), an outside check of how a company runs its systems. A1 asks for evidence that a system stays up as its promises say."
   }
  ],
- "atWork": "Look for one event that several things react to, and check whether the thing that noticed it calls each of them itself. A common incident is a checkout that waited on a slow email service before confirming orders: the order request sent the confirmation email inline, the email provider slowed down, and checkouts timed out though the payments had gone through. Read-only access is enough. Find where your system sends a notification, a receipt or an audit record: is it a call inside the request, a loop over channels, threads in one process, or a publish to a topic or an EventBridge rule? If it's a call, what is its timeout, and what waits behind it? Where do the retries live: in that process's memory, or on a queue that survives a restart? For each subscriber, is there a queue of its own, a dead-letter queue and an alarm on it? Build Night N3 builds alerts that fan out to email, Slack and webhooks: this is the shape it needs. In LATENT, Keeping It Fresh (a3e09) sends its change feed to its readers the same way. If your company is pursuing SOC 2 with availability in scope, criterion A1 asks for evidence that the system meets its availability commitments; a test showing that one dead alert channel doesn't stop the others, with an alarm on each queue, is that kind of evidence.",
+ "atWork": "Look for one event that several things react to, and check whether the thing that noticed it calls each of them itself. A common incident is a checkout, the step where a shop customer pays, that waited on a slow email service before confirming orders. The order request sent the confirmation email itself, while the customer waited. The email provider slowed down, and checkouts timed out though the payments had gone through. Read-only access, being allowed to look but not change, is enough. Find where your system sends a notification, a receipt or an audit record (a note of who did what, kept for checking later). Is it a call inside the request, a loop that calls each channel in turn, threads in one running program, or a publish to a topic or an EventBridge rule? If it's a call, what is its timeout, and what waits behind it? Where do the retries live: in that program's memory, or on a queue that survives a restart? For each subscriber, is there a queue of its own, a dead-letter queue and an alarm on it? Build Night N3 builds alerts that fan out to email, Slack (a work chat app) and webhooks (calls to a web address another system gave you): this is the shape it needs. In LATENT, Keeping It Fresh (a3e09) sends its change feed, its stream of notes about what changed, to its readers the same way. If your company is working towards SOC 2 (System and Organization Controls 2, an outside check of how it runs its systems) with availability, staying up, in scope, criterion A1 asks for evidence that the system meets its availability commitments; a test showing that one dead alert channel doesn't stop the others, with an alarm on each queue, is that kind of evidence.",
  "board": {
   "cards": [
    {
@@ -682,7 +695,7 @@
   {
    "id": "s4e10-r1",
    "kind": "free",
-   "prompt": "Your shop's checkout service takes the payment, then calls the email service to send a confirmation, then the warehouse service, then the analytics service, and each must answer before the next is called; only then does it tell the customer the order is placed. One evening the email service slows to 30 seconds a call, and checkouts start timing out, though the payments went through. What is going wrong, and how would you redesign it?",
+   "prompt": "Your shop's checkout service takes the payment, then calls the email service to send a confirmation, then the warehouse service, then the analytics service (which counts sales for reports), and each must answer before the next is called; only then does it tell the customer the order is placed. One evening the email service slows to 30 seconds a call, and checkouts start timing out, though the payments went through. What is going wrong, and how would you redesign it?",
    "keyIdeas": [
     {
      "idea": "The calls run as a chain, so the slow email call holds up everything behind it, including the reply to the customer",
@@ -729,7 +742,7 @@
      ]
     }
    ],
-   "model": "The checkout calls the services in a chain and waits for each answer before the next, so the slow email service holds up the warehouse call, the analytics call and the reply to the customer; enough of that and checkouts time out even though the payment worked. Only the payment has to happen before you answer. Publish one order-placed event to a topic and answer the customer. Give email, warehouse and analytics each their own queue subscribed to the topic, with a worker that retries from that queue, so a slow email service only backs up emails: each consumer retries and fails alone, with its own dead-letter queue and alarm. Each worker skips an event id it has already handled, because the queues are at least once."
+   "model": "The checkout calls the services in a chain and waits for each answer before the next, so the slow email service holds up the warehouse call, the analytics call and the reply to the customer; enough of that and checkouts time out even though the payment worked. Only the payment has to happen before you answer. Publish one order-placed event to a topic and answer the customer. Give email, warehouse and analytics each their own queue subscribed to the topic, with a worker that retries from that queue, so a slow email service only backs up emails: each consumer retries and fails alone, with its own dead-letter queue and alarm. Each worker skips an event id it has already handled, because the queues are at least once and can hand over the same message twice."
   },
   {
    "id": "s4e10-r2",
@@ -747,7 +760,7 @@
   {
    "id": "s4e10-r3",
    "kind": "free",
-   "prompt": "Your order service publishes order events to a topic, and four services each read it through a queue. The fraud team wants only orders over 500 dollars, and a new loyalty service wants every order. A developer proposes adding an if statement to the order service that sends big orders straight to fraud, and another call for loyalty. What do you suggest instead?",
+   "prompt": "Your order service publishes order events to a topic, and four services each read it through a queue. The fraud team wants only orders over 500 dollars, and a new loyalty service wants every order. A developer proposes adding a line of code to the order service that checks each order's size and sends big orders straight to fraud, and another call for loyalty. What do you suggest instead?",
    "keyIdeas": [
     {
      "idea": "Put a filter on the fraud team's subscription instead of changing the publisher",
@@ -800,7 +813,7 @@
   }
  ],
  "coldCase": {
-  "update": "UPDATE, 4 months later. The topic and the four queues have held through two high waters; every channel has gone out on time, and the hung SMS provider held up nobody. Then in June Quarrow Sound moved its alert line to a new address and told nobody. At the next warning the radio worker's calls failed, try after try, and the message ended up in the radio's dead-letter queue. The other three channels went out within seconds. The screen Florimond watches showed the topic healthy all night. Nobody knew the radio hadn't warned until the station manager rang the next morning to ask why the river had been on the news and not on her station.",
+  "update": "UPDATE, 4 months later. The topic and the four queues have held through two high waters; every channel has gone out on time, and the hung SMS provider held up nobody. Then in June Quarrow Sound moved its alert line to a new address and told nobody. At the next warning the radio worker's calls failed, try after try, and the message ended up in the radio's dead-letter queue, the side queue for messages that keep failing. The other three channels went out within seconds. The screen Florimond watches showed the topic healthy all night. Nobody knew the radio hadn't warned until the station manager rang the next morning to ask why the river had been on the news and not on her station.",
   "prompt": "Reply to OP. How did the radio fail without anyone noticing, and what should change?",
   "keyIdeas": [
    {
@@ -843,7 +856,7 @@
     ]
    }
   ],
-  "model": "The design did what it promised: the radio failed alone, so nothing else waited for it. That is also why nobody saw it. The gauge service had published and forgotten, and the topic had handed every copy to its queue, so both looked healthy; the only place the failure showed was the radio's own dead-letter queue, and nothing watched it. Put an alarm on each channel's dead-letter queue, so one message there wakes the desk, and on the age of each queue's oldest message, so a channel that keeps failing is seen within a minute or two. Then test the whole path: send a test warning through every channel on a schedule, and confirm each channel answered, so a moved address is found on a dry night instead of a wet one. Once the address is fixed, the message in the dead-letter queue can be redriven, though by then the warning may be stale."
+  "model": "The design did what it promised: the radio failed alone, so nothing else waited for it. That is also why nobody saw it. The gauge service had published and forgotten, and the topic had handed every copy to its queue, so both looked healthy; the only place the failure showed was the radio's own dead-letter queue, and nothing watched it. Put an alarm on each channel's dead-letter queue, so one message there wakes the desk, and on the age of each queue's oldest message, so a channel that keeps failing is seen within a minute or two. Then test the whole path: send a test warning through every channel on a schedule, and confirm each channel answered, so a moved address is found on a dry night instead of a wet one. Once the address is fixed, the message in the dead-letter queue can be redriven, moved back to the radio queue to be sent again, though by then the warning may be stale."
  },
  "next": "Next, The Long Errand: a wedding planner's night, and sagas, where a job of many steps across services undoes its finished steps when a later one fails.",
  "sources": [

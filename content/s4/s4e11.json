@@ -1,5 +1,6 @@
 {
  "_changelog": [
+  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
   "v1.0.1 (2026-10-11) commenter handle ends renshaw; wulfstan was a spelling of a4e03's wolstan",
   "v1.0.0 (2026-10-11) first version"
  ],
@@ -38,11 +39,19 @@
   "blocks": [
    {
     "t": "p",
-    "text": "I keep Mrs Gaskarth's phones and inbox from 20:00 to 04:00. She plans weddings, and she books the suppliers through Vowline, a booking platform. A booking is a chain. The venue's service books the venue, then publishes an event, a short message saying \"venue booked\". The caterer's service waits for that event, books the caterer and publishes its own. Then the band, then the florist. Each service reacts to the one before. If a step fails, its service publishes a failure event, and every service that subscribes to it, that has asked to be sent it, is meant to cancel its own booking."
+    "text": "I keep Mrs Gaskarth's phones and inbox from 20:00 to 04:00. She plans weddings, and she books the suppliers through Vowline, a booking website for planners. Inside Vowline, each supplier has its own service, a program that does one job: it books that supplier, or cancels."
    },
    {
     "t": "p",
-    "text": "On Thursday 12 March I ran Clementine Tindall and Dashiell Fothergill's booking, for Saturday 12 September at Bramblecote Barn. The barn took its £2,400 deposit at 21:05. Pellinore Catering took £1,850 at 21:40 for the wedding breakfast and a three-tier cake. At 22:15 Haverfield Music, the band agency, said no band was free that Saturday, and band.failed went out."
+    "text": "A booking runs as a chain, in steps. First the venue's service books the venue. Then it publishes an event, a short message saying \"venue booked\", sent out to anyone who asked for it. Next the caterer's service, which waits for that event, books the caterer and publishes its own. Then the band, then the florist. Each service reacts to the one before."
+   },
+   {
+    "t": "p",
+    "text": "If a step fails, its service publishes a failure event instead. Every service that subscribes to it, that has asked to be sent it, is meant to cancel its own booking."
+   },
+   {
+    "t": "p",
+    "text": "On Thursday 12 March I ran Clementine Tindall and Dashiell Fothergill's booking, for Saturday 12 September at Bramblecote Barn. The barn took its £2,400 deposit at 21:05. Pellinore Catering took £1,850 at 21:40 for the wedding breakfast and a three-tier cake. At 22:15 Haverfield Music, the band agency, said no band was free that Saturday, and band.failed, the band's failure event, went out."
    },
    {
     "t": "p",
@@ -55,6 +64,10 @@
    {
     "t": "p",
     "text": "When I came on tonight, there was a photo in the inbox from Pellinore's driver, sent this morning. A three-tier cake on the trestle by the barn's door. The door locked, the car park empty, the ribbons on the gate post from somebody else's wedding last week. White icing, and on the top tier, *Clementine & Dashiell, 12 September*. Under it, Pellinore's invoice for the balance. Their system still says booked. The £1,850 deposit was never returned."
+   },
+   {
+    "t": "p",
+    "text": "Vowline's log, the record each service writes as it works, is below. Each line shows the date and time, which service wrote it (svc is short for service), and what happened; offline for maintenance means switched off for upkeep."
    },
    {
     "t": "log",
@@ -122,7 +135,7 @@
    },
    {
     "t": "p",
-    "text": "Mr Godwin, the contractor who added the caterer's service last year, says it subscribes to venue.booked and to nothing else. Nothing in Vowline holds the whole booking; each service knows only its own step. Mrs Gaskarth's spring bookings open next month. What should change first?"
+    "text": "Mr Godwin, the contractor who added the caterer's service last year, says it subscribes to venue.booked and to nothing else. It never asked for band.failed, so it was never sent it. Nothing in Vowline holds the whole booking; each service knows only its own step. Mrs Gaskarth's spring bookings open next month. What should change first?"
    }
   ]
  },
@@ -131,14 +144,14 @@
    "author": "u/grey_pager",
    "points": 141,
    "age": "2h",
-   "text": "Some words first. A booking like yours is a saga: one long piece of work split into steps, each a local transaction in its own system, where a failure is answered by undoing the steps already done. Each step's undo is its compensating action, or compensation. Who triggers them is the design choice. In choreography each service reacts to the others' events; in orchestration one service runs the steps and tells each supplier what to do. Now the evidence. Which services subscribe to band.failed, and who decided that list? If Mrs Gaskarth asked you right now which steps of a booking are still live, where would you look? The barn kept £300: was that an undo? And what was Pellinore's system doing at 22:15 anyway?",
+   "text": "Some words first. Remember a transaction: a group of changes a database saves all together or not at all. Your booking is one long piece of work split into steps. Each step is a small transaction of its own, saved in its own company's system: a local transaction. If a later step fails, the steps already done are undone. Work run like that is called a saga. Each step's undo is a new action, like a cancellation, called its compensating action, or compensation. Who triggers the undos is the design choice. If each service reacts to the others' events and nobody is in charge, that's choreography, like dancers who each know their cue. If one service runs the steps and tells each supplier what to do, that's orchestration, like a conductor. Now the evidence. Which services subscribe to band.failed, and who decided that list? If Mrs Gaskarth asked you right now which steps of a booking are still live, where would you look? The barn kept £300: was that an undo? And what was Pellinore's system doing at 22:15 anyway?",
    "replies": [
     {
      "author": "u/night_errands_linnea",
      "op": true,
      "points": 49,
      "age": "2h",
-     "text": "The barn, the florist and Vowline's own booking page subscribe to band.failed; each service keeps its own list, and nobody owns them all. To see a booking I'd open four services' logs. Pellinore's system was down for maintenance from 22:00 to 23:30, so it couldn't have cancelled then anyway. Mr Godwin has four changes on the board, in his words. One: an orchestrator, a single service that runs the steps, records each one in a saga log, and on a failure calls each finished step's compensation itself, retrying until it's done. Two: wrap all four bookings in one database transaction on Vowline's side. Three: make every supplier's service subscribe to every failure event after its own step and cancel its own booking. Four: when a step fails, retry it every night until a supplier accepts, so nothing ever needs cancelling."
+     "text": "The barn, the florist and Vowline's own booking page subscribe to band.failed; each service keeps its own list, and nobody owns them all. To see a booking I'd open four services' logs. Pellinore's system was down for maintenance from 22:00 to 23:30, so it couldn't have cancelled then anyway. Mr Godwin has four changes on the board, in his words. One: an orchestrator, a single service that runs the steps. It works in steps of its own. First it writes each step down in a saga log, its record of the booking, before acting. If a step fails, it reads the log and calls each finished step's compensation itself, latest first. If a call fails, it retries, trying again, until it's done. Two: wrap all four bookings in one database transaction on Vowline's side, so they all save or none do. Three: make every supplier's service subscribe to every failure event after its own step and cancel its own booking. Four: when a step fails, retry it every night until a supplier accepts, so nothing ever needs cancelling."
     }
    ]
   },
@@ -146,7 +159,7 @@
    "author": "u/just_wrap_it_renshaw",
    "points": 92,
    "age": "2h",
-   "text": "This is what transactions are for. BEGIN, book the venue, book the caterer, book the band, book the florist, COMMIT. The band fails, you ROLLBACK, and every booking goes with it. All or nothing, the A in ACID; databases solved this decades ago. No events, no subscriptions, nobody to forget to listen. One wrapper and a cake can never turn up for a wedding that isn't happening."
+   "text": "This is what transactions are for. You say BEGIN (start), book the venue, book the caterer, book the band, book the florist, then COMMIT (save it all). The band fails, you ROLLBACK, which throws every change away, and every booking goes with it. All or nothing: that's the A, for atomic, in ACID (atomic, consistent, isolated, durable), the list of promises a database makes. Databases solved this decades ago. No events, no subscriptions, nobody to forget to listen. One wrapper and a cake can never turn up for a wedding that isn't happening."
   },
   {
    "author": "u/cake_tin_eudora",
@@ -162,29 +175,29 @@
     "text": "Add an orchestrator that records each step and, on a failure, runs every compensation until done.",
     "tone": "ok",
     "verdict": "Senior answer",
-    "part2": "Mr Godwin built the orchestrator and replayed 12 March through it. It recorded each step in its saga log, and at 22:15, when the band failed, it worked back through the finished steps, latest first. Pellinore's cancel failed at 22:15, because its system was down for maintenance, so the orchestrator tried again every 15 minutes: five retries, and at 23:30 Pellinore cancelled and returned £1,850. Then the barn: £2,100 back, its £300 fee kept by right. £300 still held, nothing owed, and nothing arrives on 12 September. With retries switched off, the same night ends with the cake at the empty hall. He ran it once more with the barn's reply lost, so its cancel went twice. Sent with no key, the barn refunded £2,100 twice; sent with the booking's idempotency key, the barn returned its stored result. Adding a photographer next year is one more step in the orchestrator's list, and there is one saga log to read for any booking.",
-    "senior": "A booking across four companies can't be one transaction; it's a saga, a chain of local steps, each with a compensation. Put one orchestrator in charge: it records every step, and on a failure runs each finished step's compensation, latest first, retrying until each is done, with a key so a repeat does no harm. A compensation is a semantic undo: the barn's fee stays. The cost is one more service to run and watch."
+    "part2": "Mr Godwin built the orchestrator and replayed 12 March through it, running the night again on a test copy. It recorded each step in its saga log, and at 22:15, when the band failed, it worked back through the finished steps, latest first. Pellinore's cancel failed at 22:15, because its system was down for maintenance, so the orchestrator tried again every 15 minutes: five retries, and at 23:30 Pellinore cancelled and returned £1,850. Then the barn: £2,100 back, its £300 fee kept by right. £300 still held, nothing owed, and nothing arrives on 12 September. With retries switched off, the same night ends with the cake at the empty hall. He ran it once more with the barn's reply lost, so its cancel went twice. Sent with no key, the barn refunded £2,100 twice. Then he sent it with the booking's idempotency key, a label that stays the same on every try, so the barn can tell a repeat. The barn saw the key again and returned its stored result, the answer it gave the first time. Adding a photographer next year is one more step in the orchestrator's list, and there is one saga log to read for any booking.",
+    "senior": "A booking across four companies can't be one transaction; it's a saga, a chain of local steps, each with a compensation. Put one orchestrator in charge. It records every step. On a failure it runs each finished step's compensation, latest first, retrying until each is done, with a key so a repeat does no harm. A compensation is a semantic undo, undoing what the step meant rather than every detail: the barn's fee stays. The cost is one more service to run and watch."
    },
    {
     "text": "Wrap all four bookings in one database transaction, so a failure rolls every booking back at once.",
     "tone": "bad",
     "verdict": "Rolls back your record, not the bookings",
-    "part2": "Mr Godwin wrapped the four bookings in one transaction on Vowline's database and replayed 12 March. The booking rows were locked from 21:05, and when the band failed at 22:15 the transaction rolled back after 1 h 10 min. Vowline's rows vanished. But the barn's booking lives in the barn's system and Pellinore's in Pellinore's, and a rollback in Vowline's database can't reach either. Nothing told them anything, because Vowline no longer had a record that they existed. £4,250 still held, all of it owed back, and on 12 September a three-tier cake at an empty hall, opened and paid for. Worse than March: this time there was no record to find.",
-    "senior": "A database transaction covers one database. The bookings live in the suppliers' systems, so a rollback erases only your own record of them, and holding locks while you wait on other companies, for an hour or for days, blocks everything else that touches those rows. Garcia-Molina and Salem proposed sagas in 1987 for exactly this kind of long-lived work."
+    "part2": "Mr Godwin wrapped the four bookings in one transaction on Vowline's database and replayed 12 March. The booking rows, the lines in Vowline's tables, were locked from 21:05, so nothing else could change them, and when the band failed at 22:15 the transaction rolled back after 1 h 10 min. Vowline's rows vanished. But the barn's booking lives in the barn's system and Pellinore's in Pellinore's, and a rollback in Vowline's database can't reach either. Nothing told them anything, because Vowline no longer had a record that they existed. £4,250 still held, all of it owed back, and on 12 September a three-tier cake at an empty hall, opened and paid for. Worse than March: this time there was no record to find.",
+    "senior": "A database transaction covers one database. The bookings live in the suppliers' systems, so a rollback erases only your own record of them. And a transaction holds locks, a hold that stops anyone else changing those rows, until it ends. Holding them while you wait on other companies, for an hour or for days, blocks everything else that touches those rows. Garcia-Molina and Salem proposed sagas in 1987 for exactly this kind of long-lived work."
    },
    {
     "text": "Make every supplier's service subscribe to every failure event and cancel its own booking itself.",
     "tone": "warn",
     "verdict": "Trade-off: it works, and nobody sees the whole",
-    "part2": "Mr Godwin made every service subscribe to every failure event after its own step and replayed 12 March. At 22:15 the barn cancelled: £2,100 back, £300 kept. Pellinore's system was down, but its queue held band.failed, and at 23:30 it cancelled and returned £1,850. Nothing arrives on 12 September. It works. But to see where any booking stands he still reads four services' logs, and to add a photographer he must change all four services, each subscribing to one more failure event; forgetting one is how March happened. And events can arrive more than once: replayed with band.failed reaching the barn twice and no key, the barn refunded £2,100 twice.",
-    "senior": "Complete choreography works, and for a short chain that rarely changes it can be the simpler choice. Its cost grows with every step: no single place holds a booking's state, every new supplier touches every service, and every service must skip a repeated event. When the steps and their compensations are the business, keep them in one place you can read."
+    "part2": "Mr Godwin made every service subscribe to every failure event after its own step and replayed 12 March. At 22:15 the barn cancelled: £2,100 back, £300 kept. Pellinore's system was down, but its queue, the waiting line that holds its events until it reads them, held band.failed, and at 23:30 it cancelled and returned £1,850. Nothing arrives on 12 September. It works. But to see where any booking stands he still reads four services' logs, and to add a photographer he must change all four services, each subscribing to one more failure event; forgetting one is how March happened. And events can arrive more than once: replayed with band.failed reaching the barn twice and no key, the barn refunded £2,100 twice.",
+    "senior": "Complete choreography, every service listening for every later failure, works, and for a short chain that rarely changes it can be the simpler choice. Its cost grows with every step. No single place holds a booking's state, where it stands. Every new supplier touches every service. And every service must skip a repeated event. When the steps and their compensations are the business, keep them in one place you can read."
    },
    {
     "text": "When a step fails, retry it every night until a supplier accepts, so nothing ever needs cancelling.",
     "tone": "bad",
     "verdict": "Forward forever, paid for twice over",
     "part2": "Mr Godwin made a failed step try again every night and replayed 12 March. Haverfield Music had no band free on 12 September, and asking again didn't change that: 184 tries, one a night at 22:15, none accepted. Nothing was ever cancelled. The booking said waiting on the band all summer, the barn and Pellinore held £4,250 between them, and the florist was never booked. On 12 September a three-tier cake arrived at an empty hall, opened and paid for.",
-    "senior": "Going forward only works if the step can eventually succeed; the 1987 paper's pure forward recovery assumes every step will succeed if it is retried enough times. A band booked elsewhere never will. Retry what is likely to pass, like a supplier down for maintenance, and when the answer is a real no, compensate."
+    "senior": "Going forward only works if the step can eventually succeed. The 1987 paper's pure forward recovery, finishing the missing steps instead of undoing the done ones, assumes every step will succeed if it is retried enough times. A band booked elsewhere never will. Retry what is likely to pass, like a supplier down for maintenance, and when the answer is a real no, compensate."
    }
   ]
  },
@@ -195,27 +208,27 @@
   "tryThis": "Try this: press Run the night as it is: the caterer never hears band.failed, £1,850 is owed back, and on 12 September a three-tier cake arrives at an empty hall. Set the never-hears control to nobody: Pellinore cancels at 23:30. Switch to orchestration: with retries off the cake is back; turn them on and the caterer cancels after 5 retries. Make the barn's cancellation arrive twice with no key, then with the key. Then try one transaction and retry the failed step, and last, make the florist fail instead of the band."
  },
  "explain": {
-  "oneLine": "Nothing lost the cancellation in the post. The booking was a saga run by choreography, and the caterer's service, added later, never subscribed to band.failed: the barn and the florist undid their steps, and nobody told Pellinore, so its step ran on to 12 September.",
+  "oneLine": "Nothing lost the cancellation in the post. The booking was a saga, a chain of steps that are undone if a later one fails, run by choreography, with no one in charge. The caterer's service, added later, never subscribed to band.failed. The barn and the florist undid their steps, and nobody told Pellinore, so its step ran on to 12 September.",
   "steps": [
    {
     "title": "A long errand, split into steps.",
-    "text": "Booking a wedding takes four companies and can take hours or days. You can't hold one database transaction open across all of that: the bookings live in the suppliers' own systems, and a long transaction holds its locks the whole time. A saga splits the work into local transactions, one per step, each committed on its own, and pairs each with a compensation to run if a later step fails."
+    "text": "Booking a wedding takes four companies and can take hours or days. You can't hold one database transaction, a set of changes saved all together or not at all, open across all of that. The bookings live in the suppliers' own systems. And a long transaction holds its locks, which stop anyone else changing the same rows, the whole time. A saga splits the work into local transactions, one per step, each committed (saved for good) on its own. It pairs each with a compensation, an undo, to run if a later step fails. The saga runs in steps. First it does step one and saves it. Then step two, and so on. If a step fails, it runs the compensations of the steps already done, latest first."
    },
    {
     "title": "A compensation is a new step, not a rewind.",
-    "text": "The barn didn't pretend the booking never happened. It cancelled, returned £2,100 and kept its £300 fee, as its terms say. That is a semantic undo: the business effect is reversed by a new action, and the history stays. Garcia-Molina and Salem put it this way in 1987: the compensating transaction undoes the step from a semantic point of view, without necessarily returning the database to where it was."
+    "text": "The barn didn't pretend the booking never happened. It cancelled, returned £2,100 and kept its £300 fee, as its terms say. That is a semantic undo, undoing what the step meant: the business effect is reversed by a new action, and the history stays. Garcia-Molina and Salem put it this way in 1987: the compensating transaction undoes the step from a semantic point of view, without necessarily returning the database to where it was."
    },
    {
     "title": "Choreography: everyone listens for themselves.",
-    "text": "In Vowline as built, each service reacts to events, and each keeps its own list of the failure events it subscribes to. Nobody owns the whole list. When Mr Godwin added the caterer, nothing failed when he left band.failed off its list; the gap showed only six months later, as a cake. Complete choreography closes this gap, but every new supplier then touches every service, and the state of one booking is spread over four logs."
+    "text": "In Vowline as built, choreography runs in steps. First a service finishes its step and publishes an event. Next every service that subscribed to that event receives it. Then each one decides for itself what to do: book, or cancel. Each keeps its own list of the failure events it subscribes to. Nobody owns the whole list. When Mr Godwin added the caterer, nothing failed when he left band.failed off its list; the gap showed only six months later, as a cake. Complete choreography closes this gap, but every new supplier then touches every service, and the state of one booking is spread over four logs."
    },
    {
     "title": "Orchestration: one keeper of the list.",
-    "text": "An orchestrator runs the steps itself and records each in its saga log before it acts. On a failure it reads the log and calls every finished step's compensation, latest first. A supplier that is down, like Pellinore from 22:00 to 23:30, gets the call again every 15 minutes until it's done. Because a retried call may land twice, each compensation carries a key, so the second gets the stored result."
+    "text": "An orchestrator, one service in charge, runs the steps itself. First it writes the next step in its saga log, its own record of the booking. Next it calls the supplier and writes down the result. On a failure it reads the log and calls every finished step's compensation, latest first. A supplier that is down, like Pellinore from 22:00 to 23:30, gets the call again every 15 minutes until it's done. A retried call may land twice, if the first worked but its answer was lost. So each compensation carries an idempotency key, a label that is the same on every try, and the second call gets the stored result of the first."
    },
    {
     "title": "And a step you can't go back past.",
-    "text": "Some steps can't be compensated once done, like a cake already baked; after that point, the pivot, a saga can only go forward. Put such steps as late as you can, and make everything after them retryable."
+    "text": "Some steps can't be compensated once done, like a cake already baked. After that point, called the pivot, a saga can only go forward. Put such steps as late as you can, and make everything after them retryable: safe to try again until it works, because a repeat does no more than the first try."
    }
   ],
   "diagram": {
@@ -322,11 +335,11 @@
   "caption": "The fix, replaying 12 March. The orchestrator records every step; when the band fails at 22:15 it cancels Pellinore first, retrying every 15 minutes until 23:30, then the barn. £300 is still held, the barn's fee, and nothing arrives on 12 September.",
   "fix": {
    "title": "The fix: an orchestrator with a saga log, compensations retried until done, and a key on every compensation",
-   "text": "Give Vowline one orchestrator per booking. It calls each supplier's booking step in turn and writes each step, and its result, into a saga log before it moves on. Give every step a compensation that the supplier's service offers: cancel, return the deposit less the fee in its terms. On a failure, the orchestrator reads the log and calls the compensations of every finished step, latest first, retrying a call that fails every 15 minutes until it's done, and sending each with the booking's idempotency key so a repeat returns the stored result. Write the log and the next message together, as in the outbox from The Letter That Never Left, so a crash can't lose a step. Alarm on any compensation still retrying after an hour, and show the saga log to Mrs Gaskarth as the booking's one record."
+   "text": "Give Vowline one orchestrator per booking. It calls each supplier's booking step in turn and writes each step, and its result, into a saga log before it moves on. Give every step a compensation that the supplier's service offers: cancel, return the deposit less the fee in its terms. On a failure, the orchestrator reads the log and calls the compensations of every finished step, latest first, retrying a call that fails every 15 minutes until it's done, and sending each with the booking's idempotency key so a repeat returns the stored result. Write the log and the next message together, in one save, as with the outbox (a table that holds messages until they are sent) from The Letter That Never Left, so a crash can't lose a step. Alarm on any compensation still retrying after an hour, and show the saga log to Mrs Gaskarth as the booking's one record."
   },
   "limits": [
    "Retrying works for a supplier that is down, like Pellinore from 22:00 to 23:30. It doesn't work for a supplier that says no on purpose, such as one whose terms forbid cancelling. The orchestrator must tell those apart and send a refusal to a person.",
-   "Steps between start and compensation are visible to others: replayed under the orchestrator, the barn's date looked taken from 21:05 until 23:30. Sagas give up isolation, so other bookings can see a step that is later undone.",
+   "Steps between start and compensation are visible to others: replayed under the orchestrator, the barn's date looked taken from 21:05 until 23:30. Sagas give up isolation, the promise that nobody sees work until it is finished, so other bookings can see a step that is later undone.",
    "The orchestrator is one more service to run, and if it stops, every saga it holds stops with it. Its saga log has to survive a restart, and something has to alarm when a saga stops moving."
   ],
   "tradeoff": {
@@ -368,7 +381,7 @@
     ]
    ]
   },
-  "seniorTake": "When one piece of work crosses several services or companies, you can't make it atomic, so make it recoverable. Split it into local steps, give each a compensation that undoes it in business terms, and decide who drives them. Choreography is fine for a short chain that rarely changes; once the steps are the business, an orchestrator with a saga log gives you one place to read a booking and one place to add a step. Retry compensations until they're done, make them safe to run twice, and know which step is your point of no return.",
+  "seniorTake": "When one piece of work crosses several services or companies, you can't make it atomic, all or nothing, so make it recoverable. Split it into local steps, give each a compensation that undoes it in business terms, and decide who drives them. Choreography is fine for a short chain that rarely changes; once the steps are the business, an orchestrator with a saga log gives you one place to read a booking and one place to add a step. Retry compensations until they're done, make them safe to run twice, and know which step is your point of no return.",
   "realWorld": [
    {
     "title": "Garcia-Molina and Salem, 1987: long-lived transactions",
@@ -402,12 +415,12 @@
    },
    {
     "title": "microservices.io: the pattern",
-    "text": "Chris Richardson's page: \"A saga is a sequence of local transactions.\" It names two ways to coordinate one: \"Choreography - each local transaction publishes domain events that trigger local transactions in other services\" and \"Orchestration - an orchestrator (object) tells the participants what local transactions to execute\".",
+    "text": "Chris Richardson's page: \"A saga is a sequence of local transactions.\" (A domain event is an event named for something that happened in the business.) It names two ways to coordinate one: \"Choreography - each local transaction publishes domain events that trigger local transactions in other services\" and \"Orchestration - an orchestrator (object) tells the participants what local transactions to execute\".",
     "source": 1
    },
    {
     "title": "No automatic rollback",
-    "text": "Among its drawbacks: \"Lack of automatic rollback - a developer must design compensating transactions that explicitly undo changes made earlier in a saga\". It adds that each service \"must atomically update its database and publish a message/event\", pointing to the transactional outbox.",
+    "text": "Among its drawbacks: \"Lack of automatic rollback - a developer must design compensating transactions that explicitly undo changes made earlier in a saga\". It adds that each service \"must atomically update its database and publish a message/event\", pointing to the transactional outbox (saving the change and the message to send in one transaction).",
     "source": 1
    },
    {
@@ -417,7 +430,7 @@
    },
    {
     "title": "Azure: pivots and retryable steps",
-    "text": "\"Pivot transactions serve as the point of no return in the saga.\" After one, \"Retryable transactions are idempotent and help ensure that the saga can reach its final state\". It also cautions: \"Compensating transactions might not always succeed\".",
+    "text": "\"Pivot transactions serve as the point of no return in the saga.\" After one, \"Retryable transactions are idempotent and help ensure that the saga can reach its final state\". It also cautions: \"Compensating transactions might not always succeed\". (Idempotent means safe to repeat: a second try does no more than the first.)",
     "source": 2
    }
   ],
@@ -427,7 +440,7 @@
     "Orchestration or choreography?",
     "What is a compensating transaction?"
    ],
-   "answer": "Start with why one transaction won't do: each service owns its own database, the work may wait on other companies for hours, and holding locks that long blocks everything else, while a two-phase commit across services is rarely on offer. So use a saga: a sequence of local transactions, each committed on its own, each paired with a compensating transaction that undoes it in business terms, like a refund less a fee, not a rollback. Then choose coordination. Choreography has each service react to events; it suits a short, stable chain but spreads the state across services, and every new step touches the others. Orchestration puts one coordinator in charge: it records each step in a durable log, calls the next, and on a failure runs the finished steps' compensations in reverse. Either way, make compensations retry until done and idempotent, with a key per step, because messages arrive at least once. Name the pivot, the step after which you only go forward, place it late, and make every step after it retryable. Mention what you'd monitor: sagas stuck compensating, and refusals that need a person."
+   "answer": "Start with why one transaction won't do. Each service owns its own database. The work may wait on other companies for hours, and holding locks that long blocks everything else. A two-phase commit across services, where a coordinator first asks everyone to get ready and then tells them all to save, is rarely on offer. So use a saga: a sequence of local transactions, each committed on its own, each paired with a compensating transaction that undoes it in business terms, like a refund less a fee, not a rollback. Then choose coordination. Choreography has each service react to events; it suits a short, stable chain but spreads the state across services, and every new step touches the others. Orchestration puts one coordinator in charge: it records each step in a durable log, one that survives a restart, calls the next, and on a failure runs the finished steps' compensations in reverse. Either way, make compensations retry until done and idempotent, safe to repeat, with a key per step, because messages arrive at least once and sometimes twice. Name the pivot, the step after which you only go forward, place it late, and make every step after it retryable. Mention what you'd monitor: sagas stuck compensating, and refusals that need a person."
   }
  },
  "terms": [
@@ -505,7 +518,7 @@
   },
   {
    "term": "Distributed transaction",
-   "def": "A transaction that tries to commit across more than one database or service at once, as two-phase commit does. Across separate companies it is usually not on offer."
+   "def": "A transaction that tries to save across more than one database or service at once, as two-phase commit does: everyone gets ready, then all save together. Across separate companies it is usually not on offer."
   },
   {
    "term": "Waiting order",
@@ -517,11 +530,11 @@
   },
   {
    "term": "Local transaction",
-   "def": "A transaction inside one service's own database. A saga is made of them; nothing ties two of them together."
+   "def": "A transaction, changes saved all together or not at all, inside one service's own database. A saga is made of them; nothing ties two of them together."
   },
   {
    "term": "Long-lived transaction (LLT)",
-   "def": "The 1987 paper's name for a transaction that runs for hours or days, holding its locks all that time and delaying shorter work."
+   "def": "The 1987 paper's name for a transaction that runs for hours or days, holding its locks, which stop others changing the same data, all that time and delaying shorter work."
   },
   {
    "term": "Compensating action (compensation)",
@@ -545,7 +558,7 @@
   },
   {
    "term": "Saga log",
-   "def": "The orchestrator's durable record of a saga: each step and its result, written before the next action, so a restart can see what is done and what to undo."
+   "def": "The orchestrator's record of a saga, kept safe through restarts: each step and its result, written before the next action, so a restart can see what is done and what to undo. Like a ship's log."
   },
   {
    "term": "Complete choreography",
@@ -565,7 +578,7 @@
   },
   {
    "term": "Retryable step",
-   "def": "A step that is safe to try again until it works, because it is idempotent: a repeat does no more than the first."
+   "def": "A step that is safe to try again until it works, because it is idempotent: a repeat does no more than the first, like pressing a lift button twice."
   },
   {
    "term": "Isolation (sagas)",
@@ -577,7 +590,7 @@
   },
   {
    "term": "microservices.io",
-   "def": "Chris Richardson's website of microservice patterns, including the saga and the transactional outbox."
+   "def": "Chris Richardson's website of patterns for microservices, systems built as many small services, including the saga and the transactional outbox."
   },
   {
    "term": "Azure Architecture Center",
@@ -600,7 +613,7 @@
    "def": "Money a supplier returned a second time because the same cancellation reached it twice with no key to show it was a repeat."
   }
  ],
- "atWork": "Find a piece of work in your systems that crosses services and can fail halfway. A common incident is a travel site that kept a customer's hotel booking, and the money, after the flight in the same trip failed, because the hotel step never learned of the failure. Read-only access is enough. List the steps and, for each, ask: what undoes it, and is that undo a real action the other side offers, such as a cancellation with its fee? Who triggers the undo: a service listening for an event, or one coordinator? If it's events, find every service's subscription list and check that each step that can be undone listens for every failure after it. If it's an orchestrator, check that it records each step before acting, retries a failed compensation, and sends each with an idempotency key, as in The Ticket Number. Find the step you can't take back and check it runs as late as it can. In LATENT, Ask Before You Act puts the same question to an agent: approvals before any action that has no compensation. If your company is pursuing a SOC 2 report with processing integrity in scope, criterion PI1.3 covers processing that is complete, accurate and timely as authorized; where deposits and refunds are financial records, a saga log per booking and an alarm on compensations that never finish are the kind of evidence an auditor asks for. Build them in now rather than at audit time.",
+ "atWork": "Find a piece of work in your systems that crosses services and can fail halfway. A common incident is a travel site that kept a customer's hotel booking, and the money, after the flight in the same trip failed, because the hotel step never learned of the failure. Read-only access, being allowed to look but not change, is enough. List the steps and, for each, ask: what undoes it, and is that undo a real action the other side offers, such as a cancellation with its fee? Who triggers the undo: a service listening for an event, or one coordinator? If it's events, find every service's subscription list and check that each step that can be undone listens for every failure after it. If it's an orchestrator, check that it records each step before acting, retries a failed compensation, and sends each with an idempotency key, as in The Ticket Number. Find the step you can't take back and check it runs as late as it can. In LATENT, Ask Before You Act puts the same question to an agent, an AI program that takes actions: approvals before any action that has no compensation. If your company is working towards a SOC 2 report (System and Organization Controls 2, an outside check of how it runs its systems) with processing integrity, doing work completely and correctly, in scope, criterion PI1.3 covers processing that is complete, accurate and timely as authorized; where deposits and refunds are financial records, a saga log per booking and an alarm on compensations that never finish are the kind of evidence an auditor asks for. Build them in now rather than at audit time.",
  "board": {
   "cards": [
    {
@@ -709,7 +722,7 @@
      ]
     }
    ],
-   "model": "It's a saga run by choreography, and the hotel's service never heard the car's failure: either it doesn't subscribe to that failure event or it was down and the message was dropped, and no one owns the list of who must react to what. The flight service did listen, so the trip ended half undone. I'd put an orchestrator in charge of each trip. It records every step in a saga log before acting, and when the car fails it runs each finished step's compensation, latest first: cancel the hotel, refund less any fee, then release the flight. If the hotel's system is down, it retries the cancel until it succeeds, and it sends each compensation with an idempotency key so a repeat returns the stored result instead of refunding twice. I'd alarm on any trip still compensating after an hour."
+   "model": "It's a saga run by choreography, and the hotel's service never heard the car's failure: either it doesn't subscribe to that failure event or it was down and the message was dropped, and no one owns the list of who must react to what. The flight service did listen, so the trip ended half undone. I'd put an orchestrator in charge of each trip. It records every step in a saga log before acting, and when the car fails it runs each finished step's compensation, latest first: cancel the hotel, refund less any fee, then release the flight. If the hotel's system is down, it retries the cancel until it succeeds, and it sends each compensation with an idempotency key, a label that is the same on every try, so a repeat returns the stored result instead of refunding twice. I'd alarm on any trip still compensating after an hour."
   },
   {
    "id": "s4e11-r2",
@@ -727,7 +740,7 @@
   {
    "id": "s4e11-r3",
    "kind": "free",
-   "prompt": "Your saga orchestrator cancels a hotel booking when a later step fails. Last night its call to the hotel's refund API timed out, so it called again, and the customer was refunded twice. The team now wants the orchestrator to stop trying refunds again. What do you tell them?",
+   "prompt": "Your saga orchestrator cancels a hotel booking when a later step fails. Last night its call to the hotel's refund API (application programming interface: the hotel system's way for other programs to ask it things) timed out, so it called again, and the customer was refunded twice. The team now wants the orchestrator to stop trying refunds again. What do you tell them?",
    "keyIdeas": [
     {
      "idea": "The first call worked; only its reply was lost, so the orchestrator couldn't tell and sent it again",
@@ -773,7 +786,7 @@
   {
    "id": "s4e11-r4",
    "kind": "mcq",
-   "prompt": "A team is choosing between choreography and orchestration for a six-step order saga that will gain steps every quarter. Which is the fairest reason to prefer orchestration?",
+   "prompt": "A team is choosing between choreography (no one in charge) and orchestration (one service in charge) for a six-step order saga that will gain steps every quarter. Which is the fairest reason to prefer orchestration?",
    "options": [
     "It needs no compensating transactions.",
     "It never needs messages between services.",

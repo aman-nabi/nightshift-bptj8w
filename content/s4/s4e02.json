@@ -1,5 +1,6 @@
 {
  "_changelog": [
+  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
   "v1.0.0 (2026-10-11) first version"
  ],
  "id": "s4e02",
@@ -36,11 +37,15 @@
   "blocks": [
    {
     "t": "p",
-    "text": "I run Saturday nights at the Nightjar Line. People text us; volunteers reply from a web dashboard. Last month our developer, Zbigniew, moved the dashboard off polling. It used to ask the server for new texts every 5 seconds: with 120 of us on shift, 1,440 requests a minute, nearly all empty. Now each dashboard opens one WebSocket, and the server pushes each text down it as it lands. Replies still go out as one POST per message."
+    "text": "I run Saturday nights at the Nightjar Line. People text us; volunteers reply from a web dashboard, a page in their web browser. Last month our developer, Zbigniew, moved the dashboard off polling. Polling means asking on a timer: every 5 seconds the page asked the server, the computer that stores the texts, for anything new. With 120 of us on shift, that was 1,440 requests a minute, nearly all empty."
    },
    {
     "t": "p",
-    "text": "At 02:11 Ezinne, one of our steadiest volunteers, took texter 0417. Her screen, as it stood at half past two:"
+    "text": "Now each dashboard opens one WebSocket: a connection, a line held open between page and server. The page opens it once, then just listens. When a text lands, the server pushes it down that line without being asked. Replies still go out the old way, one POST, a request that sends data, per message."
+   },
+   {
+    "t": "p",
+    "text": "At 02:11 Ezinne, one of our steadiest volunteers, took texter 0417. Her screen, as it stood at half past two, shows each message's time, who wrote it, and the words:"
    },
    {
     "t": "log",
@@ -48,7 +53,7 @@
    },
    {
     "t": "p",
-    "text": "My own console is older; it still polls every 5 seconds. I was on a call until just after half past, and when I looked back, my screen had six texts from 0417 that Ezinne's didn't. At 02:31:08 I asked her to refresh. The transcript came back with both halves woven together:"
+    "text": "My own console is older; it still polls every 5 seconds. I was on a call until just after half past, and when I looked back, my screen had six texts from 0417 that Ezinne's didn't. At 02:31:08 I asked her to refresh, which reloads the whole page. The transcript, the full stored conversation, came back with both halves woven together, in the same columns:"
    },
    {
     "t": "log",
@@ -60,7 +65,7 @@
    },
    {
     "t": "p",
-    "text": "Ezinne wrote to her at once and said sorry, and 0417 stayed with us until nearly four. She is all right. The server logs show one line per text: pushed to the socket, no error. Zbigniew suspects our load balancer, which closes any connection that carries no data for 60 seconds, its idle timeout. The dashboard has no code for a socket that closes."
+    "text": "Ezinne wrote to her at once and said sorry, and 0417 stayed with us until nearly four. She is all right. The server logs show one line per text: pushed to the socket, meaning the WebSocket, no error. Zbigniew suspects our load balancer, the machine in front of our servers that passes connections through. It closes any connection that carries no data for 60 seconds, its idle timeout. The dashboard has no code for a socket that closes."
    },
    {
     "t": "p",
@@ -136,14 +141,14 @@
    "author": "u/grey_pager",
    "points": 142,
    "age": "5h",
-   "text": "A browser can hear about new messages in a few ways. Polling is asking on a timer: anything new? Long polling is asking once and letting the server hold the question open until it has something to say, or until a time limit, then asking again. Your WebSocket is a connection held open in both directions. Server-sent events keep one ordinary HTTP response open as a stream of events that only the server writes to; each event can carry an id, and when the browser reconnects it sends the last id it saw back in a header called Last-Event-ID. Now your trace. Before 02:13:43, when did the socket last carry anything? Did any of Ezinne's replies travel on it? Count which way each message that night needed to go. And if the socket had died for some reason other than silence, what would have told anyone?",
+   "text": "A browser can hear about new messages in a few ways. Polling, as you said, is asking on a timer: anything new? Long polling goes in three steps. The page asks once. The server holds the question open until it has something to say, or until a time limit. Then the page asks again. Your WebSocket is a line held open that both sides can write to. Server-sent events are a fourth way, built on HTTP, the web's request language. The page asks once, and the server keeps that one answer open, writing each new message into it as an event, a line of text. Only the server writes. Each event can carry an id, a number. If the line breaks, the browser reconnects by itself. It sends back the last id it saw in a header, a label on the request, called Last-Event-ID. The server then resends what came after it. Now your trace. Before 02:13:43, when did the socket last carry anything? Did any of Ezinne's replies travel on it? Count which way each message that night needed to go. And if the socket had died for some reason other than silence, what would have told anyone?",
    "replies": [
     {
      "author": "u/nightjar_lead_mehitabel",
      "op": true,
      "points": 51,
      "age": "4h",
-     "text": "Zbigniew checked: Ezinne's replies never touch the socket. Each is its own POST, which is why the texter got every one. The socket only ever carries texts coming in. The dashboard listens for messages on it and for nothing else: no code for a close, and nothing that checks it is alive. A Saturday is 120 volunteers; the night of a big news story can be 300."
+     "text": "Zbigniew checked: Ezinne's replies never touch the socket. Each is its own POST, which is why the texter got every one. The socket only ever carries texts coming in. The dashboard listens for messages on it and for nothing else: no code for a close, and nothing that checks it is alive. Nothing numbers the texts either, and the screen never sends an acknowledgement, a note back saying which texts it got. A Saturday is 120 volunteers; the night of a big news story can be 300."
     }
    ]
   },
@@ -151,13 +156,13 @@
    "author": "u/poll_it_thibault",
    "points": 77,
    "age": "4h",
-   "text": "Polling every second is simple and never breaks. No connection to go stale, no timeout to tune, no heartbeat to get wrong: every second the dashboard asks, and if the network blinked, the next ask fixes it. A text waits a second at most. Servers are cheap; a frightened person writing to a dead screen is not. You had a design that worked, and you swapped it for one that fails without a sound."
+   "text": "Polling every second is simple and never breaks. No connection to go stale, no timeout to tune, and no heartbeat to get wrong. A heartbeat is a tiny message sent on a schedule so a quiet line never looks idle. With polling, every second the dashboard asks, and if the network blinked, the next ask fixes it. A text waits a second at most. Servers are cheap; a frightened person writing to a dead screen is not. You had a design that worked, and you swapped it for one that fails without a sound."
   },
   {
    "author": "u/one_hour_quillfeather",
    "points": 39,
    "age": "3h",
-   "text": "The load balancer is the one hanging up. On AWS an Application Load Balancer's idle timeout goes up to 4,000 seconds. Set it to an hour and a quiet conversation never gets cut off again. One setting, no code."
+   "text": "The load balancer is the one hanging up. On AWS, Amazon's cloud, the idle timeout of its Application Load Balancer goes up to 4,000 seconds. Set it to an hour and a quiet conversation never gets cut off again. One setting, no code."
   }
  ],
  "reply": {
@@ -167,29 +172,29 @@
     "text": "Go back to polling, but every second instead of every 5, so no text waits more than a second to appear.",
     "tone": "bad",
     "verdict": "Never late, always asking",
-    "part2": "Zbigniew put polling back at one second, and I replayed 0417's night through his test setup. All ten texts reached Ezinne's screen, none more than a second late. He added a router restart at 02:21:21, 30 seconds long: the text at 02:21:31 showed 20 seconds late, the moment the router was back. Nothing was lost. Then I looked at the load. 120 volunteers asking every second is 7,200 requests a minute, five times the 1,440 we had moved away from, and almost every answer is empty: ten texts came in over 21 minutes. On the night of the flood warnings we had 300 volunteers on, and the dashboards asked 18,000 times a minute. Zbigniew spent the shift watching the database graphs instead of the line.",
-    "senior": "Polling every second fixes the lateness by paying for it on every quiet second. The load is volunteers times frequency, 7,200 requests a minute for 120 and 18,000 for 300, and nearly every answer is empty. Polling is simple and heals itself after any break, which is real. But when the server does almost all the talking, one held connection that resumes from the last event gives the same safety without the empty questions."
+    "part2": "Zbigniew put polling back at one second, and I replayed 0417's night through his test setup. All ten texts reached Ezinne's screen, none more than a second late. He added a restart of Ezinne's router, her home internet box, at 02:21:21, 30 seconds long: the text at 02:21:31 showed 20 seconds late, the moment the router was back. Nothing was lost. Then I looked at the load. 120 volunteers asking every second is 7,200 requests a minute, five times the 1,440 we had moved away from, and almost every answer is empty: ten texts came in over 21 minutes. On the night of the flood warnings we had 300 volunteers on, and the dashboards asked 18,000 times a minute. Zbigniew spent the shift watching the graphs for the database, where the texts are stored, instead of the line.",
+    "senior": "Polling every second fixes the lateness by paying for it on every quiet second. The load is volunteers times how often they ask: 7,200 requests a minute for 120 and 18,000 for 300, and nearly every answer is empty. Polling is simple and heals itself after any break, which is real. But when the server does almost all the talking, one held connection that picks up from the last event gives the same safety without the empty questions."
    },
    {
     "text": "Raise the load balancer's idle timeout to an hour, so a quiet conversation never gets its socket closed.",
     "tone": "bad",
     "verdict": "Fine until anything else breaks",
-    "part2": "Zbigniew set the idle timeout to 3,600 seconds and I replayed 0417's night. The socket stayed open from 02:11:00 to the end and all ten texts arrived at once. He tried 120 seconds too, to see: the socket closed at 02:17:53 and four texts hid until the refresh, the oldest 12 minutes 51 seconds late. An hour it was. Then he replayed the same night with Ezinne's home router restarting at 02:21:21 for 30 seconds. Her socket died with it. The dashboard still had no code for a closed socket, so nothing noticed, and three texts hid until the refresh at 02:31:08, the oldest 9 minutes 37 seconds late. The timeout was never the only way a connection ends. It was the first one we met.",
-    "senior": "A longer idle timeout removes one cause of a closed connection and leaves every other: routers restart, laptops sleep, servers are redeployed, and proxies between the volunteer and you have timeouts of their own that you don't control. A long-lived connection needs two things whatever the timeout: a heartbeat so a quiet conversation never looks idle, and a way to notice a closed connection and resume from what the screen last had."
+    "part2": "Zbigniew set the idle timeout to 3,600 seconds and I replayed 0417's night. The socket stayed open from 02:11:00 to the end and all ten texts arrived at once. He tried 120 seconds too, to see: the socket closed at 02:17:53 and four texts hid until the refresh, the oldest 12 minutes 51 seconds late. An hour it was. Then he replayed the same night with Ezinne's home router, her internet box, restarting at 02:21:21 for 30 seconds. Her socket died with it. The dashboard still had no code for a closed socket, so nothing noticed, and three texts hid until the refresh at 02:31:08, the oldest 9 minutes 37 seconds late. The timeout was never the only way a connection ends. It was the first one we met.",
+    "senior": "A longer idle timeout removes one cause of a closed connection and leaves every other. Routers restart, laptops sleep, and servers are redeployed, restarted with new code. Proxies, the middlemen that pass connections on between the volunteer and you, have timeouts of their own that you don't control. A long-lived connection needs two things whatever the timeout: a heartbeat so a quiet conversation never looks idle, and a way to notice a closed connection and pick up from what the screen last had."
    },
    {
     "text": "Keep WebSockets, add a heartbeat, and build acknowledgements and resending of missed texts into them.",
     "tone": "warn",
     "verdict": "Right, and a lot to own",
-    "part2": "Zbigniew kept the WebSocket and spent three weeks on it: a ping every 20 seconds, a number on every text, an acknowledgement from the screen for each one, a reconnect when the socket closes, and a resend of everything after the last number the screen had. Replayed on 0417's night, the socket never sat quiet for 60 seconds, so it never closed, and every text arrived at once. With the router restart at 02:21:21 added, the dashboard was back at 02:21:51 and the server resent the one text it had missed, 20 seconds late. No requests a minute at all, and 360 pings a minute across 120 volunteers. It works. It is also five pieces of delivery code that are ours to test and keep working, for a connection that only ever carries texts one way.",
-    "senior": "This is a correct design, and many chat systems are built this way. A WebSocket gives you a two-way pipe, not delivery across reconnects: message numbers, acknowledgements, a resend buffer and the reconnect logic are yours to build and test. Pay that when both sides stream to each other. Here the server does nearly all the talking, and server-sent events give you the reconnect and Last-Event-ID as part of the standard."
+    "part2": "Zbigniew kept the WebSocket and spent three weeks on it. He added a ping, a heartbeat message, every 20 seconds, and a number on every text. The screen sends an acknowledgement for each one. When the socket closes, the page reconnects. Then the server resends everything after the last number the screen had. Replayed on 0417's night, the socket never sat quiet for 60 seconds, so it never closed, and every text arrived at once. With the router restart at 02:21:21 added, the dashboard was back at 02:21:51 and the server resent the one text it had missed, 20 seconds late. No requests a minute at all, and 360 pings a minute across 120 volunteers. It works. It is also five pieces of delivery code that are ours to test and keep working, for a connection that only ever carries texts one way.",
+    "senior": "This is a correct design, and many chat systems are built this way. A WebSocket gives you a two-way pipe, not delivery across reconnects. Message numbers, acknowledgements, a resend buffer (a store of recent messages kept to send again) and the reconnect code are yours to build and test. Pay that when both sides stream to each other. Here the server does nearly all the talking, and server-sent events give you the reconnect and Last-Event-ID as part of the standard."
    },
    {
-    "text": "Use server-sent events with an id on each text, resume from Last-Event-ID, and heartbeat inside 60 s.",
+    "text": "Use server-sent events, an id on each text, resume from Last-Event-ID, and a heartbeat under a minute.",
     "tone": "ok",
     "verdict": "Senior answer",
-    "part2": "Zbigniew moved the dashboard to server-sent events. Each text goes down the stream as an event with the text's number as its id, and every 20 seconds the server writes a comment line, a heartbeat that carries nothing but keeps the stream from sitting idle for the 60-second timeout. Replies still go out by POST, as they always did. Replayed on 0417's night, all ten texts arrived at once. With the router restart at 02:21:21, the browser reconnected by itself at 02:21:51 and sent Last-Event-ID 6, and the server resent the one text after it, 20 seconds late. No requests a minute, 360 heartbeats a minute across 120 volunteers. He set the heartbeat to 90 seconds to see what would happen: the stream closed at 02:13:43 and the browser was back at 02:13:46 with nothing missed, only the churn of reconnecting. What he wrote was the id, the resend after an id, and the heartbeat.",
-    "senior": "Server-sent events fit traffic that flows mostly from server to browser. The browser reconnects by itself and sends Last-Event-ID, so the server only gives each event an id and resends what came after the one it is handed back. A heartbeat inside the shortest idle timeout on the path keeps a quiet stream open. The limits: it is one way, so replies stay as POSTs, it carries text only, and the server must keep events long enough to resend them."
+    "part2": "Zbigniew moved the dashboard to server-sent events. Each text goes down the stream as an event with the text's number as its id. Every 20 seconds the server writes a comment line, a line the browser ignores. It is a heartbeat that carries nothing but keeps the stream from sitting idle for the 60-second timeout. Replies still go out by POST, as they always did. Replayed on 0417's night, all ten texts arrived at once. With the router restart at 02:21:21, the browser reconnected by itself at 02:21:51 and sent Last-Event-ID 6, and the server resent the one text after it, 20 seconds late. No requests a minute, 360 heartbeats a minute across 120 volunteers. He set the heartbeat to 90 seconds to see what would happen: the stream closed at 02:13:43 and the browser was back at 02:13:46 with nothing missed, only the churn of reconnecting. What he wrote was the id, the resend after an id, and the heartbeat.",
+    "senior": "Server-sent events fit traffic that flows mostly from server to browser. The browser reconnects by itself and sends Last-Event-ID. So the server only gives each event an id, and resends what came after the one it is handed back. A heartbeat inside the shortest idle timeout on the path keeps a quiet stream open. The limits: it is one way, so replies stay as POSTs. It carries text only. And the server must keep events long enough to resend them."
    }
   ]
  },
@@ -208,19 +213,19 @@
    },
    {
     "title": "Idle means no data on that connection.",
-    "text": "A load balancer or proxy that holds connections open needs a way to let go of dead ones, so it closes any connection that carries nothing for a while: its idle timeout. On an AWS Application Load Balancer the default is 60 seconds, and only data on that connection resets the clock. The last text came down the socket at 02:12:43; Ezinne's reply at 02:13:20 went out on a different connection, so it didn't count, and at 02:13:43 the socket was closed. nginx has the same idea in proxy_read_timeout, 60 seconds by default, and the HTML standard warns that some older proxies drop HTTP connections after a short timeout. You usually can't see every one of these timeouts between a user and your servers."
+    "text": "A load balancer, or a proxy (any middleman that passes connections on), holds many connections open. It needs a way to let go of dead ones, so it closes any connection that carries nothing for a while: its idle timeout. It works in steps. First it starts a clock for each connection. Next, any data on that connection sets the clock back to zero. If the clock reaches the limit, it closes the connection. Usually nothing tells the page, so a page with no code for a close never finds out. On an AWS Application Load Balancer the limit is 60 seconds by default. The last text came down the socket at 02:12:43. Ezinne's reply at 02:13:20 went out on a different connection, so it didn't count, and at 02:13:43 the socket was closed. nginx, a popular free web server often used as a proxy, has the same idea in proxy_read_timeout, 60 seconds by default. The HTML standard, the rulebook for web pages, warns that some older proxies drop HTTP connections after a short timeout. You usually can't see every one of these timeouts between a user and your servers."
    },
    {
     "title": "Four ways for a browser to hear the server.",
-    "text": "Polling asks on a timer. It is simple and heals itself after any break, but the load is volunteers times frequency: 120 dashboards every 5 seconds is 1,440 requests a minute, every second 7,200, and nearly every answer is empty. Long polling asks once and lets the server hold the question until it has something to say or a time limit passes; texts arrive at once, and a quiet minute costs 240 requests for 120 volunteers with a 30-second hold. A WebSocket opens one connection that both sides can write to at any time, with no requests at all once it's open. Server-sent events keep one HTTP response open and let only the server write to it, as a stream of events, each of which can carry an id."
+    "text": "Polling asks on a timer. Each time, the page sends a request, the server checks for anything new, and it answers, usually with nothing. It is simple and heals itself after any break, because the next ask starts fresh. But the load is volunteers times how often they ask: 120 dashboards every 5 seconds is 1,440 requests a minute, every second 7,200, and nearly every answer is empty. Long polling asks once, and the server holds the question until it has something to say or a time limit passes. Then it answers, and the page asks again at once. Texts arrive at once, and a quiet minute costs 240 requests for 120 volunteers with a 30-second hold. A WebSocket starts as one ordinary request that asks to switch to a two-way line. Once the server agrees, both sides can write at any time, with no more requests. Server-sent events start with one ordinary request too. The server answers but never finishes the answer: it keeps writing events into it, each of which can carry an id. Only the server writes."
    },
    {
     "title": "Heartbeats keep a quiet line open; resuming covers every other drop.",
-    "text": "A heartbeat is a tiny message sent on a schedule so the connection never looks idle. It must be shorter than the shortest idle timeout on the path: at 20 seconds the stream never closes, at 90 the 60-second timeout fires first. WebSockets have ping and pong frames for this; server-sent events use a comment line, which the browser ignores. But a heartbeat only stops one kind of drop. Routers restart and laptops sleep, so the client also has to notice a closed connection, reconnect and catch up. With server-sent events the browser does the reconnecting itself and sends the last id it saw as Last-Event-ID; the server resends everything after it. With WebSockets you build that yourself: numbers, acknowledgements and a resend buffer."
+    "text": "A heartbeat is a tiny message sent on a schedule so the connection never looks idle. Its gap must be shorter than the shortest idle timeout on the path: at 20 seconds the stream never closes, at 90 the 60-second timeout fires first. WebSockets have ping and pong frames for this, small built-in messages: one side sends a ping, the other answers pong. Server-sent events use a comment line, which the browser ignores. But a heartbeat only stops one kind of drop. Routers restart and laptops sleep, so the client also has to catch up after a break. With server-sent events that runs in steps. First the browser notices the stream has closed. Next it waits a few seconds and reconnects by itself; if the server is still down, it tries again. Then it sends the last id it saw as Last-Event-ID. Last, the server resends everything after that id; if it no longer keeps those events, they are lost unless it says so. With WebSockets you build every one of those steps yourself: numbers, acknowledgements and a resend buffer, a store of recent messages kept to send again."
    },
    {
     "title": "Choose by who does the talking.",
-    "text": "The crisis line's traffic to the dashboard is one way: texts from the server to the screen. Replies are rare, short and already work as POSTs. That is the shape server-sent events were made for: one way, over ordinary HTTP, with resuming built in. Choose WebSockets when both sides stream to each other all the time, such as a multiplayer game or several people editing one document, and accept the delivery code you'll own. Long polling is a sound fallback where a held stream can't get through. Polling suits updates that are rare and can wait, like a page that checks for new mail every few minutes."
+    "text": "The crisis line's traffic to the dashboard is one way: texts from the server to the screen. Replies are rare, short and already work as POSTs. That is the shape server-sent events were made for: one way, over ordinary HTTP, with picking up after a break built in. Choose WebSockets when both sides stream to each other all the time, such as a multiplayer game or several people editing one document, and accept the delivery code you'll own. Long polling is a sound fallback, a second choice, where a held stream can't get through. Polling suits updates that are rare and can wait, like a page that checks for new mail every few minutes."
    }
   ],
   "diagram": {
@@ -323,7 +328,7 @@
   "limits": [
    "Server-sent events are one way and carry text only. Replies stay as POSTs, which suits a crisis line, but anything where both sides stream to each other at once, like several people editing one note, still wants WebSockets and the delivery code that comes with them.",
    "Resuming works only for what the server still keeps. If events are held for a short window and a laptop sleeps for longer, Last-Event-ID points at something already gone, and the dashboard has to reload the whole transcript.",
-   "Every open stream is a held connection: one per volunteer, 120 on a Saturday and up to 300 on the busiest nights. The HTML standard also warns that many pages each holding an event stream to the same site can run into the browser's limit on connections to one server."
+   "Every open stream is a held connection: one per volunteer, 120 on a Saturday and up to 300 on the busiest nights. Each one uses some of the server's memory for as long as it stays open. The HTML standard also warns that many pages each holding an event stream to the same site can run into the browser's limit on connections to one server."
   ],
   "tradeoff": {
    "head": [
@@ -344,7 +349,7 @@
     ],
     [
      "Long poll, held up to 30 s",
-     "Texts at once; 240 requests a minute for 120. Works through most proxies.",
+     "Texts at once; 240 requests a minute for 120. Works through most middlemen (proxies).",
      "A request per text and per quiet half minute; each held request ties up a connection."
     ],
     [
@@ -358,7 +363,7 @@
      "Any other drop still hides texts: a router restart hid 3, the oldest 9:37."
     ],
     [
-     "WebSocket with heartbeat, acks and resend",
+     "WebSocket with heartbeat, acknowledgements and resend",
      "Correct: the break costs one text 0:20, nothing missing, two-way if ever needed.",
      "Five pieces of delivery code to build, test and keep working."
     ],
@@ -369,36 +374,36 @@
     ]
    ]
   },
-  "seniorTake": "Every long-lived connection will drop, and a quiet one will be closed by something on the path whose timeout you may never see. So design for the drop, not against it: a heartbeat inside the shortest idle timeout keeps quiet connections open, and a resume from the last thing the client had covers everything else. Then choose the transport by the shape of the traffic. When the server does most of the talking, server-sent events give you a held stream, reconnection and Last-Event-ID out of the box, and the rare messages going the other way can be ordinary POSTs. Pick WebSockets when both sides really stream, and budget for the acknowledgements and resending you'll write. Polling is fine when updates are rare and can wait; it just costs a request every time you ask.",
+  "seniorTake": "Every long-lived connection will drop, and a quiet one will be closed by something on the path whose timeout you may never see. So design for the drop, not against it. A heartbeat inside the shortest idle timeout keeps quiet connections open. Picking up from the last thing the client had covers everything else. Then choose the transport, the way messages travel, by the shape of the traffic. When the server does most of the talking, server-sent events give you a held stream, reconnection and Last-Event-ID built in. The rare messages going the other way can be ordinary POSTs. Pick WebSockets when both sides really stream, and budget for the acknowledgements and resending you'll write. Polling is fine when updates are rare and can wait; it just costs a request every time you ask.",
   "realWorld": [
    {
     "title": "The HTML standard: ids and Last-Event-ID",
-    "text": "In the WHATWG HTML standard's section on server-sent events, an id field in the stream sets the last event ID buffer, and when the browser has to reestablish the connection it reports the last event ID to the server: the steps say to set (Last-Event-ID, lastEventIDValue) in the request's header list. A retry field sets the reconnection time, which otherwise starts at an implementation-defined value, probably in the region of a few seconds.",
+    "text": "In the WHATWG HTML standard's section on server-sent events (WHATWG is the group that writes the web's HTML rulebook), an id field in the stream sets the last event ID buffer (where the browser keeps the last id), and when the browser has to reestablish (reopen) the connection it reports the last event ID to the server: the steps say to set (Last-Event-ID, lastEventIDValue) in the request's header list. A retry field sets the reconnection time (the wait before reconnecting), which otherwise starts at an implementation-defined value (left to each browser), probably in the region of a few seconds.",
     "source": 0
    },
    {
     "title": "The HTML standard: a comment line every 15 seconds or so",
-    "text": "The standard's authoring notes say legacy proxy servers are known to, in certain cases, drop HTTP connections after a short timeout, and that to protect against them authors can include a comment line, one starting with a ':' character, every 15 seconds or so. That is the heartbeat the Nightjar Line's stream sends every 20 seconds.",
+    "text": "The standard's authoring notes (advice for people writing pages) say legacy proxy servers (older middlemen) are known to, in certain cases, drop HTTP connections after a short timeout, and that to protect against them authors can include a comment line, one starting with a ':' character, every 15 seconds or so. That is the heartbeat the Nightjar Line's stream sends every 20 seconds.",
     "source": 0
    },
    {
     "title": "RFC 6455: ping and pong",
-    "text": "The WebSocket protocol, RFC 6455 (2011), has control frames for this. A Ping frame may serve either as a keepalive or as a means to verify that the remote endpoint is still responsive, and an endpoint that receives one MUST send a Pong in response unless it has already received a Close frame. A Pong may also be sent unsolicited, as a unidirectional heartbeat.",
+    "text": "The WebSocket protocol, RFC 6455 (2011; an RFC is a numbered internet standard), has control frames (small built-in messages) for this. A Ping frame may serve either as a keepalive (a message that keeps a line open) or as a means to verify that the remote endpoint (the other end) is still responsive, and an endpoint that receives one MUST send a Pong in response unless it has already received a Close frame. A Pong may also be sent unsolicited (without being asked), as a unidirectional (one-way) heartbeat.",
     "source": 1
    },
    {
     "title": "AWS Application Load Balancer: 60 seconds by default",
-    "text": "AWS defines the connection idle timeout as the time an existing client or target connection can remain inactive, with no data being sent or received, before the load balancer closes it. Elastic Load Balancing sets it to 60 seconds by default, and the valid range is 1 to 4,000 seconds. For lengthy operations AWS suggests sending at least 1 byte of data before each idle timeout period elapses.",
+    "text": "AWS defines the connection idle timeout as the time an existing client or target (a server behind the load balancer) connection can remain inactive, with no data being sent or received, before the load balancer closes it. Elastic Load Balancing sets it to 60 seconds by default, and the valid range is 1 to 4,000 seconds. For lengthy operations AWS suggests sending at least 1 byte of data before each idle timeout period elapses.",
     "source": 2
    },
    {
     "title": "AWS: HTTP/2 PING frames don't count",
-    "text": "The same page notes that Application Load Balancers do not support HTTP/2 PING frames, and that these do not reset the connection idle timeout. A heartbeat has to be data the load balancer sees as traffic on the connection, which is worth testing rather than assuming.",
+    "text": "The same page notes that Application Load Balancers do not support HTTP/2 (a newer version of HTTP) PING frames, and that these do not reset the connection idle timeout. A heartbeat has to be data the load balancer sees as traffic on the connection, which is worth testing rather than assuming.",
     "source": 2
    },
    {
     "title": "nginx: proxy_read_timeout, 60 seconds",
-    "text": "nginx's proxy module sets proxy_read_timeout to 60s by default. It is the time allowed between two successive reads from the proxied server, and if the proxied server does not transmit anything within it, the connection is closed. A WebSocket or event stream through nginx meets the same 60-second silence rule unless something is sent inside it.",
+    "text": "nginx's proxy module (the part that passes requests on) sets proxy_read_timeout to 60s by default. It is the time allowed between two successive reads from the proxied server (the server behind nginx), and if the proxied server does not transmit anything within it, the connection is closed. A WebSocket or event stream through nginx meets the same 60-second silence rule unless something is sent inside it.",
     "source": 3
    }
   ],
@@ -408,7 +413,7 @@
     "Design the message delivery for a chat system.",
     "Why do long-lived connections drop, and what do you do about it?"
    ],
-   "answer": "Start with the shape of the traffic. If the server does most of the talking, like notifications, live scores or texts to an agent's dashboard, server-sent events fit: one held HTTP response, the browser reconnects by itself, and each event's id comes back as Last-Event-ID so the server can resend what was missed. The few messages going the other way are ordinary POSTs. If both sides stream to each other constantly, a game or a shared editor, use WebSockets, and say what you'll build on top: message ids, acknowledgements, a resend buffer and reconnect logic, because the protocol gives you a pipe, not delivery across reconnects. For chat delivery, store every message durably with a per-conversation sequence number before pushing it, push over the held connection, and on reconnect have the client ask for everything after the last number it has; the store is the truth and the push is only a fast path. Long-lived connections drop because something on the path closes idle ones: load balancers (60 seconds by default on an AWS Application Load Balancer), proxies like nginx (proxy_read_timeout, 60 seconds), office proxies and mobile networks, plus restarts, deploys and sleeping laptops. So send a heartbeat inside the shortest idle timeout, detect a dead connection, reconnect with backoff, and resume. Raising a timeout only removes one cause. Mention the load: polling costs clients times frequency in requests, mostly empty; held connections cost memory and connections per client instead."
+   "answer": "Start with the shape of the traffic. If the server does most of the talking, like notifications, live scores or texts to an agent's dashboard, server-sent events fit. They use one held HTTP answer, the browser reconnects by itself, and each event's id comes back as Last-Event-ID so the server can resend what was missed. The few messages going the other way are ordinary POSTs. If both sides stream to each other constantly, such as a game or a shared editor, use WebSockets. Then say what you'll build on top: message ids, acknowledgements, a resend buffer and reconnect code, because the protocol gives you a pipe, not delivery across reconnects. For chat delivery, the steps are these. First store every message durably, on disk where a crash can't lose it, with a sequence number that counts up within each conversation. Then push it over the held connection. On reconnect, the client asks for everything after the last number it has. The store is the truth and the push is only a fast path. Long-lived connections drop because something on the path closes idle ones. That includes load balancers (60 seconds by default on an AWS Application Load Balancer), proxies like nginx (proxy_read_timeout, 60 seconds), office proxies and mobile networks. Add restarts, deploys of new code and sleeping laptops. So send a heartbeat inside the shortest idle timeout and detect a dead connection. Reconnect with backoff, waiting a little longer after each failed try, and resume. Raising a timeout only removes one cause. Mention the load: polling costs clients times frequency in requests, mostly empty; held connections cost memory and connections per client instead."
   }
  },
  "terms": [
@@ -450,7 +455,7 @@
   },
   {
    "term": "Server-sent events (SSE)",
-   "def": "A web standard for one HTTP response the server keeps open and writes events to, one way, server to browser. Each event can carry an id."
+   "def": "A web standard where the server keeps one HTTP answer open and keeps writing events into it, one way, server to browser. Each event can carry an id."
   },
   {
    "term": "EventSource",
@@ -462,7 +467,7 @@
   },
   {
    "term": "Last-Event-ID",
-   "def": "The HTTP header the browser sends when it reconnects a server-sent events stream, holding the last event id it received, so the server can resend what came after."
+   "def": "The header, a label on the request, that the browser sends when it reconnects a server-sent events stream. It holds the last event id received, so the server can resend what came after."
   },
   {
    "term": "Reconnection time (SSE)",
@@ -474,7 +479,7 @@
   },
   {
    "term": "Idle timeout (connection)",
-   "def": "How long a load balancer or proxy lets a connection carry no data before closing it. 60 seconds by default on an AWS Application Load Balancer."
+   "def": "How long a load balancer or other middleman (proxy) lets a connection carry no data before closing it. 60 seconds by default on an AWS Application Load Balancer."
   },
   {
    "term": "Held connection",
@@ -486,11 +491,11 @@
   },
   {
    "term": "Ping and pong frames",
-   "def": "WebSocket control frames. One side sends a ping; the other must answer with a pong. Used as a heartbeat and to check the other end is still there."
+   "def": "Small built-in WebSocket messages. One side sends a ping; the other must answer with a pong. Used as a heartbeat and to check the other end is still there."
   },
   {
    "term": "HTTP/2 PING frame",
-   "def": "HTTP/2's own stay-alive message, sent to check a connection is still there. AWS says an Application Load Balancer doesn't support it, and it doesn't reset the idle timeout."
+   "def": "The stay-alive message of HTTP/2, a newer version of HTTP, sent to check a connection is still there. AWS says an Application Load Balancer doesn't support it, and it doesn't reset the idle timeout."
   },
   {
    "term": "Acknowledgement (message)",
@@ -522,18 +527,18 @@
   },
   {
    "term": "Special category data (GDPR Art. 9)",
-   "def": "Personal data GDPR protects most, including data concerning health. Processing it is prohibited unless one of Article 9(2)'s conditions applies."
+   "def": "Personal data that GDPR, the EU's data protection law, guards most, including data concerning health. Using it is banned unless one of the conditions in Article 9(2) applies."
   },
   {
    "term": "Security of processing (GDPR Art. 32)",
-   "def": "The GDPR article requiring security measures suited to the risk. Article 32(1)(a) names encryption of personal data as one."
+   "def": "The GDPR article requiring protections suited to the risk. Article 32(1)(a) names encryption, scrambling data so only key holders can read it, as one."
   },
   {
    "term": "Access logging",
    "def": "Recording who opened which record and when, so that every look at a sensitive transcript can be checked later."
   }
  ],
- "atWork": "Find every held connection in your systems: WebSockets, event streams, long polls. For each, write down every idle timeout on its path, including the browser's network, any office or mobile proxy, the load balancer, nginx or another proxy, and your own server, and check that something is sent inside the shortest one. Then cut it on purpose: restart a proxy or turn off Wi-Fi for 30 seconds and watch whether the client notices, reconnects and gets back what it missed. A common incident looks like this: a live-scores page works for every tester at home, then freezes for fans watching from the office, because the office proxy drops any connection that is quiet for 30 seconds during a goalless half, and the page has no reconnect. On AWS, read the idle timeout on each Application Load Balancer (60 seconds unless someone changed it) and remember that HTTP/2 PING frames don't reset it. Standards note, conditional: if your service carries messages like a crisis line's for people in the EU, they are likely data concerning health, which GDPR Art. 9(1) makes a special category, processable only under an Art. 9(2) condition, and Art. 32(1)(a) names encryption among the measures for security of processing. Keep every hop of the stream and the POSTs encrypted with TLS, including from the load balancer to the servers, and keep access logging on who opens which transcript, so that the reconnect and resend paths you add carry the same protection as the rest.",
+ "atWork": "Find every held connection in your systems: WebSockets, event streams, long polls. For each, write down every idle timeout on its path. That includes the browser's network, any office or mobile proxy (a middleman), the load balancer, nginx or another proxy, and your own server. Check that something is sent inside the shortest one. Then cut it on purpose: restart a proxy or turn off Wi-Fi for 30 seconds. Watch whether the client notices, reconnects and gets back what it missed. A common incident, a failure that hurts users, looks like this. A live-scores page works for every tester at home, then freezes for fans watching from the office. The office proxy drops any connection that is quiet for 30 seconds during a goalless half, and the page has no reconnect. On AWS, read the idle timeout on each Application Load Balancer (60 seconds unless someone changed it), and remember that HTTP/2 PING frames don't reset it. Standards note, conditional. GDPR is the EU's data protection law. If your service carries messages like a crisis line's for people in the EU, they are likely data concerning health. GDPR Art. 9(1) makes that a special category, usable only under an Art. 9(2) condition. Art. 32(1)(a) names encryption, scrambling data so only key holders can read it, among the measures for security of processing. Keep every hop of the stream and the POSTs encrypted with TLS, the lock behind HTTPS, including from the load balancer to the servers. Keep access logging, a record of who opens which transcript. Then the reconnect and resend paths you add carry the same protection as the rest.",
  "board": {
   "cards": [
    {
@@ -595,7 +600,7 @@
   {
    "id": "s4e02-r1",
    "kind": "free",
-   "prompt": "Your team's order-tracking page opens a WebSocket through nginx, and the server pushes each courier position as it comes in. Customers say the map freezes whenever a courier is stuck in traffic for a while, and starts moving again only when they reload. The server logs show every position was sent without an error. What is happening, and what would you change?",
+   "prompt": "Your team's order-tracking page opens a WebSocket through nginx, a web server used here as a middleman, and the server pushes each courier position as it comes in. Customers say the map freezes whenever a courier is stuck in traffic for a while, and starts moving again only when they reload. The server logs show every position was sent without an error. What is happening, and what would you change?",
    "keyIdeas": [
     {
      "idea": "With no positions to send, the connection carries no data, and nginx (proxy_read_timeout, 60 s by default) closes it; the page never notices",
@@ -645,7 +650,7 @@
      ]
     }
    ],
-   "model": "While a courier is stuck, there are no positions to push, so the WebSocket carries no data, and nginx closes it after proxy_read_timeout, 60 seconds by default; the server's writes go into a closed connection without an error in your logs, and the page has no code that notices the close, so the map freezes until a reload. Send a heartbeat every 20 seconds or so, inside the timeout of every proxy on the path, so a quiet connection stays open. And because connections drop for other reasons too, have the page notice a close, reconnect, and ask for every position after the last one it had, so it catches up instead of freezing."
+   "model": "While a courier is stuck, there are no positions to push, so the WebSocket carries no data. nginx closes it after proxy_read_timeout, 60 seconds by default. The server's writes go into a closed connection without an error in your logs. The page has no code that notices the close, so the map freezes until a reload. Send a heartbeat every 20 seconds or so, a tiny message inside the timeout of every proxy on the path, so a quiet connection stays open. And connections drop for other reasons too. So have the page notice a close, reconnect, and ask for every position after the last one it had, so it catches up instead of freezing."
   },
   {
    "id": "s4e02-r2",
@@ -710,12 +715,12 @@
      ]
     }
    ],
-   "model": "Use server-sent events. The traffic is one way, from the server to every reader, which is what an event stream over plain HTTP is for. Give each update an event id; when a tunnel drops a reader's connection, the browser reconnects by itself and sends the last id it saw as Last-Event-ID, and the server resends every update after it, in order. Add a comment-line heartbeat inside the idle timeouts on the way. WebSockets would work, but the protocol gives you a two-way pipe and nothing for resuming: the numbers, acknowledgements, resend buffer and reconnect code would be yours to build and maintain, which pays off only when readers talk back too."
+   "model": "Use server-sent events. The traffic is one way, from the server to every reader, which is what an event stream over plain HTTP is for. Give each update an event id. When a tunnel drops a reader's connection, the browser reconnects by itself and sends the last id it saw as Last-Event-ID. The server then resends every update after it, in order. Add a comment-line heartbeat inside the idle timeouts on the way. WebSockets would work, but the protocol gives you a two-way pipe and nothing for picking up after a break. The numbers, acknowledgements, resend buffer and reconnect code would be yours to build and maintain, which pays off only when readers talk back too."
   },
   {
    "id": "s4e02-r4",
    "kind": "mcq",
-   "prompt": "An EventSource stream drops and the browser reconnects. How does the server know where to pick up?",
+   "prompt": "An EventSource stream, the browser's built-in server-sent events connection, drops and the browser reconnects. How does the server know where to pick up?",
    "options": [
     "The server keeps a TCP sequence number per reader and carries on from it",
     "The browser replays every event it has seen so the server can compare",
@@ -723,7 +728,7 @@
     "It can't: the stream starts again from the newest event"
    ],
    "answer": 2,
-   "why": "The HTML standard has the browser remember the last event id it received and, when it reestablishes the connection, send it in a Last-Event-ID header. The server resends whatever came after that id. A new connection is a new TCP connection, so TCP's numbers don't carry over."
+   "why": "The HTML standard has the browser remember the last event id it received and, when it reestablishes the connection, send it in a Last-Event-ID header. The server resends whatever came after that id. A new connection is a new TCP connection (TCP is the delivery layer under HTTP), so TCP's numbers don't carry over."
   },
   {
    "id": "s4e02-r5",
@@ -786,7 +791,7 @@
     ]
    }
   ],
-  "model": "The reconnect sent the right Last-Event-ID, the id of the last text before 03:40, but that event was older than the 5-minute window the server keeps in memory. By 03:52 only events from after 03:47 were still there, so the server resent the two it had and the four from 03:41 to 03:46 had already been dropped. Nothing said so. Resend from the stored transcript, which holds every text with its number: everything after the last id, however old, read from the database when it isn't in memory. And if a server ever can't resend everything after the id it's handed, it must tell the dashboard to reload the whole transcript, never carry on silently as if nothing was missed."
+  "model": "The reconnect sent the right Last-Event-ID, the id of the last text before 03:40. But that event was older than the 5-minute window the server keeps in memory. By 03:52 only events from after 03:47 were still there. So the server resent the two it had, and the four from 03:41 to 03:46 had already been dropped. Nothing said so. Resend from the stored transcript, which holds every text with its number: everything after the last id, however old, read from the database when it isn't in memory. And if a server ever can't resend everything after the id it's handed, it must tell the dashboard to reload the whole transcript. It must never carry on silently as if nothing was missed."
  },
  "next": "Next, Dead Letters: a post office's undeliverable room, and message queues: acknowledgements, visibility timeouts, dead-letter queues and poison messages.",
  "sources": [

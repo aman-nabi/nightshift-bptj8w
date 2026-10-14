@@ -1,5 +1,6 @@
 {
  "_changelog": [
+  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
   "v1.0.0 (2026-10-11) first version"
  ],
  "id": "s4e04",
@@ -36,11 +37,23 @@
   "blocks": [
    {
     "t": "p",
-    "text": "Ardnish Dam holds back the Ruadh above a string of farms and a caravan park. At night it's me, the control room and a wall of screens. Six spillway gates, each moved by the gate controller, a program that turns commands from my console into motor runs."
+    "text": "Ardnish Dam holds back the Ruadh above a string of farms and a caravan park. At night it's me, the control room and a wall of screens. Six spillway gates let extra water out, each moved by a motor. A program, the gate controller, turns each order from my console, my desk of buttons, into a motor run."
    },
    {
     "t": "p",
-    "text": "Two years ago Odhran, our controls engineer, put everything on Kafka. Every sensor on the dam, about 3,000 readings a second, and every command from my console go through the plant gateway into one topic, dam-events. A topic is a log: records are only ever added at the end, each gets a number in order, its offset, and reading a record doesn't remove it. Ours is split into 6 partitions, six separate logs, so six readers can share the work. The controller reads them as a group of 8 consumers, C1 to C8. Every record has a key field and a value. On ours the key is empty."
+    "text": "Two years ago Odhran, our controls engineer, put everything on Kafka: software that keeps a running record of messages for many programs to write and read. About 3,000 sensor readings a second, and every command from my console, pass through the plant gateway, a program that gathers them, into one topic, dam-events: a named stream of messages."
+   },
+   {
+    "t": "p",
+    "text": "A topic is kept as a log, like a ship's logbook. Each message, a record, is only ever added at the end and gets the next number in line, its offset. Reading a record doesn't remove it, unlike the job queue in Season 2."
+   },
+   {
+    "t": "p",
+    "text": "Ours is split into 6 partitions, six separate logs side by side, so six readers can share the work. The reading programs are called consumers; the controller uses 8, C1 to C8. First the gateway writes each record into one partition. Next, that partition's consumer reads it, in offset order. Then the controller carries out the command."
+   },
+   {
+    "t": "p",
+    "text": "Every record has a value, the message, and a key, a short label saying what it's about, like the name on an envelope. The part of the gateway that writes records is called the producer. Ours leaves the key empty."
    },
    {
     "t": "p",
@@ -48,7 +61,7 @@
    },
    {
     "t": "p",
-    "text": "Haskett found it at 06:00 on the morning walk-round: gate 3 standing at 40 percent, the river over its gravel bars, the caravan park's low field under water. Nobody was hurt. Haskett asked me why I'd opened it at 01:04. He showed me the controller's log."
+    "text": "Haskett found it at 06:00 on the morning walk-round: gate 3 standing at 40 percent, the river over its gravel bars, the caravan park's low field under water. Nobody was hurt. Haskett asked me why I'd opened it at 01:04. He showed me the controller's apply log, its record of each command it carried out: the time, the command, the partition (p1 is partition 1) and the consumer that read it."
    },
    {
     "t": "log",
@@ -56,7 +69,7 @@
    },
    {
     "t": "p",
-    "text": "I never sent an open at 01:04. Odhran pulled the topic itself, which keeps every record for 7 days."
+    "text": "I never sent an open at 01:04. Odhran pulled up the topic itself, which keeps every record for 7 days. Each line shows when it was written, partition, offset, key (null means empty) and command."
    },
    {
     "t": "log",
@@ -68,7 +81,7 @@
    },
    {
     "t": "p",
-    "text": "Odhran says both logs are true: one is the order I sent things, the other is the order the gate moved. C5, which reads partition 4, runs on the old historian server and has been 2 min 20 s behind since a restart at midnight. C7 and C8 have nothing to read at all. He wants it fixed before the snowmelt."
+    "text": "Odhran says both logs are true. The topic shows the order I sent things; the apply log shows the order the gate moved. C5, which reads partition 4, runs on the old historian server, which stores past sensor readings. It has been 2 min 20 s behind since a restart at midnight. C7 and C8 have nothing to read at all. He wants it fixed before the snowmelt."
    },
    {
     "t": "evidence",
@@ -114,14 +127,14 @@
    "author": "u/grey_pager",
    "points": 148,
    "age": "4h",
-   "text": "Read your two logs side by side before anyone sells you a fix. Three words first. A consumer group is a set of consumers sharing one group name; Kafka splits the topic's partitions among them, so each partition is read by one consumer of the group at a time. A consumer commits its offset to save how far it has got, so after a restart it carries on from there. And a consumer is behind when the newest record in its partition is older than the one it's working on now. Now the questions. Which partition did each of your two commands land in, and who reads each one? Kafka's documentation says what order a consumer sees inside one partition: what does it say about two? What does your gateway's producer do with a record whose key is empty? And what are C7 and C8 for?",
+   "text": "Read your two logs side by side before anyone sells you a fix. Three ideas first. A consumer group is a set of consumers, the reading programs, that share one group name. Kafka shares the topic's partitions out among them, so each partition is read by only one consumer of the group at a time. Second, a consumer commits its offset to save its place, like a bookmark. It reads some records and handles them. Then it tells Kafka the offset it has reached, and Kafka saves it. After a restart, it asks Kafka for that offset and carries on from there. Third, a consumer is behind when newer records are waiting in its partition than the one it's working on now. Now the questions. Which partition did each of your two commands land in, and who reads each one? Kafka's documentation says what order a consumer sees inside one partition: what does it say about two? What does your gateway's producer do with a record whose key is empty? And what are C7 and C8 for?",
    "replies": [
     {
      "author": "u/ardnish_nights_maelis",
      "op": true,
      "points": 51,
      "age": "3h",
-     "text": "Odhran read the producer settings out to me. With no key, the current docs say: \"If no partition or key is present, choose the sticky partition that changes when at least batch.size bytes are produced to the partition.\" The gateway sends readings and commands through the same producer, and 3,000 readings a second fill a batch many times a second. He says where a command lands is down to whichever batch was open when I pressed the button."
+     "text": "Odhran read the producer settings out to me. With no key, the current docs say: \"If no partition or key is present, choose the sticky partition that changes when at least batch.size bytes are produced to the partition.\" He explained it. A batch is a bundle of records the producer saves up for one partition and sends together, like filling one sack of post before starting the next. batch.size is how big a batch is allowed to grow, in bytes, the units computers count data in. With no key, the producer sticks to one partition and fills its batch. Once the batch is full, it moves on to another partition. The gateway sends readings and commands through the same producer, and 3,000 readings a second fill a batch many times a second. So where a command lands is down to whichever batch was open when I pressed the button."
     }
    ]
   },
@@ -129,20 +142,20 @@
    "author": "u/more_hands_ferrol",
    "points": 92,
    "age": "3h",
-   "text": "More consumers means faster and safer. Your C5 is slow, so give it help: add four more, twelve in all, and the load spreads thinner, every command gets picked up sooner, and if one consumer dies there are plenty to take over. We run forty consumers on our order topic and I sleep fine. Hardware is cheap; a flooded field isn't."
+   "text": "More consumers means faster and safer. Your C5 is slow, so give it help. Add four more, twelve in all, and the work spreads thinner. Every command gets picked up sooner, and if one consumer dies there are plenty to take over. We run forty consumers on our order topic and I sleep fine. Machines are cheap; a flooded field isn't."
   },
   {
    "author": "u/one_pipe_vashti",
    "points": 64,
    "age": "2h",
-   "text": "Kafka only keeps order inside a partition, so stop having six. One partition, one line, nothing overtakes anything. Sensor readings are tiny. Why split a dam's worth of data six ways and then act surprised when the pieces arrive out of step?",
+   "text": "Kafka only keeps order inside a partition, so stop having six. One partition is one line, and nothing overtakes anything. Sensor readings are tiny. Why split a dam's worth of data six ways and then act surprised when the pieces arrive out of step?",
    "replies": [
     {
      "author": "u/ardnish_nights_maelis",
      "op": true,
      "points": 22,
      "age": "1h",
-     "text": "Odhran says one consumer on the old historian server applies about 750 records a second, at best. He didn't say anything else. He just looked at the 3,000 on the screen."
+     "text": "Odhran says one consumer on the old historian server handles about 750 records a second, at best. He didn't say anything else. He just looked at the 3,000 on the screen."
     }
    ]
   }
@@ -154,29 +167,29 @@
     "text": "Put all of dam-events on one partition read by one consumer, so every reading and gate command stays in one order.",
     "tone": "bad",
     "verdict": "In order, and hours behind",
-    "part2": "Odhran built a test topic with one partition and replayed Tuesday's two commands through it on the training rig, with the real 3,000 readings a second. C1 read every record; C2 to C8 sat idle, seven of them. The order came out right: OPEN applied at 01:06:40, CLOSE at 01:09:00, gate 3 open 2 min 20 s and closed at the morning check. But C1 takes 3,000 readings a second and applies 750, so it falls 3 s further behind every second. The OPEN waited 5 minutes, the CLOSE 405 s, and the rig's log said a command sent at 02:00:00 would be applied at 05:00:00. Odhran unplugged the rig and said nobody sends a gate command three hours early.",
-    "senior": "One partition does give one order, because Kafka orders records within a partition. It also means one consumer at a time can read the topic, so the whole topic's throughput is one consumer's. Here 3,000 readings a second against 750 a second is four times too much, and the lag grows without end. Order matters per gate, not across the whole dam, so you only need each gate's commands in one partition."
+    "part2": "Odhran built a test topic with one partition. He replayed Tuesday's two commands through it on the training rig, a copy of the controller with a pretend gate, with the real 3,000 readings a second. C1 read every record; C2 to C8 sat idle, seven of them. The order came out right: OPEN carried out at 01:06:40, CLOSE at 01:09:00, gate 3 open 2 min 20 s and closed at the morning check. But C1 takes in 3,000 readings a second and handles 750, so it falls 3 s further behind every second. The OPEN waited 5 minutes, the CLOSE 405 s. The rig's log said a command sent at 02:00:00 would be carried out at 05:00:00. Odhran unplugged the rig and said nobody sends a gate command three hours early.",
+    "senior": "One partition does give one order, because Kafka keeps records in order within a partition. It also means only one consumer at a time can read the topic. So the most the whole topic can get through is what one consumer can handle. Here 3,000 readings a second against 750 a second is four times too much, and the consumer falls further behind without end. Order matters per gate, not across the whole dam. So you only need each gate's commands in one partition."
    },
    {
-    "text": "Add more consumers to the group, twelve instead of eight, so gate commands are read and applied sooner than now.",
+    "text": "Add more consumers to the group, twelve instead of eight, so gate commands are read and carried out sooner than now.",
     "tone": "bad",
     "verdict": "More hands, same order",
-    "part2": "Odhran started four more consumers, C9 to C12, and replayed Tuesday on the rig. The group rebalanced and the six partitions went to C1 to C6 as before. C7 to C12 sat idle, six of them. C5 still read partition 4, still 2 min 20 s behind. The CLOSE was applied at 01:02:15 and the OPEN at 01:04:00, and at the morning check the rig's gate 3 stood at 40 percent open, exactly as it had on Tuesday.",
-    "senior": "Each partition is read by one consumer of the group at a time, so a group can never use more consumers than there are partitions; the rest sit idle as spares. More consumers don't make a slow partition faster, and they don't change which partition a record went to, so they can't fix the order. Size the group to the partitions and fix the slow consumer itself."
+    "part2": "Odhran started four more consumers, C9 to C12, and replayed Tuesday on the rig. Kafka shared the partitions out again, a step called a rebalance, and the six partitions went to C1 to C6 as before. C7 to C12 sat idle, six of them. C5 still read partition 4, still 2 min 20 s behind. The CLOSE was carried out at 01:02:15 and the OPEN at 01:04:00. At the morning check the rig's gate 3 stood at 40 percent open, exactly as it had on Tuesday.",
+    "senior": "Each partition is read by one consumer of the group at a time. So a group can never use more consumers than there are partitions; the rest sit idle as spares. More consumers don't make a slow partition faster. They don't change which partition a record went to either, so they can't fix the order. Match the group's size to the partitions, and fix the slow consumer itself."
    },
    {
-    "text": "Key every gate command by its gate id, run no more consumers than partitions, and commit offsets after applying.",
+    "text": "Key every gate command by the gate's name, run no more consumers than partitions, and commit only after it moves.",
     "tone": "ok",
     "verdict": "Senior answer",
-    "part2": "Odhran made the gateway set the key to the gate id, so every command for gate 3 carries the key gate-3, and the producer hashes it to the same partition every time: partition 2, read by C3. He cut the group to six consumers, one per partition, none idle, and set the controller to commit an offset only after the gate had moved. On the rig, Tuesday came out right: OPEN applied at 01:01:40, CLOSE at 01:02:15, gate 3 open 35 s. In February C3 crashed just after reading a CLOSE. Because it hadn't committed, it read the CLOSE again when it came back 30 s later and applied it then; the gate was open 1 min 5 s instead of 35 s. And when the controller restarted for a patch one night, from 01:02:00 to 01:03:00, a CLOSE sent at 01:02:15 waited in the topic and was applied at 01:03:00.",
-    "senior": "Kafka promises order within a partition only, and the key is how you choose the partition: the same key always lands in the same partition while the partition count stays the same. Key by the thing whose order matters, here a gate. Run no more consumers than partitions, since extras sit idle. Commit after the work, so a crash repeats a command rather than skipping it, and make commands safe to repeat: \"set gate 3 to 0 percent\" twice leaves it closed."
+    "part2": "Odhran made the gateway set the key to the gate id, the gate's name, so every command for gate 3 carries the key gate-3. The producer turns the key into a number, its hash (Season 2), and uses that number to pick the partition. So gate-3 goes to the same partition every time: partition 2, read by C3. He cut the group to six consumers, one per partition, none idle. And he set the controller to commit an offset only after the gate had moved. On the rig, Tuesday came out right: OPEN carried out at 01:01:40, CLOSE at 01:02:15, gate 3 open 35 s. In February C3 crashed just after reading a CLOSE. It hadn't committed, so it came back 30 s later, read the CLOSE again and carried it out then. The gate was open 1 min 5 s instead of 35 s. And one night the controller restarted for a software fix, from 01:02:00 to 01:03:00. A CLOSE sent at 01:02:15 waited in the topic and was carried out at 01:03:00.",
+    "senior": "Kafka promises order within a partition only, and the key is how you choose the partition. The same key always lands in the same partition, as long as the number of partitions stays the same. Key by the thing whose order matters, here a gate. Run no more consumers than partitions, since extras sit idle. Commit after the work, so a crash repeats a command rather than skipping it. And make commands safe to repeat: \"set gate 3 to 0 percent\" twice still leaves it closed."
    },
    {
-    "text": "Send gate commands to the controller by direct call, outside Kafka, and keep the topic for sensor readings only.",
+    "text": "Send gate commands straight from the console to the controller, outside Kafka, and keep the topic for readings.",
     "tone": "warn",
     "verdict": "Trade-off: ordered, then forgotten",
-    "part2": "Odhran wired the console straight to the controller. On the rig Tuesday came out right: OPEN at 01:01:40, CLOSE at 01:02:15, gate 3 open 35 s. The topic kept no gate commands at all, so the next morning there was nothing for Odhran to read back. In March the controller restarted for a patch from 01:02:00 to 01:03:00. The console's CLOSE for gate 3 went at 01:02:15 and was refused, and nothing kept it to send again. Gate 3 stood at 40 percent open until the 06:00 walk-round, 4 h 58 min.",
-    "senior": "A direct call is ordered when the caller sends one command at a time and waits, and that is often the right tool for a command and its answer. But you lose what the log gave you: a record of every command for 7 days, replay after a bug, and a buffer that holds a command while the controller is down. Keep commands in the log and key them, or build the retries and the record yourself."
+    "part2": "Odhran wired the console straight to the controller. On the rig Tuesday came out right: OPEN at 01:01:40, CLOSE at 01:02:15, gate 3 open 35 s. The topic kept no gate commands at all, so the next morning there was nothing for Odhran to read back. In March the controller restarted for a software fix from 01:02:00 to 01:03:00. The console's CLOSE for gate 3 went at 01:02:15 and was refused, and nothing kept it to send again. Gate 3 stood at 40 percent open until the 06:00 walk-round, 4 h 58 min.",
+    "senior": "Sending straight to the controller, a direct call, keeps order if the console sends one command at a time and waits for each answer. That is often the right tool for a command and its answer. But you lose what the log gave you. You lose a record of every command for 7 days, and the chance to read them again after a bug is fixed. You also lose a waiting place that holds a command while the controller is down. Keep commands in the log and key them, or build the retries and the record yourself."
    }
   ]
  },
@@ -187,27 +200,27 @@
   "tryThis": "Try this: step through the night as built. The topic shows OPEN at 01:01:40 in partition 4 and CLOSE at 01:02:15 in partition 1; the apply log shows CLOSE at 01:02:15 and OPEN at 01:04:00, and the morning check finds gate 3 at 40 percent, open 4 h 56 min. Set 12 consumers: six sit idle and nothing changes. Set one partition: the order is right, but C1 carries 3,000 a second against 750 and the worst delay is 405 s. Now six partitions, six consumers and the gate id as key: both commands land in partition 2, in order, gate 3 open 35 s. Crash the consumer on the CLOSE with commit after, then with commit before, and compare. Last, restart the controller with commands through the topic, then by direct call."
  },
  "explain": {
-  "oneLine": "Nothing opened gate 3 at 01:04 on its own. The OPEN and the CLOSE carried no key, so they landed in different partitions; Kafka keeps order only inside one partition, and the OPEN's partition was being read 2 min 20 s late.",
+  "oneLine": "Nothing opened gate 3 at 01:04 on its own. The OPEN and the CLOSE carried no key, so they landed in different partitions. Kafka keeps order only inside one partition, and the OPEN's partition was being read 2 min 20 s late.",
   "steps": [
    {
     "title": "A topic is a log, cut into partitions.",
-    "text": "Kafka keeps each partition as a log: records are appended at the end, each gets the next offset, and reading one doesn't remove it. A consumer reads its partition in offset order, so inside one partition the order is exactly the order of writing. Between two partitions there is no order at all. dam-events has six partitions, so it is six logs side by side, each read at its own pace."
+    "text": "Kafka keeps each partition as a log, a list you only ever add to at the end. Writing a record happens in steps. First the producer sends the record to one partition. Next, Kafka adds it at the end and gives it the next offset, its number in line. Then a consumer reads the partition from its saved offset forward, one record after another. Reading doesn't remove anything. So inside one partition, the reading order is exactly the writing order. Between two partitions there is no order at all. dam-events has six partitions, so it is six logs side by side. Each is read at its own pace, and that is where things can go wrong: one slow reader puts its log behind the others."
    },
    {
     "title": "No key, no promise about where a record goes.",
-    "text": "The producer picks a partition for every record. With a key, it hashes the key, so the same key lands in the same partition every time. With no key, the current producer, on its default settings, sticks to one partition until about a batch's worth of bytes has gone to it, then moves on. The gateway sends 3,000 readings a second through the same producer, so batches fill many times a second, and the OPEN at 01:01:40 went into partition 4 while the CLOSE at 01:02:15 went into partition 1. Nothing about the gate decided that."
+    "text": "The producer picks a partition for every record. With a key, it works in steps. First it turns the key into a number, a hash, the same number every time for the same key. Next it divides that number by the count of partitions and keeps the remainder. That remainder is the partition, so the same key lands in the same partition every time. With no key, the current producer, on its default settings, does something else. It sticks to one partition until about a batch's worth of bytes has gone to it, then moves on to another. The gateway sends 3,000 readings a second through the same producer, so batches fill many times a second. The OPEN at 01:01:40 went into partition 4, and the CLOSE at 01:02:15 went into partition 1. Nothing about the gate decided that."
    },
    {
     "title": "One reader per partition; the slow one decides.",
-    "text": "In a consumer group each partition is read by exactly one consumer at a time. C2 read partition 1 promptly and applied the CLOSE at 01:02:15. C5, reading partition 4, 2 min 20 s behind, applied the OPEN at 01:04:00. The topic's log holds the order Maelis sent the commands; the controller's apply log holds the order it applied them. Both are true, and only the second moved the gate. With six partitions, C7 and C8 had nothing to read: extra consumers wait as spares."
+    "text": "A consumer group shares out its partitions in steps. First each consumer joins, giving the group's name. Next, Kafka hands each partition to exactly one consumer in the group. Then each consumer reads only its own partitions. If a consumer joins, leaves or dies, Kafka pauses reading and shares the partitions out again, a rebalance. C2 read partition 1 promptly and carried out the CLOSE at 01:02:15. C5, reading partition 4 2 min 20 s behind, carried out the OPEN at 01:04:00. How far a consumer is behind is called its consumer lag. The topic holds the order Maelis sent the commands. The controller's apply log holds the order it carried them out. Both are true, and only the second moved the gate. With six partitions, C7 and C8 had nothing to read: extra consumers only wait as spares."
    },
    {
     "title": "Commit after the work.",
-    "text": "A consumer commits an offset to say how far it has got. Commit before applying, and a crash between the two skips the command for good: Kafka's docs call that at-most-once. Commit after, and a crash makes the consumer read the command again: at-least-once. For a dam, a repeat is far better than a gap, and a command that sets a position, like \"gate 3 to 0 percent\", is idempotent, so applying it twice does no harm."
+    "text": "A consumer commits an offset to save how far it has got. The order of the steps matters. Say it commits first, then moves the gate. A crash between the two skips the command for good, because after the restart it carries on past it. Kafka's documentation calls that at-most-once: each record is handled once or not at all. Now say it moves the gate first, then commits. A crash between the two makes the consumer read the command again after the restart. That is at-least-once: nothing is lost, but some records are handled twice. For a dam, a repeat is far better than a gap. And a command that sets a position, like \"gate 3 to 0 percent\", is idempotent, safe to repeat, so carrying it out twice does no harm."
    },
    {
     "title": "Keep the log, and you can read it again.",
-    "text": "dam-events keeps every record for 7 days, Kafka's default retention, whether or not it has been read. That is how Odhran could pull Tuesday's two records the next morning, and how a consumer can rewind to an older offset and read again after a bug is fixed. Putting the commands back into the order they were produced, by their timestamps, is a later case's lesson (Out of Order); here the fix is making sure one gate's commands never sit in two partitions."
+    "text": "dam-events keeps every record for 7 days, whether or not it has been read. That is Kafka's default retention, how long it keeps records. It is how Odhran could pull Tuesday's two records the next morning. It is also how a consumer can replay, reading again after a bug is fixed. First the bug is fixed. Next, the consumer's offset is moved back to an older record. Then it reads forward from there, handling each record again, so the work must be safe to repeat. Putting the commands back into the order they were sent, by their timestamps, is a later case's lesson (Out of Order). Here the fix is making sure one gate's commands never sit in two partitions."
    }
   ],
   "diagram": {
@@ -236,15 +249,15 @@
     { "x": 370, "y": 290, "text": "records kept 7 days for replay", "tone": "muted", "anchor": "middle" }
    ]
   },
-  "caption": "The fix, drawn on the rig. Every gate 3 command carries the key gate-3, so both land in partition 2 in the order sent and one consumer, C3, applies them in that order, committing each offset only after the gate has moved. Six consumers for six partitions, none idle.",
+  "caption": "The fix, drawn on the rig. Every gate 3 command carries the key gate-3, so both land in partition 2 in the order sent. One consumer, C3, carries them out in that order. It commits each offset only after the gate has moved. Six consumers for six partitions, none idle.",
   "fix": {
-   "title": "The fix: key commands by gate, size the group to the partitions, commit after applying",
-   "text": "Set each gate command's key to its gate id, so all of one gate's commands land in one partition and come out in the order sent. Run no more consumers than partitions, and treat any extras as spares, not speed. Commit a consumer's offset only after the controller has moved the gate, and keep commands as positions (\"gate 3 to 0 percent\") so a repeat after a crash is harmless. Then alarm on consumer lag, so a consumer running 2 min 20 s behind wakes someone instead of waiting for the walk-round."
+   "title": "The fix: key commands by gate, match the group to the partitions, commit after the work",
+   "text": "Set each gate command's key to its gate id. Then all of one gate's commands land in one partition and come out in the order sent. Run no more consumers than partitions, and treat any extras as spares, not speed. Commit a consumer's offset only after the controller has moved the gate. Keep commands as positions (\"gate 3 to 0 percent\"), so a repeat after a crash is harmless. Then set an alarm on consumer lag, how far each consumer is behind. A consumer running 2 min 20 s behind should wake someone, not wait for the walk-round."
   },
   "limits": [
-   "A key orders one gate's commands, not commands across gates. If a rule spans gates, such as opening gate 2 before closing gate 3, the key can't promise it; that needs one key for the pair, or the controller to check the plan itself.",
-   "A key doesn't make a slow partition fast. gate-5 hashes to partition 4, which C5 still reads 2 min 20 s behind, so gate 5's commands would arrive in order and late until C5 is fixed or someone is alarmed by its lag.",
-   "The key's partition is a hash of the key modulo the partition count. Change the count and most keys move to another partition, unlike the hash ring of consistent hashing, where a change moves only a neighbour's keys; so for a while one gate's older commands can wait in the old partition while newer ones are read from the new one."
+   "A key keeps one gate's commands in order, not commands across gates. Say a rule covers two gates, such as opening gate 2 before closing gate 3. The key can't promise that. It needs one key for the pair, or the controller to check the plan itself.",
+   "A key doesn't make a slow partition fast. gate-5's hash sends it to partition 4, which C5 still reads 2 min 20 s behind. So gate 5's commands would arrive in order but late, until C5 is fixed or its lag sets off an alarm.",
+   "The key's partition is the key's hash modulo the partition count: the remainder after dividing by the number of partitions. Change the count and most keys move to another partition. That's unlike the hash ring of consistent hashing (Season 3), where a change moves only a neighbour's keys. So for a while, one gate's older commands can wait in the old partition while newer ones are read from the new one."
   ],
   "tradeoff": {
    "head": [
@@ -261,7 +274,7 @@
     [
      "One partition",
      "One order for everything: OPEN at 01:06:40, CLOSE at 01:09:00.",
-     "One consumer reads 3,000 a second and applies 750; it falls 3 s further behind every second. Seven consumers idle."
+     "One consumer takes in 3,000 a second and handles 750, so it falls 3 s further behind every second. Seven consumers idle."
     ],
     [
      "Twelve consumers",
@@ -280,21 +293,21 @@
     ]
    ]
   },
-  "seniorTake": "Kafka orders records inside a partition and nowhere else, and the key is how you choose a partition. So the design question is never \"how do I get order\" but \"order of what\": find the thing whose events must not overtake each other, here a gate, and make it the key. Size the consumer group to the partitions, because a partition has one reader at a time and the extras only wait. Commit after the work, and make the work safe to repeat. Then watch consumer lag, because a partition read late is a partition whose keys are all late.",
+  "seniorTake": "Kafka keeps records in order inside a partition and nowhere else, and the key is how you choose a partition. So the design question is never \"how do I get order\" but \"order of what\". Find the thing whose events must not overtake each other, here a gate, and make it the key. Match the consumer group's size to the partitions, because a partition has one reader at a time and the extras only wait. Commit after the work, and make the work safe to repeat. Then watch consumer lag, how far each consumer is behind. A partition read late is a partition whose keys are all late.",
   "realWorld": [
    {
     "title": "Jay Kreps, The Log, 2013: the simplest storage abstraction",
-    "text": "Kreps, one of Kafka's creators, wrote on LinkedIn's engineering blog that a log \"is perhaps the simplest possible storage abstraction. It is an append-only, totally-ordered sequence of records ordered by time.\" He also wrote that logs \"record what happened and when\", which is why Odhran could read Tuesday's commands back the next morning.",
+    "text": "Kreps, one of Kafka's creators, wrote on LinkedIn's engineering blog that a log \"is perhaps the simplest possible storage abstraction. It is an append-only, totally-ordered sequence of records ordered by time.\" (Append-only means records are only ever added at the end.) He also wrote that logs \"record what happened and when\". That is why Odhran could read Tuesday's commands back the next morning.",
     "source": 0
    },
    {
     "title": "The Log: no global order between partitions",
-    "text": "In the same essay Kreps explains how Kafka scales: \"we chop up our log into partitions: Each partition is a totally ordered log, but there is no global ordering between partitions\". He adds that the writer controls which partition a message goes to, with most users choosing to partition by some kind of key, such as a user id.",
+    "text": "In the same essay Kreps explains how Kafka scales: \"we chop up our log into partitions: Each partition is a totally ordered log, but there is no global ordering between partitions\" (no single order across all of them). He adds that the writer controls which partition a message goes to, with most users choosing to partition by some kind of key, such as a user id.",
     "source": 0
    },
    {
     "title": "Kafka's origin at LinkedIn, NetDB 2011",
-    "text": "Kreps, Neha Narkhede and Jun Rao introduced Kafka in a 2011 paper as \"a distributed messaging system that we developed for collecting and delivering high volumes of log data with low latency\", and said it had been \"used successfully in production at LinkedIn for more than 6 months\". They made \"a partition within a topic the smallest unit of parallelism\", so \"all messages from one partition are consumed only by a single consumer within each consumer group\".",
+    "text": "Kreps, Neha Narkhede and Jun Rao introduced Kafka in a 2011 paper as \"a distributed messaging system that we developed for collecting and delivering high volumes of log data with low latency\" (short delays), and said it had been \"used successfully in production at LinkedIn for more than 6 months\" (in the live system). They made \"a partition within a topic the smallest unit of parallelism\" (the smallest piece of work that can run side by side with others), so \"all messages from one partition are consumed only by a single consumer within each consumer group\".",
     "source": 1
    },
    {
@@ -309,22 +322,22 @@
    },
    {
     "title": "Kafka documentation: what happens to a record with no key",
-    "text": "For partitioner.class, the producer settings say that if no partition is specified but a key is present, the producer chooses a partition based on a hash of the key, and if no partition or key is present, it chooses the sticky partition that changes when at least batch.size bytes are produced to the partition. batch.size is 16,384 bytes by default.",
+    "text": "For partitioner.class (the setting that picks each record's partition), the producer settings say that if no partition is specified but a key is present, the producer chooses a partition based on a hash of the key, and if no partition or key is present, it chooses the sticky partition that changes when at least batch.size bytes are produced to the partition. batch.size is 16,384 bytes by default.",
     "source": 3
    },
    {
     "title": "KafkaConsumer: one consumer per partition in a group",
-    "text": "The consumer's documentation says Kafka balances the partitions between all members in the consumer group so that each partition is assigned to exactly one consumer in the group, and, for one consumer per thread, that the number of total threads across all processes will be limited by the total number of partitions.",
+    "text": "The consumer's documentation says Kafka balances the partitions between all members in the consumer group so that each partition is assigned to exactly one consumer in the group, and, for one consumer per thread (one line of work inside a program), that the number of total threads across all processes will be limited by the total number of partitions.",
     "source": 4
    },
    {
     "title": "Kafka design: commit before or after processing",
-    "text": "The design section describes both orders. Saving the position before processing means a crash can leave messages unprocessed, which corresponds to at-most-once semantics. Processing first and then saving the position means a crash can repeat messages, the at-least-once semantics, and Kafka guarantees at-least-once delivery by default.",
+    "text": "The design section describes both orders. Saving the position before processing means a crash can leave messages unprocessed, which corresponds to at-most-once semantics (each message handled once or not at all). Processing first and then saving the position means a crash can repeat messages, the at-least-once semantics (nothing lost, some handled twice), and Kafka guarantees at-least-once delivery by default.",
     "source": 5
    },
    {
     "title": "Kafka topic settings: retention.ms, 7 days",
-    "text": "retention.ms controls the maximum time Kafka will retain a log before discarding old log segments, and its default is 604,800,000 ms, 7 days. Records older than that are gone whether or not every consumer has read them.",
+    "text": "retention.ms controls the maximum time Kafka will retain a log before discarding old log segments (the files a log is stored in), and its default is 604,800,000 ms, 7 days. Records older than that are gone whether or not every consumer has read them.",
     "source": 6
    }
   ],
@@ -334,7 +347,7 @@
     "What happens when you add consumers to a group?",
     "Queue or log: which would you choose, and why?"
    ],
-   "answer": "Kafka orders records within a partition and nowhere else: a consumer reads a partition in offset order, exactly as it was written, and two partitions have no order between them. So I'd ask what must stay in order, an order, an account, a device, and make that the key, because the producer hashes the key and the same key always lands in the same partition while the partition count stays fixed. A record with no key goes wherever the producer's current batch is, so two events for one thing can land in two partitions and overtake each other. On consumers: each partition is read by one consumer in the group at a time, so adding consumers helps only up to the number of partitions; beyond that they sit idle as spares, and each change triggers a rebalance. To scale further you add partitions, and that moves keys, so I'd plan the count up front. I'd commit offsets after processing, which gives at-least-once delivery, and make processing safe to repeat. Queue or log: a queue hands each message to one worker and forgets it once done, which suits independent jobs. A log keeps records for a retention period, lets many groups read the same data, and lets you rewind and replay, at the price of ordering only per partition and a consumer group no bigger than the partition count. Commands for physical things that must not overtake each other, I'd keep in a keyed log."
+   "answer": "Kafka keeps records in order within a partition and nowhere else. A consumer reads a partition in offset order, exactly as it was written, and two partitions have no order between them. So I'd ask what must stay in order: an order, an account, a device. I'd make that the key. The producer turns the key into a hash, and the same key always lands in the same partition while the partition count stays fixed. A record with no key goes wherever the producer's current batch is. So two events for one thing can land in two partitions and overtake each other. On consumers: each partition is read by one consumer in the group at a time. So adding consumers helps only up to the number of partitions. Beyond that they sit idle as spares, and each change sets off a rebalance, a pause while Kafka shares the partitions out again. To grow further you add partitions, and that moves keys, so I'd plan the count up front. I'd commit offsets after processing, which gives at-least-once delivery: nothing lost, some repeats. And I'd make processing safe to repeat. Queue or log: a queue hands each message to one worker and forgets it once done, which suits separate jobs. A log keeps records for a retention period, the time it holds them. It lets many groups read the same data, and lets you rewind and replay. The price is order only within each partition, and a consumer group no bigger than the partition count. Commands for physical things that must not overtake each other, I'd keep in a keyed log."
   }
  },
  "terms": [
@@ -347,42 +360,42 @@
   { "term": "Plant gateway", "def": "Odhran's program that collects every sensor reading and every console command at Ardnish and sends them into Kafka through one producer." },
   { "term": "Historian (plant)", "def": "A server that stores a plant's sensor readings over time. At Ardnish, C5 runs on the old historian server." },
   { "term": "Walk-round", "def": "A shift's inspection on foot, looking at the real gates and equipment rather than the screens. Haskett's is at 06:00." },
-  { "term": "Kafka", "def": "Apache Kafka, open-source software that stores streams of records as logs and lets many programs write and read them. It began at LinkedIn." },
-  { "term": "Record (Kafka)", "def": "One entry in a Kafka topic: a key, a value, a timestamp and optional headers. Also called an event or message." },
-  { "term": "Topic", "def": "A named stream of records in Kafka, like dam-events. Producers write to it and consumers read from it; it is split into partitions." },
-  { "term": "Log (append-only)", "def": "A list of records you only ever add to at the end, read in order. Reading doesn't remove anything. Each Kafka partition is one." },
-  { "term": "Partition (Kafka)", "def": "One of the separate logs a topic is split into. Records are in order inside a partition; between partitions there is no order." },
-  { "term": "Offset", "def": "A record's position number inside its partition: 0, 1, 2 and so on, never reused. A consumer's offset says how far it has read." },
-  { "term": "Message key", "def": "The key field of a Kafka record. The producer hashes it to choose the partition, so records with the same key land in the same partition." },
-  { "term": "Null key", "def": "An empty key field. Kafka's producer then chooses the partition itself, without regard to what the record is about." },
+  { "term": "Kafka", "def": "Apache Kafka: free software that keeps streams of messages as logs, so many programs can write and read them. It began at LinkedIn." },
+  { "term": "Record (Kafka)", "def": "One entry in a Kafka topic, like one line in a logbook. It has a key, a value (the message), a time and optional labels. Also called an event or message." },
+  { "term": "Topic", "def": "A named stream of records in Kafka, like dam-events. Producers write to it and consumers read it. It is split into partitions." },
+  { "term": "Log (append-only)", "def": "A list you only ever add to at the end and read in order, like a ship's logbook. Reading doesn't remove anything. Each Kafka partition is one." },
+  { "term": "Partition (Kafka)", "def": "One of the separate logs a topic is split into, like lanes on a road. Records stay in order inside a partition; between partitions there is no order." },
+  { "term": "Offset", "def": "A record's number in line inside its partition: 0, 1, 2 and so on, never reused. A consumer's saved offset is its bookmark: how far it has read." },
+  { "term": "Message key", "def": "A record's label saying what it is about, like the name on an envelope. The producer turns it into a hash to pick the partition, so the same key lands in the same partition." },
+  { "term": "Null key", "def": "An empty key. Kafka's producer then picks the partition itself, without regard to what the record is about." },
   { "term": "Sticky partition", "def": "What Kafka's producer does with records that have no key: send them all to one partition until a batch fills, then switch to another." },
-  { "term": "batch.size", "def": "A Kafka producer setting: the most bytes it gathers for one partition before sending them together. 16,384 bytes by default." },
-  { "term": "Partitioner", "def": "The part of a Kafka producer that chooses each record's partition, from the key's hash or, with no key, the sticky partition." },
+  { "term": "batch.size", "def": "A Kafka producer setting: how many bytes it saves up for one partition before sending them together. 16,384 bytes by default." },
+  { "term": "Partitioner", "def": "The part of a Kafka producer that picks each record's partition: from the key's hash or, with no key, the sticky partition." },
   { "term": "Modulo", "def": "The remainder after dividing. 14 modulo 6 is 2. A key's partition is its hash modulo the partition count, so changing the count moves keys." },
-  { "term": "Consumer group", "def": "Consumers sharing one group name. Kafka splits the topic's partitions among them, and each partition is read by one of them at a time." },
-  { "term": "Idle consumer", "def": "A consumer in a group with no partition to read, because the group has more consumers than the topic has partitions. It waits as a spare." },
-  { "term": "Range assignor", "def": "One of Kafka's ways of sharing partitions in a group: partitions in order, handed out in runs to consumers in order." },
+  { "term": "Consumer group", "def": "Reading programs that share one group name. Kafka shares the topic's partitions out among them, and each partition is read by only one of them at a time." },
+  { "term": "Idle consumer", "def": "A consumer in a group with no partition to read, because the group has more consumers than the topic has partitions. It only waits as a spare." },
+  { "term": "Range assignor", "def": "One of Kafka's ways of sharing out partitions in a group: the partitions in order, handed out in runs to the consumers in order." },
   { "term": "Rebalance (consumer group)", "def": "Kafka sharing a group's partitions out again because a consumer joined, left or died. Reading pauses briefly while it happens." },
-  { "term": "Commit (an offset)", "def": "A consumer saving the offset it has reached, so that after a crash or restart it carries on from there." },
-  { "term": "Consumer lag", "def": "How far a consumer is behind the newest record in its partition, in records or in time. C5's was 2 min 20 s." },
+  { "term": "Commit (an offset)", "def": "A consumer telling Kafka the offset it has reached, and Kafka saving it like a bookmark. After a crash or restart, the consumer carries on from there." },
+  { "term": "Consumer lag", "def": "How far a consumer is behind the newest record in its partition, counted in records or in time. C5's was 2 min 20 s." },
   { "term": "At-most-once", "def": "Each record is handled once or not at all. Committing before the work gives it: a crash after the commit skips the record." },
-  { "term": "Retention", "def": "How long Kafka keeps records, read or not, before deleting old ones. Set per topic by retention.ms." },
-  { "term": "retention.ms", "def": "The Kafka topic setting for how long records are kept. Its default is 604,800,000 ms, 7 days." },
+  { "term": "Retention", "def": "How long Kafka keeps records, read or not, before deleting old ones. Each topic sets it with retention.ms." },
+  { "term": "retention.ms", "def": "The Kafka topic setting for how long records are kept, in thousandths of a second. Its default is 604,800,000 ms, 7 days." },
   { "term": "Replay", "def": "Reading records again from an older offset, for example after fixing a bug, because the log still holds them." },
-  { "term": "Apply log", "def": "The controller's own record of when it acted on each command and which partition and consumer it came from." },
+  { "term": "Apply log", "def": "The controller's own record of when it carried out each command, and which partition and consumer the command came from." },
   { "term": "Direct call", "def": "The console sending a command straight to the controller and waiting for its answer, with no topic in between." },
   { "term": "Training rig", "def": "A copy of the controller with a pretend gate, where Odhran replays nights to test changes without moving real gates." },
   { "term": "Change feed", "def": "A stream of every change made to some data, in order, that other programs read to stay up to date." },
-  { "term": "LinkedIn", "def": "The professional networking company where Kafka was built, first to carry its activity data." },
-  { "term": "Order service", "def": "A program that records customers' orders and publishes events such as created, paid and cancelled." },
-  { "term": "Batch (producer)", "def": "Records a Kafka producer gathers for one partition and sends together, to save requests. A batch is sent when it reaches batch.size or after a short wait." },
+  { "term": "LinkedIn", "def": "The professional networking company where Kafka was built, first to carry records of what its users did on the site." },
+  { "term": "Order service", "def": "A program that records customers' orders and sends out events such as created, paid and cancelled." },
+  { "term": "Batch (producer)", "def": "Records a Kafka producer saves up for one partition and sends together, like a sack of post. It goes when it reaches batch.size or after a short wait." },
   { "term": "enable.auto.commit", "def": "A Kafka consumer setting. When true, the consumer commits offsets on a timer, whether or not your code has finished with the records." },
-  { "term": "commitSync", "def": "The Kafka consumer call that commits offsets now and waits until Kafka confirms. Calling it after the work commits after the work." },
-  { "term": "SOC 2", "def": "An audit report on a company's controls against the AICPA's Trust Services Criteria, such as security, availability and processing integrity." },
-  { "term": "Processing integrity (SOC 2)", "def": "An optional SOC 2 category: system processing is complete, valid, accurate, timely and authorised. PI1.3 is one of its criteria." },
-  { "term": "Availability (SOC 2)", "def": "An optional SOC 2 category about systems being available for operation and use as committed. A1.1 is its criterion on processing capacity." }
+  { "term": "commitSync", "def": "The Kafka consumer instruction that commits offsets now and waits until Kafka confirms. Calling it after the work commits after the work." },
+  { "term": "SOC 2", "def": "An audit report, by outside checkers, on how a company controls its systems, judged against the AICPA's Trust Services Criteria, such as security, availability and processing integrity." },
+  { "term": "Processing integrity (SOC 2)", "def": "An optional SOC 2 area: a system's processing is complete, valid, accurate, on time and authorised. PI1.3 is one of its criteria." },
+  { "term": "Availability (SOC 2)", "def": "An optional SOC 2 area about systems being available to use as promised. A1.1 is its criterion on having enough processing capacity." }
  ],
- "atWork": "Picture a common incident: an order service publishes created, paid and cancelled events to a Kafka topic with no key, and a shipping service now and then sees an order cancelled before it was created, because the two events landed in different partitions and one was read faster. Look for the same in your systems. Find every producer and check what it sets as the key: an empty key, or a random one, means no promise of order for anything. Ask what must stay in order (an order, an account, a device) and whether that is the key. Then, with read-only access, compare each consumer group's member count with the topic's partition count; extras are idle. Check whether consumers commit before or after their work (enable.auto.commit and when commitSync is called), and whether a repeated message is safe. Check each topic's retention.ms against how far back you would need to replay, and whether anyone is alarmed on consumer lag, not just on errors. LATENT a3e09's change feed travels the same way: keyed by the record it describes, or its updates can overtake each other. If your company is pursuing a SOC 2 report that includes processing integrity, criterion PI1.3 covers the policies and procedures over system processing that make its results meet your objectives, and a per-key ordering test plus a consumer-lag alarm are the kind of evidence that supports it. If it includes availability, criterion A1.1 expects processing capacity to be monitored, which a consumer's records per second against its partition's rate measures directly. Build these in now rather than at audit time.",
+ "atWork": "Picture a common incident. An order service, a program that records customers' orders, sends created, paid and cancelled events to a Kafka topic with no key. Now and then a shipping service sees an order cancelled before it was created. The two events landed in different partitions, and one was read faster. Look for the same in your systems. Find every producer, every program that writes to a topic, and check what it sets as the key. An empty key, or a random one, means no promise of order for anything. Ask what must stay in order (an order, an account, a device) and whether that is the key. Then, with read-only access, compare each consumer group's member count with the topic's partition count; extras are idle. Check whether consumers commit before or after their work. The setting enable.auto.commit, and when commitSync is called, tell you. Then check whether a repeated message is safe. Check each topic's retention.ms, how long it keeps records, against how far back you would need to replay. And check whether anyone gets an alarm on consumer lag, how far behind a consumer is, not just on errors. LATENT a3e09's change feed, its stream of every change to some data, travels the same way. It must be keyed by the record it describes, or its updates can overtake each other. Your company may be working toward a SOC 2 report, an outside audit of how it runs its systems. If that report includes processing integrity, criterion PI1.3 covers the policies and procedures over system processing that make its results meet your objectives. A test that each key stays in order, plus a consumer-lag alarm, are the kind of evidence that supports it. If it includes availability, criterion A1.1 expects processing capacity to be monitored. Comparing a consumer's records per second against its partition's rate measures that directly. Build these in now rather than at audit time.",
  "board": {
   "cards": [
    { "id": "log-based-streams", "title": "Log-based streams" },
@@ -403,7 +416,7 @@
   {
    "id": "s4e04-r1",
    "kind": "free",
-   "prompt": "Your team's order service publishes created, paid and cancelled events for every order to a Kafka topic with 12 partitions, leaving the record's key field empty. Support says a few orders show paid after cancelled in the shipping service, which reads the topic with a group of 12 consumers. What is going on, and what do you change?",
+   "prompt": "Your team's order service, the program that records orders, sends created, paid and cancelled events for every order to a Kafka topic. The topic has 12 partitions, and the service leaves each record's key empty. Support says a few orders show paid after cancelled in the shipping service. That service reads the topic with a group of 12 consumers. What is going on, and what do you change?",
    "keyIdeas": [
     {
      "idea": "With no key, one order's events can land in different partitions, and Kafka orders records only within a partition, so they can overtake each other",
@@ -434,7 +447,7 @@
      ]
     }
    ],
-   "model": "The producer leaves the key empty, so each event goes to whatever partition the producer's current batch is filling, and one order's created, paid and cancelled events can land in different partitions. Kafka keeps order only within a partition: a consumer reads its own partition in the order written, but nothing orders two partitions against each other, so when one partition is read a little later, cancelled can overtake paid. Key every event by the order id. The producer hashes the key, so all of one order's events go to the same partition and the shipping service reads them in the order they were written. Keep the partition count fixed afterwards, since changing it moves keys."
+   "model": "The producer leaves the key empty. So each event goes to whatever partition the producer's current batch is filling, and one order's created, paid and cancelled events can land in different partitions. Kafka keeps order only within a partition. A consumer reads its own partition in the order written, but nothing puts two partitions in order against each other. So when one partition is read a little later, cancelled can overtake paid. Key every event by the order id. The producer turns the key into a hash and uses it to pick the partition. So all of one order's events go to the same partition, and the shipping service reads them in the order they were written. Keep the partition count fixed afterwards, since changing it moves keys."
   },
   {
    "id": "s4e04-r2",
@@ -447,12 +460,12 @@
     "Kafka refuses the two extra consumers until a partition is added"
    ],
    "answer": 1,
-   "why": "In a consumer group each partition is assigned to exactly one consumer at a time, so a group can use at most as many consumers as there are partitions. At Ardnish, C1 to C6 read one partition each and C7 and C8 sat idle. Adding more, as on the rig with 12, just makes more idle spares."
+   "why": "In a consumer group each partition is given to exactly one consumer at a time. So a group can use at most as many consumers as there are partitions. At Ardnish, C1 to C6 read one partition each, and C7 and C8 sat idle. Adding more, as on the rig with 12, just makes more idle spares."
   },
   {
    "id": "s4e04-r3",
    "kind": "free",
-   "prompt": "A consumer at a power station reads switching commands. As soon as it receives each batch it commits the batch's offsets, then applies the commands one by one. One night it crashes halfway through a batch and restarts. What happens to the rest of that batch, and what would you change?",
+   "prompt": "A consumer at a power station reads switching commands from a Kafka topic. As soon as it receives each batch of records, it commits the batch's offsets, saving its place. Then it carries out the commands one by one. One night it crashes halfway through a batch and restarts. What happens to the rest of that batch, and what would you change?",
    "keyIdeas": [
     {
      "idea": "The offsets were already committed, so on restart it carries on after the batch and the unapplied commands are skipped for good: at-most-once",
@@ -494,12 +507,12 @@
      ]
     }
    ],
-   "model": "It committed the whole batch's offsets before doing the work, so on restart it carries on after the batch, and the commands it hadn't applied yet are never applied: they are lost. That is at-most-once. Commit after applying instead, ideally command by command, so a crash makes the consumer read the unapplied command again on restart: at-least-once. The price is that a command applied just before the crash may be applied again, so make commands idempotent, safe to apply twice, by having each one set a position (\"breaker 4 open\") rather than describe a change (\"toggle breaker 4\")."
+   "model": "It committed the whole batch's offsets before doing the work. So on restart it carries on after the batch, and the commands it hadn't carried out yet are never applied: they are lost. That is at-most-once, once or not at all. Commit after applying instead, ideally command by command. Then a crash makes the consumer read the unfinished command again on restart: at-least-once. The price is that a command carried out just before the crash may be applied again. So make commands idempotent, safe to apply twice. Have each one set a position (\"breaker 4 open\") rather than describe a change (\"toggle breaker 4\")."
   },
   {
    "id": "s4e04-r4",
    "kind": "mcq",
-   "prompt": "A bug in your consumer wrote wrong values for the last two days. The topic's retention is 7 days. What does a Kafka log let you do that a classic work queue usually can't?",
+   "prompt": "A bug in your consumer wrote wrong values for the last two days. The topic's retention, how long it keeps records, is 7 days. What does a Kafka log let you do that a classic work queue usually can't?",
    "options": [
     "Nothing: once a consumer has read a record, Kafka deletes it",
     "Ask the producers to send the last two days again",
@@ -507,12 +520,12 @@
     "Raise retention to 14 days so the bad records are kept longer"
    ],
    "answer": 2,
-   "why": "Kafka keeps records for the retention period whether or not they were read, so a consumer can rewind its offset and replay. The Kafka paper calls rewinding a violation of the common contract of a queue, and an essential feature for many consumers. Replays repeat side effects too, so the work must be safe to repeat."
+   "why": "Kafka keeps records for the retention period whether or not they were read. So a consumer can move its offset back and read them again, a replay. The Kafka paper calls rewinding a violation of the common contract of a queue, and an essential feature for many consumers. A replay also repeats whatever the work does to the outside world, so the work must be safe to repeat."
   }
  ],
  "coldCase": {
-  "update": "UPDATE, 6 months later. Every gate command has been keyed by its gate id since February, with six consumers on six partitions, and the gates have done what I told them all spring. In August, on a quiet night, Odhran raised dam-events from 6 partitions to 12 to make room for a sensor array on the fish pass. At 23:01 I closed gate 5. At 23:01:30 Odhran made his change, and the consumer group stopped to share out the twelve. At 23:02 I opened gate 5 to 10 percent. The controller applied the open at 23:02 and the close at 23:03, and gate 5 sat shut until midnight. Odhran swears the key never changed.",
-  "prompt": "Reply to OP. How can gate 5's commands overtake each other when they share a key, and what should Odhran do differently next time?",
+  "update": "UPDATE, 6 months later. Every gate command has been keyed by its gate id since February, with six consumers on six partitions. The gates have done what I told them all spring. In August, on a quiet night, Odhran raised dam-events from 6 partitions to 12. He needed room for a new set of sensors on the fish pass, the channel that lets fish get past the dam. At 23:01 I closed gate 5. At 23:01:30 Odhran made his change, and the consumer group stopped to share out the twelve. At 23:02 I opened gate 5 to 10 percent. The controller carried out the open at 23:02 and the close at 23:03, and gate 5 sat shut until midnight. Odhran swears the key never changed.",
+  "prompt": "Reply to OP, the original poster. How can gate 5's commands overtake each other when they share a key, and what should Odhran do differently next time?",
   "keyIdeas": [
    {
     "idea": "The partition is the key's hash modulo the partition count, so going from 6 to 12 moved gate-5 to a different partition; the close still waited in the old one, read late, while the open went to the new one",
@@ -545,7 +558,7 @@
     ]
    }
   ],
-  "model": "Same key doesn't mean same partition forever. The producer puts a key in partition hash(key) modulo the partition count, so when the count went from 6 to 12, gate-5's commands started landing in a different partition. The close at 23:01 went into gate-5's old partition, partition 4, just before the change, and waited there while the group shared out the twelve partitions; the open at 23:02 went into gate-5's new partition, 10 of 12, was read as soon as reading resumed, and overtook the close. Next time, change the count only when nothing for those keys is waiting: pause the gateway or stop sending commands, let every consumer catch up to the end of its partition, then change the count and start again. Or move commands to a new topic once the old one is drained. Better still, choose enough partitions up front, so the count rarely has to change."
+  "model": "Same key doesn't mean same partition forever. The producer puts a key in partition hash(key) modulo the partition count: the key's hash, divided by the number of partitions, and the remainder. So when the count went from 6 to 12, gate-5's commands started landing in a different partition. The close at 23:01 went into gate-5's old partition, partition 4, just before the change. It waited there while the group shared out the twelve partitions. The open at 23:02 went into gate-5's new partition, 10 of 12. It was read as soon as reading started again, and it overtook the close. Next time, change the count only when nothing for those keys is waiting. First pause the gateway, or stop sending commands. Next, let every consumer catch up to the end of its partition. Then change the count and start again. Or move commands to a new topic once the old one is drained, read to the end. Better still, choose enough partitions up front, so the count rarely has to change."
  },
  "next": "Next, Letters in a Dead Language: a monastery's copying room, and how messages are written down so that old and new programs can still read each other.",
  "sources": [

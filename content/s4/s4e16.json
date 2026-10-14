@@ -1,5 +1,6 @@
 {
  "_changelog": [
+  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
   "v1.0.0 (2026-10-11) first version"
  ],
  "id": "s4e16",
@@ -37,7 +38,7 @@
   "blocks": [
    {
     "t": "p",
-    "text": "I'm the night operator in Scaldwick Transit's control centre. At 02:00 I start the fare run, which pairs every card's tap-in with its tap-out and charges the journey. Above the fare desk is the card for taps that don't pair:"
+    "text": "I'm the night operator in Scaldwick Transit's control centre. At 02:00 I start the fare run, a night job with three steps. It finds every card's tap-in, the touch on a gate going into a station. It pairs it with the tap-out at the other end. Then it charges the journey. Above the fare desk is the card for taps that don't pair:"
    },
    {
     "t": "note",
@@ -51,11 +52,23 @@
    },
    {
     "t": "p",
-    "text": "Taps travel on Tapstream, which Melisande built in 2017 from a printout still pinned by the screen: Kafka Inside Keystone Pipeline, the Netflix Tech Blog, 27 April 2016. Netflix runs \"36 Kafka clusters consisting of 4,000+ broker instances\", and \"More than 700 billion messages are ingested on an average day.\" Our 240 gates send their taps to a fronting cluster of three brokers, k1 to k3, and a router fans them out to the fare engine, the data lake and the live dashboards. At rush hour that's 240 taps a second over 12 partitions keyed by card, two copies of each. The gate reports, each gate's health and door counts, ride beside them, 120 a second. A weekday is about 1,200,000 taps."
+    "text": "Taps travel on Tapstream, which Melisande built in 2017 from a printout still pinned by the screen: Kafka Inside Keystone Pipeline, the Netflix Tech Blog, 27 April 2016. Keystone was Netflix's own pipeline for carrying events. Netflix runs \"36 Kafka clusters consisting of 4,000+ broker instances\", and \"More than 700 billion messages are ingested on an average day.\" Kafka, from earlier this season, is a log of messages that many programs write to and read from. A broker is one Kafka server, and a cluster is a group of them working together."
    },
    {
     "t": "p",
-    "text": "Melisande copied the settings too, straight off the printout: acks = 1, block.on.buffer.full = false, unclean.leader.election.enable = true. Each gate's producer keeps at most 3 taps waiting and gives up on one after 60 seconds. A copy that hasn't kept up for 30 seconds leaves the in-sync set. Last night's rush:"
+    "text": "Our 240 gates send their taps to a fronting cluster, the one that takes everything in, of three brokers, k1 to k3. A router then fans them out, sending each tap on to every place that needs it: the fare engine, the data lake (cheap storage that keeps everything) and the live dashboards."
+   },
+   {
+    "t": "p",
+    "text": "At rush hour that's 240 taps a second over 12 partitions, separate lines within the log, keyed by card: each card's taps always go to the same line. Two brokers keep a copy of each. The gate reports, each gate's health and door counts, ride beside them, 120 a second. A weekday is about 1,200,000 taps."
+   },
+   {
+    "t": "p",
+    "text": "Melisande copied the settings too, straight off the printout: acks = 1, block.on.buffer.full = false, unclean.leader.election.enable = true. Each gate runs a producer, the part that sends its taps to Kafka. It keeps at most 3 taps waiting and gives up on one after 60 seconds."
+   },
+   {
+    "t": "p",
+    "text": "For each partition, one broker is the leader: it takes every write, and the other copies from it. A copy that hasn't kept up for 30 seconds leaves the in-sync set, the copies that are up to date. Last night's rush, each line giving the time, the system and what happened:"
    },
    {
     "t": "log",
@@ -67,7 +80,7 @@
    },
    {
     "t": "p",
-    "text": "Nobody walked through a wall. Each of those taps was accepted, and then it wasn't there. Melisande left in the spring. I can replay the rush on our test rig with any change, the board meets on Friday, and it wants one change before the next rush. What do I tell them?"
+    "text": "Nobody walked through a wall. Each of those taps was accepted, and then it wasn't there. Melisande left in the spring. I can replay the rush on our test rig, a copy of Tapstream on spare machines, with any change, the board meets on Friday, and it wants one change before the next rush. What do I tell them?"
    },
    {
     "t": "evidence",
@@ -197,14 +210,14 @@
    "author": "u/grey_pager",
    "points": 124,
    "age": "8h",
-   "text": "Four terms from your printout, then questions. acks is how many copies must have a message before the broker tells the producer \"got it\": 1 means the leader's own copy is enough; all means every copy in the in-sync set. The in-sync set, the ISR, is the copies that are keeping up with the leader; one that falls behind for too long is dropped from it. min.insync.replicas is how many copies the in-sync set must hold before a write with acks = all is taken at all. Unclean leader election lets a copy that is not in the in-sync set become leader when no in-sync copy is left. Now your log. At 17:45:31, when your tap was accepted, how many brokers had it? At 17:46:12, what did k3 have, and who chose it? Then read the paragraph just above Netflix's three settings. Whose availability were they protecting, and is a fare the same kind of message as a video viewing event?",
+   "text": "Four terms from your printout, then questions. acks, short for acknowledgements, is how many copies must have a message before the broker tells the producer \"got it\". 1 means the leader's own copy is enough; all means every copy in the in-sync set. The in-sync set, the ISR (in-sync replicas, replica being Kafka's word for a copy), is the copies that are keeping up with the leader. One that falls behind for too long is dropped from it. min.insync.replicas is how many copies the in-sync set must hold before a write with acks = all is taken at all. Unclean leader election goes in steps. The leader dies. No up-to-date copy is left. So Kafka makes an out-of-date copy the leader anyway, and anything that copy lacks is gone. Now your log. At 17:45:31, when your tap was accepted, how many brokers had it? At 17:46:12, what did k3 have, and who chose it? Then read the paragraph just above Netflix's three settings. Whose availability were they protecting, and is a fare the same kind of message as a video viewing event?",
    "replies": [
     {
      "author": "u/fare_run_annunziata",
      "op": true,
      "points": 47,
      "age": "7h",
-     "text": "I pulled k2's own log for 17:52:00. Four lines, one per partition, each truncating to the place k3 had reached. My tap was on k2's disk the whole six minutes it was down. It came back with it, and threw it away to agree with a broker that had never seen me."
+     "text": "I pulled k2's own log for 17:52:00. Four lines, one per partition, each truncating, cutting off its end, to the place k3 had reached. My tap was on k2's disk the whole six minutes it was down. It came back with it, and threw it away to agree with a broker that had never seen me."
     }
    ]
   },
@@ -212,19 +225,19 @@
    "author": "u/one_copy_ferdinand",
    "points": 81,
    "age": "7h",
-   "text": "Netflix runs it like this at 700 billion a day; it's fine for us. And read the end of your printout, because they were going further: \"For topics that can accept minor loss, we are considering using one replica.\" Your night started with replication. k3 fell behind copying k2, and that out-of-date copy is what got elected. One copy per partition means no copying to fall behind on, no stale copy to elect, and in their words \"we not only save huge on bandwidth\". Their standby failover clusters already run at replication factor 1. Copy the homework all the way."
+   "text": "Netflix runs it like this at 700 billion a day; it's fine for us. And read the end of your printout, because they were going further: \"For topics that can accept minor loss, we are considering using one replica.\" Your night started with replication, the brokers copying each other. k3 fell behind copying k2, and that out-of-date copy is what got elected. One copy per partition means no copying to fall behind on, no stale copy to elect, and in their words \"we not only save huge on bandwidth\". Bandwidth is how much data the network carries. Their standby failover clusters, spares to switch to when a cluster is in trouble, already run at replication factor 1: one copy of everything. Copy the homework all the way."
   },
   {
    "author": "u/more_metal_bertrand",
    "points": 57,
    "age": "6h",
-   "text": "Three brokers at rush hour is a toy. Netflix runs more than 4,000. A broker falls behind on copying when it's busy, and k3 was carrying a third of the city. Double to six and each one carries half as many partitions, the copying stays quiet, and when one dies it takes half as many taps with it. Metal is cheaper than a night of refunds."
+   "text": "Three brokers at rush hour is a toy. Netflix runs more than 4,000. A broker falls behind on copying when it's busy, and k3 was carrying a third of the city. Double to six and each one carries half as many partitions, the copying stays quiet, and when one dies it takes half as many taps with it. Metal, more servers, is cheaper than a night of refunds."
   },
   {
    "author": "u/ledger_first_lucretia",
    "points": 44,
    "age": "5h",
-   "text": "Ten years on card payments, and I've never seen money go on a stream first. The gate writes the tap to the fare database, gets a commit back, and only then does anyone stream it to the lake and the dashboards. The fare run reads the database, so Kafka can lose whatever it likes. It's how every bank I've worked at does it."
+   "text": "Ten years on card payments, and I've never seen money go on a stream first. Do it in three steps. The gate writes the tap to the fare database. It gets a commit back, the database's promise that the record is saved for good. Only then does anyone stream it to the lake and the dashboards. The fare run reads the database, so Kafka can lose whatever it likes. It's how every bank I've worked at does it."
   }
  ],
  "reply": {
@@ -235,28 +248,28 @@
     "tone": "bad",
     "verdict": "Fewer lost, still lost",
     "part2": "The board bought three more brokers, and Tapstream ran on six. The topic kept its 12 partitions, so k2 now led 2 of them, not 4. On Thursday night, after the last tram, we replayed the rush on the test rig with the same faults: k3 cut off from k2 at 17:45:20, k2 pulled at 17:46:00. The gate buffers held this time, and nothing was dropped. But at 17:46:12 k3 was elected for k2's 2 partitions, 40 seconds behind, and 1,600 accepted taps were cut. The rig's fare run charged 1,600 riders the maximum fare, 800 of them for exits with no entry. Bertrand called it half as bad. The link between k2 and k3 had failed on a quiet rig, with nothing busy at all.",
-    "senior": "More brokers spread the partitions thinner, so one failure touches fewer taps: 1,600 instead of 3,440. They don't change what a failure does to the taps it touches. With acks = 1 a tap counts as accepted when one broker has it, and with unclean election on, a copy that lacks it can be made leader; that loses taps on six brokers or six hundred. The lag came from a bad link, not load, so capacity was never the problem. Change the settings that decide what accepted means."
+    "senior": "More brokers spread the partitions thinner, so one failure touches fewer taps: 1,600 instead of 3,440. They don't change what a failure does to the taps it touches. With acks = 1 a tap counts as accepted when one broker has it. With unclean election on, a copy that lacks it can be made leader. That loses taps on six brokers or six hundred. The lag came from a bad link, not load, so capacity was never the problem. Change the settings that decide what accepted means."
    },
    {
-    "text": "Copy Keystone further: keep one copy of each fare partition, as the post plans for topics that can accept minor loss.",
+    "text": "Copy Keystone further: keep one copy of each fare partition, as Netflix plans for messages that can accept minor loss.",
     "tone": "bad",
     "verdict": "Nothing to cut, nowhere to go",
     "part2": "Ferdinand's change went in on Wednesday: one copy of each fare partition. On Thursday night we replayed the rush on the test rig. With no copies there was no lag, and nothing was cut at 17:46:12. There was also nobody to take over. k2's 4 partitions had no leader from 17:46:00 to 17:52:00; the gate buffers filled in 9 seconds, and from then on the gates dropped every tap for those partitions, new ones because the buffers were full and old ones after 60 seconds: 28,080 taps. The rig's fare run charged 28,080 riders the maximum fare. When k2 came back at 17:52:00 its disk had every tap it had taken before 17:46:00. It just hadn't been allowed any after.",
-    "senior": "One copy removes replication lag by removing the copies, and with them the only place a partition can go when its broker dies. The post plans it only \"for topics that can accept minor loss\" and names the downside, \"the potential message loss when a broker goes away\". Fares are not such a topic. Copy a design together with the reasons it was chosen, not just its settings."
+    "senior": "One copy removes replication lag, a copy falling behind, by removing the copies, and with them the only place a partition can go when its broker dies. The post plans it only \"for topics that can accept minor loss\" and names the downside, \"the potential message loss when a broker goes away\". Fares are not such a topic. Copy a design together with the reasons it was chosen, not just its settings."
    },
    {
     "text": "Send fares through their own cluster: three copies, two in sync, acks all, no unclean leader, and gates that wait.",
     "tone": "ok",
     "verdict": "Senior answer",
-    "part2": "We stood up a second cluster of three brokers for fares alone: replication factor 3, min.insync.replicas = 2, acks = all, unclean leader election off, and gate producers that block instead of dropping and fail loudly into the gate's own journal if a tap waits past 60 seconds. The gate reports stayed on the old cluster, settings and all. On Thursday night we replayed the rush on the test rig. At 17:45:20 k3 stopped copying from k2, and for 30 seconds the gates held k2's taps, waiting for k3 to say got it. At 17:45:50 k3 left the in-sync set, k2 and k1 still made two, and the held taps went in. At 17:46:00 k2 died; for 12 seconds every gate held its taps; at 17:46:12 k1, in sync, took over k2's partitions. 5,280 taps waited, the longest 30 seconds. None were lost, no gate raised a fault, and the rig's fare run charged nobody the maximum fare. The old cluster lost 1,600 gate reports, 0.015% of a day's, and the dashboards never showed a gap. When k2 came back at 17:52:00, its log had no truncating lines.",
-    "senior": "Each setting closes one way the night lost taps. acks = all with min.insync.replicas = 2 means a tap is accepted only when two brokers have it; no unclean election means an out-of-date copy can never lead; gates that block keep a tap until it is accepted, and fail loudly instead of quietly. The third copy keeps it open: with replication factor 2 the same settings shut 8 of 12 partitions until k2 came back. The cost is a few seconds of waiting at the gates when a broker struggles, and a cluster to run. Gate reports keep the cheap, lossy path, which is what Keystone's settings were for."
+    "part2": "We stood up a second cluster of three brokers for fares alone: replication factor 3 (three copies), min.insync.replicas = 2, acks = all, unclean leader election off. The gate producers now block, holding each tap and waiting, instead of dropping. If a tap waits past 60 seconds, the gate fails loudly: it keeps the tap in its own journal, a store on the gate itself, and raises a fault. The gate reports stayed on the old cluster, settings and all. On Thursday night we replayed the rush on the test rig. At 17:45:20 k3 stopped copying from k2, and for 30 seconds the gates held k2's taps, waiting for k3 to say got it. At 17:45:50 k3 left the in-sync set, k2 and k1 still made two, and the held taps went in. At 17:46:00 k2 died; for 12 seconds every gate held its taps; at 17:46:12 k1, in sync, took over k2's partitions. 5,280 taps waited, the longest 30 seconds. None were lost, no gate raised a fault, and the rig's fare run charged nobody the maximum fare. The old cluster lost 1,600 gate reports, 0.015% of a day's, and the dashboards never showed a gap. When k2 came back at 17:52:00, its log had no truncating lines.",
+    "senior": "Each setting closes one way the night lost taps. acks = all with min.insync.replicas = 2 means a tap is accepted only when two brokers have it. No unclean election means an out-of-date copy can never lead. Gates that block keep a tap until it is accepted, and fail loudly instead of quietly. The third copy keeps the line open: with only two copies, the same settings shut 8 of 12 partitions until k2 came back. The cost is a few seconds of waiting at the gates when a broker struggles, and a cluster to run. Gate reports keep the cheap, lossy path, which is what Keystone's settings were for."
    },
    {
     "text": "Have every gate write its tap to the fare database first, then stream it on to the lake and the dashboards after.",
     "tone": "warn",
     "verdict": "Trade-off: safe fares, a database in every gate",
     "part2": "From Monday every gate wrote its tap to the fare database and waited for the commit before the tap went on to Tapstream. On Thursday night we replayed the rush on the test rig, and no fare was lost: k2's death cost the dashboards some taps, but the fare run read the database and charged nobody the maximum fare. Then the database team rehearsed its own failover in the same rush. The fare database stalled for 40 seconds from 17:46:00, and every gate in the city waited with it: 9,600 taps held, the longest for 40 seconds. Nothing was lost. But the database's on-call engineer is now paged for the gates, and the gates now wait on the database at its busiest hour of the day.",
-    "senior": "Writing the money record first, to a store built for it, is honest and it works: no fare depended on the brokers. The price is that the database sits in every rider's path at the busiest hour, so its slow moments and failovers become waits at the gates, and the stream still needs its own fix if the lake and dashboards matter. A durable Kafka path gives fares the same promise with the database off the gate path. Choose this when you already trust the database more than the stream."
+    "senior": "Writing the money record first, to a store built for it, is honest and it works: no fare depended on the brokers. The price is that the database sits in every rider's path at the busiest hour. Its slow moments and failovers, when a spare takes over, become waits at the gates. And the stream still needs its own fix if the lake and dashboards matter. A durable Kafka path, one set up so an accepted tap survives a broker dying, gives fares the same promise with the database off the gate path. Choose this when you already trust the database more than the stream."
    }
   ]
  },
@@ -271,15 +284,15 @@
   "steps": [
    {
     "title": "Keystone, as Netflix drew it.",
-    "text": "Netflix's first pipeline was Chukwa writing events to S3 for batch processing on Hadoop, up to 10 minutes behind. Keystone, live from December 2015, puts Kafka in front: producers in almost every application write to fronting Kafka clusters, which collect and buffer, and a router built on Samza moves the events to sinks: S3, Elasticsearch, and consumer Kafka clusters for real-time readers. In 2016 that was about 500 billion events a day, on 36 clusters of more than 4,000 brokers. Tapstream is the same shape at city size: gates, a fronting cluster, a router and three sinks."
+    "text": "Netflix's first pipeline was Chukwa. It wrote events to S3, Amazon's file storage, for batch processing on Hadoop: big scheduled runs over many files at once, up to 10 minutes behind. Keystone, live from December 2015, puts Kafka in front, and works in steps. First, producers in almost every application write to fronting Kafka clusters, which collect the events and hold them, a buffer. Then a router built on Samza, a tool for reading and writing Kafka streams, moves the events to sinks, the places they end up. Those are S3, Elasticsearch (a search store), and consumer Kafka clusters for real-time readers, ones that want each event within the minute. In 2016 that was about 500 billion events a day, on 36 clusters of more than 4,000 brokers. Tapstream is the same shape at city size: gates, a fronting cluster, a router and three sinks."
    },
    {
     "title": "Netflix chose loss, and said so.",
-    "text": "The April post says lossless delivery at its volume was \"cost prohibitive in AWS EC2\", so Netflix agreed an acceptable loss with the teams that depend on the pipeline, under 0.01% a day, and measures it. A producer that can't deliver after retries drops the message \"to ensure the availability of the application and good user experience\": a stalled app is worse than a lost viewing event. That is at most once, by design, and it is why the post lists acks = 1, block.on.buffer.full = false and unclean.leader.election.enable = true, with two copies of each partition."
+    "text": "The April post says lossless delivery at its volume was \"cost prohibitive in AWS EC2\", so Netflix agreed an acceptable loss with the teams that depend on the pipeline, under 0.01% a day, and measures it. A producer that can't deliver after retries drops the message \"to ensure the availability of the application and good user experience\": a stalled app is worse than a lost viewing event. That is at most once (never twice, sometimes never), by design, and it is why the post lists acks = 1, block.on.buffer.full = false and unclean.leader.election.enable = true, with two copies of each partition."
    },
    {
     "title": "The night, setting by setting.",
-    "text": "At 17:45:20 k3 stopped copying k2's 4 partitions. With acks = 1, k2 kept accepting their taps, 80 a second, on its own copy. At 17:46:00 k2 died; for 12 seconds those partitions had no leader, the gates' 720 buffer places were full by 17:46:09, and 240 taps were dropped. At 17:46:12 unclean election made k3 leader, 40 seconds behind, and the 3,200 taps k2 had accepted since 17:45:20 were cut; k2 truncated them when it came back. 3,440 riders were charged the maximum fare, 1,720 of them for exits with no entry."
+    "text": "Here is the night, step by step. First, at 17:45:20 k3 stopped copying k2's 4 partitions. With acks = 1, k2 kept accepting their taps, 80 a second, on its own copy. Next, at 17:46:00 k2 died. For 12 seconds those partitions had no leader. The gates' 720 buffer places, the spaces for taps waiting to be sent, were full by 17:46:09, and 240 taps were dropped. Then, at 17:46:12, unclean election made k3 leader, 40 seconds behind. The 3,200 taps k2 had accepted since 17:45:20 were cut: when k2 came back, it truncated them, cutting them off its log to match k3. 3,440 riders were charged the maximum fare, 1,720 of them for exits with no entry."
    },
    {
     "title": "One setting alone isn't enough.",
@@ -287,7 +300,7 @@
    },
    {
     "title": "The third copy keeps the door open.",
-    "text": "min.insync.replicas = 2 refuses writes when fewer than two copies are in sync. With replication factor 2, losing one broker leaves one copy of every partition that had a copy on it: 8 of 12 partitions shut until 17:52:00, and 51,200 taps failed loudly into the gates' journals. With replication factor 3, one broker down leaves two, so writes go on: 5,280 taps waited, the longest 30 seconds, and none were lost or failed."
+    "text": "min.insync.replicas = 2 refuses writes when fewer than two copies are in sync. With replication factor 2, two copies of each partition, losing one broker leaves one copy of every partition that had a copy on it: 8 of 12 partitions shut until 17:52:00, and 51,200 taps failed loudly into the gates' journals. With replication factor 3, one broker down leaves two, so writes go on: 5,280 taps waited, the longest 30 seconds, and none were lost or failed."
    }
   ],
   "diagram": {
@@ -441,7 +454,7 @@
   "caption": "The fix, drawn as two paths. Fares go to a cluster of their own with replication factor 3, min.insync.replicas = 2, acks = all and no unclean election, from gates that block and fail loudly instead of dropping. On the replayed night that path lost nothing; 5,280 taps waited, the longest 30 seconds. The gate reports keep Keystone's settings on the old cluster and lost 1,600 of a day's 10,368,000, 0.015%, which harms nobody.",
   "fix": {
    "title": "The fix: a durable path for fares, the lossy one for telemetry",
-   "text": "Give fares their own cluster and topic: replication factor 3, min.insync.replicas = 2 and unclean.leader.election.enable = false, with the gates producing at acks = all. Make the gates' producers wait instead of dropping. In today's Kafka block.on.buffer.full is gone: when the buffer is full, send() blocks for up to max.block.ms and then fails with an exception, so set a bound you can live with and have the gate catch the failure, keep the tap in its own journal and raise a fault. Spread the three copies over three racks or zones so one failure takes only one. Leave the gate reports and similar telemetry on the cheap path, and measure what it loses, as Netflix does."
+   "text": "Give fares their own cluster and topic, a named stream: replication factor 3, min.insync.replicas = 2 and unclean.leader.election.enable = false, with the gates producing at acks = all. Make the gates' producers wait instead of dropping. In today's Kafka block.on.buffer.full is gone. Instead it works in steps: when the buffer is full, send(), the call that hands a tap over, waits for up to max.block.ms. Then it fails with an exception, an error the code can catch. So set a wait you can live with, and have the gate catch the failure, keep the tap in its own journal and raise a fault. Spread the three copies over three racks or zones, groups of machines that can fail together, so one failure takes only one. Leave the gate reports and similar telemetry, data about how the system is working, on the cheap path, and measure what it loses, as Netflix does."
   },
   "limits": [
    "Durability costs availability. With two in-sync copies required, a partition that can't find two refuses writes: at replication factor 2 that shut 8 of 12 partitions for six minutes. Even at 3, two brokers lost together shut partitions, so put the copies in three racks or zones.",
@@ -456,7 +469,7 @@
    ],
    "rows": [
     [
-     "As copied: acks 1, RF 2, unclean on, gates drop",
+     "As copied: acks 1, RF (replication factor) 2, unclean on, gates drop",
      "Gates never wait long. Cheap to run.",
      "3,440 taps lost on the night: 3,440 riders at the maximum fare."
     ],
@@ -496,7 +509,7 @@
   "realWorld": [
    {
     "title": "Netflix, February 2016: from Chukwa to Keystone",
-    "text": "\"Our new Keystone data pipeline went live in December of 2015.\" Before it, \"Chukwa collects events and writes them to S3 in Hadoop sequence file format\" for batch jobs, and \"End-to-end latency is up to 10 minutes.\" The pipeline carried \"~500 billion events and ~1.3 PB per day\" and \"~8 million events and ~24 GB per second during peak hours\". Note that \"operational metrics don't flow through this data pipeline\"; they go to a separate system, Atlas.",
+    "text": "\"Our new Keystone data pipeline went live in December of 2015.\" Before it, \"Chukwa collects events and writes them to S3 in Hadoop sequence file format\" for batch jobs (Hadoop is software for big scheduled runs over many files), and \"End-to-end latency is up to 10 minutes.\" The pipeline carried \"~500 billion events and ~1.3 PB per day\" (a PB, petabyte, is a million gigabytes) and \"~8 million events and ~24 GB per second during peak hours\". Note that \"operational metrics don't flow through this data pipeline\"; they go to a separate system, Atlas (Netflix's tool for numbers about how its systems are running).",
     "source": 0
    },
    {
@@ -506,7 +519,7 @@
    },
    {
     "title": "Netflix, April 2016: fronting and consumer clusters",
-    "text": "\"We have two sets of Kafka clusters in Keystone pipeline: Fronting Kafka and Consumer Kafka.\" Fronting clusters take messages from \"virtually every application instance in Netflix\"; consumer clusters \"contain a subset of topics routed by Samza for real-time consumers\". \"We currently operate 36 Kafka clusters consisting of 4,000+ broker instances\", 24 fronting and 12 consumer, both at replication factor 2, and \"More than 700 billion messages are ingested on an average day.\" Applications may not read from the fronting clusters, \"to make sure they have predictable load\".",
+    "text": "\"We have two sets of Kafka clusters in Keystone pipeline: Fronting Kafka and Consumer Kafka.\" Fronting clusters take messages from \"virtually every application instance in Netflix\"; consumer clusters \"contain a subset of topics routed by Samza for real-time consumers\" (topics are named streams; Samza is the router's software). \"We currently operate 36 Kafka clusters consisting of 4,000+ broker instances\", 24 fronting and 12 consumer, both at replication factor 2, and \"More than 700 billion messages are ingested on an average day.\" Applications may not read from the fronting clusters, \"to make sure they have predictable load\".",
     "source": 1
    },
    {
@@ -516,7 +529,7 @@
    },
    {
     "title": "Netflix, April 2016: the three settings",
-    "text": "\"In case a message cannot be delivered after retries, it will be dropped by the producer to ensure the availability of the application and good user experience. This is why we have chosen the following configuration for our producer and broker: acks = 1, block.on.buffer.full = false, unclean.leader.election.enable = true.\" Also: \"For greater flexibility, the producers do not use keyed messages.\"",
+    "text": "\"In case a message cannot be delivered after retries, it will be dropped by the producer to ensure the availability of the application and good user experience. This is why we have chosen the following configuration for our producer and broker: acks = 1, block.on.buffer.full = false, unclean.leader.election.enable = true.\" Also: \"For greater flexibility, the producers do not use keyed messages.\" (Without a key, a message can go to any partition.)",
     "source": 1
    },
    {
@@ -526,7 +539,7 @@
    },
    {
     "title": "Netflix, April 2016: one replica, for topics that can lose",
-    "text": "\"For topics that can accept minor loss, we are considering using one replica. Without replication, we not only save huge on bandwidth, but also minimize the state changes that have to depend on the controller.\" The post names the cost: \"The downside is the potential message loss when a broker goes away.\" Its standby failover clusters were already built with \"replication factor 1\".",
+    "text": "\"For topics that can accept minor loss, we are considering using one replica. Without replication, we not only save huge on bandwidth, but also minimize the state changes that have to depend on the controller.\" (The controller is the part of Kafka that tracks live brokers and picks leaders.) The post names the cost: \"The downside is the potential message loss when a broker goes away.\" Its standby failover clusters were already built with \"replication factor 1\".",
     "source": 1
    },
    {
@@ -561,7 +574,7 @@
     "How do you choose between availability and durability in Kafka?",
     "When is losing data acceptable?"
    ],
-   "answer": "Start with the streams and what one lost message costs in each. Producers in every service, or a REST endpoint for those that can't run a client, write to a fronting Kafka cluster that only collects and buffers and that nobody reads directly; a router fans topics out to sinks, object storage for batch, a search index, consumer clusters for real-time readers, so a slow sink is absorbed by the buffer. Size it by events and bytes a second at peak. Then set durability per stream. For telemetry: acks = 1, two copies, drop rather than stall the app, and measure the loss against a target. For money and anything a person relies on: acks = all, replication factor 3, min.insync.replicas = 2, unclean leader election off, and producers that block or fail loudly and keep the message. Each durable setting turns a possible loss into a wait or a refused write; that is the availability you pay. Losing data is acceptable when the owners agree, the rate is measured, and no single message matters, as with Netflix's under 0.01% a day of viewing and diagnostic events."
+   "answer": "Start with the streams and what one lost message costs in each. Producers in every service write to a fronting Kafka cluster that only collects and buffers and that nobody reads directly. Services that can't run Kafka's own code send to a REST endpoint instead, a web address that passes messages on. A router fans topics out to sinks: file storage for batch runs, a search index, consumer clusters for real-time readers. So a slow sink is absorbed by the buffer. Size it by events and bytes a second at peak. Then set durability per stream. For telemetry, data about how systems are running: acks = 1, two copies, drop rather than stall the app, and measure the loss against a target. For money and anything a person relies on: acks = all, replication factor 3, min.insync.replicas = 2, unclean leader election off, and producers that block or fail loudly and keep the message. Each durable setting turns a possible loss into a wait or a refused write; that is the availability you pay. Losing data is acceptable when the owners agree, the rate is measured, and no single message matters, as with Netflix's under 0.01% a day of viewing and diagnostic events."
   }
  },
  "terms": [
@@ -655,7 +668,7 @@
   },
   {
    "term": "Consumer Kafka",
-   "def": "Keystone's Kafka clusters that hold a subset of topics, routed to them by Samza, for real-time readers."
+   "def": "Keystone's Kafka clusters that hold some of the topics, the named streams, copied there by the router, for readers that want each event within a minute."
   },
   {
    "term": "Router (routing service)",
@@ -667,15 +680,15 @@
   },
   {
    "term": "Samza",
-   "def": "Apache Samza, open-source stream-processing software that reads from and writes to Kafka. Keystone's routing jobs ran on it."
+   "def": "Apache Samza, free software for programs that read a stream of messages from Kafka, work on each one, and write results back. Keystone's routing jobs ran on it."
   },
   {
    "term": "S3",
-   "def": "Amazon S3, Amazon's object storage service. Chukwa and Keystone wrote events there for batch processing."
+   "def": "Amazon S3, Amazon's service for storing files of any size, cheaply and safely. Chukwa and Keystone wrote events there for batch processing."
   },
   {
    "term": "Sequence file (Hadoop)",
-   "def": "A file format Hadoop uses to store many records as key and value pairs in one file."
+   "def": "A file layout Hadoop uses to store many records in one file, each as a label and its contents, like a box of index cards."
   },
   {
    "term": "PB (petabyte)",
@@ -687,7 +700,7 @@
   },
   {
    "term": "REST endpoint",
-   "def": "A web address a program can send requests to over HTTP. Netflix's non-Java applications sent events to Keystone's, which relayed them to fronting Kafka."
+   "def": "A web address a program can send requests to over HTTP, the web's request language. Netflix's apps that couldn't run Kafka's code sent events to Keystone's, which passed them on to fronting Kafka."
   },
   {
    "term": "Controller (Kafka)",
@@ -695,11 +708,11 @@
   },
   {
    "term": "Hive",
-   "def": "Software that lets people query large files on Hadoop with SQL. Netflix's batch jobs read events from Hive tables."
+   "def": "Software that lets people ask questions of huge sets of files on Hadoop in SQL, the usual language for asking a database. Netflix's batch jobs read events from Hive tables."
   },
   {
    "term": "AWS EC2",
-   "def": "Amazon's service for renting virtual servers. Netflix ran its Kafka brokers on it."
+   "def": "Amazon's service for renting servers by the hour; each is a share of a bigger machine. Netflix ran its Kafka brokers on it."
   },
   {
    "term": "Producer (Kafka)",
@@ -819,10 +832,10 @@
   },
   {
    "term": "PI1.3 (SOC 2)",
-   "def": "The processing integrity criterion in the AICPA's 2017 Trust Services Criteria about system processing being complete, accurate and timely as authorized."
+   "def": "A SOC 2 audit rule, from the AICPA's 2017 Trust Services Criteria: a system's processing must be complete, accurate and on time, as authorized. In plain terms, nothing dropped, nothing wrong, nothing late."
   }
  ],
- "atWork": "Picture a common incident: a payments team needs an event stream for transactions and reuses the topic settings, producer library and cluster the logging team built for application logs, where acks = 1, two copies and unclean leader election were chosen so that a slow broker never stalls an app. A broker fails during a sale, and some payments the customer saw confirmed never reach the ledger. Look for the same in your systems. With read-only access, list each topic's replication factor, min.insync.replicas and unclean.leader.election.enable, each producer's acks, and what its code does when send() fails: drop, retry, or keep the message and raise an alarm. Mark which topics carry money, orders or anything a person relies on, and check that they are on durable settings; check that the lossy ones have a measured loss rate their owners agreed to. If your company is pursuing a SOC 2 report with processing integrity in scope, criterion PI1.3 covers system processing being complete, accurate and timely as authorized, and for records like fare taps, a replayed broker failure that loses nothing and a nightly count of unpaired records are the kind of evidence an auditor asks for. Build them in now rather than at audit time.",
+ "atWork": "Picture a common incident. A payments team needs an event stream for transactions. It reuses the topic settings, producer code and cluster the logging team built for application logs. There, acks = 1, two copies and unclean leader election were chosen so that a slow broker never stalls an app. A broker fails during a sale, and some payments the customer saw confirmed never reach the ledger, the company's record of money in and out. Look for the same in your systems. With read-only access, list each topic's replication factor, min.insync.replicas and unclean.leader.election.enable, each producer's acks, and what its code does when send() fails: drop, retry, or keep the message and raise an alarm. Mark which topics carry money, orders or anything a person relies on, and check that they are on durable settings; check that the lossy ones have a measured loss rate their owners agreed to. If your company is pursuing a SOC 2 report, an audit of how it keeps systems safe and correct, with processing integrity in scope, criterion PI1.3 covers system processing being complete, accurate and timely as authorized, and for records like fare taps, a replayed broker failure that loses nothing and a nightly count of unpaired records are the kind of evidence an auditor asks for. Build them in now rather than at audit time.",
  "board": {
   "cards": [
    {
@@ -957,7 +970,7 @@
      ]
     }
    ],
-   "model": "Not on those settings. acks = 1 means a message counts as accepted when the leader alone has it, so if that broker dies before a follower copies it, it's gone; with unclean leader election on, an out-of-date copy can be made leader and every message it lacks is truncated; and producers that drop after retries lose messages quietly. Give payments their own topic, or their own cluster, with replication factor 3, min.insync.replicas = 2, unclean leader election off, and producers using acks = all. Make the producers block rather than drop, and when a send still fails, fail loudly: keep the transaction, raise an alarm and send it later. Keep the logs on the cheap path, where an agreed, measured loss is fine. The cost is some waiting when a broker struggles, and a third copy of everything."
+   "model": "Not on those settings. acks = 1 means a message counts as accepted when the leader alone has it. If that broker dies before a follower copies it, it's gone. With unclean leader election on, an out-of-date copy can be made leader, and every message it lacks is truncated, cut off. And producers that drop after retries lose messages quietly. Give payments their own topic, or their own cluster, with replication factor 3, min.insync.replicas = 2, unclean leader election off, and producers using acks = all. Make the producers block rather than drop, and when a send still fails, fail loudly: keep the transaction, raise an alarm and send it later. Keep the logs on the cheap path, where an agreed, measured loss is fine. The cost is some waiting when a broker struggles, and a third copy of everything."
   },
   {
    "id": "s4e16-r2",
@@ -1078,7 +1091,7 @@
     ]
    }
   ],
-  "model": "The cluster never saw them. The web service answered 202 Accepted as soon as a tap reached its memory, before Kafka had it, and the redeploy at 08:10 threw away whatever it was still holding: the same fire and forget the gates used to have, moved one hop along. Netflix's posts have the same shape, REST endpoints that relay messages to fronting Kafka, and for their events that's fine. For fares, make the service answer only after the fare cluster has acknowledged the tap with acks = all, and return an error the reader can see when it can't. Have the readers keep each tap and retry until they get that answer, with a tap id on every one so the fare run skips repeats. And drain the service before a redeploy: stop taking new taps and finish the ones in hand."
+  "model": "The cluster never saw them. The web service answered 202 Accepted, the web's received-but-not-yet-done code, as soon as a tap reached its memory, before Kafka had it. The redeploy at 08:10, replacing the running service with a new version, threw away whatever it was still holding. It's the same fire and forget the gates used to have, moved one hop along. Netflix's posts have the same shape, REST endpoints (web addresses) that relay messages to fronting Kafka, and for their events that's fine. For fares, make the service answer only after the fare cluster has acknowledged the tap with acks = all, and return an error the reader can see when it can't. Have the readers keep each tap and retry until they get that answer, with a tap id on every one so the fare run skips repeats. And drain the service before a redeploy, in two steps: first stop taking new taps, then finish the ones in hand."
  },
  "next": "Next, Two Hands, One Cup: a shared kitchen at a hostel, and race conditions, locks and atomic operations.",
  "sources": [
