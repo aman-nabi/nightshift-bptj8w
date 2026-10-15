@@ -1,0 +1,970 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version"
+ ],
+ "id": "s6e19",
+ "season": 6,
+ "n": 19,
+ "title": "Field Report: The Breaker at Scale",
+ "setting": "the Netflix TechBlog archive",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "hystrix",
+  "wrapping-every-remote-call-so-one-slow-dependency-cannot-take-the-service-down",
+  "thread-pools-as-bulkheads",
+  "circuit-breakers-that-trip-on-errors"
+ ],
+ "prerequisites": [
+  "s6e02",
+  "s6e16"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/blythewick_prep_rukmini",
+  "flair": "Field Report",
+  "age": "6h",
+  "votes": 3384,
+  "title": "I'm the night prep cook at a school-lunch kitchen. Our label printer's safety net was copied from a Netflix post from 2012. Two satay boxes from the same pot, printed 30 seconds apart, disagree about peanuts.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Rukmini, night prep cook at Blythewick Central Kitchen. We make 3,000 school lunches a night, and every box gets a label: the meal and its allergens, foods like peanuts or milk that can make some children seriously ill."
+   },
+   {
+    "t": "p",
+    "text": "The label printer doesn't know allergens itself. For each box it asks a separate program, the allergen service, for the meal's list. One question and its answer is a call. The printer starts one every third of a second, whatever the answers do: 30 in any 10 seconds. A run takes about 17 minutes."
+   },
+   {
+    "t": "p",
+    "text": "Tadeusz, our developer, copied his safety net from Ben Christensen's 2012 Netflix post, \"Introducing Hystrix for Resilience Engineering\". Hystrix is Netflix's free code for safer calls between programs."
+   },
+   {
+    "t": "p",
+    "text": "Hystrix puts each call inside a small package of code, a command. A command gives up on a slow answer after a set time, the timeout: ours is 1 second, Hystrix's default. No call waits over a second and one starts every third, so at most 3 wait at once."
+   },
+   {
+    "t": "p",
+    "text": "Around the command sits a breaker, named after the fuse-box switch that cuts one circuit before it burns the house (see The Breaker Box). It watches the last 10 seconds. If at least 20 calls finished and half or more failed, it opens: for 5 seconds, no calls go out."
+   },
+   {
+    "t": "p",
+    "text": "Then it lets one test call through. Answered in time, the breaker closes and counts afresh. Failed, it stays open 5 seconds more. Hystrix's defaults again."
+   },
+   {
+    "t": "p",
+    "text": "When a call fails, or the breaker is open, the command hands back a stand-in answer, the fallback. Hystrix's How To Use page calls \"returning an empty response\" Fail Silent. Tadeusz chose it, an empty list, as you might for a list of suggestions."
+   },
+   {
+    "t": "p",
+    "text": "The command in Java, our printer's programming language: run() makes the call, getFallback() is the stand-in, the last line holds the settings (ms: thousandths of a second)."
+   },
+   {
+    "t": "log",
+    "text": "class AllergensFor extends HystrixCommand<List<String>> {\n  List<String> run() { return allergenService.lookup(meal); }\n  List<String> getFallback() { return Collections.emptyList(); }\n}\n// timeout 1000 ms; breaker: 20 calls, 50%, open 5000 ms"
+   },
+   {
+    "t": "p",
+    "text": "The allergen service keeps its records in a database, an organised store, and backs it up, copying every record somewhere safe, from 01:30 to 01:36 nightly. It has for a year. Our run starts at 03:00, so they never met; Tadeusz's log shows the breaker never opened. Tonight a sports day needed an early delivery, so I started at 01:20."
+   },
+   {
+    "t": "p",
+    "text": "Nothing beeped. The run finished at 01:36:39. At 04:10, packing satay into crates, I saw two lids disagree. Their labels, timed from the printer's log: time, box, meal, allergens."
+   },
+   {
+    "t": "log",
+    "text": "01:30:00  #1802  peanut satay  allergens: peanuts, soya\n01:30:30  #1892  peanut satay  allergens: none"
+   },
+   {
+    "t": "beat",
+    "text": "Same pot. Same printer. Thirty seconds apart."
+   },
+   {
+    "t": "p",
+    "text": "Of 600 satay labels, 101 say peanuts, 499 none. The backup slows about 60% of answers to 2 seconds, not all. So from 01:30:08 the breaker opened, a lucky test call closed it, it opened again: 39 times in six minutes. With the bean chilli, 903 labels say 'allergens: none'. We relabelled the 903 by hand before the 06:00 vans; nobody was hurt."
+   },
+   {
+    "t": "evidence",
+    "label": "breaker_0129_0131.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "01:29:50 to 01:31:00. The backup starts at 01:30:00. The breaker is closed until 01:30:08, then open, with failed one-second test calls at 01:30:13, 01:30:19 and 01:30:25, until a test call is answered at 01:30:31 and it closes. It opens again at about 01:30:39, with failed tests at about 01:30:44 and 01:30:50. Satay box 1802, printed at 01:30:00 from a real answer, says peanuts, soya. Satay box 1892, printed at 01:30:30 while the breaker is open, says allergens: none.",
+     "start": "01:29:50",
+     "seconds": 70,
+     "ticksEvery": 10,
+     "rows": [
+      {
+       "label": "Backup",
+       "segments": [
+        [
+         10,
+         70,
+         "warn"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         10,
+         "not yet"
+        ]
+       ]
+      },
+      {
+       "label": "Breaker",
+       "segments": [
+        [
+         0,
+         18,
+         "ok"
+        ],
+        [
+         18,
+         23,
+         "bad"
+        ],
+        [
+         23,
+         24,
+         "warn"
+        ],
+        [
+         24,
+         29,
+         "bad"
+        ],
+        [
+         29,
+         30,
+         "warn"
+        ],
+        [
+         30,
+         35,
+         "bad"
+        ],
+        [
+         35,
+         36,
+         "warn"
+        ],
+        [
+         36,
+         41,
+         "bad"
+        ],
+        [
+         41,
+         49,
+         "ok"
+        ],
+        [
+         49,
+         54,
+         "bad"
+        ],
+        [
+         54,
+         55,
+         "warn"
+        ],
+        [
+         55,
+         60,
+         "bad"
+        ],
+        [
+         60,
+         61,
+         "warn"
+        ],
+        [
+         61,
+         66,
+         "bad"
+        ],
+        [
+         66,
+         67,
+         "warn"
+        ],
+        [
+         67,
+         70,
+         "bad"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 10,
+       "label": "#1802 peanuts",
+       "tone": "ok"
+      },
+      {
+       "t": 40,
+       "label": "#1892 none",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Redrawn from the printer's log, to the nearest second. Green is closed, red is open, amber is a test call. Box #1802 was asked at 01:30:00, its answer was one of the fast ones, and it printed the real list. Box #1892 was asked at 01:30:30, while the breaker was open, so no call went out and the fallback printed 'allergens: none'. The pattern went on until just after 01:36."
+   },
+   {
+    "t": "p",
+    "text": "Everything did its job: the breaker opened when it should, and the fallback answered when the real answer couldn't. Another early delivery is due next month. What should we change?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 138,
+   "age": "5h",
+   "text": "One more piece of Hystrix first. A thread is a helper inside a program that does one job at a time. Hystrix gives each outside service a few threads of its own, so one slow service can only tie up its own; Hystrix's own help pages count that among its 'bulkhead' patterns, after the walls that keep one leak from flooding a whole ship. Now your log. How many threads does the allergen command have, and what does Hystrix do with a call when they're all busy? At 01:30:08, who learned the breaker had opened, and how? And on a label, what does an empty list say to the person reading it?",
+   "replies": [
+    {
+     "author": "u/blythewick_prep_rukmini",
+     "op": true,
+     "points": 49,
+     "age": "4h",
+     "text": "Tadeusz gave the allergen command 3 threads, since no more than 3 calls ever wait at once; he says Hystrix turns a call away at once when all its threads are busy, and that takes the fallback too. Nobody learned anything at 01:30:08. The breaker opening only goes in the log, and the fallback is silent by design. I learned at 04:10, with a satay box in each hand."
+    }
+   ]
+  },
+  {
+   "author": "u/last_good_list_oddvar",
+   "points": 91,
+   "age": "5h",
+   "text": "A stale answer beats no answer. Keep a cache, a saved copy, of each recipe's last good allergen list, saved after every run, and make that the fallback. Satay had peanuts yesterday and it has peanuts tonight; recipes don't change between 01:30 and 01:36. You'd have printed 3,000 right labels and still finished at 01:36."
+  },
+  {
+   "author": "u/five_seconds_mahlon",
+   "points": 62,
+   "age": "4h",
+   "text": "The timeout is your bug. One second is Hystrix's default, not a law. Your slow answers took 2 seconds; they weren't failures, they were answers. Give the call 5 seconds and every one of them counts as good, the breaker stays shut, and the fallback never runs."
+  }
+ ],
+ "reply": {
+  "prompt": "Another early run is due next month, and the backup still runs at 01:30. What should Tadeusz change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Raise the allergen call's timeout to 5 s, so the slow answers count as good ones.",
+    "tone": "bad",
+    "verdict": "The threads fill instead",
+    "part2": "Tadeusz set the timeout to 5 seconds and we replayed tonight in the sim. The breaker opened just once, at 01:34:06. But each slow answer now held one of the command's 3 threads for 2 seconds, and they filled. Hystrix turned 339 calls away at once, and a turned-away call takes the fallback just like a timed-out one: 359 labels still said 'allergens: none'. Then we tried a longer backup, with slow answers taking 6 seconds: 1,047 'allergens: none' and 33 openings. Mahlon was right that the slow answers weren't failures. The timeout only decides which calls count as failed; it never decided what a failed call prints.",
+    "senior": "A timeout is a guess at how long a good answer takes, and stretching it to fit tonight moves the failure rather than removing it. Longer waits hold threads longer, so a fixed bulkhead fills and Hystrix rejects calls, which run the same fallback. A slower night will beat whatever number you pick. The fault was never the breaker tripping; it was printing a guess on a safety label."
+   },
+   {
+    "text": "When the breaker opens, stop printing and alert the cook; never print a guess.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Tadeusz took the fallback out of the allergen command. A failed call is now an error, which Hystrix's How To Use page calls Fail Fast, and the printer holds that box's label back instead of printing it. When the breaker opens, the printer stops and sends a text to the night cook's phone. We replayed tonight in the sim. The text reached me at 01:30:08. The printer stopped 39 times as the breaker flapped, held back 274 labels whose calls timed out, and asked for those again once the run was through and the backup was over. The last label printed at 01:41:40, five minutes later than tonight, and none of the 3,000 was wrong. The vans leave at 06:00. While the breaker was open the allergen service got no calls from us at all, so it was protected as before; the difference is that a failure is now loud.",
+    "senior": "Choose a fallback by asking what a wrong answer costs. For suggestions an empty list is harmless; on an allergen label a guess is the worst outcome, worse than a late label. So the right fallback here is none: fail fast, hold the item, and tell a person. The breaker keeps its real job, sparing a struggling service and keeping the printer from waiting, and a stop is loud where the fallback was silent. The cost is time: plan slack into the run, and keep early runs clear of the backup where you can."
+   },
+   {
+    "text": "Use each recipe's last known allergens as the fallback, instead of an empty list.",
+    "tone": "bad",
+    "verdict": "Right until a recipe changes",
+    "part2": "Tadeusz saved each recipe's allergens at the end of every run and made them the fallback. Replayed in the sim with tonight's numbers: 0 wrong labels, finished at 01:36:39. Oddvar was right about tonight. Then we ran the sim's other night, the one where the bean chilli gets a sesame topping that day. The saved list still says 'celery', from the last run before the change. 404 chilli labels printed 'allergens: celery', with no sesame, and nothing about them looked wrong. An empty list at least looked odd to someone packing; a stale list looks exactly like a real answer.",
+    "senior": "A saved answer is right only while the thing it describes hasn't changed, and the label can't say which it is. Stale safety data is worse than missing data because it passes every check by eye. Caching the last good answer is a fine fallback for data that is harmless when a little old, such as a list of suggestions; for allergens, the fallback must not be a guess, old or empty."
+   },
+   {
+    "text": "Remove the breaker, and let each label wait for the allergen service to answer.",
+    "tone": "warn",
+    "verdict": "Right labels, no protection",
+    "part2": "Tadeusz took out the breaker and the timeout, so each call waits for its answer, 3 at a time. Replayed tonight in the sim: 0 wrong labels. But slow answers held all 3 threads, the printer fell behind, and the last label printed at 01:38:34. Then we tried the sim's night where the allergen service takes calls and never answers. The printer printed 1,801 labels, the last at 01:30:00, and then waited, for ever, with all 3 threads stuck and nothing telling anyone. It's the pile-up from The Breaker Box, inside one printer.",
+    "senior": "Without a timeout and a breaker, the slowest service sets the pace of everything that waits on it, and a service that hangs stops it silently. Tonight that cost two minutes; the next night it costs the delivery. The breaker was never the fault; the fallback was. Keep the protection and change what a failure does."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s6e19",
+  "title": "Run the early labels through the breaker",
+  "lede": "You're Tadeusz, replaying tonight from 01:20:00, before label 1. The printer starts one call to the allergen service every third of a second, 3,000 labels, meal by meal, 600 of each: pasta bake, fish pie, egg fried rice, peanut satay (labels 1,801 to 2,400, from 01:30:00) and bean chilli. From 01:30:00 to 01:36:00 the backup makes 60% of answers take 2 seconds. Each call is a command with a 1 second timeout and 3 threads; a call that finds all 3 busy is turned away. The breaker opens when at least 20 calls in the last 10 seconds finished and half or more failed, stays open 5 seconds, then lets one test call through. Pick the run's start, how many answers the backup slows and how slow they are, the timeout, the breaker, and the fallback: an empty list, each recipe's allergens saved after the last run, or none, where the printer holds the label, stops while the breaker is open and texts the cook. Game day slows the service for the whole run, so you can watch the breaker trip on purpose. A small dashboard, a screen of live figures, shows each service the printer calls: the allergen service, and a menu service it asks for each meal's name, with its own command and threads, which the backup doesn't touch.",
+  "tryThis": "Try this: run to the end as built. From 01:30:08 the breaker opens 39 times, and 903 labels say 'allergens: none', 629 of them while it was open or testing; box #1802 at 01:30:00 says peanuts, #1892 at 01:30:30 says none. Start at 03:00: 0. Turn on game day at 03:00 and watch it open at 03:00:07. Try a 5 s timeout, then 6 s answers. Try the saved allergens with the chilli recipe changed. Try none, stop and text the cook: 0 wrong, last label 01:41:40. Then no breaker and no timeout, with answers that never come."
+ },
+ "explain": {
+  "oneLine": "Nothing glitched. The breaker did exactly its job: when the backup slowed 60% of answers, it opened 39 times in six minutes. But Hystrix runs the fallback for every failed call, timed out, turned away or blocked by an open breaker, and the fallback was an empty list, so 903 labels said 'allergens: none'. A fallback built for optional data was used for safety data. For safety data the right fallback is none: hold the label and tell a person.",
+  "steps": [
+   {
+    "title": "What each label's call was told to do.",
+    "text": "The printer starts a call every third of a second, whatever the answers are doing. Each call runs inside a Hystrix command. First the command takes one of its 3 threads; if all 3 are busy, Hystrix turns the call away at once. Then it asks the allergen service and waits. If no answer comes within the 1 second timeout, it gives up. Whenever a call fails, by timeout or by being turned away, the command returns the fallback instead of an answer. With 1 second calls and a new one every third of a second, no more than 3 are ever out, so before tonight no call was ever turned away."
+   },
+   {
+    "title": "How the breaker flapped.",
+    "text": "The breaker counts the calls that finished in the last 10 seconds. Before each call it checks: at least 20 finished, and half or more failed? Then it opens, and for 5 seconds every call is answered at once without asking. After 5 seconds it lets one test call through. From 01:30:00 the backup slowed about 60% of answers to 2 seconds, so 60% of calls timed out. By 01:30:08, 14 of the last 27 had failed, and it opened. Each test call had about a 40% chance of being answered in time. A failed test kept it open 5 seconds more; a lucky one closed it and wiped its count, and within seconds the timeouts tripped it again. That is 39 openings by 01:36."
+   },
+   {
+    "title": "Where the 903 'allergens: none' labels came from.",
+    "text": "Hystrix's own wiki lists when the fallback runs: when a request \"fails, is rejected, times-out, or short-circuits\". Both routes printed tonight. While the breaker was closed, every call that timed out, about 60% of them, printed 'allergens: none': 274 labels. While it was open, or waiting on a test call, every label got the fallback without a call being made: 15 for each 5 second open spell, 629 in all. Together, 903, all on peanut satay and bean chilli, the two meals printed between 01:30 and 01:36. The breaker made the night calmer for the allergen service; it did not change what a failure printed."
+   },
+   {
+    "title": "Why a year of nights never showed it.",
+    "text": "The backup runs from 01:30 to 01:36; the print run normally goes from 03:00 to about 03:16:40. The two never overlapped, so no call ever timed out, the breaker never opened, and the fallback never ran once. Nobody had seen it, so nobody had asked what it would print. It took one early start, at 01:20, to put ten minutes of normal labels and then six minutes of slow answers into the same run."
+   },
+   {
+    "title": "Choosing a fallback by what a wrong answer costs.",
+    "text": "First ask what the caller does with the answer. A list of suggestions can be empty and nobody is hurt; that is what Fail Silent suits. An allergen label is a safety claim, and an empty list on it reads as 'safe'. Then pick the fallback: for safety data, none. Hystrix's How To Use page calls that Fail Fast: the command throws an error, and the printer holds the label instead of printing it. Then make the failure loud: when the breaker opens, stop the printer and text the cook. Last, re-ask the held labels when the service is healthy. Tonight that prints all 3,000 correctly, the last at 01:41:40."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 300,
+   "aria": "The fix, drawn for next month. The label printer asks the allergen command for each box, a call every third of a second. The command has a 1 second timeout and 3 threads, and calls the allergen service, which backs up from 01:30 to 01:36. Below the command, the breaker counts the calls: 20 calls, half failed, open 5 seconds. When a call fails, there is no fallback: the label is held back. When the breaker opens, the night cook gets a text.",
+   "nodes": [
+    {
+     "id": "printer",
+     "label": "Label printer",
+     "sub": "a call every 1/3 s",
+     "x": 110,
+     "y": 80,
+     "w": 160,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "command",
+     "label": "Allergen command",
+     "sub": "1 s timeout",
+     "meta": "3 threads",
+     "x": 370,
+     "y": 80,
+     "w": 190,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "service",
+     "label": "Allergen service",
+     "sub": "backup 01:30 to 01:36",
+     "x": 630,
+     "y": 80,
+     "w": 180,
+     "h": 60,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "hold",
+     "label": "Hold the label",
+     "sub": "no fallback",
+     "meta": "asked again later",
+     "x": 110,
+     "y": 230,
+     "w": 160,
+     "h": 72,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "breaker",
+     "label": "Breaker",
+     "sub": "20 calls, half failed",
+     "meta": "open 5 s, then a test",
+     "x": 370,
+     "y": 230,
+     "w": 190,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "cook",
+     "label": "Night cook",
+     "sub": "texted when it opens",
+     "x": 630,
+     "y": 230,
+     "w": 180,
+     "h": 60,
+     "shape": "box",
+     "tone": "accent"
+    }
+   ],
+   "edges": [
+    {
+     "from": "printer",
+     "to": "command",
+     "label": "asks",
+     "tone": ""
+    },
+    {
+     "from": "command",
+     "to": "service",
+     "label": "call",
+     "tone": ""
+    },
+    {
+     "from": "command",
+     "to": "breaker",
+     "label": "counts",
+     "tone": "ok"
+    },
+    {
+     "from": "breaker",
+     "to": "hold",
+     "label": "hold",
+     "tone": "warn"
+    },
+    {
+     "from": "breaker",
+     "to": "cook",
+     "label": "text",
+     "tone": "warn"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for next month. The command keeps its 1 second timeout, its 3 threads and its breaker. What changes is the failure: no fallback, so a failed call holds its label back to be asked again later, and an open breaker stops the printer and texts the night cook. In the sim: 0 wrong labels, the cook texted at 01:30:08, the last label at 01:41:40.",
+  "fix": {
+   "title": "The fix: no fallback for safety data, and a loud stop",
+   "text": "Keep the protection and change what a failure does. Take the fallback out of the allergen command, so a timed-out, turned-away or short-circuited call is an error (Hystrix's Fail Fast), and have the printer hold that box's label back instead of printing anything. When the breaker opens, stop the printer and send a text to the night cook's phone, so a person knows within seconds. After the run, ask again for every held label once the service is healthy. In the sim, tonight's numbers give 0 wrong labels, a text at 01:30:08, 39 stops, 274 labels held and asked again, and the last label at 01:41:40, well before the 06:00 vans. Keep the 1 second timeout, the 3 threads and the breaker as they are: they kept the printer from waiting on a struggling service and spared the service our calls. And for early runs, check the allergen service's backup times first."
+  },
+  "limits": [
+   "A stop is only as good as the person it reaches. The text goes to one phone; if that cook is off, or the phone is silent, the printer waits and the vans are late. The alert needs a rota and a second person.",
+   "Holding labels makes the run later. Tonight it cost five minutes; a longer slow spell, or a service that never answers, can hold the whole run, so plan slack before delivery and a hand-check routine for the worst night.",
+   "The fix covers this one call. Any other call that feeds a safety label, such as a future nutrition or texture check, needs the same question asked of its fallback."
+  ],
+  "tradeoff": {
+   "head": [
+    "What we change",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Nothing (as tonight)",
+     "Finishes on time, 01:36:39; the breaker protects the allergen service.",
+     "903 labels say 'allergens: none', and nobody is told."
+    ],
+    [
+     "Timeout 5 s",
+     "Slow 2 s answers count as good; the breaker opens once.",
+     "The 3 threads fill: 339 turned away, 359 'allergens: none'. With 6 s answers, 1,047."
+    ],
+    [
+     "Last known allergens",
+     "0 wrong tonight, on time.",
+     "Wrong the day a recipe changes: 404 chilli labels without sesame, and they look right."
+    ],
+    [
+     "No breaker, no timeout",
+     "0 wrong tonight.",
+     "Two minutes late tonight; a service that never answers stops the printer for good, silently."
+    ],
+    [
+     "Never start before 01:36",
+     "Tonight's overlap can't happen.",
+     "Says nothing about a slow service at any other hour; the fallback still lies."
+    ],
+    [
+     "No fallback: hold, stop, text the cook",
+     "0 wrong labels; a person knows at 01:30:08; the service is still protected.",
+     "Last label 01:41:40; depends on the text reaching someone."
+    ]
+   ]
+  },
+  "seniorTake": "A circuit breaker protects the caller and the struggling service: it stops threads waiting on something slow and stops piling calls onto it. It does not decide whether the answer the caller gets instead is safe. That is the fallback's job, and the fallback is a product decision, not a library default. Ask what the caller does with the answer and what a wrong one costs. For a list of suggestions, an empty list is the right fallback; for a price, an allergen, a permission or a dose, the right fallback is usually none: fail fast, hold the work, and tell a person. Watch out for fallbacks that run rarely, because nobody sees what they print until the night they run hundreds of times. Bulkheads, a few threads per dependency, keep one slow service from tying up the rest; the timeout and the thread count set how fast they fill. Hystrix showed the whole kit at Netflix's scale, with a live dashboard for monitoring it released later; seeing each dependency's failures and breaker on one screen is how you spot a fallback running. Today Hystrix is in maintenance mode, and its README points new projects to Resilience4j; the questions about the fallback are the same in either.",
+  "realWorld": [
+   {
+    "title": "Netflix, 2012: what Hystrix is for",
+    "text": "Ben Christensen's post introduces Hystrix as \"a library designed to control the interactions between these distributed services providing greater tolerance of latency and failure\". It says Hystrix does this \"by isolating points of access between the services, stopping cascading failures across them, and providing fallback options\". Tadeusz copied all three parts.",
+    "source": 0
+   },
+   {
+    "title": "Netflix, 2012: the scale",
+    "text": "The post says \"tens of billions of thread-isolated and hundreds of billions of semaphore-isolated calls are executed via Hystrix every day at Netflix\". Thread-isolated calls run on a command's own threads, as the allergen calls do; a semaphore is a simple counter that limits calls running on the caller's own thread.",
+    "source": 0
+   },
+   {
+    "title": "Netflix, 2012: the dashboard was \"Coming Soon\"",
+    "text": "The 2012 post does not show a dashboard. Under \"Coming Soon\" it says: \"In the near future we will also be releasing the real-time dashboard for monitoring Hystrix as we do at Netflix\". The dashboard came later, not in this post.",
+    "source": 0
+   },
+   {
+    "title": "The Hystrix dashboard, later: deprecated",
+    "text": "The dashboard now has its own repository, whose README says: \"This is a dashboard for monitoring applications using Hystrix\", \"This project previously was a part of the Netflix/Hystrix project\", and \"It is now deprecated and no longer supported.\" The sim's small dashboard shows the same idea: one box per service the printer calls.",
+    "source": 5
+   },
+   {
+    "title": "Hystrix wiki: why every call needs isolating",
+    "text": "The wiki's home page works an example: an application that depends on 30 services, each with 99.99% uptime, has 99.99% to the power of 30, about 99.7% uptime, and it adds \"0.3% of 1 billion requests = 3,000,000 failures\" and \"2+ hours downtime/month even if all dependencies have excellent uptime.\"",
+    "source": 1
+   },
+   {
+    "title": "Hystrix wiki: bulkheads, breakers, fallbacks",
+    "text": "The same page lists how Hystrix works: \"Using isolation techniques (such as bulkhead, swimlane, and circuit breaker patterns)\", \"Maintaining a small thread-pool (or semaphore) for each dependency\", and \"Performing fallback logic when a request fails, is rejected, times-out, or short-circuits.\" The last line is why timed-out calls printed 'allergens: none' as well.",
+    "source": 1
+   },
+   {
+    "title": "Hystrix Configuration: the defaults Tadeusz kept",
+    "text": "The Configuration page gives the defaults: execution.isolation.thread.timeoutInMilliseconds 1000; circuitBreaker.requestVolumeThreshold 20, \"the minimum number of requests in a rolling window that will trip the circuit\"; errorThresholdPercentage 50, \"at or above which the circuit should trip open\"; sleepWindowInMilliseconds 5000; a rolling window of 10000 ms. The thread pool's coreSize default is 10; Tadeusz set 3.",
+    "source": 2
+   },
+   {
+    "title": "Hystrix How To Use: Fail Fast and Fail Silent",
+    "text": "Fail Fast: \"The most basic execution is one that does a single thing and has no fallback behavior.\" \"It will throw an exception if any type of failure occurs.\" Fail Silent: \"Failing silently is the equivalent of returning an empty response or removing functionality\", \"by returning null, an empty Map, empty List, or other such responses.\" The page offers both; choosing is the caller's job.",
+    "source": 3
+   },
+   {
+    "title": "Hystrix today: maintenance mode, Resilience4j",
+    "text": "The README: \"Hystrix is no longer in active development, and is currently in maintenance mode.\" Netflix says it will keep using Hystrix for existing applications \"and to leverage open and active projects like resilience4j for new internal projects\", adding: \"We are beginning to recommend others do the same.\"",
+    "source": 4
+   }
+  ],
+  "interview": {
+   "asked": [
+    "What does a circuit breaker protect?",
+    "When is a fallback dangerous?",
+    "Hystrix or Resilience4j today, and why?"
+   ],
+   "answer": "A circuit breaker protects the caller and the service it calls. When too many recent calls fail, for Hystrix's defaults at least 20 in 10 seconds with half or more failed, it opens and stops sending calls for a while, so the caller's threads aren't tied up waiting and the struggling service isn't buried under more work; then it tests with one call before closing. It pairs with a timeout, which turns a slow answer into a failure, and a bulkhead, a few threads per dependency, so one slow service can only use up its own. What a breaker doesn't decide is what the caller gets instead. That's the fallback, and it's dangerous whenever a wrong answer costs more than no answer: a stale price, a missing permission, an empty allergen list that reads as 'safe'. Fallbacks also run rarely, so nobody sees what they do until a bad night runs them hundreds of times. For safety data I'd use no fallback, fail fast, hold the work and alert a person; I'd keep fallbacks like an empty list for optional data such as suggestions. On the library: Hystrix is in maintenance mode, and its README says Netflix uses resilience4j for new internal projects and recommends others do the same, so for a new Java project I'd pick Resilience4j. A story I'd tell: a school-lunch kitchen copied Hystrix's Fail Silent fallback for its allergen lookups; the first time a run overlapped the service's backup, the breaker worked perfectly and 903 labels printed 'allergens: none'."
+  }
+ },
+ "terms": [
+  {
+   "term": "Blythewick Central Kitchen",
+   "def": "The kitchen in this story. It makes 3,000 school lunches a night and labels every box with its meal and allergens."
+  },
+  {
+   "term": "Night prep cook",
+   "def": "The cook who prepares and packs food overnight. Rukmini is Blythewick's."
+  },
+  {
+   "term": "Allergen",
+   "def": "A food, like peanuts, milk, sesame or celery, that can make some people seriously ill. Food labels list the ones a meal contains."
+  },
+  {
+   "term": "Label printer",
+   "def": "The machine and its program that print each box's label. For every box it asks the allergen service for the meal's allergens."
+  },
+  {
+   "term": "Allergen service",
+   "def": "A separate program, on another computer, that looks up a meal's recipe and answers with its list of allergens."
+  },
+  {
+   "term": "Call",
+   "def": "One program asking another for something and waiting for the answer, like a phone call with one question. The printer makes 3 a second."
+  },
+  {
+   "term": "Run",
+   "def": "One night's printing of all 3,000 labels, about 17 minutes. It normally starts at 03:00; tonight at 01:20."
+  },
+  {
+   "term": "Hystrix",
+   "def": "Netflix's free Java library for making calls between services safe: each call wrapped in a command with a timeout, its own threads, a breaker and a fallback. Now in maintenance mode."
+  },
+  {
+   "term": "Library",
+   "def": "Ready-made code that programmers add to their own program instead of writing it themselves, like a kit of parts."
+  },
+  {
+   "term": "Command",
+   "def": "Hystrix's wrapper around one kind of call. It runs the call on its own threads, gives up at the timeout and returns the fallback when the call fails."
+  },
+  {
+   "term": "Timeout",
+   "def": "A limit on how long to wait for an answer before giving up. The allergen command's is 1 second, Hystrix's default."
+  },
+  {
+   "term": "Circuit breaker (software)",
+   "def": "A guard in front of calls to one service, like a fuse-box switch. After too many failures it opens and stops sending calls for a while, then tests with one call."
+  },
+  {
+   "term": "Open (breaker)",
+   "def": "The tripped state: for 5 seconds no call is sent, and every label gets the fallback (or, after the fix, the printer stops)."
+  },
+  {
+   "term": "Closed (breaker)",
+   "def": "The normal state: calls go through, and the breaker counts how many failed in the last 10 seconds."
+  },
+  {
+   "term": "Half-open (breaker)",
+   "def": "After an open spell, the breaker lets one test call through and blocks the rest until it ends. Answered, it closes; failed, it opens again."
+  },
+  {
+   "term": "Test call",
+   "def": "The one call a breaker lets through after its open spell, to see whether the service has recovered."
+  },
+  {
+   "term": "Trip",
+   "def": "A breaker switching from closed to open. Hystrix's default: at least 20 calls in 10 seconds, with half or more failed."
+  },
+  {
+   "term": "Flapping",
+   "def": "A breaker opening, closing and opening again over and over, as when a service answers some calls and not others. Tonight: 39 openings in six minutes."
+  },
+  {
+   "term": "Rolling window",
+   "def": "The most recent stretch of time a breaker counts over, moving forward as time passes. Hystrix's default is 10 seconds."
+  },
+  {
+   "term": "Fallback",
+   "def": "The stand-in answer a command returns when the real call fails, times out, is turned away or is blocked by an open breaker."
+  },
+  {
+   "term": "Fail Silent",
+   "def": "Hystrix's name for a fallback that returns an empty answer, such as an empty list, so the caller carries on as if there were nothing."
+  },
+  {
+   "term": "Fail Fast",
+   "def": "Hystrix's name for a command with no fallback: any failure becomes an error straight away, so the caller knows it has no answer."
+  },
+  {
+   "term": "Empty list",
+   "def": "A list with nothing in it. On an allergen label it prints 'allergens: none', which reads as 'safe'."
+  },
+  {
+   "term": "Thread",
+   "def": "A helper inside a program that does one job at a time, like one clerk at a counter. The allergen command has 3 of its own."
+  },
+  {
+   "term": "Thread pool",
+   "def": "A fixed set of threads kept for one kind of work. Hystrix gives each command its own; the default size is 10, and Tadeusz set 3."
+  },
+  {
+   "term": "Bulkhead",
+   "def": "A wall that splits a ship so one leak floods one part. In software, a separate small pool of threads or limit per outside service."
+  },
+  {
+   "term": "Rejected (turned away)",
+   "def": "What Hystrix does with a call when all the command's threads are busy: it fails it at once, and the fallback runs."
+  },
+  {
+   "term": "Short-circuit",
+   "def": "Hystrix's word for a call blocked by an open breaker: it is never sent, and the fallback answers at once."
+  },
+  {
+   "term": "Semaphore",
+   "def": "A simple counter that limits how many calls run at once on the caller's own thread. Hystrix offers it instead of a thread pool."
+  },
+  {
+   "term": "Database",
+   "def": "An organised store of records that a program can search and change. The allergen service keeps its recipes in one."
+  },
+  {
+   "term": "Backup",
+   "def": "Copying every record to somewhere safe, so it can be restored if lost. The allergen service's runs from 01:30 to 01:36 every night."
+  },
+  {
+   "term": "Java",
+   "def": "A common programming language. Hystrix and Resilience4j are written for it, and so is the kitchen's printer software."
+  },
+  {
+   "term": "ms",
+   "def": "Short for millisecond: a thousandth of a second. 1000 ms is 1 second."
+  },
+  {
+   "term": "Developer",
+   "def": "A person who writes and changes software. Tadeusz is the kitchen's."
+  },
+  {
+   "term": "Cache",
+   "def": "A saved copy of an answer, kept so it can be used again without asking, like a note of yesterday's prices. It can go stale."
+  },
+  {
+   "term": "Stale",
+   "def": "Out of date: a saved answer from before the thing it describes changed."
+  },
+  {
+   "term": "Last known allergens",
+   "def": "The fallback Oddvar suggests: each recipe's allergen list as saved after the last run. Right until a recipe changes."
+  },
+  {
+   "term": "Hold (a label)",
+   "def": "After the fix: not printing a box's label when its call fails, and asking again later, instead of printing a guess."
+  },
+  {
+   "term": "Cascading failure",
+   "def": "One part failing and taking others down with it, as when one slow service ties up every program that waits on it."
+  },
+  {
+   "term": "Dependency",
+   "def": "Another service a program needs to do its work. The printer has two: the allergen service and the menu service."
+  },
+  {
+   "term": "Menu service",
+   "def": "In the sim, the second service the printer calls, for the meal's name. It has its own command and threads and is not touched by the backup."
+  },
+  {
+   "term": "Dashboard",
+   "def": "A screen of live figures, such as calls, failures and breaker state for each service. Hystrix's own dashboard came after the 2012 post and is now deprecated."
+  },
+  {
+   "term": "Maintenance mode",
+   "def": "When a project's makers stop adding features and releasing new versions. Hystrix's README says it is in maintenance mode, at version 1.5.18."
+  },
+  {
+   "term": "Resilience4j",
+   "def": "A free Java library of the same protections: circuit breakers, bulkheads, retries, rate limiters and timeouts. Netflix's README points new projects to it."
+  },
+  {
+   "term": "README",
+   "def": "The front-page text of a code project, saying what it is and its status. Hystrix's says it is in maintenance mode."
+  },
+  {
+   "term": "Wiki",
+   "def": "A set of web pages anyone on a project can edit. Hystrix's documentation lives in its GitHub wiki."
+  },
+  {
+   "term": "GitHub",
+   "def": "A website where code projects are stored and shared. Hystrix and its wiki are kept there."
+  },
+  {
+   "term": "Netflix TechBlog",
+   "def": "Netflix's engineering blog. Its 2012 posts are read here via the Internet Archive."
+  },
+  {
+   "term": "Internet Archive",
+   "def": "A non-profit library that saves copies of web pages over time, so old pages can still be read."
+  },
+  {
+   "term": "Uptime",
+   "def": "The share of time a service is working. 99.99% uptime means down for one ten-thousandth of the time."
+  },
+  {
+   "term": "Game day",
+   "def": "A planned exercise where a team breaks something on purpose, here slowing one service, and watches how the system and the people respond."
+  },
+  {
+   "term": "Rota",
+   "def": "The list of who works which shift. An alert should go to whoever the rota says is on, not to one fixed phone."
+  },
+  {
+   "term": "Swimlane",
+   "def": "Another name, used on Hystrix's wiki, for keeping each kind of work in its own separate lane of resources, so trouble in one lane can't spill into the others."
+  },
+  {
+   "term": "Natasha's Law",
+   "def": "The common name for England's allergen labelling rules for food prepacked for direct sale (PPDS), as the Food Standards Agency's guidance calls them."
+  },
+  {
+   "term": "PPDS",
+   "def": "Short for prepacked for direct sale: food packed on the premises before a customer orders it. In England its allergen labelling rules are known as Natasha's Law."
+  },
+  {
+   "term": "Food Standards Agency",
+   "def": "The UK government body for food safety. It publishes the guidance on allergen labelling for PPDS food that this case links to."
+  }
+ ],
+ "atWork": "Look for fallbacks that were built for optional data and now guard data someone relies on. It is a common pattern: a library's example returns an empty list or a default, it gets copied onto a call for prices, permissions, stock, doses or allergens, and nobody notices because the fallback has never run. For each call with a fallback, ask three questions. What does the caller do with this answer, and what does a wrong one cost compared with no answer? Has this fallback ever actually run, and what did it produce? When the breaker opens, which person finds out, and how fast? Then look at the settings: does the timeout fit the slowest normal answer, and can the thread pool hold the calls that a longer timeout keeps waiting? For new Java work, Hystrix's own README now points to Resilience4j. Standards: if your kitchen or food business is in England, allergen labelling has its own law; the Food Standards Agency's guidance on prepacked for direct sale (PPDS) food covers the rules \"also known as Natasha's Law\". This case teaches the software rule, not food law: whatever the law requires on the label, a label printed from a guessed fallback is a record you can't stand behind. Keep a log of every held label, every breaker opening and every alert, and when it was answered.",
+ "board": {
+  "cards": [
+   {
+    "id": "hystrix",
+    "title": "Hystrix"
+   },
+   {
+    "id": "wrapping-every-remote-call-so-one-slow-dependency-cannot-take-the-service-down",
+    "title": "Wrap every call"
+   },
+   {
+    "id": "thread-pools-as-bulkheads",
+    "title": "Threads as bulkheads"
+   },
+   {
+    "id": "circuit-breakers-that-trip-on-errors",
+    "title": "Breakers trip on errors"
+   }
+  ],
+  "strings": [
+   {
+    "from": "hystrix",
+    "to": "circuit-breakers",
+    "label": "at Netflix scale"
+   },
+   {
+    "from": "circuit-breakers-that-trip-on-errors",
+    "to": "fallbacks",
+    "label": "silent or fast"
+   },
+   {
+    "from": "thread-pools-as-bulkheads",
+    "to": "bulkheads",
+    "label": "a pool per call"
+   },
+   {
+    "from": "wrapping-every-remote-call-so-one-slow-dependency-cannot-take-the-service-down",
+    "to": "timeouts",
+    "label": "give up in 1 s"
+   },
+   {
+    "from": "hystrix",
+    "to": "chaos-engineering",
+    "label": "game day"
+   },
+   {
+    "from": "hystrix",
+    "to": "wrapping-every-remote-call-so-one-slow-dependency-cannot-take-the-service-down",
+    "label": "one command each"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s6e19-r1",
+   "kind": "free",
+   "prompt": "Your team's pharmacy app shows drug interaction warnings by calling a drug-data service. The call is wrapped with a timeout, a breaker and a fallback that returns no results. One night the drug-data service was slow for ten minutes, and the warnings panel showed 'no known interactions' on 340 prescriptions. Nobody noticed until morning. A colleague proposes caching last week's results as the fallback. What went wrong, and what would you do?",
+   "keyIdeas": [
+    {
+     "idea": "The empty fallback looked exactly like a real answer, 'no interactions', so the failure was hidden",
+     "match": [
+      "looked like a real",
+      "looks like a real",
+      "silent",
+      "can't tell",
+      "cannot tell",
+      "reads as safe",
+      "false answer"
+     ]
+    },
+    {
+     "idea": "For safety data use no fallback: fail fast and show that the check could not be done",
+     "match": [
+      "fail fast",
+      "no fallback",
+      "show an error",
+      "could not check",
+      "couldn't check",
+      "check unavailable"
+     ]
+    },
+    {
+     "idea": "Tell a person when the breaker opens",
+     "match": [
+      "alert",
+      "notify",
+      "tell a person",
+      "tell someone",
+      "on call",
+      "on-call"
+     ]
+    },
+    {
+     "idea": "A cached copy goes stale and looks just as real when the data has changed",
+     "match": [
+      "stale",
+      "out of date",
+      "outdated",
+      "changed since",
+      "old copy"
+     ]
+    }
+   ],
+   "model": "The breaker and timeout did their job; the fallback is the problem. Returning no results made the panel say 'no known interactions', which looked like a real answer, so a failed check was silent and read as safe. Interaction warnings are safety data, so they need no fallback: fail fast, and show the pharmacist that the check could not be done for that prescription, so nobody relies on it. When the breaker opens, alert the on-call engineer and the pharmacy at once. Caching last week's results isn't the fix either: the cache goes stale when a new drug or interaction is added, and a stale warning list looks just as real as a fresh one. Keep the timeout and the breaker, and change what a failure shows."
+  },
+  {
+   "id": "s6e19-r2",
+   "kind": "mcq",
+   "prompt": "With Hystrix's default settings, when does a circuit breaker open?",
+   "options": [
+    "After 5 failed calls in a row",
+    "When at least 20 calls in a 10 second window finished and 50% or more of them failed",
+    "When any call takes longer than 5 seconds",
+    "When 20 calls are waiting at the same time"
+   ],
+   "answer": 1,
+   "why": "The Configuration page gives requestVolumeThreshold 20, errorThresholdPercentage 50 (\"at or above which the circuit should trip open\") and a 10000 ms rolling window. Then it stays open for the 5000 ms sleep window before testing one call."
+  },
+  {
+   "id": "s6e19-r3",
+   "kind": "mcq",
+   "prompt": "The breaker at Blythewick worked as designed. Why did 903 labels still say 'allergens: none'?",
+   "options": [
+    "The breaker opened too late, after the backup had finished",
+    "Hystrix runs the fallback for every failed call, timed out or short-circuited, and the fallback was an empty list",
+    "The allergen service answered with empty lists during its backup",
+    "The printer skipped the allergen service for meals it had printed before"
+   ],
+   "answer": 1,
+   "why": "The wiki says the fallback runs when a request \"fails, is rejected, times-out, or short-circuits\". 274 labels came from timed-out calls with the breaker closed and 629 from calls the open breaker blocked. The breaker changed how often the service was asked, not what a failure printed."
+  },
+  {
+   "id": "s6e19-r4",
+   "kind": "mcq",
+   "prompt": "What does the Hystrix README say about the project today?",
+   "options": [
+    "It is being rewritten as Hystrix 2 with a new dashboard",
+    "It is in maintenance mode; Netflix uses projects like resilience4j for new internal projects and recommends others do the same",
+    "It has been deleted and should not be used",
+    "It is still actively developed, with monthly releases"
+   ],
+   "answer": 1,
+   "why": "The README: \"Hystrix is no longer in active development, and is currently in maintenance mode.\" Netflix keeps it for existing applications and uses \"open and active projects like resilience4j for new internal projects\"."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The allergen command has no fallback now. A failed call holds its label back, and when the breaker opens the printer stops and texts the cook. In March, during an early run, the allergen service's backup jammed and the service answered nothing at all until 02:17. Every test call failed, the breaker stayed open, and the printer stayed stopped from 01:30:08 to 02:17, exactly as designed, then finished by itself. It sent its text to the phone number saved in its settings when Tadeusz set it up: mine. I was on holiday, asleep in another city. The night cook that week was Hroswitha, who never got it, and for 47 minutes nobody knew anything was wrong. Every label was right and the vans left on time, but only because the service came back by itself.",
+  "prompt": "Reply to OP. Why did nobody come, and how should the stop reach someone next time?",
+  "keyIdeas": [
+   {
+    "idea": "The alert went to one fixed person, not to whoever was working that night",
+    "match": [
+     "on duty",
+     "on shift",
+     "rota",
+     "whoever is working",
+     "who is working",
+     "fixed number"
+    ]
+   },
+   {
+    "idea": "If nobody answers the alert within minutes, it must go to someone else",
+    "match": [
+     "escalat",
+     "acknowledge",
+     "second person",
+     "no answer",
+     "nobody answers",
+     "backup contact"
+    ]
+   },
+   {
+    "idea": "Test the alert path regularly, not only the breaker",
+    "match": [
+     "test the alert",
+     "test it",
+     "game day",
+     "drill",
+     "practice"
+    ]
+   }
+  ],
+  "model": "The stop worked; the alert didn't reach anyone. It went to a fixed number typed in once, and people change shifts and go on holiday. Send it to whoever the rota says is on duty that night, taken from the rota each time, not one saved phone. Make it need an acknowledge: if nobody answers within five minutes, escalate to a second person, such as the kitchen manager, and then a third. And test the alert path, not just the breaker: a monthly game day that slows the allergen service on purpose before a run, with a stopwatch on how long it takes a person to reach the printer, would have found the old number in March's first week."
+ },
+ "next": "Next, Who Are You: a gated community's guard, and authentication: proving who someone is, keeping passwords safe as scrambled hashes, and asking for a second proof.",
+ "sources": [
+  {
+   "title": "Ben Christensen, Introducing Hystrix for Resilience Engineering, The Netflix Tech Blog, 26 November 2012 (a library to control interactions between distributed services; isolating points of access, stopping cascading failures, providing fallback options; tens of billions of thread-isolated and hundreds of billions of semaphore-isolated calls a day; the real-time dashboard \"Coming Soon\"), read via the Internet Archive, 15 October 2026",
+   "url": "https://web.archive.org/web/20161127110249/http://techblog.netflix.com/2012/11/hystrix.html"
+  },
+  {
+   "title": "Netflix Hystrix wiki, Home (30 services at 99.99% uptime; 3,000,000 failures per billion requests; 2+ hours downtime a month; bulkhead, swimlane and circuit breaker patterns; a small thread pool per dependency; fallback when a request fails, is rejected, times out or short-circuits), read 15 October 2026",
+   "url": "https://github.com/Netflix/Hystrix/wiki"
+  },
+  {
+   "title": "Netflix Hystrix wiki, Configuration (execution timeout 1000 ms; circuitBreaker.requestVolumeThreshold 20; errorThresholdPercentage 50; sleepWindowInMilliseconds 5000; rolling window 10000 ms; thread pool coreSize 10), read 15 October 2026",
+   "url": "https://github.com/Netflix/Hystrix/wiki/Configuration"
+  },
+  {
+   "title": "Netflix Hystrix wiki, How To Use, Common Patterns (Fail Fast; Fail Silent: null, an empty Map, empty List), read 15 October 2026",
+   "url": "https://github.com/Netflix/Hystrix/wiki/How-To-Use"
+  },
+  {
+   "title": "Netflix Hystrix README, Hystrix Status (maintenance mode at version 1.5.18; resilience4j for new internal projects), read 15 October 2026",
+   "url": "https://github.com/Netflix/Hystrix"
+  },
+  {
+   "title": "Netflix-Skunkworks hystrix-dashboard README (a dashboard for monitoring applications using Hystrix; previously part of Netflix/Hystrix; now deprecated and no longer supported), read 15 October 2026",
+   "url": "https://github.com/Netflix-Skunkworks/hystrix-dashboard"
+  },
+  {
+   "title": "Food Standards Agency, Introduction to allergen labelling for PPDS food, GOV.UK (allergen labelling for prepacked for direct sale food, also known as Natasha's Law), read 15 October 2026",
+   "url": "https://www.gov.uk/government/publications/introduction-to-allergen-labelling-for-ppds-food"
+  }
+ ]
+}
