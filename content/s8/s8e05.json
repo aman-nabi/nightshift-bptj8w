@@ -1,0 +1,784 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-16) first version"
+ ],
+ "id": "s8e05",
+ "season": 8,
+ "n": 5,
+ "title": "Never Trust the Clock",
+ "setting": "a lettings agency's midnight offer deadline",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "clock-skew",
+  "ntp",
+  "lamport",
+  "vector-clocks"
+ ],
+ "prerequisites": [
+  "s4e14",
+  "s2e14",
+  "s3e06",
+  "s8e02",
+  "s1e05"
+ ],
+ "rule": {
+  "n": 6
+ },
+ "post": {
+  "author": "u/larchmere_nights_rutendo",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 3561,
+  "title": "I'm the night negotiator at a lettings agency. The flat went to an answer that our record says was made before the offer it answered.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Rutendo, night negotiator at Larchmere Lettings. When a flat draws too many offers, we set a deadline and I watch it close. On Friday it was the top-floor flat at 12 Marlinspike Row, closing at midnight."
+   },
+   {
+    "t": "p",
+    "text": "Offers come through our website. Behind it are two computers that take each offer and keep the record. They're called servers, A and B. A sits in a rented server room across town, B in our back office. Each numbers its own offers: A-311 is A's 311th."
+   },
+   {
+    "t": "p",
+    "text": "Each server writes the time from its own clock on every offer it takes. That is a timestamp; we say stamp. The flat goes to the highest offer stamped before 00:00:00. Every offer on screen has an Answer button, which makes an offer at least €25 higher and records which offer it answers."
+   },
+   {
+    "t": "p",
+    "text": "Each line below shows the offer, who made it, the rent offered a month, the server, its stamp, the offer it answers, and our ruling:"
+   },
+   {
+    "t": "log",
+    "text": "B-207  Fleur    €1,925  B  23:59:51.1  -      counted\nA-311  Ifeanyi  €1,950  A  23:59:59.6  B-207  counted\nB-208  Fleur    €1,975  B  23:59:59.2  A-311  counted, WINS\nA-312  Ifeanyi  €2,000  A  00:00:00.7  B-208  late"
+   },
+   {
+    "t": "beat",
+    "text": "B-208 answers A-311. It is stamped 0.4 seconds before it."
+   },
+   {
+    "t": "p",
+    "text": "At 00:03 Ifeanyi rang the night line and sent a screenshot: \"Your offer is the highest. 23:59:59.6.\" Under it, the site's next alert: outbid, B-208, €1,975, 23:59:59.2. \"How did she answer my offer before I made it?\""
+   },
+   {
+    "t": "p",
+    "text": "I rang Kagiso, the contractor who looks after our computers. He checked both servers against a time server, a computer that keeps exact time. A was right. B was 900 ms behind: 900 thousandths of a second."
+   },
+   {
+    "t": "p",
+    "text": "Servers keep their clocks right by asking. Every hour each runs time sync, called NTP, short for Network Time Protocol. First it asks a time server the time. Then it allows for how long the question and answer took to travel. Then it nudges its own clock to match."
+   },
+   {
+    "t": "p",
+    "text": "B's sync log, its diary of those tries, had B within 20 ms of the time server every hour until 12:00 on Thursday 5 November, when it set B right. Every try since had failed, and nothing told anyone. Just after that sync, Kagiso had changed our office firewall, the filter that decides which network traffic may pass. It blocked B's time sync."
+   },
+   {
+    "t": "p",
+    "text": "Clocks drift: they run a little fast or slow. B's loses about 40 ms a day. From that noon to midnight on Friday is 22 and a half days: 900 ms."
+   },
+   {
+    "t": "p",
+    "text": "So, in real time: Ifeanyi's offer reached A at 23:59:59.6, and Fleur saw it at once. She tapped Answer 500 ms later, at 00:00:00.1. B's clock said 23:59:59.2. B stamped that and counted it. Ifeanyi's answer to her came at 00:00:00.7, by A's right clock: late."
+   },
+   {
+    "t": "p",
+    "text": "B had never been more than 20 ms out, and offers almost never land within a second of each other on different servers. That disagreement between two clocks is clock skew. Ours had never mattered."
+   },
+   {
+    "t": "evidence",
+    "label": "last_second_two_clocks.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Real time from 23:59:58 to 00:00:01 on Friday 27 November. Server A, whose clock was right, is open until midnight and closed after it. Server B, whose clock ran 900 ms behind, stays open until 00:00:00.9 real time, the last 0.9 seconds after midnight. Markers: A-311 reaches A at 23:59:59.6; midnight; B-208 is sent at 00:00:00.1 and stamped 23:59:59.2; A-312 is sent at 00:00:00.7 and ruled late.",
+     "start": "23:59:58",
+     "seconds": 3,
+     "ticksEvery": 1,
+     "rows": [
+      {
+       "label": "Server A",
+       "segments": [
+        [
+         0,
+         2,
+         "ok"
+        ]
+       ],
+       "gaps": [
+        [
+         2,
+         3,
+         "closed"
+        ]
+       ]
+      },
+      {
+       "label": "Server B (0.9 s slow)",
+       "segments": [
+        [
+         0,
+         2,
+         "ok"
+        ],
+        [
+         2,
+         2.9,
+         "bad"
+        ]
+       ],
+       "gaps": [
+        [
+         2.9,
+         3,
+         "shut"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 1.6,
+       "label": "A-311",
+       "tone": "warn"
+      },
+      {
+       "t": 2,
+       "label": "midnight",
+       "tone": "ok"
+      },
+      {
+       "t": 2.1,
+       "label": "B-208: 23:59:59.2",
+       "tone": "bad"
+      },
+      {
+       "t": 2.7,
+       "label": "A-312 late",
+       "tone": "warn"
+      }
+     ]
+    },
+    "caption": "Redrawn from the offer record and Kagiso's check of both clocks, Friday 27 November 2026. The axis is real time. Server A's clock was right, so it closed at midnight. Server B's clock ran 900 ms behind, so it took offers, in red, until 00:00:00.9 real time. A-311 reached A at 23:59:59.6. B-208, sent at 00:00:00.1, was stamped 23:59:59.2 by B's clock. A-312, sent at 00:00:00.7, was late by A's."
+   },
+   {
+    "t": "p",
+    "text": "I've told the landlord nothing is final yet. Our next midnight deadline is Friday 4 December. What should we change before then?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 158,
+   "age": "4h",
+   "text": "A stamp is only as right as the clock that wrote it. Before you choose, read your record, not your clocks. When Fleur tapped Answer, which offer was on her screen, and what stamp did it carry? Do your two servers tell each other what they take, and how fast? At midnight, did A tell B anything? And what is the most each server's clock could have been wrong by, and who knew that number?",
+   "replies": [
+    {
+     "author": "u/larchmere_nights_rutendo",
+     "op": true,
+     "points": 61,
+     "age": "4h",
+     "text": "Her screen showed A-311, stamped 23:59:59.6. Each server copies every offer it accepts to the other within 50 ms, so B had A-311 at 23:59:59.65. At its midnight A wrote \"window closed, 00:00:00.0\" and copied that too; B had it at 00:00:00.05. So the newest time B had seen, before B-208, was 00:00:00.0. How wrong could B have been? Kagiso says the sync log works that out after each try, but B hadn't had a good try since 5 November."
+    }
+   ]
+  },
+  {
+   "author": "u/just_sync_it_achim",
+   "points": 94,
+   "age": "4h",
+   "text": "This isn't deep. NTP keeps every clock within a few milliseconds; just make it sync more often. You sync hourly, so a bad clock has an hour to wander before anything can catch it. Sync every minute and B could never drift more than a sliver of a millisecond. One setting on each server, nothing new to build, and the applicants never notice.",
+   "replies": [
+    {
+     "author": "u/larchmere_nights_rutendo",
+     "op": true,
+     "points": 33,
+     "age": "3h",
+     "text": "Kagiso likes this one: one setting per server, ten minutes' work. The landlord has his own idea. Stamp each offer with the time on the applicant's own phone, the moment they press send. \"Their phone, their deadline.\" Failing that, he says, give everyone another minute after every late offer."
+    }
+   ]
+  },
+  {
+   "author": "u/settlement_nights_mbatha",
+   "points": 57,
+   "age": "3h",
+   "text": "I ran overnight payments for a bank, where order decides who is paid first. Every clock has a worst possible error: the furthest it could be from the real time, at most. Your sync program works it out. Hold each offer for that long before you confirm it, and by then the real time has surely passed its stamp. Google's Spanner database does this, with clocks it trusts to under 10 ms."
+  }
+ ],
+ "reply": {
+  "prompt": "The next midnight deadline is Friday 4 December. What should Larchmere change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Sync both servers' clocks every minute instead of every hour, so the gap stays small.",
+    "tone": "bad",
+    "verdict": "A smaller gap, the same flaw",
+    "part2": "On Monday 30 November Kagiso set both servers to sync every minute. In the sim, replaying 27 November with only that change: the firewall still blocks all 1,440 of B's tries a day, B is still 900 ms behind, and B-208, sent at 00:00:00.1, is stamped 23:59:59.2 and wins. So he reopened B's time sync too, and B came back to within a sliver of a millisecond. On Friday 11 December at 12:00 a new office router went in, carrying the old blocking rule, and nothing told anyone. By our deadline at midnight on Friday 18 December, 7 and a half days later, B was 300 ms behind. In the sim at 300 ms, B-208 is stamped 23:59:59.8: after A-311 now, so the record looks right, but still before midnight though it was sent after it, and Fleur still wins. That night nobody answered in the last second. Nobody noticed.",
+    "senior": "Syncing more often shrinks the gap between syncs; it never makes it zero, and it does nothing while sync is failing, which here was 22 and a half days without a sound. NTP's own estimate of the travel time limits it to milliseconds at best, and any two events closer together than the clocks' disagreement can still swap. Keep clocks synced and alarm on the sync log, because logs and people need it, but never let the order of two events on different machines rest on their wall clocks. Order them by what each machine has seen."
+   },
+   {
+    "text": "Stamp each offer with the time on the applicant's own phone, the moment they press send.",
+    "tone": "bad",
+    "verdict": "Clocks nobody controls",
+    "part2": "On Monday 30 November we switched to phone stamps: each offer carries the time on the applicant's phone when they press send. In the sim, replaying 27 November with the phones as they were, Ifeanyi's 200 ms fast and Fleur's 3 seconds slow, set by hand last spring: A-311 is stamped 23:59:59.8 and B-208 23:59:57.1, nearly three seconds before the offer it answers. Fleur still wins. On Friday 4 December an applicant for a flat on another street set his phone ten minutes back and answered at 00:07 real time. His phone said 23:57. He won. Kagiso pointed out that a phone's stamp is just a number the phone sends: anyone can change it.",
+    "senior": "Client clocks are the least trustworthy clocks in the system: users set them, travel with them, and can change them on purpose to win. A deadline enforced by a time the client supplies is no deadline. Take the time on a machine you control, and for order between machines, use what each machine has seen rather than any clock. A client's time can be kept as a note, never as the ruling."
+   },
+   {
+    "text": "Hold every offer until each server's worst possible clock error has passed, then confirm.",
+    "tone": "warn",
+    "verdict": "Trade-off: correct, and every offer waits",
+    "part2": "On Monday 30 November Kagiso set every offer to wait. B had drifted 900 ms without anyone seeing, so he trusted each clock only to 1,000 ms either way. Each offer is stamped with the latest time it could really be, then held 2,000 ms, until the real time has surely passed its stamp, before anyone sees it. In the sim, replaying 27 November: A-311 is stamped 00:00:00.6 and appears on Fleur's screen at 00:00:01.6. She answers at 00:00:02.1, stamped 00:00:02.2, after the close's stamp of 00:00:01.0: late. Ifeanyi wins at €1,950. On Friday 4 December every applicant waited two seconds to see each offer, and three rang to ask if the site was broken. And the bound must be true: in the sim, trusting clocks to 100 ms while B is 900 ms out, B-208 is stamped 23:59:59.5, before A-311, and wins again.",
+    "senior": "Waiting out the uncertainty is real and correct: Spanner's TrueTime gives every clock reading as an interval, and a commit waits until the interval has passed, so a later event always gets a later stamp. The price is the wait on every write, and the guarantee holds only while the bound is true. Google pays for GPS receivers and atomic clocks to keep that bound to a few milliseconds. With ordinary office clocks and a sync that can fail silently, the honest bound is large, so every offer waits seconds, and a wrong bound breaks it quietly."
+   },
+   {
+    "text": "Stamp each offer after the newest time its server has seen, so a reply sorts after.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "On Monday 30 November Kagiso changed how each server stamps an offer. Each server keeps the newest stamp it has seen: its own, every copy from the other server, and the offer being answered. A new offer gets the server's clock reading, unless the newest stamp seen is not earlier; then it gets that stamp plus one step. A alone closes the window, and B counts A's close as part of its record. He reopened B's time sync too, and set an alarm on the sync log. In the sim, replaying 27 November: B heard of A's close, stamped 00:00:00.0, at 00:00:00.05, so B-208 is stamped 00:00:00.0 +1: after A-311, and late. Ifeanyi wins at €1,950. Set B anywhere from 0 to 1,000 ms behind and the result doesn't move. On Friday 4 December two offers on another flat landed 300 ms apart on different servers, and the answer sorted after its question. The landlord read the replay and offered Ifeanyi the flat.",
+    "senior": "Never order events on different machines by their wall clocks. Give each machine a clock that moves forward with what it has seen: every message carries the newest time its sender has seen, and the receiver stamps its next event one step past the larger of its own time and that one. That is Lamport's rule, and a hybrid logical clock keeps the stamp close to real time by using the wall clock whenever it is ahead. Then an answer always sorts after its question, whatever the clocks say. Let one machine decide the deadline, so a machine that hasn't heard yet can't stretch it, and keep the sync working, with an alarm, for everything else."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s8e05",
+  "title": "Replay the last second on two clocks",
+  "lede": "You're Rutendo, replaying Friday 27 November 2026 from 23:59:58.0 real time, in 100 ms steps. As given data: server A's clock is right; B's is 900 ms behind, after its sync was blocked from 12:00 on Thursday 5 November, 22 and a half days at 40 ms a day. Each server copies every offer it accepts, and A's close, to the other 50 ms later. B-207, Fleur's €1,925, was sent at 23:59:52.0 and stamped 23:59:51.1. Ifeanyi sends A-311, €1,950, at 23:59:59.6 on A; Fleur answers 500 ms after it appears on her screen, €1,975 on B; Ifeanyi answers her 600 ms after hers appears, €2,000 on A. An offer counts if stamped before the close. Phones as given: Ifeanyi's 200 ms fast, Fleur's 3 seconds slow. A newest-time-seen stamp is the server's clock reading, or the newest stamp it has seen plus one step if that is not earlier. Waiting trusts each clock to a worst possible error either way, 100 or 1,000 ms, stamps each offer with the latest time it could be, and holds it twice that before confirming; the close is stamped the same way, and the replay runs past 00:00:01.0 until the last offer is ruled. The extension, the landlord's other idea, moves the close to 60 s after any counted offer in its last 60 s.",
+  "tryThis": "Try this: play it as on the night: B-208 is stamped 23:59:59.2, sorts before A-311 and wins. Set B to 300 ms: it sorts after A-311 but still counts. Sync every minute while blocked: nothing changes. Phone stamps: 23:59:57.1. Newest time seen: 00:00:00.0 +1, late, at every offset. Wait 1,000 ms either way: every offer held 2,000 ms, and Fleur's answer comes too late. Wait 100 ms: B-208 wins again. The extension: still open at 00:00:01.0, and the answer still sorts before its question."
+ },
+ "explain": {
+  "oneLine": "Nothing answered before its question. Server B's time sync had been blocked for 22 and a half days, so its clock ran 900 ms behind, and Fleur's answer, sent at 00:00:00.1, was stamped 23:59:59.2: before midnight and before the offer it answered. Stamp by what each server has seen, not by its clock, and let one server close the window.",
+  "steps": [
+   {
+    "title": "Clocks drift, and sync only narrows the gap.",
+    "text": "Every clock runs a little fast or slow; B's lost about 40 ms a day. NTP corrects it in steps. First, the machine asks a time server the time; that fails if the question can't get through, as here, where a firewall rule blocked it for 22 and a half days and nothing raised an alarm. Second, it allows for the trip by assuming the question and the answer took equal time; if one way is slower, the clock is set wrong by part of the difference. Third, it nudges its clock: usually by running it slightly fast or slow until it agrees, sometimes by jumping it, and a jump can even go backwards. Even working well, synced clocks still disagree by some milliseconds: clock skew never reaches zero. That is Rule 6: never trust the clock on the wall."
+   },
+   {
+    "title": "Ordered by the wall clock, the answer came first.",
+    "text": "Each server stamped offers by its own clock, and the rule sorted by stamp. A-311 reached A at 23:59:59.6 and A's clock was right. Fleur answered it 500 ms later, at 00:00:00.1 real time, when B's clock read 23:59:59.2. So the answer sorted 0.4 seconds before its question, and counted though it was sent after midnight; B kept taking offers until 00:00:00.9. Each server's own offer numbers didn't help: like a sequence number, A-311 orders A's offers and says nothing about B's. It never showed before because B had stayed within 20 ms, and two offers rarely land within a second on different servers."
+   },
+   {
+    "title": "Lamport's rule: what you have seen comes before what you do.",
+    "text": "Leslie Lamport's 1978 rule orders events by cause, not by clock, in three steps. First, every message carries the highest time its sender has seen. Second, the receiver keeps the highest time it has seen. Third, it stamps its next event one step past the larger of its own time and that one. So anything that could have caused an event sorts before it. A hybrid logical clock uses the wall clock as its time, and only when the newest time seen is not earlier does it stamp that time plus a step, so stamps stay close to real time. Here B had seen A's close, stamped 00:00:00.0, so B-208 became 00:00:00.0 +1: after A-311, and late. What can go wrong: a stamp only reflects what a server has heard. Had A's close reached B after Fleur's tap, B-208 would have been 23:59:59.6 +1, after A-311 but before midnight. So one server, A, decides the close."
+   },
+   {
+    "title": "Vector clocks: who could not have seen whom.",
+    "text": "A Lamport stamp says that if one event caused another, it sorts first; it can't say the reverse. Two offers that never saw each other still get an order, picked by their stamps. A vector clock, a list of counters with one per server, keeps both: each server counts its own events and takes the highest count it has seen from every other server. Compare two lists. If one is at least as high in every place, that event could have seen the other. If each is higher somewhere, neither saw the other: they were concurrent, and any order between them is a rule you chose, not something that happened. The cost is one counter per server on every record."
+   },
+   {
+    "title": "TrueTime: know how wrong each clock may be, and wait it out.",
+    "text": "Google's Spanner takes the other road. Its TrueTime gives each clock reading as an interval: the earliest and latest the real time could be. A write is stamped with the latest, and the system waits until even the earliest has passed that stamp before it confirms. Then a write that starts after another has been confirmed always gets a later stamp. It needs a bound that is true and small: Google uses GPS receivers and atomic clocks to keep it to a few milliseconds. With a 1,000 ms bound, every Larchmere offer would wait 2,000 ms; with a 100 ms bound and B 900 ms out, it fails quietly. A deadline that extends by a minute after each late offer is fairer to slow tappers, but it still sorts by wall clock, so an answer can still come before its question."
+   }
+  ],
+  "diagram": {
+   "type": "sequence",
+   "w": 740,
+   "aria": "The fix replayed for 27 November. Ifeanyi sends A-311, 1,950 euros, to server A at 23:59:59.6. A copies it to B with its stamp. B shows A-311 to Fleur. At midnight A closes the window, stamped 00:00:00.0, and copies the close to B, which hears it at 00:00:00.05. Fleur sends B-208, 1,975 euros, at 00:00:00.1. B's clock reads 23:59:59.2, but the newest time B has seen is 00:00:00.0, so B-208 is stamped 00:00:00.0 plus one step. Outcome: B-208 is late and A-311 wins.",
+   "lanes": [
+    "Ifeanyi",
+    "server A",
+    "server B",
+    "Fleur"
+   ],
+   "steps": [
+    {
+     "from": 0,
+     "to": 1,
+     "label": "A-311, €1,950"
+    },
+    {
+     "from": 1,
+     "to": 2,
+     "label": "copy: 23:59:59.6"
+    },
+    {
+     "from": 2,
+     "to": 3,
+     "label": "shows A-311"
+    },
+    {
+     "note": 1,
+     "text": "00:00:00.0: A closes",
+     "sub": "close stamped 00:00:00.0",
+     "tone": "warn"
+    },
+    {
+     "from": 1,
+     "to": 2,
+     "label": "copy: close",
+     "tone": "warn"
+    },
+    {
+     "from": 3,
+     "to": 2,
+     "label": "B-208, €1,975",
+     "tone": "bad"
+    },
+    {
+     "note": 2,
+     "text": "clock 23:59:59.2",
+     "sub": "stamp 00:00:00.0 +1",
+     "tone": "ok"
+    },
+    {
+     "outcome": 2,
+     "text": "B-208 late; A-311 wins",
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, replayed for 27 November. B's clock is still 900 ms behind, but B has already seen A-311's stamp and A's close, so it stamps Fleur's answer one step past the newest time it has seen: 00:00:00.0 +1. The answer sorts after its question, and after the close.",
+  "fix": {
+   "title": "The fix: stamp by what each server has seen, and let one server close the window",
+   "text": "Each server keeps the newest stamp it has seen: its own, every copy from the other server, and the stamp of the offer being answered, which the applicant's screen sends back with the answer. A new offer gets the server's clock reading, unless the newest stamp seen is not earlier; then it gets that stamp plus one step. That is a hybrid logical clock. Server A alone closes the window and copies its close to B; any offer stamped at or after the close is late. Reopen B's time sync, set an alarm when a sync try fails or the gap passes 20 ms, and keep the wall-clock time on each record for people to read, never for ruling."
+  },
+  "limits": [
+   "A stamp reflects only what a server has heard. Had A's close reached B after Fleur's tap, B-208 would have been stamped 23:59:59.6 +1: after A-311, but before midnight. That is why A alone decides the close.",
+   "Stamps stay close to real time only while the clocks do. B's 900 ms still shows on any B offer that saw nothing newer, so the sync and its alarm still matter.",
+   "Offers that never saw each other get an order from their stamps, but neither came first in any sense that matters. Spotting that takes a vector clock: one counter per server on every record."
+  ],
+  "tradeoff": {
+   "head": [
+    "What Larchmere does",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Each server's own clock (as built)",
+     "Simple; fine while clocks agree and offers are seconds apart.",
+     "B 900 ms behind: B-208 stamped 23:59:59.2, before its question, and wins."
+    ],
+    [
+     "Sync every minute",
+     "Smaller gaps while sync works.",
+     "Blocked tries change nothing; at 300 ms B-208 still counts after midnight."
+    ],
+    [
+     "Phone stamps",
+     "No server clock involved.",
+     "Users set their phones: B-208 at 23:59:57.1, and a phone set back wins."
+    ],
+    [
+     "Wait out the uncertainty",
+     "Correct while the bound is true: Fleur's answer comes too late.",
+     "Every offer held 2,000 ms at 1,000 ms either way; a 100 ms bound fails."
+    ],
+    [
+     "Extend a minute after each late offer",
+     "Fairer to slow tappers.",
+     "Still sorts by wall clock: the answer still comes before its question."
+    ],
+    [
+     "Hybrid stamps, A closes the window",
+     "Answers always sort after questions; same result at any B offset.",
+     "One more rule to build; A must be up to close the window."
+    ]
+   ]
+  },
+  "seniorTake": "Two machines never share a clock, only an estimate of one. Sync narrows the gap, can fail without a sound, and never reaches zero, so the wall clock is fine for people reading a record and wrong for deciding which of two events on different machines came first. Order those by what each machine has seen: carry the newest time seen on every message and stamp one step past it, which is Lamport's rule, and use a hybrid logical clock so stamps stay readable as real times. Let one machine own each deadline. If you truly need order that matches real time across machines, you need bounded clocks and a wait, as Spanner does, and you pay for it on every write. Use vector clocks where you must know that two events never saw each other. And alarm on sync, because everything else still reads the clock.",
+  "realWorld": [
+   {
+    "title": "Cloudflare, 1 January 2017: time went backwards",
+    "text": "At the leap second, when the world's clocks repeated a second, Cloudflare's DNS software measured how long each lookup took by subtracting two clock readings. Its post explains: \"If, right when a resolution is happening, time goes back a second the perceived resolution time will be negative.\" Of the function it used to read the time: \"Unfortunately, this function does not guarantee monotonicity.\" The negative number later made the program stop with an error.",
+    "source": 0
+   },
+   {
+    "title": "Lamport, 1978: no single order of events",
+    "text": "Leslie Lamport's paper in Communications of the ACM, July 1978, gave the rule of logical clocks. In his own notes on it he writes: \"Special relativity teaches us that there is no invariant total ordering of events in space-time; different observers can disagree about which of two events happened first.\"",
+    "source": 1
+   },
+   {
+    "title": "Kulkarni and Demirbas, 2014: the hybrid logical clock",
+    "text": "The paper says: \"we propose a hybrid logical clock, HLC, that combines the best of logical clocks and physical clocks.\" It can stand in for a machine's NTP clock \"since it maintains its logical clock to be always close to the NTP clock.\"",
+    "source": 2
+   },
+   {
+    "title": "Spanner, OSDI 2012: wait out the uncertainty",
+    "text": "Corbett and colleagues write: \"If the uncertainty is large, Spanner slows down to wait out that uncertainty.\" And: \"This implementation keeps uncertainty small (generally less than 10ms) by using multiple modern clock references (GPS and atomic clocks).\" In production the bound is typically \"a sawtooth function of time, varying from about 1 to 7 ms over each poll interval\".",
+    "source": 3
+   },
+   {
+    "title": "Google Cloud: TrueTime today",
+    "text": "Google's Spanner documentation says: \"TrueTime is a highly available, distributed clock that is provided to applications on all Google servers\", and \"TrueTime enables applications to generate monotonically increasing timestamps\".",
+    "source": 4
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Why can't you order events by timestamp across machines?",
+    "What is a Lamport clock?",
+    "How does Spanner use TrueTime?"
+   ],
+   "answer": "Each machine stamps events with its own clock, and no two clocks agree exactly. NTP narrows the gap in three steps, ask a time server, allow for the trip, nudge the clock, but it can't reach zero, it can fail silently, and a correction can even move a clock backwards. So two events on different machines closer together than the clocks' disagreement can be stamped in the wrong order, and an effect can appear before its cause. A Lamport clock orders by cause instead. Every message carries the highest time its sender has seen; the receiver keeps the highest it has seen and stamps its next event one step past the larger of its own time and that. Then anything that could have caused an event sorts before it. It can't tell you that two events were concurrent; a vector clock, one counter per machine, can. A hybrid logical clock is Lamport's rule using the wall clock as the time whenever it is ahead, so stamps stay close to real time. Spanner goes the other way: TrueTime gives every clock reading as an interval with a known worst error, kept to a few milliseconds by GPS and atomic clocks, and a commit is stamped with the latest possible time and waits until that time has surely passed. Then any later transaction gets a later stamp, at the cost of the wait on every write. I'd tell the story of a lettings agency where a server 900 ms slow stamped an answer before the offer it answered and gave away a flat: the fix was hybrid stamps and one server owning the deadline."
+  }
+ },
+ "terms": [
+  {
+   "term": "Larchmere Lettings",
+   "def": "The lettings agency in this story. It sets midnight deadlines when a flat draws too many offers. Rutendo is its night negotiator."
+  },
+  {
+   "term": "Lettings agency",
+   "def": "A business that finds tenants for landlords' flats and houses and handles the renting."
+  },
+  {
+   "term": "Night negotiator",
+   "def": "The person who watches offers overnight, answers applicants' calls and passes results to landlords."
+  },
+  {
+   "term": "Offer deadline",
+   "def": "The time an offer window closes. At Larchmere the flat goes to the highest offer stamped before it."
+  },
+  {
+   "term": "Answer (button)",
+   "def": "The button under every offer on Larchmere's site. It makes an offer at least 25 euros higher and records which offer it answers."
+  },
+  {
+   "term": "Server",
+   "def": "A computer that takes requests from other computers and keeps records. Larchmere's site runs on two, A and B."
+  },
+  {
+   "term": "Offer number (A-311)",
+   "def": "Each server's own count of the offers it has taken: A-311 is A's 311th. It orders one server's offers and says nothing about the other's."
+  },
+  {
+   "term": "Stamp",
+   "def": "Larchmere's word for a timestamp: the time a server writes on an offer. The rule sorts offers by it."
+  },
+  {
+   "term": "Copy (between servers)",
+   "def": "Each Larchmere server sends every offer it accepts, and A its close, to the other within 50 ms, stamp included."
+  },
+  {
+   "term": "Close (the window)",
+   "def": "The moment a server stops taking offers for a deadline. On the night each server closed by its own clock; in the fix only A does."
+  },
+  {
+   "term": "Late (offer)",
+   "def": "An offer stamped at or after the close. It is refused and never shown as the highest."
+  },
+  {
+   "term": "ms",
+   "def": "Short for millisecond: a thousandth of a second. 900 ms is just under one second."
+  },
+  {
+   "term": "NTP",
+   "def": "Network Time Protocol, how machines set their clocks: ask a time server the time, allow for how long the trip took, then nudge the clock to match."
+  },
+  {
+   "term": "Sync log",
+   "def": "The time sync program's diary: each try, how far the clock was from the time server, and how wrong it could still be."
+  },
+  {
+   "term": "Firewall",
+   "def": "A filter that decides which network traffic may pass. Kagiso's new rule on the office firewall blocked server B's time sync."
+  },
+  {
+   "term": "Drift",
+   "def": "A clock running a little fast or slow, so it moves away from the real time between syncs. B's lost about 40 ms a day."
+  },
+  {
+   "term": "Worst possible clock error",
+   "def": "The furthest a clock could be from the real time, at most. Sync programs estimate it after each try; it grows while sync is failing."
+  },
+  {
+   "term": "Real time",
+   "def": "The actual moment something happened, as a perfect clock would show it. No machine knows it exactly."
+  },
+  {
+   "term": "Lamport's rule",
+   "def": "Every message carries the highest time its sender has seen; the receiver stamps its next event one step past the larger of its own time and that one."
+  },
+  {
+   "term": "Lamport clock (logical clock)",
+   "def": "A counter that follows Lamport's rule instead of telling the time, so anything that could have caused an event sorts before it."
+  },
+  {
+   "term": "Hybrid logical clock (HLC)",
+   "def": "Lamport's rule with the wall clock as the time: a stamp is the clock reading, unless the newest time seen is not earlier, then that time plus one step."
+  },
+  {
+   "term": "Step (+1)",
+   "def": "The small count a hybrid stamp adds when the newest time seen is ahead of the clock. 00:00:00.0 +1 sorts just after 00:00:00.0."
+  },
+  {
+   "term": "Concurrent (events)",
+   "def": "Two events where neither could have seen the other. No order between them happened; any order is a rule someone chose."
+  },
+  {
+   "term": "TrueTime",
+   "def": "Google's clock service for Spanner: each reading is an interval, the earliest and latest the real time could be, kept small with GPS and atomic clocks."
+  },
+  {
+   "term": "Spanner",
+   "def": "Google's database that spreads data over many machines around the world and uses TrueTime to order writes."
+  },
+  {
+   "term": "Wait out the uncertainty (commit wait)",
+   "def": "Stamping a write with the latest the real time could be, then waiting until even the earliest has passed it before confirming."
+  },
+  {
+   "term": "Bound (trusted to)",
+   "def": "How far either way a clock is assumed to be from the real time. Waiting only works if it is true."
+  },
+  {
+   "term": "GPS receiver and atomic clock",
+   "def": "Two very exact time sources: GPS satellites broadcast time, and an atomic clock keeps it by counting an atom's vibrations."
+  },
+  {
+   "term": "Leap second",
+   "def": "A second sometimes added to the world's official time to keep it in step with the Earth's turning. Clocks can repeat a second for it."
+  },
+  {
+   "term": "DNS",
+   "def": "The internet's phone book: it turns a name people type into the number of the machine to reach. Cloudflare runs DNS for many websites."
+  },
+  {
+   "term": "Monotonic (clock)",
+   "def": "Only ever moving forward. A wall clock is not monotonic: a correction can move it back."
+  },
+  {
+   "term": "Deadline extension",
+   "def": "Moving the close later, here by 60 s after any offer in the last 60 s. Fairer to slow tappers, still sorted by wall clock."
+  },
+  {
+   "term": "Leslie Lamport",
+   "def": "The computer scientist whose 1978 paper on time, clocks and the order of events gave logical clocks."
+  },
+  {
+   "term": "ISO/IEC 27001",
+   "def": "An international standard for running information security. Annex A 8.17 covers clock synchronisation."
+  }
+ ],
+ "atWork": "Look for places where your systems decide which of two events came first by comparing timestamps written on different machines. A common pattern: two services or regions each stamp records with their own clock, and a report, a merge, a deadline or a 'last write wins' rule sorts by those stamps. Read-only access is enough. First, list every rule that compares times from more than one machine, including job schedulers, offer or booking cut-offs, audit trails and conflict rules in replicated databases. Second, check how each machine syncs its clock and whether anyone is told when sync fails: on Linux, `chronyc tracking` shows the last offset and the root dispersion, chrony's estimate of how wrong the clock could be. Third, for each rule, ask what happens if one clock is a second slow: can an effect sort before its cause, or a late request count as on time? Where it can, carry the newest time seen on every message (a hybrid logical clock), or let one machine decide the order. Standards: if your company is pursuing ISO/IEC 27001:2022, Annex A 8.17 (clock synchronisation) expects the clocks of your systems to be synchronised to approved time sources. That supports trustworthy logs, but synchronised clocks still differ a little, so it doesn't make cross-machine ordering safe. Flag for the design: a business decision that rests on comparing two machines' wall clocks would need rework before an audit that relies on it, so build ordering by what each machine has seen in from the first design, and keep the sync alarm too.",
+ "board": {
+  "cards": [
+   {
+    "id": "clock-skew",
+    "title": "Clock skew"
+   },
+   {
+    "id": "ntp",
+    "title": "NTP"
+   },
+   {
+    "id": "lamport",
+    "title": "Lamport clocks"
+   },
+   {
+    "id": "vector-clocks",
+    "title": "Vector clocks"
+   }
+  ],
+  "strings": [
+   {
+    "from": "ntp",
+    "to": "clock-skew",
+    "label": "narrows, never 0"
+   },
+   {
+    "from": "clock-skew",
+    "to": "lamport",
+    "label": "order by seen"
+   },
+   {
+    "from": "lamport",
+    "to": "vector-clocks",
+    "label": "who saw whom"
+   },
+   {
+    "from": "lamport",
+    "to": "sequence-numbers",
+    "label": "across senders"
+   },
+   {
+    "from": "vector-clocks",
+    "to": "conflicts",
+    "label": "spot concurrent"
+   },
+   {
+    "from": "clock-skew",
+    "to": "snowflake-style-ids",
+    "label": "ids from clocks"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s8e05-r1",
+   "kind": "free",
+   "prompt": "Your shop's payments and refunds are recorded by two services on different machines. An audit finds refunds whose timestamps are earlier than the payments they refund, though every refund was made after its payment. What happened, and what do you change?",
+   "keyIdeas": [
+    {
+     "idea": "Each machine stamps with its own clock, and the clocks disagree, so wall-clock order can put an effect before its cause",
+     "match": [
+      "clock skew",
+      "clocks disagree",
+      "own clock",
+      "clock was behind",
+      "clock behind",
+      "clocks differ",
+      "drift"
+     ]
+    },
+    {
+     "idea": "Carry the newest time seen with each message and stamp the next event one step past it: Lamport's rule, as a hybrid logical clock",
+     "match": [
+      "lamport",
+      "hybrid logical",
+      "highest time",
+      "newest time",
+      "logical clock",
+      "one step past",
+      "plus one"
+     ]
+    },
+    {
+     "idea": "Syncing more often only narrows the gap; clocks never agree exactly",
+     "match": [
+      "narrows",
+      "never zero",
+      "never exactly",
+      "only shrinks",
+      "still differ",
+      "still disagree"
+     ]
+    }
+   ],
+   "model": "Each service stamps with its own clock, and the two clocks disagree: that clock skew, perhaps a refund machine whose clock was behind, let a refund made after its payment get an earlier stamp. Syncing more often only narrows the gap; clocks still differ by milliseconds and can drift far when sync fails. I'd stop ordering by wall clock: every message carries the newest time its sender has seen, and the receiving service stamps its next event one step past the larger of its own time and that one. That is Lamport's rule, and a hybrid logical clock keeps those stamps close to real time. Then a refund, which carries its payment's stamp, always sorts after it."
+  },
+  {
+   "id": "s8e05-r2",
+   "kind": "mcq",
+   "prompt": "In the sim, with B 900 ms behind and everything else as on the night, which single change makes Ifeanyi's €1,950 win?",
+   "options": [
+    "Sync every minute, with the firewall still blocking B",
+    "Stamp offers with the applicants' phones",
+    "Hold each offer, trusting clocks to 100 ms either way",
+    "Stamp offers with a hybrid logical clock"
+   ],
+   "answer": 3,
+   "why": "B had already heard of A's close, stamped 00:00:00.0, so the hybrid clock stamps B-208 00:00:00.0 +1: late, and after A-311. Blocked sync leaves B 900 ms behind; Fleur's phone runs 3 seconds slow, giving 23:59:57.1; and a 100 ms bound is smaller than B's real error, so B-208 is stamped 23:59:59.5 and still wins."
+  },
+  {
+   "id": "s8e05-r3",
+   "kind": "mcq",
+   "prompt": "Why can't timestamps from two servers order their events reliably, even with NTP running?",
+   "options": [
+    "NTP only narrows the gap: clocks still differ by milliseconds and drift between syncs",
+    "NTP puts each server in a different time zone",
+    "Timestamps are always rounded to whole seconds",
+    "NTP corrects a clock only once a day"
+   ],
+   "answer": 0,
+   "why": "NTP asks a time server, allows for the trip and nudges the clock, but it can't measure the trip exactly, clocks drift between tries, and a try can fail silently. Two events closer together than the clocks' disagreement can be stamped in the wrong order."
+  },
+  {
+   "id": "s8e05-r4",
+   "kind": "free",
+   "prompt": "In an interview you're asked: what is a Lamport clock, and how does Spanner use TrueTime?",
+   "keyIdeas": [
+    {
+     "idea": "Each process keeps a counter; every message carries it; the receiver stamps its next event one step past the larger, so causes sort before effects",
+     "match": [
+      "counter",
+      "larger of",
+      "greater than",
+      "plus one",
+      "one step past",
+      "carries",
+      "max of"
+     ]
+    },
+    {
+     "idea": "It orders cause and effect but can't show that two events were concurrent; vector clocks can",
+     "match": [
+      "concurrent",
+      "vector clock",
+      "can't tell",
+      "cannot tell",
+      "partial order",
+      "neither saw"
+     ]
+    },
+    {
+     "idea": "TrueTime gives each reading as an interval with a known worst error, and Spanner waits it out before confirming a write",
+     "match": [
+      "uncertainty",
+      "interval",
+      "commit wait",
+      "waits out",
+      "wait out",
+      "worst error",
+      "atomic"
+     ]
+    }
+   ],
+   "model": "A Lamport clock is a counter each process keeps. Every message carries the highest value its sender has seen, and the receiver stamps its next event one step past the larger of its own counter and that one, so anything that could have caused an event sorts before it. It can't tell you that two events were concurrent, that neither saw the other; a vector clock, one counter per process, can. Spanner instead uses TrueTime, which gives every clock reading as an interval with a known worst error, kept to a few milliseconds by GPS and atomic clocks. A commit is stamped with the latest possible time and Spanner waits out the uncertainty, the commit wait, before confirming it, so any later transaction gets a later stamp."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 3 months later. The hybrid stamps have held: every answer has sorted after its question since December, A closes every window, and the sync alarm keeps every clock within 20 ms of the time server. In February we added server C for our new branch, and a report that lists each flat's offers in stamp order. On Friday 26 February 2027, two applicants offered the same €1,850 on a flat in the new branch: A-588 and C-041, both stamped 23:41:07.3. Neither offer was an answer; each applicant had only seen the asking rent. Our tie rule says the earlier offer wins. The report, finding equal stamps, listed A before C and gave the flat to A-588. The applicant behind C-041 asks how we know his offer came second.",
+  "prompt": "Reply to OP. Did A-588 really come first, and how should Larchmere settle ties like this one?",
+  "keyIdeas": [
+   {
+    "idea": "The offers were concurrent: neither saw the other, so there is no first in cause and effect",
+    "match": [
+     "concurrent",
+     "neither saw",
+     "didn't see",
+     "did not see",
+     "no first",
+     "independent"
+    ]
+   },
+   {
+    "idea": "The stamps can't order them: clocks that differ by a few milliseconds leave either first in real time, and listing by server letter is not an order",
+    "match": [
+     "server letter",
+     "either could",
+     "can't know",
+     "cannot know",
+     "no one can know",
+     "not an order",
+     "say nothing"
+    ]
+   },
+   {
+    "idea": "Detect concurrency with a vector clock (one counter per server) and settle ties by a stated rule, such as drawing lots",
+    "match": [
+     "vector clock",
+     "one counter per",
+     "per server",
+     "stated rule",
+     "drawing lots",
+     "draw lots",
+     "coin toss",
+     "decides ties"
+    ]
+   }
+  ],
+  "model": "No one can know. Neither offer answered anything, so neither applicant saw the other's: the two offers were concurrent, and there is no first in cause and effect. The equal stamps say nothing either: each clock may be up to 20 ms from the time server, so the two may differ by up to 40 ms, and either could have come first in real time, and listing by server letter is not an order at all. I'd record a vector clock, one counter per server, with every offer, so the report can show when two offers were concurrent. Then settle those ties by a stated rule that doesn't pretend to know the order, such as drawing lots between tied offers. Not A's order of arrival: A sees its own offers 50 ms before anyone else's, so it would favour them. Tell applicants the rule before the deadline."
+ },
+ "next": "Next, Pick Two?: a town cut off by a storm, and what a system must give up when the line between its parts is cut: CAP and PACELC, explained honestly.",
+ "sources": [
+  {
+   "title": "Cloudflare Blog, How and why the leap second affected Cloudflare DNS, 1 January 2017 (time going backwards, a negative duration), read 16 October 2026",
+   "url": "https://blog.cloudflare.com/how-and-why-the-leap-second-affected-cloudflare-dns/"
+  },
+  {
+   "title": "Leslie Lamport's publications page, entry for Time, Clocks and the Ordering of Events in a Distributed System, Communications of the ACM 21(7), July 1978, 558-565, with his commentary (the paper's PDF is a scan and was quoted from this page instead), read 16 October 2026",
+   "url": "https://lamport.azurewebsites.net/pubs/pubs.html"
+  },
+  {
+   "title": "Sandeep Kulkarni, Murat Demirbas, Deepak Madeppa, Bharadwaj Avva and Marcelo Leone, Logical Physical Clocks and Consistent Snapshots in Globally Distributed Databases, University at Buffalo technical report 2014-04 (hybrid logical clocks), read 16 October 2026",
+   "url": "https://cse.buffalo.edu/tech-reports/2014-04.pdf"
+  },
+  {
+   "title": "James C. Corbett, Jeffrey Dean, Michael Epstein, Andrew Fikes and others, Spanner: Google's Globally-Distributed Database, OSDI 2012 (TrueTime, clock uncertainty, waiting it out), read 16 October 2026",
+   "url": "https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf"
+  },
+  {
+   "title": "Google Cloud, Spanner documentation: Spanner: TrueTime and external consistency, read 16 October 2026",
+   "url": "https://docs.cloud.google.com/spanner/docs/true-time-external-consistency"
+  }
+ ]
+}
