@@ -1,566 +1,549 @@
-/* sims/s8e01-v1.0.0.js
+/* sims/s8e01-v1.0.1.js  (published as sims/s8e01.js)
+   v1.0.1 (2026-10-16) the monthly update and memory-change dates moved to 13 and 21 October to match the case
+   Case s8e01 "Silence Isn't Death": a heartbeat lab for Kestrelmoor Freight's night shift. Three
+   machines (app-1, app-2, app-3) assign orders to trucks; each sends a heartbeat every second to the
+   Head of Shift, the program that hands out the work. The learner sets the pause, the hand-over
+   timeout, a short first stage, a suspect stage, fencing and how a dead machine comes back, then
+   plays the night. Widget-style sim: it draws its own heartbeat lanes and order table in api.root.
+
    CHANGELOG
-   v1.0.0 (2026-10-04) first version
+   v1.0.0 (2026-10-16) first version: two nights (the 02:13 pause on night one, 02:13:00 to
+     02:14:10; the 03:40 real stop of app-3 from option B's Part 2, 03:39:55 to 03:45:30), one step a
+     second. Controls: night, pause length (3, 38, 60 s), hand-over timeout (30 s, 5 min), two-stage
+     (stop sending customers after 3 s), suspect stage (10 s more), fencing, how a dead machine comes
+     back (with its old work, or fresh), unplug app-2 (option C); Next second, Play / pause, To the
+     end, Reset. Stats: customer requests failed, orders on two trucks, old-token writes refused,
+     newest token, the database's highest token for #4471, and each machine's state.
+     selfTest: 11 assertions.
 
-   Season 8, case 1: the pilot sim. Ported from the live system in
-   mockup/dead-letter-mockup-v1.0.1.html to the DL.sims module API.
-   Customers send requests to a load balancer, which spreads them over
-   app-1, app-2 and app-3; the app servers write to the orders database.
-   A Head of Shift coordinator listens to heartbeats, declares a silent
-   machine dead after the timeout, and hands its orders to another machine
-   with a higher token. Freeze and wake app-2, give app-1 a tiny 8s pause,
-   pick the timeout, and turn fencing tokens on or off.
-   Clock: starts at 02:13:00 and runs 5x faster than real time. All timers
-   and dot travel use real seconds, exactly as in the mockup.
+   The model (stated in sim.lede). Times are whole seconds.
+   - Every machine that is running sends a heartbeat each second. Silence at second s is
+     s - (last heartbeat) - 1, so a machine whose last heartbeat was 02:13:03 is "silent 30 s" at
+     02:13:34.
+   - Order of work inside one second: (1) a new owner's writes due this second; (2) heartbeats, and
+     a machine that wakes sends the writes it was in the middle of; (3) the Head of Shift's checks;
+     (4) OP's click, 02:14:10 on night one; (5) customer requests.
+   - Head of Shift checks, per machine not yet declared dead: two-stage on and silence >= 3 s: quiet,
+     off the load balancer's list, keeps its orders. Silence >= the hand-over timeout: with the
+     suspect stage, suspect (off the list) and dead at the timeout + 10 s; without it, dead at once.
+     A heartbeat ends quiet or suspect. Dead: off the list; its orders go to the next machine in line
+     (app-1 to app-2 to app-3 to app-1, skipping dead and unplugged ones) with the next token from
+     one counter. The new owner writes one second later: a truck for any order that has none, and
+     its token for the rest.
+   - The database, per order: the highest token seen and the trucks assigned. A write that assigns a
+     truck: fencing on refuses a token lower than the highest (counted), otherwise the newer write
+     replaces the old truck; fencing off accepts every write, so a second machine's truck makes the
+     order "on two trucks".
+   - A paused machine wakes not knowing time passed and sends its unfinished writes with its old
+     token. If it was declared dead: "with its old work" it stays a zombie holding its old orders,
+     and goes back on the list at OP's click, 02:14:10; "fresh" means the Head of Shift tells it at
+     once to drop its old work and rejoin as a new machine with the next token and no orders.
+   - Customers: 19 requests a second through the load balancer, which hands them in turn to the
+     machines on its list, in name order (request k goes to list[k mod n], k counted from the first
+     second played). A request sent to a paused or stopped machine fails.
+
+   Where every number comes from (conventions rule 14; the case is content/s8/s8e01-v1.0.0.json).
+   - Dates (given; weekdays checked with Date): night one is 02:13 on Tuesday 1 December 2026. Tokens
+     before it: the monthly update on Tuesday 13 October restarted the machines one by one, app-2 30,
+     app-1 31, app-3 32; the contractor's memory change (4 GB to 24 GB) on Wednesday 21 October
+     restarted app-2, token 33. So at 02:13:00: app-1 #4468-#4470 token 31,
+     app-2 #4471-#4473 token 33 (claimed, trucks not yet assigned), app-3 #4474-#4476 token 32;
+     newest token 33.
+   - Night one as built (38 s pause from 02:13:04, 30 s, one stage, fencing off, old work): app-2
+     silent 30 s at 02:13:34, DECLARED DEAD, #4471-#4473 to app-3 with token 34; app-3 assigns trucks
+     02:13:35; app-2 wakes 02:13:42 and resumes #4471-#4473 with token 33: 3 orders on two trucks.
+     Failed: app-2 stays on the list 02:13:04 to 02:13:33, 30 s x 19 = 570 requests, every third:
+     190.
+   - Fencing on, fresh (option D): 3 writes with token 33 refused (34 seen); app-2 rejoins with token
+     35; 0 orders on two trucks. Fencing on, old work: 3 refused, app-2 a zombie with token 33.
+     Fresh without fencing: still 3 on two trucks (the writes in flight go out first).
+   - Two-stage on: app-2 quiet at 02:13:07; failed 3 s x 19 = 57, every third: 19.
+   - Timeout 5 min (option B), night one: never declared; 0 on two trucks; app-2 on the list through
+     its 38 s: 722 requests from k = 57, those with k mod 3 = 1: 241 failed.
+   - Pause 3 s (before the change): back at 02:13:07, never declared; 19 failed.
+   - Suspect stage, 38 s: suspect at 02:13:34, answers at 02:13:42, keeps its orders: 0 on two
+     trucks, 190 failed. Pause 60 s with the suspect stage: dead 02:13:44, wakes 02:14:04: 3.
+   - Unplug app-2 (option C): its orders went to app-1 earlier with token 34; the same pause hits
+     app-1, which is declared dead at 02:13:34, orders to app-3 with token 35, app-1 wakes at
+     02:13:42 with token 34: 3 on two trucks. Two machines on the list: 285 failed.
+   - The real stop (option B's Part 2): app-3 stops at 03:40:00 (last heartbeat 03:39:59). 5 min:
+     dead at 03:45:00, 300 s x 19 = 5,700 requests, every third: 1,900 failed; orders #4474-#4476 to
+     app-1 with token 34. 30 s: dead 03:40:30, 190 failed. Two-stage with 5 min: 19 failed.
 */
-(function (root) {
+(function () {
   "use strict";
-  var DL = root.DL;
-  if (!DL || !DL.sims || typeof DL.sims.define !== "function") {
-    throw new Error("engine/sim.js must load before sims/s8e01.js.");
-  }
 
-  var START = 2 * 3600 + 13 * 60;   // 02:13:00, as in the story
-  var SPEED = 5;                    // sim seconds per real second
-  // Built from char codes so the source stays plain ASCII.
-  var RANGE_SEP = String.fromCharCode(0x2013);              // en dash in order ranges, as in the mockup
-  var MID = " " + String.fromCharCode(0xB7) + " ";          // middle dot separator
-  var TIMES = String.fromCharCode(0xD7);                    // multiplication sign, as in "3x" traffic
-  var HICCUP = 8;                   // sim seconds of the tiny pause on app-1
-  var PARK_X = 333;                 // waiting requests queue just left of the app boxes
-  var MAX_PARKED = 16;
-
-  // Settings kept across "Reset the night" (traffic, timeout, fencing), as in
-  // the mockup. Set and consumed inside one synchronous reset call.
-  var carry = null;
-
-  var APPS = [
-    { id: "app1", name: "app-1", y: 80, batch: { id: "A", orders: ["#4468", "#4469", "#4470"], token: 31 } },
-    { id: "app2", name: "app-2", y: 180, batch: { id: "B", orders: ["#4471", "#4472", "#4473"], token: 33 } },
-    { id: "app3", name: "app-3", y: 280, batch: { id: "C", orders: ["#4474", "#4475", "#4476"], token: 32 } }
-  ];
-
-  var DIAGRAM = {
-    type: "arch", w: 740, h: 440,
-    aria: "OP's system. Customers send requests to a load balancer, which routes them to three app servers. " +
-      "The app servers write to the orders database. A Head of Shift coordinator listens to the app servers' " +
-      "heartbeats and tells the load balancer which ones are alive.",
-    groups: [{ label: "APP SERVERS", x: 340, y: 22, w: 200, h: 308 }],
-    nodes: [
-      { id: "users", label: "Customers", meta: "placing orders", x: 70, y: 180, w: 100, h: 56, shape: "box" },
-      { id: "lb", label: "Load balancer", sub: "3 of 3 alive", x: 245, y: 180, w: 120, h: 60, shape: "box" },
-      { id: "app1", label: "app-1", sub: "healthy", meta: "#4468" + RANGE_SEP + "70" + MID + "token 31",
-        x: 440, y: 80, w: 180, h: 64, shape: "box", align: "left", tone: "ok" },
-      { id: "app2", label: "app-2", sub: "healthy", meta: "#4471" + RANGE_SEP + "73" + MID + "token 33",
-        x: 440, y: 180, w: 180, h: 64, shape: "box", align: "left", tone: "ok" },
-      { id: "app3", label: "app-3", sub: "healthy", meta: "#4474" + RANGE_SEP + "76" + MID + "token 32",
-        x: 440, y: 280, w: 180, h: 64, shape: "box", align: "left", tone: "ok" },
-      { id: "coord", label: "Head of Shift (coordinator)", sub: "app-1 ok" + MID + "app-2 ok" + MID + "app-3 ok",
-        x: 440, y: 397, w: 260, h: 58, shape: "box" },
-      { id: "db", label: "Orders database", sub: "#4471" + RANGE_SEP + "73: token 33", meta: "fencing: off",
-        x: 655, y: 180, w: 140, h: 72, shape: "db" }
-    ],
-    edges: [
-      { from: "users", to: "lb", label: "requests" },
-      { from: "lb", to: "app1" },
-      { from: "lb", to: "app2" },
-      { from: "lb", to: "app3" },
-      { from: "app1", to: "db" },
-      { from: "app2", to: "db", label: "writes" },
-      { from: "app3", to: "db" },
-      { from: "app3", to: "coord" },
-      { from: "coord", to: "lb", via: [[245, 397]], dash: true, label: "who's alive", at: 0.7 }
-    ],
-    notes: [{ x: 448, y: 352, text: "heartbeats, every 1s", tone: "muted", anchor: "start" }]
+  var NAMES = ["app-1", "app-2", "app-3"];
+  var RATE = 19;              // customer requests a second (given)
+  var QUIET = 3;              // two-stage: stop sending customers after 3 s of silence
+  var SUSPECT_MORE = 10;      // suspect stage: 10 s more before dead
+  var NIGHTS = {
+    pause: { start: 7980, end: 8050, pauseAt: 7984, click: 8050, rate: 4 },       // 02:13:00 to 02:14:10
+    stop: { start: 13195, end: 13530, stopAt: 13200, click: -1, rate: 30 }        // 03:39:55 to 03:45:30
   };
+  var NIGHT_OPTS = [{ value: "pause", label: "Night one: app-2 pauses at 02:13:04" }, { value: "stop", label: "A later night: app-3 stops for good at 03:40" }];
+  var PAUSES = [{ value: "3", label: "3 s (before the change)" }, { value: "38", label: "38 s (night one)" }, { value: "60", label: "60 s" }];
+  var TIMEOUTS = [{ value: "30", label: "30 s (as built)" }, { value: "300", label: "5 min" }];
+  var BACK = [{ value: "old", label: "With its old work (as built)" }, { value: "fresh", label: "Fresh, as a new machine" }];
 
-  var TIP = "<strong>Tip:</strong> click any box in the diagram to see what it does in plain words.";
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function hms(s) { return pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s % 3600 / 60)) + ":" + pad(s % 60); }
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+  function range(list) { return list.length ? "#" + list[0] + (list.length > 1 ? "-#" + list[list.length - 1] : "") : "none"; }
 
-  /* ---------- helpers ---------- */
+  /* ---------- the model ---------- */
 
-  function range(b) {
-    var first = b.orders[0], last = b.orders[b.orders.length - 1];
-    return first + RANGE_SEP + (first.slice(0, -2) === last.slice(0, -2) ? last.slice(-2) : last.slice(1));
-  }
-
-  function mkApp(spec, now) {
-    return {
-      id: spec.id, name: spec.name, y: spec.y,
-      status: "alive", frozen: false, frozeAt: 0, lastBeat: now, hiccupUntil: null,
-      batch: { id: spec.batch.id, orders: spec.batch.orders.slice(), token: spec.batch.token },
-      extra: [], ghost: null, stuck: [], stuckExtra: 0
+  function initial(C) {
+    var N = NIGHTS[C.night];
+    var M = {
+      C: C, N: N, now: N.start, counter: 33, failed: 0, refused: 0, k: 0, due: [], marks: [],
+      mach: [], db: {}, beats: [[], [], []]
     };
-  }
-
-  // What a box shows for one app server: node state, status line, heartbeat word.
-  function appView(api, a) {
-    var S = api.state;
-    var silent = Math.max(0, Math.floor(api.clock - a.lastBeat));
-    if (a.status === "alive" && a.frozen) {
-      return { state: "warn", status: "silent " + silent + "s of " + S.timeout + "s", hb: silent + "s", counting: true };
+    for (var i = 0; i < 3; i++) {
+      M.mach.push({ state: "alive", last: N.start, list: true, owns: [], tok: 0, dead: false, inflight: [] });
     }
-    if (a.status === "dead") return { state: "bad", status: "DECLARED DEAD", hb: "dead", counting: false };
-    if (a.status === "zombie") return { state: "zombie", status: "ZOMBIE (thinks alive)", hb: "dead", counting: false };
-    return { state: "ok", status: "healthy", hb: "ok", counting: false };
-  }
-
-  /* ---------- rendering (every frame and after every event) ---------- */
-
-  function render(api) {
-    var S = api.state;
-    if (!S.apps || !S.ui) return;
-    var alive = S.apps.filter(function (a) { return a.status === "alive"; }).length;
-    api.node("lb").text("sub", alive + " of 3 alive");
-    var waiting = 0, beats = [], counting = false;
-    S.apps.forEach(function (a) {
-      var v = appView(api, a);
-      var n = api.node(a.id);
-      n.set(v.state);
-      n.text("sub", v.status);
-      var meta = "no orders";
-      if (a.batch) meta = range(a.batch) + MID + "token " + a.batch.token;
-      else if (a.ghost && a.ghost.length) meta = "old: " + range(a.ghost[0]) + MID + "token " + a.ghost[0].token;
-      if (a.extra.length) meta += " +" + a.extra.length;
-      n.text("meta", meta);
-      var cut = a.status === "alive" ? "" : "cut";
-      api.edge("lb", a.id).set(cut);
-      api.edge(a.id, "db").set(cut);
-      beats.push(a.name + " " + v.hb);
-      if (v.counting) counting = true;
-      waiting += a.stuck.length + a.stuckExtra;
-    });
-    var coord = api.node("coord");
-    coord.text("sub", beats.join(MID));
-    coord.set(counting ? "warn" : "");
-    var db = api.node("db");
-    db.text("sub", (S.dbRanges[S.dbShow] || S.dbShow) + ": token " + S.db[S.dbShow]);
-    db.text("meta", S.hit ? S.hitText : "fencing: " + (S.fencing ? "on" : "off"));
-    db.set(S.hit === "dup" ? "warn" : S.hit === "reject" ? "bad" : S.fencing ? "ok" : "");
-    var U = S.ui;
-    U.served(S.stats.served);
-    U.waiting(waiting);
-    U.failed(S.stats.failed);
-    U.dup(S.stats.dup);
-    U.rej(S.stats.rej);
-    var a1 = S.apps[0], a2 = S.apps[1];
-    U.freeze.disable(!(a2.status === "alive" && !a2.frozen));
-    U.wake.disable(!a2.frozen || a2.hiccupUntil !== null);
-    U.hiccup.disable(!(a1.status === "alive" && !a1.frozen));
-  }
-
-  /* ---------- customer requests ---------- */
-
-  function spawnRequest(api) {
-    api.dot({
-      path: ["users", "lb"], cls: "dot-req",
-      onArrive: function (d, wp) { requestArrive(api, d, wp); }
-    });
-  }
-
-  function requestArrive(api, d, wp) {
-    var S = api.state;
-    if (wp === "lb") {
-      var alive = S.apps.filter(function (a) { return a.status === "alive"; });
-      if (!alive.length) { failDot(api, d); render(api); return; }
-      var app = alive[S.rr++ % alive.length];
-      d.app = app;
-      d.setPath(["lb", app.id, "db"]);
-      return;
+    function own(m, from, tok) {
+      for (var o = from; o < from + 3; o++) M.mach[m].owns.push(o);
+      M.mach[m].tok = tok;
     }
-    if (wp === "db") {                       // the engine removes it at the end of its path
-      S.stats.served++;
-      render(api);
-      return;
+    own(0, 4468, 31); own(1, 4471, 33); own(2, 4474, 32);
+    for (var o = 4468; o <= 4476; o++) M.db[o] = { high: o >= 4474 ? 32 : (o >= 4471 ? 33 : 31), trucks: 1, by: o >= 4474 ? 2 : (o >= 4471 ? 1 : 0) };
+    var night = C.night === "pause";
+    if (night) for (var p = 4471; p <= 4473; p++) { M.db[p].trucks = 0; M.db[p].by = -1; }
+    M.pauser = 1;
+    if (C.unplug) {
+      M.counter = 34;
+      M.mach[1].state = "unplugged"; M.mach[1].list = false;
+      M.mach[0].owns = M.mach[0].owns.concat(M.mach[1].owns);
+      M.mach[1].owns = []; M.mach[1].tok = 0;
+      M.mach[0].tok = 34;
+      for (var q = 4471; q <= 4473; q++) M.db[q].high = 34;
+      M.pauser = 0;
     }
-    var a = d.app;                           // arrived at its app server
-    if (!a) return;
-    if (a.status === "alive" && !a.frozen) return;   // keeps going to the database
-    if (a.status === "alive" && a.frozen) { parkDot(api, d); render(api); return; }
-    failDot(api, d);
-    render(api);
+    if (night) {
+      var pm = M.mach[M.pauser];
+      for (var r = 4471; r <= 4473; r++) pm.inflight.push({ o: r, tok: C.unplug ? 34 : 33 });
+    }
+    return M;
   }
 
-  function failDot(api, d) {
-    api.state.stats.failed++;
-    d.cls("dot-fail");
-    d.park();                                // stays where it failed while it fades
-    api.after(0.6, function () { d.remove(); });
+  function paused(M, m, s) {
+    var N = M.N;
+    if (M.mach[m].state === "unplugged") return true;
+    if (M.C.night === "pause") return m === M.pauser && s >= N.pauseAt && s < N.pauseAt + M.C.pause;
+    return m === 2 && s >= N.stopAt;
+  }
+  function nextInLine(M, m) {
+    for (var d = 1; d <= 2; d++) {
+      var c = (m + d) % 3;
+      if (!M.mach[c].dead && M.mach[c].state !== "unplugged") return c;
+    }
+    return -1;
+  }
+  function doubles(M) {
+    var n = 0;
+    for (var o in M.db) if (M.db[o].trucks >= 2) n++;
+    return n;
   }
 
-  function parkDot(api, d) {
-    var a = d.app;
-    if (a.stuck.length >= MAX_PARKED) { a.stuckExtra++; d.remove(); return; }
-    var n = a.stuck.length;
-    a.stuck.push(d);
-    d.cls("dot-wait");
-    d.park(PARK_X - (n % 4) * 8, a.y - 12 + Math.floor(n / 4) * 8);
+  // A write that assigns a truck to order o for machine m with token tok. Returns "ok", "two", "refused".
+  function assign(M, o, m, tok) {
+    var r = M.db[o];
+    if (M.C.fencing && tok < r.high) { M.refused++; return "refused"; }
+    if (tok > r.high) r.high = tok;
+    if (r.trucks === 0 || r.by === m) { r.trucks = Math.max(1, r.trucks); r.by = m; return "ok"; }
+    if (M.C.fencing) { r.by = m; return "ok"; }
+    r.trucks += 1;
+    return "two";
   }
 
-  /* ---------- writes to the orders database ---------- */
-
-  function spawnWrite(api, kind, app, batchId, token, order) {
-    var zombie = kind === "zombie";
-    var w = { app: app, batch: batchId, token: token, order: order };
-    var land = function () {
-      if (zombie) zombieArrive(api, w); else writeArrive(api, w);
-      render(api);
-    };
-    var d = api.dot({
-      path: [app.id, "db"], cls: zombie ? "dot-bad" : "dot-ok", r: zombie ? 5.5 : 4.5,
-      onArrive: function (dot, wp) { if (wp === "db") land(); }
+  function stepSecond(M, s, log) {
+    var C = M.C, N = M.N, i, x;
+    // (1) new owners' writes due now
+    var due = M.due.filter(function (d) { return d.at === s; });
+    M.due = M.due.filter(function (d) { return d.at !== s; });
+    due.forEach(function (d) {
+      var news = [];
+      d.orders.forEach(function (o) {
+        if (M.db[o].trucks === 0) { assign(M, o, d.m, d.tok); news.push(o); }
+        else if (d.tok > M.db[o].high) M.db[o].high = d.tok;
+      });
+      log(NAMES[d.m] + " takes over " + range(d.orders) + " with token " + d.tok +
+        (news.length ? " and assigns trucks to " + range(news) + "." : "; their trucks are already assigned."), "");
     });
-    if (d && d.dropped) land();              // over the dot cap: apply the write at once
-  }
-
-  function writeArrive(api, w) {
-    var S = api.state;
-    if (!(S.db[w.batch] >= w.token)) S.db[w.batch] = w.token;
-    S.dbShow = w.batch;
-  }
-
-  function zombieArrive(api, z) {
-    var S = api.state;
-    var current = S.db[z.batch];
-    S.dbShow = z.batch;
-    if (z.token < current) {
-      if (S.fencing) {
-        S.stats.rej++;
-        api.log("Database REJECTED " + z.order + " from " + z.app.name + ": token " + z.token + " is older than " + current + ".", "ok");
-        hit(api, "reject", "REJECTED (" + z.token + " < " + current + ")");
-      } else {
-        S.stats.dup++;
-        api.log("Database accepted " + z.order + " from " + z.app.name + " (token " + z.token + "). " + z.order + " is now on two trucks.", "bad");
-        hit(api, "dup", "DUPLICATE " + z.order);
+    // (2) heartbeats and waking
+    for (i = 0; i < 3; i++) {
+      x = M.mach[i];
+      if (x.state === "unplugged") continue;
+      var p = paused(M, i, s);
+      M.beats[i].push(p ? 0 : 1);
+      if (p) continue;
+      var wasSilent = x.last < s - 1;
+      x.last = s;
+      if (!wasSilent) continue;
+      var gone = s - M.mark0(i);
+      if (x.inflight.length) {
+        var t = x.inflight[0].tok;
+        var os = x.inflight.map(function (f) { return f.o; });
+        log(NAMES[i] + ": heartbeat ok. resuming orders " + range(os) + " (token " + t + ")", x.dead ? "warn" : "");
+        var res = x.inflight.map(function (f) { return assign(M, f.o, i, f.tok); });
+        x.inflight = [];
+        if (res[0] === "refused") log("The database refuses token " + t + " for " + range(os) + ": it has already seen token " + M.db[os[0]].high + ".", "ok");
+        else if (res[0] === "two") log("The database accepts token " + t + " too: " + range(os) + " are now each on two trucks.", "bad");
       }
-    } else {
-      // Only reachable if a zombie write lands before the new owner's first write.
-      S.db[z.batch] = z.token;
-      api.log("Database accepted " + z.order + " from " + z.app.name + ": the new owner's token hadn't reached it yet, so fencing couldn't tell.", "warn");
-    }
-  }
-
-  function hit(api, kind, text) {
-    var S = api.state;
-    S.hit = kind;
-    S.hitText = text;
-    var gen = ++S.hitGen;
-    api.after(1.6, function () {
-      if (S.hitGen !== gen) return;
-      S.hit = "";
-      S.hitText = "";
-      render(api);
-    });
-  }
-
-  /* ---------- failure detection and recovery ---------- */
-
-  function freeze(api, a, hiccupSecs) {
-    if (a.frozen || a.status !== "alive") return;
-    a.frozen = true;
-    a.frozeAt = api.clock;
-    if (hiccupSecs) {
-      a.hiccupUntil = api.clock + hiccupSecs;
-      api.log(a.name + " paused for a moment (" + hiccupSecs + "s). This happens to every machine.", "warn");
-    } else {
-      api.log(a.name + " froze. Its heartbeat stopped.", "warn");
-    }
-    render(api);
-  }
-
-  function declareDead(api, a) {
-    var S = api.state;
-    a.status = "dead";
-    api.log("Head of Shift: " + a.name + " silent for " + Math.round(api.clock - a.lastBeat) + "s (limit " + S.timeout + "s). DECLARED DEAD.", "bad");
-    var n = a.stuck.length + a.stuckExtra;
-    a.stuck.forEach(function (d) { failDot(api, d); });
-    S.stats.failed += a.stuckExtra;
-    a.stuck = [];
-    a.stuckExtra = 0;
-    if (n) api.log(n + " waiting customer request" + (n > 1 ? "s" : "") + " failed.", "bad");
-    var owned = [a.batch].concat(a.extra).filter(Boolean);
-    a.ghost = owned.map(function (b) { return { id: b.id, orders: b.orders, token: b.token }; });
-    a.batch = null;
-    a.extra = [];
-    var candidates = S.apps.filter(function (x) { return x !== a && x.status === "alive" && !x.frozen; });
-    candidates.sort(function (x, y) { return (y.name === "app-3" ? 1 : 0) - (x.name === "app-3" ? 1 : 0); });
-    var target = candidates[0];
-    if (!target) { api.log("No healthy machine left to take over. Orders are stuck.", "bad"); return; }
-    owned.forEach(function (b) {
-      var token = ++S.tokenCounter;
-      target.extra.push({ id: b.id, orders: b.orders, token: token });
-      api.log(target.name + " took over orders " + range(b) + " with token " + token + ".", "ok");
-      spawnWrite(api, "write", target, b.id, token, b.orders[0]);
-    });
-  }
-
-  function wake(api, a) {
-    var S = api.state;
-    if (!a.frozen) return;
-    a.frozen = false;
-    a.hiccupUntil = null;
-    var secs = Math.round(api.clock - a.frozeAt);
-    if (a.status === "alive") {
-      var n = a.stuck.length + a.stuckExtra;
-      api.log(a.name + " woke after " + secs + "s, before the " + S.timeout + "s timeout. Nobody replaced it." +
-        (n ? " " + n + (n > 1 ? " customers" : " customer") + " just waited longer." : ""), "warn");
-      a.stuck.forEach(function (d) {
-        d.late = true;
-        d.cls("dot-req");
-        d.setPath([a.id, "db"]);
-        d.resume();
-      });
-      S.stats.served += a.stuckExtra;
-      a.stuck = [];
-      a.stuckExtra = 0;
-      render(api);
-      return;
-    }
-    if (a.status === "dead") {
-      a.status = "zombie";
-      var ghosts = a.ghost || [];
-      if (!ghosts.length) { rejoin(api, a); render(api); return; }
-      api.log(a.name + " woke after " + secs + "s. It doesn't know it was declared dead. Resuming " +
-        ghosts.map(range).join(", ") + " with token " + ghosts.map(function (g) { return g.token; }).join(", ") + "...", "bad");
-      var k = 0;
-      ghosts.forEach(function (g) {
-        g.orders.forEach(function (o) {
-          api.after(0.9 + 0.35 * k, function () { spawnWrite(api, "zombie", a, g.id, g.token, o); });
-          k++;
-        });
-      });
-      api.after(0.9 + 0.35 * k + 1.6, function () { rejoin(api, a); render(api); });
-      render(api);
-    }
-  }
-
-  function rejoin(api, a) {
-    var S = api.state;
-    if (a.status !== "zombie") return;
-    a.status = "alive";
-    a.lastBeat = api.clock;
-    a.ghost = null;
-    var token = ++S.tokenCounter;
-    var first = S.nextOrder;
-    S.nextOrder += 3;
-    var id = "N" + token;
-    a.batch = { id: id, orders: ["#" + first, "#" + (first + 1), "#" + (first + 2)], token: token };
-    S.db[id] = token;
-    S.dbRanges[id] = range(a.batch);
-    api.log(a.name + " rejoined as a fresh machine with new orders " + range(a.batch) + " and token " + token + ".", "ok");
-  }
-
-  /* ---------- plain-language box explanations ---------- */
-
-  function infoFor(api, id) {
-    var S = api.state;
-    if (id === "users") {
-      return "<strong>Customers.</strong> Each white dot is one request. If it reaches a frozen machine it waits (amber). " +
-        "If that machine is then declared dead, the request fails (red).";
-    }
-    if (id === "lb") {
-      return "<strong>Load balancer.</strong> Spreads requests across the machines the Head of Shift says are alive. " +
-        "Real load balancers also run their own health checks; in OP's setup it only trusts the Head of Shift's list.";
-    }
-    if (id === "coord") {
-      return "<strong>Head of Shift (coordinator).</strong> Listens for heartbeats. After " + S.timeout + "s of silence it " +
-        "declares a machine dead and hands its orders to someone else with a higher token. It can't tell dead from frozen. Nobody can.";
-    }
-    if (id === "db") {
-      return "<strong>Orders database.</strong> Stores which truck gets which order. With fencing on, it remembers the highest " +
-        "token for each batch and refuses writes with an older one. Fencing is currently <strong>" + (S.fencing ? "on" : "off") + "</strong>.";
-    }
-    for (var i = 0; i < S.apps.length; i++) {
-      var a = S.apps[i];
-      if (a.id === id) {
-        return "<strong>" + a.name + ".</strong> Does the actual work. It holds a batch of orders and a token that proves it owns " +
-          "them, and it sends a heartbeat every second. Right now it is: " + appView(api, a).status + ".";
+      if (x.dead) {
+        if (C.back === "fresh") {
+          M.counter++;
+          x.dead = false; x.state = "alive"; x.list = true; x.owns = []; x.tok = M.counter;
+          log("The Head of Shift answers " + NAMES[i] + ": you were declared dead. It drops its old work and rejoins as a new machine with token " + M.counter + " and no orders.", "ok");
+        } else {
+          x.state = "zombie";
+          log(NAMES[i] + " is back after " + gone + " s and doesn't know it was declared dead. It still believes it owns " + range(x.owns) + ".", "bad");
+        }
+      } else if (x.state === "quiet" || x.state === "suspect") {
+        log(NAMES[i] + " answers again after " + gone + " s. It was only " + x.state + ", so it goes back on the list and keeps its orders.", "ok");
+        x.state = "alive"; x.list = true;
       }
     }
-    return TIP;
+    // (3) the Head of Shift's checks
+    for (i = 0; i < 3; i++) {
+      x = M.mach[i];
+      if (x.dead || x.state === "unplugged" || x.last === s) continue;
+      var sil = s - x.last - 1;
+      if (C.twostage && sil >= QUIET && x.state === "alive") {
+        x.state = "quiet"; x.list = false;
+        log(NAMES[i] + " silent " + QUIET + " s: the load balancer stops sending it customers. It keeps its orders.", "warn");
+      }
+      var dead = false;
+      if (sil >= C.timeout) {
+        if (C.suspect) {
+          if (x.state !== "suspect") {
+            x.state = "suspect"; x.list = false;
+            log(NAMES[i] + " silent " + label(C.timeout) + ": SUSPECT. The other machines try to reach it too, for " + SUSPECT_MORE + " s more.", "warn");
+          }
+          if (sil >= C.timeout + SUSPECT_MORE) dead = true;
+        } else dead = true;
+      }
+      if (dead) {
+        x.dead = true; x.state = "dead"; x.list = false;
+        var to = nextInLine(M, i);
+        M.counter++;
+        var orders = x.owns.slice();
+        log(NAMES[i] + " silent " + label(sil) + ": DECLARED DEAD. Its orders " + range(orders) + " go to " + NAMES[to] + " with token " + M.counter + ".", "bad");
+        var y = M.mach[to];
+        y.owns = y.owns.concat(orders);
+        y.tok = Math.max(y.tok, M.counter);
+        M.due.push({ at: s + 1, m: to, tok: M.counter, orders: orders });
+      }
+    }
+    // (4) OP's click on night one
+    if (s === N.click) {
+      for (i = 0; i < 3; i++) {
+        x = M.mach[i];
+        if (x.state === "zombie") {
+          x.list = true;
+          log("You click Return to service: " + NAMES[i] + " goes back on the list, still holding " + range(x.owns) + " under token " + zTok(M, i) + ".", "bad");
+        }
+      }
+    }
+    // (5) customers
+    var on = [];
+    for (i = 0; i < 3; i++) if (M.mach[i].list) on.push(i);
+    for (var r = 0; r < RATE; r++) {
+      if (!on.length) { M.failed++; continue; }
+      var tgt = on[M.k % on.length];
+      M.k++;
+      if (paused(M, tgt, s)) M.failed++;
+    }
   }
 
-  /* ---------- the module ---------- */
+  function label(sec) { return sec >= 300 && sec % 60 === 0 ? (sec / 60) + " min" : sec + " s"; }
+  function zTok(M, i) { return M.mach[i].ztok; }
+  function stateText(M, i) {
+    var x = M.mach[i];
+    if (x.state === "unplugged") return "unplugged";
+    if (x.state === "dead") return "dead";
+    if (x.state === "zombie") return "zombie, token " + zTok(M, i);
+    return x.state + ", token " + x.tok;
+  }
+
+  /* ---------- drawing ---------- */
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function mk(doc, tag, attrs, parent) {
+    var e = doc.createElementNS(SVGNS, tag);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) e.setAttribute(k, String(attrs[k]));
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(doc, g, x, y, s, cls, anchor) {
+    var t = mk(doc, "text", { x: x, y: y, "class": cls, "text-anchor": anchor || "start" }, g);
+    t.textContent = s;
+    return t;
+  }
+  function clear(n) { while (n && n.firstChild) n.removeChild(n.firstChild); }
+
+  function build(api) {
+    var doc = api.root.ownerDocument;
+    clear(api.root);
+    var wrap = doc.createElement("div");
+    wrap.setAttribute("style", "display:grid;gap:8px;padding:10px;min-width:0;");
+    var head = doc.createElement("p");
+    head.setAttribute("style", "margin:0;font-size:12px;");
+    wrap.appendChild(head);
+    var svg = mk(doc, "svg", {
+      viewBox: "0 0 660 190", width: "100%", "class": "dg", role: "img",
+      "aria-label": "Heartbeat lanes, one per machine. Each green tick is one heartbeat; a red flat line is silence. Each lane's label shows the machine's state as the Head of Shift sees it. A solid line marks where the playhead is."
+    });
+    var layer = mk(doc, "g", {}, svg);
+    wrap.appendChild(svg);
+    var table = doc.createElement("table");
+    table.setAttribute("style", "width:100%;font-size:12px;");
+    var tbody = doc.createElement("tbody");
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    api.root.appendChild(wrap);
+    return { doc: doc, head: head, layer: layer, tbody: tbody };
+  }
+
+  function drawAll(S) {
+    var M = S.M, doc = S.ui.doc, g = S.ui.layer;
+    clear(g);
+    var len = M.N.end - M.N.start, x0 = 150, pw = 480 / len;
+    function X(s) { return x0 + (s - M.N.start) * pw; }
+    for (var i = 0; i < 3; i++) {
+      var y = 30 + i * 46;
+      txt(doc, g, 10, y + 4, NAMES[i] + ": " + stateText(M, i), "dg-note");
+      var ok = "", bad = "";
+      var b = M.beats[i];
+      for (var k = 0; k < b.length; k++) {
+        var sx = X(M.N.start + 1 + k);
+        if (b[k]) ok += "M" + sx.toFixed(1) + " " + (y - 7) + "V" + (y + 7);
+        else bad += "M" + (sx - pw).toFixed(1) + " " + y + "H" + sx.toFixed(1);
+      }
+      var go = mk(doc, "g", { "class": "dg-node st-ok" }, g);
+      if (ok) mk(doc, "path", { d: ok, stroke: "currentColor", "stroke-width": 1.2 }, go);
+      var gb = mk(doc, "g", { "class": "dg-node st-bad" }, g);
+      if (bad) mk(doc, "path", { d: bad, stroke: "currentColor", "stroke-width": 1.5 }, gb);
+    }
+    mk(doc, "line", { x1: X(M.now), y1: 14, x2: X(M.now), y2: 150, stroke: "currentColor", "class": "dg-axis" }, g);
+    txt(doc, g, x0, 176, hms(M.N.start), "dg-axis", "middle");
+    txt(doc, g, x0 + 480, 176, hms(M.N.end), "dg-axis", "middle");
+    var tb = S.ui.tbody;
+    clear(tb);
+    var hr = doc.createElement("tr");
+    ["order", "owner (Head of Shift)", "highest token seen", "trucks"].forEach(function (h) {
+      var th = doc.createElement("th"); th.setAttribute("style", "text-align:left;"); th.textContent = h; hr.appendChild(th);
+    });
+    tb.appendChild(hr);
+    for (var o = 4468; o <= 4476; o++) {
+      var owner = "-";
+      for (var m = 0; m < 3; m++) if (!M.mach[m].dead && M.mach[m].state !== "zombie" && M.mach[m].owns.indexOf(o) >= 0) owner = NAMES[m];
+      var tr = doc.createElement("tr");
+      ["#" + o, owner, String(M.db[o].high), String(M.db[o].trucks)].forEach(function (c) {
+        var td = doc.createElement("td"); td.textContent = c; tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    }
+  }
+
+  function show(api) {
+    var S = api.state, M = S.M, C = S.C;
+    api.clock = M.now;
+    S.ui.head.textContent = (C.night === "pause" ? "Night one, pause " + C.pause + " s" : "app-3 stops at 03:40:00") +
+      ". Hand-over after " + label(C.timeout) + (C.suspect ? " + 10 s suspect" : "") + (C.twostage ? "; customers stopped after 3 s" : "") +
+      ". Fencing " + (C.fencing ? "on" : "off") + ". A dead machine comes back " + (C.back === "fresh" ? "fresh" : "with its old work") +
+      (C.unplug ? ". app-2 unplugged." : ".");
+    S.stat.failed(fmt(M.failed));
+    S.stat.doubles(doubles(M));
+    S.stat.refused(M.refused);
+    S.stat.token(M.counter);
+    S.stat.high(M.db[4471].high);
+    S.stat.m1(stateText(M, 0));
+    S.stat.m2(stateText(M, 1));
+    S.stat.m3(stateText(M, 2));
+    drawAll(S);
+  }
+
+  function advance(api, to) {
+    var S = api.state, M = S.M;
+    to = Math.min(M.N.end, to);
+    for (var s = M.now + 1; s <= to; s++) {
+      M.now = s;
+      api.clock = s;
+      stepSecond(M, s, function (msg, tone) { api.log(msg, tone); });
+    }
+    if (M.now >= M.N.end) {
+      if (!S.endLogged) {
+        S.endLogged = true;
+        api.log("End: " + doubles(M) + " orders on two trucks, " + M.refused + " old-token writes refused, " + fmt(M.failed) + " customer requests failed.", doubles(M) ? "bad" : "ok");
+      }
+      S.playing = false;
+    }
+    show(api);
+  }
+
+  function rewind(api, what) {
+    var S = api.state;
+    S.M = setupModel(S.C);
+    S.playing = false;
+    S.endLogged = false;
+    api.clock = S.M.now;
+    api.log(what + " Rewound to " + hms(S.M.now) + ".", "");
+    show(api);
+  }
+
+  function setupModel(C) {
+    var M = initial(C);
+    M.mark0 = function (i) {
+      // seconds the machine was silent before the heartbeat that ends it
+      var b = M.beats[i], n = 0;
+      for (var k = b.length - 2; k >= 0 && !b[k]; k--) n++;
+      return M.now - n;
+    };
+    // a zombie keeps the token it held when it paused
+    M.mach.forEach(function (x) { x.ztok = x.tok; });
+    return M;
+  }
 
   DL.sims.define("s8e01", {
-    diagram: DIAGRAM,
-    startClock: START,
-
     setup: function (api) {
-      var keep = carry;
-      carry = null;
-      api.speed = SPEED;
       var S = api.state;
-      S.traffic = keep ? keep.traffic : 3;
-      S.timeout = keep ? keep.timeout : 30;
-      S.fencing = keep ? keep.fencing : false;
-      S.tokenCounter = 33;
-      S.nextOrder = 4477;
-      S.rr = 0;
-      S.spawnAcc = 0;
-      S.apps = APPS.map(function (spec) { return mkApp(spec, api.clock); });
-      S.db = { A: 31, B: 33, C: 32 };
-      S.dbShow = "B";
-      S.dbRanges = { A: range(S.apps[0].batch), B: range(S.apps[1].batch), C: range(S.apps[2].batch) };
-      S.hit = "";
-      S.hitText = "";
-      S.hitGen = 0;
-      S.stats = { served: 0, failed: 0, dup: 0, rej: 0 };
-
-      var U = {};
-      api.control.range("traffic", "Traffic", 1, 10, 1, S.traffic, function (v) {
-        S.traffic = v;
-      }, { format: function (v) { return v + TIMES; } });
-      api.control.select("timeout", "Silence before a machine is called dead", [
-        { value: 5, label: "5s" }, { value: 30, label: "30s" }, { value: 120, label: "2 min" }
-      ], S.timeout, function (v) {
-        S.timeout = v;
-        api.log("Timeout set: a machine silent for " + v + "s is declared dead.", "");
-        render(api);
+      api.speed = 0;
+      S.C = { night: "pause", pause: 38, timeout: 30, twostage: false, suspect: false, fencing: false, back: "old", unplug: false };
+      S.ui = build(api);
+      S.stat = {
+        failed: api.stat("failed", "customer requests failed", "bad"),
+        doubles: api.stat("doubles", "orders on two trucks", "bad"),
+        refused: api.stat("refused", "old-token writes refused", "ok"),
+        token: api.stat("token", "newest token handed out", ""),
+        high: api.stat("high", "database's highest token for #4471", ""),
+        m1: api.stat("m1", "app-1", ""),
+        m2: api.stat("m2", "app-2", ""),
+        m3: api.stat("m3", "app-3", "")
+      };
+      api.control.select("night", "Night", NIGHT_OPTS, "pause", function (v) {
+        S.C.night = String(v) === "stop" ? "stop" : "pause";
+        rewind(api, S.C.night === "stop" ? "app-3 will stop for good at 03:40:00." : "Night one: app-2 will pause at 02:13:04.");
       });
-      api.control.toggle("fencing", "Fencing tokens", S.fencing, function (on) {
-        S.fencing = on;
-        api.log(on ? "Fencing ON: the database now refuses writes with an old token." : "Fencing OFF: the database accepts any write.", on ? "ok" : "warn");
-        render(api);
+      api.control.select("pause", "Pause length", PAUSES, "38", function (v) {
+        S.C.pause = Number(v);
+        rewind(api, "The pause lasts " + S.C.pause + " s.");
       });
-      U.freeze = api.control.button("freeze", "Freeze app-2", function () { freeze(api, S.apps[1]); }, { tone: "danger" });
-      U.wake = api.control.button("wake", "Wake app-2", function () { wake(api, S.apps[1]); }, { disabled: true });
-      U.hiccup = api.control.button("hiccup", "Tiny pause on app-1 (" + HICCUP + "s)", function () {
-        freeze(api, S.apps[0], HICCUP);
-      }, { wide: true });
-      api.control.button("reset", "Reset the night", function () {
-        carry = { traffic: S.traffic, timeout: S.timeout, fencing: S.fencing };
-        api.reset();
-      }, { tone: "ghost", wide: true });
-
-      U.served = api.stat("served", "served", "ok");
-      U.waiting = api.stat("waiting", "waiting", "warn");
-      U.failed = api.stat("failed", "failed", "bad");
-      U.dup = api.stat("dup", "double-assigned", "bad");
-      U.rej = api.stat("rej", "stale writes blocked", "ok");
-      S.ui = U;
-
-      api.info(TIP);
-      api.onNodeClick(function (id) { api.info(infoFor(api, id)); });
-      api.log("Shift started. Three machines healthy, heartbeats every second.", "");
-      render(api);
+      api.control.select("timeout", "Silence before hand-over", TIMEOUTS, "30", function (v) {
+        S.C.timeout = Number(v) === 300 ? 300 : 30;
+        rewind(api, "Hand-over after " + label(S.C.timeout) + " of silence.");
+      });
+      api.control.toggle("twostage", "Two-stage: stop sending customers after 3 s", false, function (on) {
+        S.C.twostage = !!on;
+        rewind(api, "Two-stage " + (on ? "on." : "off."));
+      });
+      api.control.toggle("suspect", "Suspect stage: 10 s more before dead", false, function (on) {
+        S.C.suspect = !!on;
+        rewind(api, "Suspect stage " + (on ? "on." : "off."));
+      });
+      api.control.toggle("fencing", "Fencing: the database refuses older tokens", false, function (on) {
+        S.C.fencing = !!on;
+        rewind(api, "Fencing " + (on ? "on." : "off."));
+      });
+      api.control.select("back", "Return to service", BACK, "old", function (v) {
+        S.C.back = String(v) === "fresh" ? "fresh" : "old";
+        rewind(api, "A machine declared dead comes back " + (S.C.back === "fresh" ? "fresh, as a new machine." : "with its old work."));
+      });
+      api.control.toggle("unplug", "Unplug app-2 for good", false, function (on) {
+        S.C.unplug = !!on;
+        rewind(api, on ? "app-2 is unplugged; its orders went to app-1 earlier with token 34, and the pause hits app-1." : "app-2 is back in the line-up.");
+      });
+      api.control.button("next", "Next second", function () { advance(api, S.M.now + 1); });
+      api.control.button("play", "Play / pause", function () { S.playing = !S.playing && S.M.now < S.M.N.end; });
+      api.control.button("end", "To the end", function () { advance(api, S.M.N.end); });
+      api.control.button("reset", "Reset", function () { api.reset(); });
+      api.info("<strong>How to read it.</strong> Each lane is one machine: a green tick is a heartbeat, a red line is silence. The label shows its state as the Head of Shift sees it: alive; quiet (no customers, keeps its orders); suspect (others are checking); dead (its orders handed on); zombie (declared dead, still working). The table shows each order's owner, the highest token the database has seen for it, and how many trucks it is on.");
+      S.M = setupModel(S.C);
+      S.playing = false;
+      S.endLogged = false;
+      api.clock = S.M.now;
+      api.log("Night one, before the pause. app-1 owns #4468-#4470 (token 31), app-2 #4471-#4473 (token 33), app-3 #4474-#4476 (token 32). Every machine sends a heartbeat each second.", "");
+      show(api);
     },
 
     step: function (api, dt) {
       var S = api.state;
-      if (!S.apps) return;
-      S.apps.forEach(function (a) {
-        if (a.hiccupUntil !== null && api.clock >= a.hiccupUntil) wake(api, a);
-        if (!a.frozen) a.lastBeat = api.clock;
-        if (a.status === "alive" && a.frozen && api.clock - a.lastBeat > S.timeout) declareDead(api, a);
-      });
-      var rate = S.traffic * (api.reducedMotion ? 0.5 : 1.3);
-      S.spawnAcc += dt * rate;
-      while (S.spawnAcc >= 1) {
-        S.spawnAcc -= 1;
-        spawnRequest(api);
-      }
-      render(api);
+      if (!S.playing) { S.acc = 0; return; }
+      S.acc = (S.acc || 0) + dt * S.M.N.rate;
+      var n = Math.floor(S.acc);
+      if (n > 0) { S.acc -= n; advance(api, S.M.now + n); }
     },
 
     selfTest: async function (t) {
-      var B = range({ orders: ["#4471", "#4473"] });     // #4471-73 with an en dash
-      var A = range({ orders: ["#4468", "#4470"] });     // #4468-70 with an en dash
-      var N = range({ orders: ["#4477", "#4479"] });     // #4477-79 with an en dash
-      var sinceStart = function () { return t.api ? Math.round(t.api.clock - START) : null; };
+      function has(s) { return t.logText().indexOf(s) >= 0; }
+      function fresh() { t.click("reset"); }
 
-      /* (a) fencing off: freeze app-2 past the 30s limit, then wake it */
-      t.expect(!t.api || Math.round(t.api.clock) === START, "the clock starts at 02:13:00");
-      t.expect(t.node("lb").text.sub === "3 of 3 alive", "starts with the load balancer showing 3 of 3 alive");
-      t.expect(t.node("app2").text.meta === B + MID + "token 33", "app-2 starts with orders #4471-73 and token 33");
-      t.set("timeout", 30);
-      t.set("fencing", false);
-      t.click("freeze");
-      await t.run(3);
-      t.expect(t.node("app2").state === "warn" && /^silent \d+s of 30s$/.test(t.node("app2").text.sub),
-        "(a) a frozen app-2 is counted as silent, not dead yet: " + t.node("app2").text.sub);
-      t.expect(t.stat("waiting") > 0, "(a) requests sent to the frozen app-2 wait");
-      await t.run(4);
-      t.expect(!t.api || sinceStart() === 35, "(a) 7 real seconds are 35 sim-seconds at 5x speed");
-      t.expect(t.node("app2").text.sub === "DECLARED DEAD", "(a) app-2 is DECLARED DEAD after 30 sim-seconds of silence");
-      t.expect(t.node("app2").state === "bad", "(a) app-2's box shows the dead state");
-      t.expect(t.node("lb").text.sub === "2 of 3 alive", "(a) the load balancer shows 2 of 3 alive: " + t.node("lb").text.sub);
-      t.expect(t.logText().indexOf("app-3 took over orders " + B + " with token 34.") >= 0, "(a) app-3 takes over #4471-73 with the new token 34");
-      t.expect(t.stat("failed") > 0, "(a) the requests waiting on app-2 fail when it is declared dead");
-      t.expect(t.stat("waiting") === 0, "(a) nothing is left waiting on a dead machine");
-      t.click("wake");
-      await t.run(1);
-      t.expect(t.node("app2").state === "zombie", "(a) the woken app-2 is a zombie that thinks it is alive");
-      await t.run(4);
-      t.expect(t.stat("dup") === 3, "(a) waking gives exactly 3 double-assigned orders, got " + t.stat("dup"));
-      t.expect(t.stat("rej") === 0, "(a) with fencing off nothing is blocked, got " + t.stat("rej"));
-      t.expect(t.logText().indexOf("is now on two trucks.") >= 0, "(a) the log says an order is on two trucks");
-      t.expect(t.logText().indexOf("app-2 rejoined as a fresh machine with new orders " + N + " and token 35.") >= 0,
-        "(a) app-2 rejoins with fresh orders and a fresh token 35");
-      t.expect(t.node("app2").state === "ok" && t.node("lb").text.sub === "3 of 3 alive", "(a) after rejoining, 3 of 3 are alive again");
+      // 1. Opens at 02:13:00, before the pause: all alive, newest token 33.
+      t.expect(t.api.clock === 7980 && t.stat("failed") === 0 && t.stat("doubles") === 0 && t.stat("refused") === 0 &&
+        t.stat("token") === 33 && t.stat("high") === 33 && t.stat("m2") === "alive, token 33" && t.stat("m3") === "alive, token 32",
+        "Opens at 02:13:00: app-2 alive with token 33, newest token 33, nothing failed");
 
-      /* (b) reset, fencing on, same sequence */
-      t.click("reset");
-      t.set("timeout", 30);
-      t.set("fencing", true);
-      t.expect(!t.api || Math.round(t.api.clock) === START, "(b) reset puts the clock back to 02:13:00");
-      t.expect(t.stat("dup") === 0 && t.stat("served") === 0, "(b) reset clears the numbers");
-      t.expect(t.node("db").text.meta === "fencing: on", "(b) the database shows fencing: on");
-      t.click("freeze");
-      await t.run(7);
-      t.expect(t.node("app2").text.sub === "DECLARED DEAD", "(b) app-2 is DECLARED DEAD again");
-      t.click("wake");
-      await t.run(5);
-      t.expect(t.stat("rej") === 3, "(b) with fencing on, 3 stale writes are blocked, got " + t.stat("rej"));
-      t.expect(t.stat("dup") === 0, "(b) with fencing on, 0 orders are double-assigned, got " + t.stat("dup"));
-      t.expect(t.logText().indexOf("Database REJECTED #4471 from app-2: token 33 is older than 34.") >= 0,
-        "(b) the database rejects #4471 because token 33 is older than 34");
+      // 2. Night one as built: declared dead at 02:13:34, three orders on two trucks, 190 failed.
+      t.click("end");
+      t.expect(has("02:13:34 app-2 silent 30 s: DECLARED DEAD. Its orders #4471-#4473 go to app-3 with token 34.") &&
+        has("02:13:42 app-2: heartbeat ok. resuming orders #4471-#4473 (token 33)") &&
+        has("#4471-#4473 are now each on two trucks.") && t.stat("doubles") === 3 && t.stat("failed") === 190 &&
+        t.stat("high") === 34 && t.stat("m2") === "zombie, token 33",
+        "As built: dead at 02:13:34, token 34 to app-3, app-2 resumes with 33 at 02:13:42: 3 orders on two trucks, 190 failed");
 
-      /* (c) wake before the timeout: no zombie, waiting requests resume */
-      t.click("reset");
-      t.set("timeout", 30);
-      t.set("fencing", false);
-      t.click("freeze");
-      await t.run(3);
-      var waiting = t.stat("waiting");
-      var served = t.stat("served");
-      t.expect(waiting > 0, "(c) requests pile up on the frozen app-2, got " + waiting);
-      t.click("wake");
-      await t.run(2);
-      t.expect(t.node("app2").state === "ok" && t.node("app2").text.sub === "healthy", "(c) app-2 woke before the timeout and is healthy");
-      t.expect(t.stat("waiting") === 0, "(c) no requests are left waiting, got " + t.stat("waiting"));
-      t.expect(t.stat("served") >= served + waiting, "(c) the waiting requests resume and are served");
-      t.expect(t.logText().indexOf("before the 30s timeout. Nobody replaced it.") >= 0, "(c) the log says nobody replaced app-2");
-      t.expect(t.logText().indexOf("DECLARED DEAD") < 0, "(c) nobody was declared dead");
-      t.expect(t.logText().indexOf("ZOMBIE") < 0 && t.stat("dup") === 0 && t.stat("rej") === 0, "(c) no zombie writes");
-      t.expect(t.node("lb").text.sub === "3 of 3 alive", "(c) the load balancer still shows 3 of 3 alive");
+      // 3. The ok option: fencing on, rejoin fresh. Token 33 refused, app-2 rejoins with 35.
+      fresh(); t.click("fencing"); t.set("back", "fresh"); t.click("end");
+      t.expect(has("The database refuses token 33 for #4471-#4473: it has already seen token 34.") &&
+        t.stat("refused") === 3 && t.stat("doubles") === 0 && t.stat("token") === 35 && t.stat("m2") === "alive, token 35",
+        "Fencing and a fresh rejoin: 3 writes with token 33 refused, 0 on two trucks, app-2 rejoins with token 35");
 
-      /* (d) 5s timeout: the 8s pause on app-1 is a false death plus zombie writes */
-      t.click("reset");
-      t.set("timeout", 5);
-      t.set("fencing", false);
-      t.click("hiccup");
-      await t.run(1.3);
-      t.expect(t.node("app1").text.sub === "DECLARED DEAD", "(d) with a 5s limit, the 8s pause gets app-1 declared dead");
-      t.expect(t.logText().indexOf("app-3 took over orders " + A + " with token 34.") >= 0, "(d) app-3 takes over #4468-70 with token 34");
-      await t.run(0.5);
-      t.expect(t.node("app1").state === "zombie", "(d) app-1 wakes after its pause as a zombie");
-      t.expect(t.logText().indexOf("app-1 woke after " + HICCUP + "s. It doesn't know it was declared dead.") >= 0,
-        "(d) the log shows app-1 waking after 8s, unaware it was declared dead");
-      await t.run(4);
-      t.expect(t.stat("dup") === 3, "(d) its zombie writes land: 3 double-assigned, got " + t.stat("dup"));
-      t.expect(t.logText().indexOf("Database accepted #4468 from app-1 (token 31).") >= 0, "(d) the database accepts #4468 from the zombie app-1");
+      // 4. Fresh without fencing: the writes in flight still land.
+      fresh(); t.set("back", "fresh"); t.click("end");
+      t.expect(t.stat("doubles") === 3 && t.stat("refused") === 0 && t.stat("token") === 35,
+        "Rejoining fresh alone: the 3 writes app-2 was in the middle of still land, 3 on two trucks");
 
-      /* (e) 30s timeout: the same 8s pause is not a death */
-      t.click("reset");
-      t.set("timeout", 30);
-      t.set("fencing", false);
-      t.click("hiccup");
-      await t.run(3);
-      t.expect(t.logText().indexOf("DECLARED DEAD") < 0, "(e) with a 30s limit, the 8s pause is not a death");
-      t.expect(t.node("app1").state === "ok" && t.node("app1").text.sub === "healthy", "(e) app-1 is healthy after its pause");
-      t.expect(t.logText().indexOf("app-1 woke after " + HICCUP + "s, before the 30s timeout.") >= 0, "(e) the log shows app-1 waking before the timeout");
-      t.expect(t.stat("dup") === 0 && t.stat("rej") === 0, "(e) no zombie writes");
-      t.expect(t.node("lb").text.sub === "3 of 3 alive", "(e) the load balancer shows 3 of 3 alive");
+      // 5. Fencing with the old work: refused, but app-2 stays a zombie.
+      fresh(); t.click("fencing"); t.click("end");
+      t.expect(t.stat("refused") === 3 && t.stat("doubles") === 0 && t.stat("m2") === "zombie, token 33",
+        "Fencing with the old work: 3 refused, and app-2 is still a zombie holding token 33");
+
+      // 6. Option B on night one: 5 minutes, never declared, 241 failed.
+      fresh(); t.set("timeout", "300"); t.click("end");
+      t.expect(t.stat("doubles") === 0 && t.stat("failed") === 241 && t.stat("token") === 33 && t.stat("m2") === "alive, token 33",
+        "5 min on night one: never declared dead, 0 on two trucks, but app-2 takes customers through its 38 s: 241 failed");
+
+      // 7. Option B's Part 2: app-3 stops for good at 03:40; 5 minutes means 1,900 failed.
+      fresh(); t.set("night", "stop"); t.set("timeout", "300"); t.click("end");
+      var b5 = t.stat("failed") === "1,900" && has("03:45:00 app-3 silent 5 min: DECLARED DEAD. Its orders #4474-#4476 go to app-1 with token 34.");
+      t.set("timeout", "30"); t.click("end");
+      var b30 = t.stat("failed") === 190;
+      t.set("timeout", "300"); t.click("twostage"); t.click("end");
+      t.expect(b5 && b30 && t.stat("failed") === 19,
+        "app-3 stops at 03:40: 1,900 failed with 5 min, 190 with 30 s, 19 with customers stopped after 3 s");
+
+      // 8. Two-stage on night one: 19 failed, but still three on two trucks.
+      fresh(); t.click("twostage"); t.click("end");
+      t.expect(has("02:13:07 app-2 silent 3 s: the load balancer stops sending it customers.") && t.stat("failed") === 19 && t.stat("doubles") === 3,
+        "Two-stage on night one: customers stopped at 02:13:07, 19 failed; the hand-over still makes 3 on two trucks");
+
+      // 9. The old 3 s pauses: never declared.
+      fresh(); t.set("pause", "3"); t.click("end");
+      t.expect(t.stat("doubles") === 0 && t.stat("failed") === 19 && t.stat("token") === 33,
+        "A 3 s pause, as before the change: never declared dead, 19 failed, nothing doubled");
+
+      // 10. Suspect stage: 38 s survives, 60 s does not.
+      fresh(); t.click("suspect"); t.click("end");
+      var s38 = t.stat("doubles") === 0 && t.stat("failed") === 190 && has("app-2 answers again after 38 s. It was only suspect");
+      t.set("pause", "60"); t.click("end");
+      t.expect(s38 && t.stat("doubles") === 3 && has("02:13:44 app-2 silent 40 s: DECLARED DEAD."),
+        "Suspect stage: the 38 s pause ends while suspect, nothing doubled; a 60 s pause is declared dead at 02:13:44 and doubles 3");
+
+      // 11. Option C: unplug app-2, and the same pause hits app-1.
+      fresh(); t.click("unplug"); t.click("end");
+      t.expect(t.stat("m2") === "unplugged" && t.stat("doubles") === 3 && t.stat("failed") === 285 &&
+        has("02:13:34 app-1 silent 30 s: DECLARED DEAD. Its orders #4468-#4473 go to app-3 with token 35."),
+        "app-2 unplugged: app-1 pauses instead, is declared dead, and 3 orders end up on two trucks; 285 failed");
     }
   });
-})(typeof window !== "undefined" ? window : globalThis);
+})();

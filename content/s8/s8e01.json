@@ -1,0 +1,881 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-16) dates moved into October (update 13 October, memory change 21 October, night of 26 October) so Part 2's night, 27 October, follows it",
+  "v1.0.0 (2026-10-16) first version"
+ ],
+ "id": "s8e01",
+ "season": 8,
+ "n": 1,
+ "title": "Silence Isn't Death",
+ "setting": "a freight company's night shift (the mockup's pilot)",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "failure-detection",
+  "heartbeats",
+  "two-stage-timeouts",
+  "suspect-states"
+ ],
+ "prerequisites": [
+  "s2e02",
+  "s6e01",
+  "s5e12",
+  "s2e01",
+  "s1e01",
+  "s4e07"
+ ],
+ "rule": {
+  "n": 4
+ },
+ "post": {
+  "author": "u/third_shift_tom",
+  "flair": "Part 1",
+  "age": "4h",
+  "votes": 4213,
+  "title": "I took a night-shift job babysitting servers. The last engineer left a list of rules taped to the monitor. Night one, I broke rule 4.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "The pay was too good. The interview lasted four minutes, and the guy never asked me a single technical question. He only asked if I sleep well during the day."
+   },
+   {
+    "t": "p",
+    "text": "Kestrelmoor Freight runs at night. Trucks load at 4 AM, so every order has to be assigned to a truck before then. Three machines do the assigning: app-1, app-2 and app-3. Each is a computer running the same program. My job is to watch them."
+   },
+   {
+    "t": "p",
+    "text": "Another program, the Head of Shift, hands out the work. It splits the night's orders between the three machines. Each machine then writes a truck against each of its orders in the orders database: the company's record, where every driver's paperwork comes from."
+   },
+   {
+    "t": "p",
+    "text": "Each time the Head of Shift hands a machine its share, it stamps that hand-over with a token: the next number on one counter that only ever goes up. So whoever got a share most recently holds the highest number. Every truck a machine writes carries its token."
+   },
+   {
+    "t": "p",
+    "text": "Customers send 19 requests a second: new orders, or questions about old ones. A load balancer, a program that deals requests out like cards, hands them to the machines in turn."
+   },
+   {
+    "t": "p",
+    "text": "Nobody would tell me why the last engineer left. His rules were still taped to monitor 3."
+   },
+   {
+    "t": "note",
+    "title": "RULES. Read them every night.",
+    "items": [
+     "Write it in the logbook before you do it. Never after.",
+     "If you knock and no one answers, wait. Then wait longer. Never knock in the same rhythm twice.",
+     "If the register asks you to charge a customer again, check the ticket number first.",
+     "If a machine goes silent for 30 seconds, it's dead. Even if it starts talking again. *Especially* then.",
+     "There is only one Head of Shift. If two claim to be Head of Shift, neither is.",
+     "Never trust the clock on the wall.",
+     "When the doors open at 6 AM, let them in a few at a time."
+    ],
+    "sig": "- M."
+   },
+   {
+    "t": "p",
+    "text": "Night one was quiet until 2:13 AM."
+   },
+   {
+    "t": "p",
+    "text": "app-2's heartbeat stopped. That's the little pulse each machine sends every second to say *I'm still here*. On my screen, its line just went flat."
+   },
+   {
+    "t": "p",
+    "text": "I counted. At 30 seconds the dashboard turned it red: DECLARED DEAD. The Head of Shift gave app-2's orders to app-3. Exactly like it's supposed to."
+   },
+   {
+    "t": "p",
+    "text": "It works in steps. The Head of Shift listens for every heartbeat. If a machine is silent for 30 seconds, it declares that machine dead and takes it off the load balancer's list. Then it hands the dead machine's orders to the next machine in line, with the next token. app-3 got token 34 and wrote trucks for them a second later."
+   },
+   {
+    "t": "p",
+    "text": "At 38 seconds, app-2 started talking again."
+   },
+   {
+    "t": "p",
+    "text": "I was relieved. I clicked \"Return to service.\" Why keep a working machine offline?"
+   },
+   {
+    "t": "p",
+    "text": "By 4 AM, orders #4471, #4472 and #4473 were each assigned to two different trucks. Two drivers called me from the same driveway, at the same time, asking who the other guy was."
+   },
+   {
+    "t": "p",
+    "text": "I pulled app-2's logs, the diary each machine writes of what it does. Nothing between 02:13:04 and 02:13:42. No error, no crash. Like it blinked. Each line shows the time, the machine and what it did. This was the first line after the gap:"
+   },
+   {
+    "t": "log",
+    "text": "02:13:42  app-2  heartbeat ok. resuming orders #4471-#4473 (token 33)"
+   },
+   {
+    "t": "p",
+    "text": "I didn't click that button until 02:14:10. It had already gone back to work without me."
+   },
+   {
+    "t": "beat",
+    "text": "It didn't know it was dead."
+   },
+   {
+    "t": "evidence",
+    "label": "heartbeat_dashboard.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Heartbeat dashboard from 02:12:50 to 02:14:10. app-1 and app-3 beat every second. app-2 goes silent from 02:13:04 to 02:13:42, 38 seconds, is declared dead at 02:13:34, and starts beating again at 02:13:42.",
+     "start": "02:12:50",
+     "seconds": 80,
+     "ticksEvery": 20,
+     "rows": [
+      {
+       "label": "app-1",
+       "gaps": [],
+       "segments": [
+        [
+         0,
+         80,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "app-2",
+       "gaps": [
+        [
+         14,
+         52,
+         "silent 38 s"
+        ]
+       ],
+       "segments": [
+        [
+         0,
+         14,
+         "ok"
+        ],
+        [
+         52,
+         80,
+         "bad"
+        ]
+       ]
+      },
+      {
+       "label": "app-3",
+       "gaps": [],
+       "segments": [
+        [
+         0,
+         80,
+         "ok"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 44,
+       "label": "declared dead (30 s)",
+       "tone": "warn"
+      }
+     ]
+    },
+    "caption": "Each tick is one heartbeat. app-2 goes flat at 02:13:04, is declared dead 30 seconds later at 02:13:34, then starts beating again at 02:13:42 as if nothing happened. Its ticks after the gap are red because by then it was working on orders that were no longer its own."
+   },
+   {
+    "t": "p",
+    "text": "I'm back on shift tonight. Dashboard attached. What should I change before it happens again?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 131,
+   "age": "3h",
+   "text": "Did it come back by itself, or did you let it back in? Those are very different things. Then two more. How long were app-2's silences before this week, and what changed? And at 02:13:42, what did app-2 believe about orders #4471 to #4473? How could it have known that belief was 38 seconds out of date? Your Head of Shift has a stopwatch and one line on it. Ask whether a stopwatch can tell a slow machine from a stopped one.",
+   "replies": [
+    {
+     "author": "u/third_shift_tom",
+     "op": true,
+     "points": 47,
+     "age": "3h",
+     "text": "By itself. Then I clicked \"Return to service.\" Does that matter? Its silences used to last about 3 seconds. Last Wednesday, 21 October, a contractor raised app-2's memory, the working space a running program keeps its things in, from 4 GB to 24 GB for the autumn peak. GB is short for gigabytes. Last night was its first long silence since."
+    }
+   ]
+  },
+  {
+   "author": "u/k8s_widow",
+   "points": 18,
+   "age": "2h",
+   "text": "38 seconds of nothing, then it carries on like no time passed? Machines do that. Look up \"stop-the-world pause.\" A program's memory fills with leftovers it no longer needs, and a part called the garbage collector clears them. Now and then it does a full clean-up, and it stops the whole program while it sweeps. That stop is the stop-the-world pause. More memory means more to sweep, and a stopped program can't notice the time it lost. It's not a ghost. It's worse. It's normal."
+  },
+  {
+   "author": "u/nightowl_dba",
+   "points": 12,
+   "age": "1h",
+   "text": "Ask yourself what the database thinks happened. Who does it believe owns order #4471?",
+   "replies": [
+    {
+     "author": "u/third_shift_tom",
+     "op": true,
+     "points": 9,
+     "age": "1h",
+     "text": "I looked. Two trucks for #4471: one written by app-3 with token 34 at 02:13:35, one by app-2 with token 33 at 02:13:42. It kept both. The numbers go back weeks. On Tuesday 13 October the monthly update restarted the machines one by one, and each got its share back with a new token: app-2 30, app-1 31, app-3 32. The contractor's change restarted app-2 again, so it came back with 33."
+    }
+   ]
+  },
+  {
+   "author": "u/it_answered_aldhelm",
+   "points": 64,
+   "age": "2h",
+   "text": "A machine that answers its heartbeat is healthy. Letting it back in is what health checks are for: a load balancer asks each machine \"are you there?\" every few seconds and sends it customers again the moment it answers. app-2 answered at 02:13:42. Your Head of Shift was too quick to give its orders away. Trust the heartbeat and let it carry on."
+  }
+ ],
+ "reply": {
+  "prompt": "OP is back on shift tonight. What should they change before app-2, or any machine, goes silent again? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Let app-2 back in once its heartbeat returns; a machine that is working again is fine.",
+    "tone": "bad",
+    "verdict": "Bad call. This is what OP did",
+    "part2": "I let it back in again. The next night it froze, woke up, and finished three orders app-3 had already finished. Two more drivers met at one loading gate, holding the same paperwork. Two machines both decided it was their job to send a truck there.",
+    "senior": "Letting it back in isn't the bug. Letting it continue its old work is. It was replaced while it was frozen, and it has no idea. A heartbeat that returns proves the machine is running now, not that what it believes about who owns which order is still true."
+   },
+   {
+    "text": "Wait 5 minutes of silence before calling a machine dead, so a long pause never counts.",
+    "tone": "warn",
+    "verdict": "Trade-off. Fewer false deaths, slower recovery",
+    "part2": "No zombies tonight: app-2 went silent again for 38 seconds and simply carried on. But at 3:40 app-3 stopped for real, and for five whole minutes customers kept getting sent to a dead machine. 1,900 customer requests failed. My manager asked why we let a corpse take orders.",
+    "senior": "A longer timeout only makes false alarms rarer. Any pause longer than the timeout still creates a zombie, and real failures now take longer to notice. Better: stop sending customers after a short silence, which is cheap to undo, and hand over the work only after a longer one."
+   },
+   {
+    "text": "Unplug app-2 for good and split its orders between the others; that machine is cursed.",
+    "tone": "bad",
+    "verdict": "Misses the point. It's not one bad machine",
+    "part2": "I unplugged app-2 and split its orders between app-1 and app-3. To carry the extra work, the contractor gave both of them 24 GB too. Two nights later, at 3:02, app-1 went silent for longer than 30 seconds, was declared dead, and woke up finishing orders app-3 now owned. Then app-3 at 3:51. They all do it. I can't unplug all of them.",
+    "senior": "Every machine pauses sometimes: a full memory clean-up, a busy disk, a network that goes quiet for a moment. The design has to survive a machine that stops and starts again, because sooner or later every machine will."
+   },
+   {
+    "text": "Rejoin a dead machine as new; each new owner gets a higher token, older ones refused.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Tonight app-2 froze again at 2:13. Thirty seconds, declared dead, orders handed to app-3 with token 34. When app-2 woke up it tried to finish order #4471 with token 33. The database said no. I was so relieved I almost missed the next line in the log. At 2:51 a write arrived with token 9. We haven't issued token 9 since March. It came from a machine called app-0. We don't have an app-0.",
+    "senior": "Detect with heartbeats, hand over with a higher token, and make the database refuse older tokens. Then it's safe to be wrong about who's dead. Tune detection too: stop sending customers after a short silence, add a suspect stage before dead, and judge silence against the machine's own history, so fewer machines are declared dead by mistake."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s8e01",
+  "title": "Replay night one at Kestrelmoor Freight",
+  "lede": "You're OP at 02:13:00 on night one, Tuesday 1 December, and every machine sends a heartbeat each second. As given: app-1 owns orders #4468 to #4470 with token 31; app-2 owns #4471 to #4473 with token 33 and is in the middle of writing their trucks; app-3 owns #4474 to #4476 with token 32. At 02:13:04 app-2 stops for a stop-the-world pause: 38 s, or pick 3 or 60. When a machine has been silent for the timeout, the Head of Shift declares it dead, takes it off the load balancer's list and hands its orders to the next machine in line with the next token; the new owner writes a second later. Customers send 19 requests a second, dealt in turn to the machines on the list, and a request sent to a stopped machine fails. You click Return to service at 02:14:10. The other night replays 03:40:00, when app-3 stops for good. Set the timeout, a first step that only stops customers after 3 s of silence, a suspect stage of 10 s more while the other machines try to reach it, whether the database refuses older tokens, how a dead machine comes back, or unplug app-2, then play.",
+  "tryThis": "Try this: play to the end as built. app-2 is declared dead at 02:13:34, app-3 writes with token 34, app-2 wakes at 02:13:42 and resumes with token 33: 3 orders on two trucks, 190 requests failed. Now let the database refuse older tokens and bring a dead machine back fresh: token 33 is refused 3 times, app-2 rejoins with token 35, nothing doubles. Fresh alone still doubles 3. Try 5 min: nothing doubles on night one, but on the 03:40 night 1,900 requests fail, and with customers stopped after 3 s only 19. Try the suspect stage, then a 60 s pause. Then unplug app-2: the same pause on app-1 doubles 3 again."
+ },
+ "explain": {
+  "oneLine": "app-2 didn't die. A full memory clean-up froze it for 38 seconds. After 30 seconds of silence the Head of Shift declared it dead and handed its orders to app-3 with token 34. app-2 woke, never knowing, and finished the same orders with token 33, and the database kept both.",
+  "steps": [
+   {
+    "title": "app-2 froze for 38 seconds.",
+    "text": "app-2's program frees memory with a garbage collector. Most clean-ups are small, but now and then it does a full one, and every part of the program stops while it sweeps: a stop-the-world pause. A full clean-up takes longer the more memory it has to sweep. With 4 GB, app-2's pauses lasted about 3 seconds, far under 30, so nobody noticed. On Wednesday 21 October a contractor raised its memory to 24 GB for the autumn peak, and night one brought the first full clean-up since. It lasted 38 seconds. A frozen program can't send heartbeats, and it can't notice time passing: when it wakes, it carries on from the line it stopped at. Other things freeze a machine the same way: a disk that stops answering, or the company that rents out the computer moving it to another one."
+   },
+   {
+    "title": "The Head of Shift did what it was built to do.",
+    "text": "Detecting a failure by heartbeat works in steps. First, every machine sends a heartbeat every second. Second, the Head of Shift notes the last one it heard from each machine. Third, if a machine has been silent for 30 seconds, it is declared dead and taken off the load balancer's list. Fourth, its orders go to the next machine in line, stamped with the next token: app-3 got #4471 to #4473 with token 34 at 02:13:34 and wrote their trucks at 02:13:35. What goes wrong: a timer measures silence, not death. A machine that is paused, slow or cut off looks exactly like one that has stopped, and no setting of the timer can tell them apart for sure. In the sim, the same 30 seconds also cost 190 customer requests: app-2 stayed on the list for its first 30 silent seconds."
+   },
+   {
+    "title": "app-2 woke up a zombie.",
+    "text": "At 02:13:42 app-2 finished the writes it was in the middle of, with token 33, and nothing told it that it had been replaced. A machine declared dead that keeps working on its old orders is called a zombie. The database took its trucks as well, because nothing in it compared tokens: #4471 to #4473 each ended up on two trucks. OP's click at 02:14:10 changed nothing; the damage was done at 02:13:42. That is Rule 4: once a machine has been declared dead, its work belongs to someone else, even if it starts talking again. Especially then, because it will talk as if nothing happened."
+   },
+   {
+    "title": "Detect better: two stages, a suspect stage, and a machine's own history.",
+    "text": "Real systems soften the guess in three ways. Two-stage timeouts split one decision into two: stop sending customers after a short silence, 3 seconds in the sim, because that is cheap to undo; hand over the work only after a longer one, because that is expensive. In the sim that cuts the 190 failed requests to 19. A suspect stage adds a step before dead: in SWIM, the method Consul's gossip is built on, a machine that misses its check is asked again through other machines, marked suspect, and declared dead only if nobody hears from it for a while longer. And a phi accrual detector, used by Cassandra, scores how unusual a silence is against that machine's own record of heartbeat gaps, instead of one fixed timer. All three cut false deaths. None stops a zombie: a pause longer than whatever you wait still ends with a machine that wakes up working on orders that were handed away. In the sim, a 60 s pause beats the suspect stage."
+   },
+   {
+    "title": "Make the mistake safe: rejoin as new, refuse older tokens.",
+    "text": "Because no detector can be sure, the fix is to make a wrong guess harmless. In steps: first, every hand-over gets a higher token, as it already does. Second, the database remembers the highest token it has seen for each order and refuses a write that carries a lower one; this is called fencing. Third, a machine declared dead never resumes its old work: when it speaks again, the Head of Shift tells it to drop everything and rejoin as a new machine with a new token. In the sim, app-2's three writes with token 33 are refused because 34 has been seen, and app-2 rejoins with token 35. Rejoining fresh alone is not enough: the writes app-2 was in the middle of still go out the moment it wakes, before anyone can tell it. The next case, It Didn't Know It Was Dead, takes fencing apart in full."
+   }
+  ],
+  "diagram": {
+   "type": "sequence",
+   "w": 740,
+   "aria": "The fix on night one. The Head of Shift gives app-2 orders 4471 to 4473 with token 33. app-2 freezes for 38 seconds. After 30 seconds of silence the Head of Shift declares app-2 dead and gives the orders to app-3 with token 34. app-3 writes order 4471 with token 34. app-2 wakes and writes order 4471 with token 33. The database refuses it, because 33 is lower than 34. The Head of Shift tells app-2 to rejoin as new, with token 35.",
+   "lanes": [
+    "app-2",
+    "Head of Shift",
+    "app-3",
+    "Database"
+   ],
+   "steps": [
+    {
+     "from": 1,
+     "to": 0,
+     "label": "you own #4471-73, token 33"
+    },
+    {
+     "span": 0,
+     "rows": 3,
+     "label": "frozen 38 s",
+     "tone": "bad"
+    },
+    {
+     "note": 1,
+     "text": "30 s of silence",
+     "sub": "app-2 declared dead",
+     "tone": "warn"
+    },
+    {
+     "from": 1,
+     "to": 2,
+     "label": "you own #4471-73, token 34"
+    },
+    {
+     "from": 2,
+     "to": 3,
+     "label": "write #4471, token 34",
+     "tone": "ok"
+    },
+    {
+     "from": 0,
+     "to": 3,
+     "label": "wakes: write #4471, token 33",
+     "tone": "bad"
+    },
+    {
+     "from": 1,
+     "to": 0,
+     "label": "rejoin as new: token 35",
+     "tone": "ok"
+    },
+    {
+     "outcome": 3,
+     "text": "refused: 33 is lower than 34",
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, drawn on night one. Read top to bottom. app-2 freezes, is declared dead after 30 seconds, and its orders go to app-3 with token 34. When app-2 wakes and writes #4471 with token 33, the database has already seen 34 and refuses it, and the Head of Shift tells app-2 to rejoin as a new machine.",
+  "fix": {
+   "title": "The fix: a dead machine rejoins as new, and the database refuses older tokens",
+   "text": "Keep the heartbeats and keep stamping every hand-over with the next token. Make the orders database remember the highest token it has seen for each order and refuse any write with a lower one. Make a machine that was declared dead drop its old work when it speaks again and rejoin as a new machine with a new token, and take the old work out of \"Return to service\". Then soften the guess: take a quiet machine off the load balancer's list after about 3 seconds of silence, hand its orders over only after 30, and add a suspect stage or a phi accrual detector so fewer pauses end in a hand-over. In the sim, night one ends with 0 orders on two trucks, 3 writes with token 33 refused, and 19 failed requests with the 3 second first step."
+  },
+  "limits": [
+   "Fencing protects only what checks the token. If app-2 had texted a driver or called a dispatch service as it woke, nothing would stop that; side effects like those need a ticket number, an idempotency key (Rule 3, s4e07), or their own token check.",
+   "The database can refuse only tokens older than the newest it has seen. If a zombie's write lands before the new owner's first write, it is accepted, so the new owner should write its token first, before anything else.",
+   "Every detector is still a guess. A short first stage takes healthy machines off the list during ordinary pauses, a suspect stage or a long timeout leaves a dead machine's orders waiting, and phi accrual needs a history of normal gaps to judge against."
+  ],
+  "tradeoff": {
+   "head": [
+    "What OP changes",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Nothing (as built: 30 s, old work back)",
+     "A machine that really stops is replaced in 30 s.",
+     "Night one: 3 orders on two trucks, 190 failed requests."
+    ],
+    [
+     "Wait 5 min before dead",
+     "Night one: app-2 never declared dead, nothing doubled.",
+     "app-3 stopping at 03:40: 1,900 failed requests; any pause over 5 min still makes a zombie."
+    ],
+    [
+     "Unplug app-2",
+     "No more pauses from app-2.",
+     "The same pause on app-1 doubles 3 orders again."
+    ],
+    [
+     "Stop customers after 3 s (two stages)",
+     "Night one: 19 failed, not 190; the 03:40 night: 19, not 190 or 1,900.",
+     "Still 3 doubled: the hand-over and the zombie are unchanged."
+    ],
+    [
+     "Suspect stage, 10 s more",
+     "The 38 s pause ends while suspect; nothing doubled.",
+     "A 60 s pause is still declared dead and doubles 3."
+    ],
+    [
+     "Rejoin as new, database refuses older tokens",
+     "3 writes with token 33 refused; 0 doubled, whatever the pause.",
+     "Only protects what checks the token; detection still needs tuning."
+    ]
+   ]
+  },
+  "seniorTake": "You can never be sure a machine is dead rather than slow, paused or cut off, so stop trying to be sure and make it safe to be wrong. Detect with heartbeats, but split the decision: take a quiet machine out of customer traffic quickly, because that is cheap to undo, and hand its work to someone else only after a longer silence, because that is expensive. Add a suspect stage, or judge silence against the machine's own history with a phi accrual detector, so ordinary pauses rarely cost a hand-over. Then assume a hand-over will sometimes be wrong: stamp every new owner with a higher token, make the store refuse older ones, and make a machine that was declared dead rejoin as new instead of carrying on. Name the cost out loud: a longer wait trades false deaths for slow recovery, and fencing protects only the things that check the token.",
+  "realWorld": [
+   {
+    "title": "Hayashibara, Défago, Yared and Katayama, 2004: the φ accrual failure detector",
+    "text": "The paper's abstract: \"Instead of providing information of a boolean nature (trust vs. suspect), accrual failure detectors output a suspicion level on a continuous scale.\" Its version is called \"the φ failure detector\", and \"The particularity of the φ failure detector is that it dynamically adjusts to current network conditions the scale on which the suspicion level is expressed.\" The authors tested it \"over an intercontinental communication link during several days.\"",
+    "source": 0
+   },
+   {
+    "title": "Apache Cassandra: phi_convict_threshold, default 8",
+    "text": "Cassandra's configuration reference describes phi_convict_threshold as the \"phi value that must be reached for a host to be marked down. most users should never need to adjust this.\" It gives \"Default Value: 8\", and notes: \"This option is commented out by default.\" In other words, Cassandra does not wait a fixed number of seconds; it waits until a silence is unusual enough for that machine.",
+    "source": 1
+   },
+   {
+    "title": "HashiCorp Consul: failure detection by gossip",
+    "text": "Consul's documentation says: \"Consul uses the LAN gossip pool to automatically discover servers and distribute failure detection throughout the cluster.\" And: \"Serf is a gossip protocol that Consul implements in datacenter operations.\" The page lists the SWIM paper among its further reading.",
+    "source": 2
+   },
+   {
+    "title": "HashiCorp Serf: suspect before dead",
+    "text": "Serf's notes on its protocol: \"Failure detection is done by periodic random probing using a configurable interval.\" A machine that misses its check is asked again through other machines, and if that fails too it is marked suspicious and the news is spread. Then: \"A suspicious node is still considered a member of cluster.\" Only if it does not dispute the suspicion within a set time is it considered dead.",
+    "source": 3
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you tell a slow machine from a dead one?",
+    "What happens when a machine you declared dead comes back?",
+    "Why phi accrual instead of a fixed timeout?"
+   ],
+   "answer": "You can't tell for sure from the outside: a paused, slow or cut-off machine sends nothing, just like a dead one, so any detector is a guess, and the design has to survive a wrong guess. I'd detect with heartbeats and split the decision in two. After a short silence, a few seconds, stop sending it traffic; that's cheap and undone the moment it beats again. Only after a longer silence hand its work to another machine, because that is expensive and hard to undo. Before declaring it dead I'd add a suspect stage, as SWIM does in Consul and Serf: ask other machines to try it too, and wait a little longer, so one bad link doesn't kill a healthy machine. Phi accrual goes further: instead of one fixed timeout, it keeps each machine's history of heartbeat gaps and scores how unusual the current silence is, so a machine on a link whose gaps vary isn't judged by the same stopwatch as one on a quiet one. Cassandra marks a node down at phi 8 by default. When a machine I declared dead comes back, it must not carry on. Every hand-over gets a higher token, the store refuses writes with a token older than the newest it has seen, which is fencing, and the returning machine drops its old work and rejoins as new. I'd add that fencing only protects what checks the token, so side effects like texts or payments need an idempotency key. The story I'd tell: a freight company's machine paused 38 seconds in a memory clean-up, was declared dead at 30, its orders went to another machine with token 34, and it woke and finished them with token 33, putting three orders on two trucks each. With fencing, token 33 is refused."
+  }
+ },
+ "terms": [
+  {
+   "term": "Kestrelmoor Freight",
+   "def": "The freight company in this story. Its trucks load at 4 AM, and three machines assign the night's orders to trucks before then."
+  },
+  {
+   "term": "Machine",
+   "def": "Here, one computer running the company's assigning program. Kestrelmoor has three: app-1, app-2 and app-3."
+  },
+  {
+   "term": "Order",
+   "def": "One customer's shipment, numbered like #4471. Before the 4 AM load, every order must be assigned to a truck."
+  },
+  {
+   "term": "Head of Shift",
+   "def": "The program that hands out work: it listens for heartbeats, declares silent machines dead and gives their orders to another machine. Its general name is a coordinator."
+  },
+  {
+   "term": "Coordinator",
+   "def": "A program that decides who does what among several machines, such as who owns which work. Kestrelmoor's is called the Head of Shift."
+  },
+  {
+   "term": "Database",
+   "def": "A program that keeps records and answers questions about them. Kestrelmoor's orders database holds each order's truck, which drivers' paperwork comes from."
+  },
+  {
+   "term": "Token",
+   "def": "A number the Head of Shift stamps on each hand-over, from one counter that only goes up, so the newest owner of some work always holds the highest number."
+  },
+  {
+   "term": "Hand-over",
+   "def": "Giving a machine's work to another machine, with a new token. At Kestrelmoor it happens after a restart, or when a machine is declared dead."
+  },
+  {
+   "term": "Heartbeat",
+   "def": "A short message a machine sends on a timer, here every second, to say it is still running. Silence is how the Head of Shift guesses something is wrong."
+  },
+  {
+   "term": "Declared dead",
+   "def": "What the Head of Shift calls a machine after 30 seconds of silence: it is taken off the load balancer's list and its orders go to the next machine."
+  },
+  {
+   "term": "Failure detection",
+   "def": "Deciding, from the outside, that a machine has stopped. It can only guess, because a paused, slow or cut-off machine looks the same as a dead one."
+  },
+  {
+   "term": "Failure detector",
+   "def": "The part of a system that does failure detection, such as a heartbeat timer or a phi accrual detector."
+  },
+  {
+   "term": "Dashboard",
+   "def": "A screen of live charts. OP's shows one heartbeat line per machine and turns a machine red when it is declared dead."
+  },
+  {
+   "term": "Logs",
+   "def": "The diary a machine writes of what it does, one line per event, each with its time."
+  },
+  {
+   "term": "Return to service",
+   "def": "OP's button that puts a machine back on the load balancer's list. As built, the machine keeps whatever work it believed was its own."
+  },
+  {
+   "term": "Request",
+   "def": "One message from a customer asking a machine to do something: place an order or answer a question. Kestrelmoor's customers send 19 a second."
+  },
+  {
+   "term": "Load balancer",
+   "def": "A program that receives requests and deals them out across several machines, like cards. Kestrelmoor's sends only to machines on the Head of Shift's list."
+  },
+  {
+   "term": "Health check",
+   "def": "A regular test a load balancer runs to ask a machine whether it can still take work. It shows the machine runs now, not what it believes it owns."
+  },
+  {
+   "term": "Memory",
+   "def": "A computer's short-term working space, where a running program keeps what it is working on. Fast, and emptied when the program stops."
+  },
+  {
+   "term": "GB",
+   "def": "Short for gigabyte, a measure of memory size. app-2 went from 4 GB to 24 GB on Wednesday 21 October."
+  },
+  {
+   "term": "Garbage collector",
+   "def": "The part of a program that frees memory it no longer needs, by itself. Now and then it does a full clean-up of all of it."
+  },
+  {
+   "term": "Stop-the-world pause",
+   "def": "A clean-up during which the whole program stops, sends nothing and notices nothing. A full clean-up takes longer the more memory it sweeps. app-2's lasted 38 seconds."
+  },
+  {
+   "term": "Timeout",
+   "def": "How long to wait before deciding something has gone wrong. As built, the Head of Shift waits 30 seconds of silence before a hand-over."
+  },
+  {
+   "term": "Zombie",
+   "def": "A machine that was declared dead and replaced, but keeps working on its old work because it doesn't know. app-2 after 02:13:42."
+  },
+  {
+   "term": "Two-stage timeout",
+   "def": "Two silences with two actions: after a short one, stop sending customers (cheap to undo); after a longer one, hand over the work (expensive)."
+  },
+  {
+   "term": "Quiet (sim)",
+   "def": "The sim's state for a machine taken off the load balancer's list after 3 seconds of silence. It keeps its orders and goes back on the list when it beats again."
+  },
+  {
+   "term": "Suspect state",
+   "def": "A stage between alive and dead: the machine missed its checks, others try to reach it too, and it is declared dead only if it stays silent a while longer."
+  },
+  {
+   "term": "SWIM",
+   "def": "A way for many machines to check each other: each probes a random other, asks others to try when it gets no answer, and marks a silent one suspect before dead."
+  },
+  {
+   "term": "Gossip",
+   "def": "Machines passing news on to a few others at random, who pass it on again, until everyone has it. Consul shares failure news this way."
+  },
+  {
+   "term": "Node",
+   "def": "One machine in a group that works together. Serf's and Consul's docs call each machine a node."
+  },
+  {
+   "term": "Cluster",
+   "def": "A group of machines that work together as one system and keep track of each other."
+  },
+  {
+   "term": "LAN",
+   "def": "Short for local area network: the machines joined together in one building or one data centre."
+  },
+  {
+   "term": "Datacenter",
+   "def": "A building full of computers run together, with power, cooling and network. Also written data centre."
+  },
+  {
+   "term": "Probe",
+   "def": "A short check one machine sends another to see if it answers. SWIM probes a random machine on a timer."
+  },
+  {
+   "term": "Boolean",
+   "def": "Having only two possible values, such as yes or no, or trust or suspect. A fixed timer gives a boolean answer; phi accrual gives a score."
+  },
+  {
+   "term": "Consul",
+   "def": "HashiCorp's tool that keeps a list of a company's services and whether each is healthy. It finds failures by gossip, using Serf."
+  },
+  {
+   "term": "Serf",
+   "def": "HashiCorp's gossip library, based on SWIM, that Consul uses to learn which machines are up, suspect or dead."
+  },
+  {
+   "term": "Phi accrual failure detector",
+   "def": "A failure detector that keeps a machine's history of heartbeat gaps and scores how unusual the current silence is, rather than using one fixed timer. Phi is the score."
+  },
+  {
+   "term": "Cassandra",
+   "def": "Apache Cassandra, a database spread over many machines. It uses a phi accrual detector to decide when another machine is down."
+  },
+  {
+   "term": "phi_convict_threshold",
+   "def": "Cassandra's setting for the phi score at which a machine is marked down. Its default is 8."
+  },
+  {
+   "term": "Fencing",
+   "def": "The database remembering the highest token it has seen for each piece of work and refusing writes with a lower one, so an old owner can't change it. Taught in full in the next case."
+  },
+  {
+   "term": "Rejoin as new",
+   "def": "When a machine declared dead speaks again, it drops all its old work and joins like a new machine, with a new token and only new work."
+  },
+  {
+   "term": "Side effect",
+   "def": "A change a machine makes outside the database, such as texting a driver. A database's token check can't stop it."
+  },
+  {
+   "term": "Idempotency key",
+   "def": "A unique name sent with a request so that a repeat returns the first result instead of doing it again (s4e07). Rule 3's ticket number."
+  },
+  {
+   "term": "Rule 4",
+   "def": "If a machine goes silent for 30 seconds, it's dead. Even if it starts talking again. Especially then. Once declared dead, its work is someone else's: it must rejoin as new."
+  },
+  {
+   "term": "Rule 3",
+   "def": "If the register asks you to charge a customer again, check the ticket number first (s4e07). Name each job once so a repeat does nothing new."
+  },
+  {
+   "term": "IEEE SRDS",
+   "def": "The IEEE Symposium on Reliable Distributed Systems, a yearly research conference. The phi accrual paper appeared at its 2004 meeting."
+  },
+  {
+   "term": "Build Night L7",
+   "def": "The hands-on project Zones, regions and partitions, unlocked after s8e01, s8e04 and s8e06."
+  },
+  {
+   "term": "Build Night N6",
+   "def": "The hands-on project Three regions that must agree, unlocked after s8e01, s8e03, s8e04 and s8e10. This case supplies the suspect stage."
+  },
+  {
+   "term": "ISO/IEC 27001",
+   "def": "An international standard for running information security. Annex A 8.16, monitoring activities, covers watching systems for unusual behaviour and acting on it."
+  }
+ ],
+ "atWork": "Look for anything that hands work to a new owner when an old one goes quiet: a job queue that reassigns a job after a missed heartbeat, a scheduler that restarts a task elsewhere, a primary database that a standby replaces, or a load balancer whose health check returns a server the moment it answers. A health check that puts a machine back as soon as it answers is a common pattern, and it is fine for taking customers; the danger is when the returning machine also carries on with work that was already handed away. For each one, ask four things. How long a silence counts as dead, and was it chosen from the machine's real pauses, such as its garbage collector's worst pause, or picked as a round number? Is there a quick first step that only stops traffic, separate from the slower hand-over? When a replaced machine comes back, does it drop its old work, and does the store it writes to refuse an older owner's token? And what does it do outside the store, such as sending messages or calling other services, that no token check covers? On AWS, an Application Load Balancer's health check only decides traffic; reassigning work is your code's job. Build Nights: this case unlocks L7 (with s8e04 and s8e06) and N6 (with s8e03, s8e04 and s8e10), which uses this case's suspect stage. Standards: if your company is pursuing ISO/IEC 27001:2022, Annex A 8.16 (monitoring activities) expects systems to be watched for unusual behaviour and acted on; a monitor that declares machines dead should log each decision, and what happened next, from the first design, not at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "failure-detection",
+    "title": "Failure detection"
+   },
+   {
+    "id": "heartbeats",
+    "title": "Heartbeats"
+   },
+   {
+    "id": "two-stage-timeouts",
+    "title": "Two-stage timeouts"
+   },
+   {
+    "id": "suspect-states",
+    "title": "Suspect states"
+   }
+  ],
+  "strings": [
+   {
+    "from": "failure-detection",
+    "to": "heartbeats",
+    "label": "listens for"
+   },
+   {
+    "from": "failure-detection",
+    "to": "timeouts",
+    "label": "how long is dead"
+   },
+   {
+    "from": "two-stage-timeouts",
+    "to": "load-balancers",
+    "label": "stop customers"
+   },
+   {
+    "from": "suspect-states",
+    "to": "timeouts",
+    "label": "wait, then check"
+   },
+   {
+    "from": "heartbeats",
+    "to": "garbage-collection",
+    "label": "silenced by"
+   },
+   {
+    "from": "heartbeats",
+    "to": "health-check",
+    "label": "close cousin"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s8e01-r1",
+   "kind": "free",
+   "prompt": "Your billing workers each send a heartbeat every 2 seconds. A coordinator gives a worker's jobs to another worker after 10 seconds of silence. Last night one worker went silent for 14 seconds during a garbage collection, its jobs moved, and when it came back it finished them anyway: 40 customers were charged twice. A teammate wants to raise the limit to 60 seconds. What happened, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The worker was paused, not dead; it woke without knowing it had been replaced and carried on with work that was no longer its own (a zombie)",
+     "match": [
+      "zombie",
+      "not dead",
+      "didn't know",
+      "doesn't know",
+      "did not know",
+      "does not know",
+      "still thought",
+      "still believed",
+      "was replaced",
+      "been replaced"
+     ]
+    },
+    {
+     "idea": "Give every new owner a higher token and have the store refuse writes carrying an older one (fencing)",
+     "match": [
+      "token",
+      "fencing",
+      "fence",
+      "epoch",
+      "generation number",
+      "older number",
+      "lower number"
+     ]
+    },
+    {
+     "idea": "A longer limit only makes false deaths rarer and slows real recovery; any longer pause still makes a zombie",
+     "match": [
+      "rarer",
+      "less often",
+      "slower to notice",
+      "slower recovery",
+      "longer pause",
+      "still happen",
+      "still make",
+      "still create",
+      "only delays",
+      "doesn't fix",
+      "does not fix"
+     ]
+    }
+   ],
+   "model": "The worker wasn't dead; a garbage collection paused it for 14 seconds, longer than the 10 second limit, so the coordinator moved its jobs. When it woke it didn't know it had been replaced, and finished the same jobs: a zombie. Raising the limit to 60 seconds only makes false deaths rarer and makes a real crash slower to notice; a longer pause would still happen one day and still create a zombie. Instead, give every new owner a higher token, and have the billing store refuse any write with an older token than the newest it has seen: fencing. A worker that was replaced should drop its old jobs and rejoin as new. And since a charge is a side effect, send it with an idempotency key so a repeat does nothing."
+  },
+  {
+   "id": "s8e01-r2",
+   "kind": "mcq",
+   "prompt": "Which split of decisions is a two-stage timeout?",
+   "options": [
+    "After a short silence, hand over the machine's work; after a longer one, take it out of customer traffic",
+    "After a short silence, stop sending the machine customers; after a longer one, hand over its work",
+    "After a short silence, restart the machine; after a longer one, unplug it",
+    "Use the short silence by day and the longer one at night"
+   ],
+   "answer": 1,
+   "why": "Stopping customers is cheap to undo: the machine goes back on the list at its next heartbeat. Handing over work is expensive and is what makes a zombie possible, so it waits longer. In the sim this cut night one's failed requests from 190 to 19, though the 30 second hand-over still doubled 3 orders."
+  },
+  {
+   "id": "s8e01-r3",
+   "kind": "mcq",
+   "prompt": "What does a phi accrual failure detector judge, instead of a fixed number of seconds?",
+   "options": [
+    "How many other machines can still reach the silent one",
+    "How unusual the current silence is, compared with that machine's own history of heartbeat gaps",
+    "Whether the machine's memory is nearly full",
+    "Which machine was handed its work most recently"
+   ],
+   "answer": 1,
+   "why": "It keeps a record of each machine's gaps between heartbeats and turns the current silence into a suspicion score, phi. A machine on a link whose gaps vary gets more slack than one that always beats on time. Cassandra marks a machine down at phi 8 by default. Asking other machines to try is SWIM's suspect stage, a different idea."
+  },
+  {
+   "id": "s8e01-r4",
+   "kind": "free",
+   "prompt": "In an interview you're asked: how do you tell a slow machine from a dead one? What do you say?",
+   "keyIdeas": [
+    {
+     "idea": "You can't be sure from outside; a paused or slow machine looks dead, so design for wrong guesses",
+     "match": [
+      "can't be sure",
+      "cannot be sure",
+      "can't tell",
+      "cannot tell",
+      "never be sure",
+      "looks the same",
+      "looks dead",
+      "a guess"
+     ]
+    },
+    {
+     "idea": "Reduce false deaths: stop traffic after a short silence, hand over later, a suspect stage, or phi accrual against the machine's own history",
+     "match": [
+      "suspect",
+      "phi",
+      "own history",
+      "two stage",
+      "two-stage",
+      "stop traffic",
+      "stop sending",
+      "indirect"
+     ]
+    },
+    {
+     "idea": "Make the wrong guess harmless: higher tokens for new owners, the store refuses older ones, the returning machine rejoins as new",
+     "match": [
+      "token",
+      "fencing",
+      "rejoin",
+      "as new",
+      "epoch"
+     ]
+    }
+   ],
+   "model": "Honestly, you can't be sure: from outside, a paused, slow or cut-off machine looks the same as a dead one, so any detector is a guess and the design has to survive a wrong one. I'd stop sending traffic after a short silence, which is cheap to undo, and hand over its work only after a longer one, with a suspect stage first where other machines try to reach it, as SWIM does in Consul. Or use phi accrual, which scores the silence against that machine's own history instead of a fixed timer. Then make a wrong hand-over harmless: each new owner gets a higher token, the store refuses older tokens, which is fencing, and a machine declared dead must rejoin as new rather than carry on."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 3 months later. The fix held: the database refuses older tokens, a machine declared dead rejoins as new, and customers stop going to a machine after 3 seconds of silence. In February Kestrelmoor added app-4 at a depot across the city, on a slower line. Its heartbeats usually arrive about a second apart, but gaps of 4 to 6 seconds are normal for it, and the 30 second hand-over has never fired. Every night now the dashboard shows app-4 dropping off the load balancer's list about 40 times, and customers on that side wait while it does.",
+  "prompt": "Reply to OP. Why does app-4 keep dropping off the list, and what would you change?",
+  "keyIdeas": [
+   {
+    "idea": "One fixed short timer judges every machine alike, but app-4's normal gaps are longer than 3 seconds, so ordinary gaps look like trouble",
+    "match": [
+     "normal gaps",
+     "its normal",
+     "usual gaps",
+     "same timer",
+     "one timer",
+     "fixed timer",
+     "every machine alike",
+     "all machines alike",
+     "longer than 3"
+    ]
+   },
+   {
+    "idea": "Judge each machine's silence against its own history of gaps: a phi accrual detector",
+    "match": [
+     "phi",
+     "accrual",
+     "own history",
+     "its history",
+     "history of gaps",
+     "how unusual"
+    ]
+   },
+   {
+    "idea": "Or confirm before acting: a suspect stage where other machines try to reach it, or a per-machine first-stage limit",
+    "match": [
+     "suspect",
+     "indirect",
+     "other machines try",
+     "per machine",
+     "per-machine",
+     "its own limit"
+    ]
+   }
+  ],
+  "model": "The 3 second first step treats every machine alike, but app-4's normal gaps, 4 to 6 seconds on its slower line, are longer than 3, so its ordinary gaps look like trouble about 40 times a night. The fix is to judge each machine against its own history: a phi accrual detector keeps app-4's record of heartbeat gaps and only acts when a silence is unusual for app-4, so its normal 5 second gaps score low while the same gap from app-1 would score high. A suspect stage helps too: before taking it off the list, have other machines try to reach it. The token check and rejoining as new stay as they are; they make any wrong call harmless, and this makes wrong calls rarer."
+ },
+ "next": "Next, It Didn't Know It Was Dead: the same freight company, Part 2, and how leases and fencing tokens stop a machine that wakes up still believing it owns work.",
+ "sources": [
+  {
+   "title": "Naohiro Hayashibara, Xavier Défago, Rami Yared and Takuya Katayama, The φ Accrual Failure Detector, published at the 23rd IEEE Symposium on Reliable Distributed Systems (SRDS 2004), pages 66 to 78, DOI 10.1109/RELDIS.2004.1353004; quoted from the abstract of the JAIST research report IS-RR-2004-010, 10 May 2004, in the JAIST repository, read 15 October 2026",
+   "url": "https://dspace.jaist.ac.jp/dspace/handle/10119/4784"
+  },
+  {
+   "title": "Apache Cassandra Documentation (stable), cassandra.yaml file configuration, phi_convict_threshold (Default Value: 8), read 15 October 2026",
+   "url": "https://cassandra.apache.org/doc/stable/cassandra/managing/configuration/cass_yaml_file.html"
+  },
+  {
+   "title": "HashiCorp, Consul documentation, Gossip protocol (LAN gossip pool, failure detection, Serf, SWIM in further reading), read 15 October 2026",
+   "url": "https://developer.hashicorp.com/consul/docs/architecture/gossip"
+  },
+  {
+   "title": "HashiCorp Serf, Gossip Protocol internals, SWIM protocol overview (random probing, indirect probes, suspicious nodes), the protocol Consul's gossip uses, read 15 October 2026",
+   "url": "https://raw.githubusercontent.com/hashicorp/serf/master/docs/internals/gossip.html.markdown"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.16, Monitoring Activities (an explainer of the control; the standard itself is sold by ISO), read 15 October 2026",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-16-monitoring-activities-2022/"
+  }
+ ]
+}
