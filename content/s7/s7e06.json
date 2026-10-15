@@ -1,0 +1,785 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version",
+  "v1.0.1 (2026-10-15) the inspector's door 1 line no longer names the approved list, so the report does not hand over the answer"
+ ],
+ "id": "s7e06",
+ "season": 7,
+ "n": 6,
+ "title": "The Ten Doors",
+ "setting": "a haunted house with ten doors",
+ "core": true,
+ "minutes": 13,
+ "concepts": [
+  "owasp-top-10",
+  "2025",
+  "a01-broken-access-control",
+  "a02-security-misconfiguration"
+ ],
+ "prerequisites": [
+  "s5e08",
+  "s7e01",
+  "s7e02",
+  "s7e03"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/rookhurst_nightkeeper_alphege",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 3291,
+  "title": "I'm the night caretaker of a haunted house with ten doors. An inspector opened the first and found our own keys inside a guest's photo.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Alphege, night caretaker at Rookhurst House, a haunted-house attraction with ten themed rooms. People book a slot online, so there is a ticket site. After a near miss last week, an inspector spent three nights walking that site, one door for each room. I keep the night book, and this is what she found."
+   },
+   {
+    "t": "p",
+    "text": "Our site runs on rented computers far away, which we call the cloud. A computer that answers other machines is a server. On a group's booking page you can add a photo by pasting in a web link to a picture. When you do, our own server goes and fetches that picture, to keep a small copy of it. Swetha, who built the site, meant it kindly."
+   },
+   {
+    "t": "p",
+    "text": "Here is the trouble. The server fetched whatever address it was handed. Not only pictures out on the open web, but addresses on the cloud's own inside, which only the server can reach. One of those is the cloud's settings service, a helper that hands the server its own keys to anything inside that asks. Being talked into fetching something on a visitor's behalf, from where only the server can reach, has a name: server-side request forgery, or SSRF."
+   },
+   {
+    "t": "p",
+    "text": "On the night of 10 October, our busiest of the season, the site made 3,200 picture requests. Four of them were aimed not at the open web but at the inside. All four reached the settings service, which answered each with our keys. And our picture log wrote down what came back, so four of its lines held the keys in plain sight."
+   },
+   {
+    "t": "beat",
+    "text": "The log had been keeping them for anyone to read."
+   },
+   {
+    "t": "p",
+    "text": "This morning Marghanita, the inspector, printed six lines of the picture log, each address swapped for what it really was. Each line shows the time, what was asked for, where it went, and what came back:"
+   },
+   {
+    "t": "log",
+    "text": "21:50  picture  to an outside image site        a photo\n22:41  picture  to the cloud's settings service  [keys, redacted]\n23:12  picture  to the cloud's settings service  [keys, redacted]\n23:30  picture  to the cloud's settings service  [keys, redacted]\n23:46  picture  to the cloud's settings service  [keys, redacted]\n23:58  picture  to an outside image site        a photo"
+   },
+   {
+    "t": "p",
+    "text": "A security researcher wrote to us on 11 October to say our own site had fetched an inside address for her, and sent back something it should never show. Swetha changed every key that morning, at 09:20. The feature has run since August, and her look back through the picture log found no inside request before that night. The cloud's own record shows the old keys were never used from outside before she changed them. That is why this is a near miss and not a theft."
+   },
+   {
+    "t": "evidence",
+    "label": "picture_requests_10_october.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "The two hours to midnight on 10 October. The picture feature ran the whole time, drawn in amber. Four red markers mark the four picture requests that went to the cloud's settings service and came back with the keys, at 22:41, 23:12, 23:30 and 23:46. Across the night the site made 3,200 picture requests in all; only these four went inside.",
+     "start": "22:00:00",
+     "seconds": 7200,
+     "ticksEvery": 1800,
+     "rows": [
+      {
+       "label": "Picture feature",
+       "segments": [
+        [
+         0,
+         7200,
+         "warn"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 2460,
+       "label": "keys",
+       "tone": "bad"
+      },
+      {
+       "t": 4320,
+       "label": "keys",
+       "tone": "bad"
+      },
+      {
+       "t": 5400,
+       "label": "keys",
+       "tone": "bad"
+      },
+      {
+       "t": 6360,
+       "label": "keys",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Redrawn from the picture log. The feature ran all night and served 3,200 picture requests. Four of them, the red marks, went to the cloud's settings service and came back with our keys; the log kept all four. Every other request went to a real image site and came back a photo."
+   },
+   {
+    "t": "p",
+    "text": "Marghanita opened the other nine doors too. Her report is pinned inside the night book:"
+   },
+   {
+    "t": "note",
+    "title": "THE INSPECTOR'S REPORT: TEN DOORS",
+    "items": [
+     "Door 1. A feature fetched any address the server could reach, our own settings service included. Check where a request leads, never only how it looks, and shut every door by default.",
+     "Door 2. The room was left set up wrong, with sample locks and spare keys still lying about. Strip each setup back to only what the room needs.",
+     "Door 3. A part built by someone else arrived already broken. Keep a list of every part you use, so you can check it fast. (Equifax, 2017, was this door.)",
+     "Door 4. Secrets were kept and sent in plain sight. Scramble what you store and what you send, so a stolen copy reads as nonsense.",
+     "Door 5. A visitor's words were obeyed as if they were your own orders. Keep a visitor's words as words; never let them turn into commands.",
+     "Door 6. The room was dangerous by plan, not by accident. Think through what could go wrong while you draw the room, not after it is built.",
+     "Door 7. People were let in without really proving who they are. Make the proof hard to fake, and ask for a second proof.",
+     "Door 8. A part or an update was trusted without checking who it came from. Check the maker's seal before you trust it.",
+     "Door 9. The record kept the wrong thing (ours held the keys) and nothing raised an alarm. Record what matters, never secrets, and sound an alarm on the strange.",
+     "Door 10. When something unexpected happened, the room guessed instead of stopping. When unsure, stop safely rather than carry on. (New to the list in 2025.)"
+    ],
+    "sig": "- Marghanita, inspection, 14 October"
+   },
+   {
+    "t": "p",
+    "text": "She says the first door is the one to shut before we open tonight. The feature still fetches any address it is handed. What should Swetha change?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 148,
+   "age": "5h",
+   "text": "Three questions, Alphege, before you pick a fix. What did the feature check about a link before it fetched it: the address it pointed to, or only how the link was spelled at the end? Which addresses could your server reach that a guest's own phone, out on the open web, never could? And where did the keys end up, once the settings service handed them over?",
+   "replies": [
+    {
+     "author": "u/rookhurst_nightkeeper_alphege",
+     "op": true,
+     "points": 51,
+     "age": "4h",
+     "text": "Swetha says: it checked nothing about the address, only that the feature was switched on. The server sits on the cloud's inside, so it can reach the settings service; a guest's phone cannot. And the keys went into the picture log, four lines of it, and sat there until Marghanita read them."
+    }
+   ]
+  },
+  {
+   "author": "u/firewall_berengar",
+   "points": 94,
+   "age": "4h",
+   "text": "A web firewall stops all of this. That is what it is for. A web firewall is a guard that reads every request coming in from the web and blocks the ones that look like attacks. Put one in front of your ticket site and you are done; you do not need to touch Swetha's code at all. It is the one thing every serious site has.",
+   "replies": [
+    {
+     "author": "u/rookhurst_nightkeeper_alphege",
+     "op": true,
+     "points": 29,
+     "age": "3h",
+     "text": "Marghanita read the four links. Every one looked like an ordinary request for a picture. Nothing about them looked like an attack."
+    }
+   ]
+  },
+  {
+   "author": "u/picture_links_selwyn",
+   "points": 61,
+   "age": "3h",
+   "text": "Surely the quick fix is the ending. Only fetch a link that ends in .jpg or .png, the way a real photo does, and drop the rest. An address ending is the last little bit after the dot. No ending, no fetch. Costs Swetha ten minutes.",
+   "replies": [
+    {
+     "author": "u/rookhurst_nightkeeper_alphege",
+     "op": true,
+     "points": 22,
+     "age": "2h",
+     "text": "Marghanita's note says the ending is just text, and whoever writes the link chooses it. An address that ends in .jpg can still lead anywhere, the inside included."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "The house opens again tonight, and the picture feature still fetches any address it is handed. What should Swetha change? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Only fetch pictures from addresses that end in .jpg or .png, so nothing else gets loaded.",
+    "tone": "bad",
+    "verdict": "An ending is only text",
+    "part2": "Swetha allowed only links ending .jpg or .png. We replayed 10 October in the sim. All four inside requests ended in .jpg, so all four were fetched, all four reached the settings service, and the keys landed in the log again: nothing changed. An ending is the last little bit a link's writer types, and they can type anything. It says nothing about where the address actually leads. The feature still fetched any address it was handed, as long as it was spelled to look like a photo.",
+    "senior": "An address ending is chosen by whoever writes the link, so it is worthless as a safety check: a link can end .jpg and still point at the inside. This is the first trap in SSRF, judging a destination by how its link looks rather than by where it goes. Decide what the server may reach by the destination itself, not by the text of the link."
+   },
+   {
+    "text": "Fetch only from an approved list of image sites, never from the cloud's own network.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Swetha gave the feature a short approved list: a handful of real image sites, and nothing else. A link to anywhere not on the list is refused before the server fetches it, and the cloud's own inside is never on the list. We replayed 10 October in the sim. The four inside requests were all refused, the settings service was never reached, and the picture log held no keys: zero, against four before. The 3,196 real pictures still came through, because their sites were on the list. She also set the settings service to require a token the feature doesn't carry, so that even a slip can't hand out keys, and asked the cloud to block the inside outright. Belt, and two braces.",
+    "senior": "An approved list, an allow-list, is the first SSRF defence: name the few places the server may fetch from, and refuse everything else, so the inside is never reachable by a guest's link. Add depth behind it. Block internal addresses at the network, and make the settings service require a token, so a request that slips past the list still comes back empty. Any one of the three would have stopped this; together they mean no single mistake reopens the door. This is the cousin of the barrier a review waved through at a regional paper (s5e08): there a two-line change quietly removed the only access check, and nothing behind it caught the fall."
+   },
+   {
+    "text": "Put a web firewall in front of the ticket site to block requests that look like attacks.",
+    "tone": "warn",
+    "verdict": "Watches the wrong door",
+    "part2": "Swetha put a web firewall in front of the site. In the sim it read every request arriving from the web and let the ordinary ones through, which is most of them. But the dangerous request was not one arriving from the web. It was the one our own server sent out, from the inside, to the settings service, and the firewall never saw it. The four inside requests went through and the keys reached the log again. A firewall watching the front door cannot catch a thing the server does out the back.",
+    "senior": "A web firewall is real and worth having, but it watches requests coming in from outside, and an ordinary-looking link for a picture passes it by design. The risky act here is the server's own outbound fetch to the inside, which the firewall is not placed to see. It is a useful outer layer, not the fix for SSRF; the fix lives where the fetch is made. Keep the firewall, but do not let it stand in for deciding what the server itself may reach."
+   },
+   {
+    "text": "Remove the link feature and let guests upload pictures from their own phones instead.",
+    "tone": "bad",
+    "verdict": "Shuts one, opens another",
+    "part2": "Swetha removed the paste-a-link feature and let guests upload a picture from their phone instead. In the sim no picture request leaves the server now, so the settings service is never reached through this door, and tonight the keys are safe. But uploads are their own door: a file a stranger hands you can carry nasties, and must be checked, named and stored with care. And the deeper fault is untouched. The settings service still hands its keys to anything on the inside that asks. The next feature that fetches, or any other way onto the inside, finds the same open helper waiting.",
+    "senior": "Removing the feature closes this one path and opens the upload path, which brings its own risks to handle. More to the point, it leaves the real weakness in place: a settings service that trusts anything inside, and no token in front of the keys. The lesson of SSRF is to make the inside safe to be wrong about, not to delete the one feature that happened to reach it. In the sim, with the settings-service token off, anything that reaches the service still gets the keys."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s7e06",
+  "title": "Walk the ten doors, and replay the picture feature",
+  "lede": "You're Swetha, the morning after 10 October. The picture feature fetches a link on the server's behalf. As given data: the site made 3,200 picture requests that night, of which 4 were aimed at the cloud's inside; the other 3,196 went to real image sites. Choose the fetch rule (fetch any address, as built; fetch only addresses ending .jpg or .png; or fetch only from an approved list of image sites), whether the cloud blocks the inside, whether the settings service requires a token, and whether a web firewall sits in front. Then replay the night and read, for the first door, how many requests reached the settings service, how many came back with keys, and how many log lines held them; and the status of all ten doors. No address, path or request is shown; destinations are labels.",
+  "tryThis": "Try this: replay it as built. All 4 inside requests reach the settings service, 4 come back with keys, 4 log lines hold them, door 1 fails. Switch the rule to the ending check: still 4, 4, 4, because an ending says nothing about where a link leads. Switch to the approved list: 0, 0, 0, door 1 passes, and the 3,196 real pictures still come through. Turn the rule back to any, and turn the web firewall on: still 4, 4, 4, because the fetch goes out from the inside. Turn the firewall off and make the settings service require a token: the 4 still reach it, but 0 come back with keys."
+ },
+ "explain": {
+  "oneLine": "Nobody picked a lock. Our own server was handed a visitor's link and fetched it, and the link pointed at the cloud's settings service, which hands keys to anything inside; the picture log then wrote the keys down. Fetch only from an approved list, block the inside, and put a token in front of the settings service, and a guest's link can never reach the keys.",
+  "steps": [
+   {
+    "title": "Ten doors, one list.",
+    "text": "The inspector walked the site against a public checklist of the ten weaknesses most sites get wrong, kept by a security charity. The list is the OWASP Top 10, and the 2025 version is the current one. Each door in the report is one item on that list, from Broken Access Control at the top to Mishandling of Exceptional Conditions, which is new for 2025. One room, one door, one weakness; the first door is the one that bit us."
+   },
+   {
+    "title": "The first door: fetching on a visitor's behalf.",
+    "text": "The picture feature took a link from a guest and had the server fetch it. A guest's own phone can only reach the open web. The server can reach more: it sits on the cloud's inside, a private network where helpers talk to each other, and one of those helpers is the settings service, which hands the server its own keys to anything inside that asks. So a link that points at the inside turns the server into a messenger that fetches secrets it would never show a stranger directly. Talking a server into fetching something from where only it can reach is server-side request forgery, SSRF, and in the 2025 list it sits under Broken Access Control, the first door."
+   },
+   {
+    "title": "Three ways to shut it, and why you want all three.",
+    "text": "First, an approved list: write down the few image sites the feature may fetch from, and refuse every other address, so the inside is never reachable. Second, block the inside at the network, so even a request that slips through is turned back before it arrives. Third, make the settings service require a token the feature does not carry, so a request that does arrive comes back empty. Any one would have stopped our night. Together they are defence in depth: no single slip reopens the door. Cloud settings services that demand a token this way are the standard answer; a plain fetch gets nothing."
+   },
+   {
+    "title": "Why the ending and the firewall don't help.",
+    "text": "The tempting fixes miss. Checking that a link ends in .jpg tests the text a visitor typed, not the address it leads to; an inside address can end in .jpg just as easily. A web firewall reads requests coming in from the web and blocks ones that look like attacks, but the dangerous request here goes the other way: our server sends it out, from the inside, and an ordinary-looking picture link gives it nothing to catch. Judge the destination, not the spelling; guard the fetch, not just the front door."
+   },
+   {
+    "title": "The cousin at the back: CSRF.",
+    "text": "SSRF has a near-namesake worth keeping straight. Cross-site request forgery, CSRF, is the opposite direction: a visitor's own browser, already signed in to your site, is tricked by another page into sending a request your site then trusts as theirs. The defence is different too: hand each form a secret token your site checks on the way back, so a request from somewhere else fails, and set your sign-in cookie to SameSite so the browser won't send it from another site. SSRF abuses your server's reach; CSRF abuses your user's signed-in browser."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 300,
+   "aria": "The fix, drawn for a guest's link. The link goes to the picture feature, which now checks an approved list. A link to a real image site is allowed through to an outside image site. A link to the cloud's settings service is refused, drawn as a dashed red line, and the settings service also now requires a token.",
+   "nodes": [
+    {
+     "id": "link",
+     "label": "A guest's link",
+     "x": 120,
+     "y": 70,
+     "w": 150,
+     "h": 56,
+     "shape": "person",
+     "tone": ""
+    },
+    {
+     "id": "feature",
+     "label": "Picture feature",
+     "sub": "approved list",
+     "x": 380,
+     "y": 70,
+     "w": 180,
+     "h": 60,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "outside",
+     "label": "Outside image site",
+     "x": 640,
+     "y": 70,
+     "w": 150,
+     "h": 56,
+     "shape": "cloud",
+     "tone": "ok"
+    },
+    {
+     "id": "settings",
+     "label": "Settings service",
+     "sub": "needs a token",
+     "x": 380,
+     "y": 220,
+     "w": 190,
+     "h": 64,
+     "shape": "db",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "link",
+     "to": "feature",
+     "label": "a link",
+     "tone": ""
+    },
+    {
+     "from": "feature",
+     "to": "outside",
+     "label": "allowed",
+     "tone": "ok"
+    },
+    {
+     "from": "feature",
+     "to": "settings",
+     "label": "refused",
+     "dash": true,
+     "tone": "bad"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for a guest's link. The feature checks its approved list: a link to a real image site is allowed through, a link to the cloud's settings service is refused before the server fetches it. Behind the list, the settings service now requires a token the feature doesn't carry, so even a slip comes back empty.",
+  "fix": {
+   "title": "The fix: an approved list, the inside blocked, and a token on the settings service",
+   "text": "Give the picture feature a short approved list of image sites and let it fetch from nowhere else, so a guest's link can never aim the server at the inside. Behind that, block the cloud's inside at the network, and set the settings service to require a token the feature does not carry, so a request that somehow slips through still comes back with nothing. That is three layers for one door, and any one of them would have stopped 10 October; together they mean no single mistake hands out the keys. Keep the web firewall as an outer layer if you have one, but do not let it stand in for deciding what the server itself may reach. And rotate the keys that leaked, which Swetha did at 09:20 the next morning."
+  },
+  "limits": [
+   "An approved list is only as good as its upkeep. A new feature that fetches, or a new image site, needs adding to the same list; build the rule in one shared place every feature uses, or the next feature ships without it.",
+   "Blocking the inside and requiring a token protect the settings service, but the keys that already leaked are only safe once they are changed. Rotate at once, and check the record for any use of the old ones.",
+   "The ten doors are a floor, not a ceiling. The list names the common weaknesses; it does not promise there are no others, and a room can fail a door the list never mentions."
+  ],
+  "tradeoff": {
+   "head": [
+    "What Swetha changes",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Nothing (fetch any address, as built)",
+     "Simplest; every picture link works.",
+     "Four inside requests reach the keys; the log holds them."
+    ],
+    [
+     "Fetch only links ending .jpg or .png",
+     "One line of code.",
+     "An inside link can end .jpg too, so nothing changes."
+    ],
+    [
+     "A web firewall in front of the site",
+     "A useful outer layer against web attacks.",
+     "The fetch goes out from the inside, so the firewall never sees it."
+    ],
+    [
+     "Approved list of image sites",
+     "The inside is never reachable; real pictures still load.",
+     "The list needs upkeep as features and sites change."
+    ],
+    [
+     "Block the inside; token on the settings service",
+     "A slip past the list still comes back empty.",
+     "Network and service work, not a one-line change."
+    ],
+    [
+     "Remove the feature; uploads instead",
+     "No fetch leaves the server through this door.",
+     "Uploads are a new door, and the open settings service remains."
+    ]
+   ]
+  },
+  "seniorTake": "The eerie part of SSRF is that nothing misbehaves: the server did exactly what it was told, fetched a link on a visitor's behalf, and the link happened to point at the inside, where a settings service hands keys to anyone who asks. So you defend in two moves. First, decide by destination, not by spelling: an approved list of the few places the server may reach, never the ending of a link, which the attacker writes. Second, make the inside safe to be wrong about: block it at the network, and put a token in front of the settings service, so a request that slips the list still comes back empty. Any one layer stops the simple case; the layers together are why one mistake no longer costs you the keys, the lesson of the review that waved a change through in s5e08 with nothing behind it. Then keep the other nine doors in view. The Top 10 is a floor to clear, not a certificate, and the newest door, A10, is just a reminder: when a program is unsure what to do next, it should stop safely, not guess.",
+  "realWorld": [
+   {
+    "title": "OWASP Top 10:2025, the ten categories",
+    "text": "The current list, in order, is A01 Broken Access Control, A02 Security Misconfiguration, A03 Software Supply Chain Failures, A04 Cryptographic Failures, A05 Injection, A06 Insecure Design, A07 Authentication Failures, A08 Software or Data Integrity Failures, A09 Security Logging and Alerting Failures, A10 Mishandling of Exceptional Conditions. OWASP says \"Mishandling of Exceptional Conditions is a new category for 2025.\"",
+    "source": 0
+   },
+   {
+    "title": "A01 Broken Access Control: SSRF and CSRF sit here",
+    "text": "OWASP's A01 page lists among its weaknesses \"CWE-918 Server-Side Request Forgery (SSRF)\" and \"CWE-352: Cross-Site Request Forgery (CSRF)\". Its first rule of prevention is blunt: \"Except for public resources, deny by default.\" Shut every door unless it is meant to be open.",
+    "source": 1
+   },
+   {
+    "title": "OWASP SSRF Cheat Sheet: prefer an allow-list",
+    "text": "The SSRF Prevention Cheat Sheet says \"Deny-lists are bypass-prone. Prefer allow-lists.\" Its first defence is to \"Match the host against an allowlist, and build the request yourself\": decide the destination by what it is, not by the link a visitor handed you.",
+    "source": 2
+   },
+   {
+    "title": "A token in front of the keys (IMDSv2)",
+    "text": "The cloud's settings service can be made to demand a token first. AWS writes that \"IMDSv2 uses session-oriented requests\", that you can \"configure the Instance Metadata Service (IMDS) on each instance to only accept IMDSv2 calls\", and that \"The token is required to access metadata using IMDSv2.\" A plain fetch with no token gets nothing.",
+    "source": 3
+   },
+   {
+    "title": "Capital One, 2019",
+    "text": "A large bank's own statement says \"This occurred on March 22 and 23, 2019\", and that the event \"affected approximately 100 million individuals in the United States and approximately 6 million in Canada.\" It calls the cause a \"configuration vulnerability\" reported by an outside researcher, and says little more; stated only as far as the bank itself does.",
+    "source": 4
+   },
+   {
+    "title": "Equifax, 2017: the supply-chain door",
+    "text": "The FTC says \"In September of 2017, Equifax announced a data breach that exposed the personal information of 147 million people\", and that \"Equifax failed to patch its network after being alerted in March 2017 to a critical security vulnerability\" in a part of its software. That is door three on the list, a broken part left in place.",
+    "source": 5
+   },
+   {
+    "title": "OWASP CSRF Cheat Sheet: a different door",
+    "text": "For the look-alike, CSRF, the cheat sheet says \"Stateful software should use the synchronizer token pattern\", a secret token checked on the way back, and that \"SameSite is a cookie attribute (similar to HTTPOnly, Secure etc.) which aims to mitigate CSRF attacks.\" Different trick, different defence.",
+    "source": 6
+   },
+   {
+    "title": "A09: a log is not a place for secrets",
+    "text": "OWASP's logging page warns against \"logging sensitive information that should not be logged (such as PII or PHI)\" and that \"The integrity of logs is not properly protected from tampering.\" Our picture log held the keys in plain sight, which is the same mistake: record what matters, never the secrets themselves.",
+    "source": 7
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Name the OWASP Top 10 and give one defence for each.",
+    "What is SSRF, and how do you defend against it?",
+    "How do you stop CSRF?"
+   ],
+   "answer": "The 2025 Top 10, with one defence each. A01 Broken Access Control: deny by default and check every request against the user's rights (SSRF lives here now). A02 Security Misconfiguration: ship a minimal setup, no samples or spare accounts. A03 Software Supply Chain Failures: keep a bill of the parts you use so you can answer 'are we affected?' fast. A04 Cryptographic Failures: encrypt data in transit and at rest with vetted algorithms. A05 Injection: use safe, parameterised APIs so input can't become a command. A06 Insecure Design: threat-model the risky flows while you design them. A07 Authentication Failures: strong, rate-limited auth with a second factor. A08 Software or Data Integrity Failures: verify signatures before you trust an update. A09 Security Logging and Alerting Failures: log what matters, never secrets, and alert on the odd. A10 Mishandling of Exceptional Conditions: when unsure, fail closed rather than guess. For SSRF: the server was made to fetch a URL it was handed, and reached an internal service only it can see, such as the cloud metadata endpoint that returns credentials. Defend with an allow-list of destinations, block internal and link-local ranges, build the request yourself rather than trusting the input, and require a token on the metadata service (IMDSv2), so a bare fetch gets nothing. One layer stops the easy case; all of them together mean one slip doesn't leak keys. For CSRF, which is the opposite, an attacker's page making the victim's signed-in browser send a request: use a per-request anti-CSRF token the server checks, set session cookies to SameSite, and check the origin on state-changing requests. I'd close with the carnival-of-doors version: a picture-from-a-link feature fetched the cloud's own settings service and logged the keys; an allow-list plus a token on that service would have returned nothing."
+  }
+ },
+ "terms": [
+  {
+   "term": "Rookhurst House",
+   "def": "The haunted-house attraction in this story: ten themed rooms, booked online through a ticket site. Alphege is its night caretaker."
+  },
+  {
+   "term": "Night caretaker",
+   "def": "The person who keeps a building after hours. Alphege keeps Rookhurst House and its night book."
+  },
+  {
+   "term": "Ticket site",
+   "def": "The website where people book a slot at the attraction. It runs on rented computers in the cloud."
+  },
+  {
+   "term": "The cloud",
+   "def": "Rented computers in a far-off data centre that run your site, instead of a machine you own and keep on site."
+  },
+  {
+   "term": "Server",
+   "def": "A computer that answers other machines' requests. Rookhurst's server runs the ticket site and fetches pictures."
+  },
+  {
+   "term": "The inside",
+   "def": "The cloud's own private network, where a site's helpers talk to each other. Only the server can reach it; a guest's phone cannot."
+  },
+  {
+   "term": "Keys",
+   "def": "The server's own secret cloud keys, which prove it is allowed to use the cloud's services. Anyone who holds them can act as the server."
+  },
+  {
+   "term": "The cloud's settings service",
+   "def": "A helper on the inside that hands the server its own settings and keys to anything inside that asks. Also called a metadata service."
+  },
+  {
+   "term": "Picture feature",
+   "def": "The part of the site that lets a guest add a photo by pasting a web link, which the server then fetches to keep a small copy."
+  },
+  {
+   "term": "Web address",
+   "def": "The line that says where something lives on the web, like the address on an envelope. A link carries one."
+  },
+  {
+   "term": "Address ending",
+   "def": "The last little bit of a web address, such as .jpg or .png. Whoever writes the link chooses it, so it says nothing about where the address leads."
+  },
+  {
+   "term": "SSRF",
+   "def": "Server-side request forgery: talking a server into fetching something on a visitor's behalf, from where only the server can reach, such as the inside."
+  },
+  {
+   "term": "CSRF",
+   "def": "Cross-site request forgery: tricking a visitor's own signed-in browser into sending a request your site then trusts as theirs. The opposite of SSRF."
+  },
+  {
+   "term": "Approved list",
+   "def": "A short written list of the few places the server is allowed to fetch from. Everything not on it is refused. Also called an allow-list."
+  },
+  {
+   "term": "Token (settings service)",
+   "def": "A short pass the settings service can be made to demand before it answers. A plain fetch carries none, so it comes back with nothing."
+  },
+  {
+   "term": "Web firewall",
+   "def": "A guard that reads requests coming in from the web and blocks ones that look like attacks. It does not see what the server itself sends out."
+  },
+  {
+   "term": "Picture log",
+   "def": "The site's record of every picture request: the time, what was asked for, where it went, and what came back."
+  },
+  {
+   "term": "Redacted",
+   "def": "Blacked out so a secret does not show. The printed log reads [keys, redacted] where the keys were."
+  },
+  {
+   "term": "Key rotation",
+   "def": "Changing a secret key for a new one, so an old copy that may have leaked no longer works. Swetha rotated the keys the next morning."
+  },
+  {
+   "term": "Near miss",
+   "def": "A fault that could have caused harm but did not this time. The keys leaked into the log but were changed before anyone used them."
+  },
+  {
+   "term": "OWASP",
+   "def": "The Open Worldwide Application Security Project, a non-profit that publishes free guidance on web security, including the Top 10."
+  },
+  {
+   "term": "OWASP Top 10",
+   "def": "OWASP's public list of the ten weaknesses most web applications get wrong. The inspector walked the site against it."
+  },
+  {
+   "term": "2025",
+   "def": "The year of the current OWASP Top 10 used here. The list is updated every few years; A10 is new to the 2025 version."
+  },
+  {
+   "term": "Broken Access Control",
+   "def": "A01 on the list: letting someone reach what they should not. SSRF now sits here, since the server reached the inside it should not have."
+  },
+  {
+   "term": "Security Misconfiguration",
+   "def": "A02: a system left set up wrong, with samples, spare accounts or extra features still switched on. Strip it back to only what is needed."
+  },
+  {
+   "term": "Software Supply Chain Failures",
+   "def": "A03: a part built by someone else that arrives broken. Keep a list of every part you use so you can check it fast. Equifax, 2017, was this."
+  },
+  {
+   "term": "Cryptographic Failures",
+   "def": "A04: secrets kept or sent in plain sight. Scramble what you store and what you send, so a stolen copy reads as nonsense."
+  },
+  {
+   "term": "Injection",
+   "def": "A05: a visitor's words obeyed as if they were your own commands. Keep input as data, never let it turn into an instruction."
+  },
+  {
+   "term": "Insecure Design",
+   "def": "A06: a thing dangerous by plan, not by accident. Think through what could go wrong while you design it, not after it is built."
+  },
+  {
+   "term": "Authentication Failures",
+   "def": "A07: letting someone in without really proving who they are. Make the proof hard to fake, and ask for a second proof."
+  },
+  {
+   "term": "Software or Data Integrity Failures",
+   "def": "A08: trusting a part or an update without checking who it came from. Check the maker's signature before you trust it."
+  },
+  {
+   "term": "Security Logging and Alerting Failures",
+   "def": "A09: keeping no useful record, or the wrong one, and raising no alarm. Record what matters, never secrets, and alert on the strange."
+  },
+  {
+   "term": "Mishandling of Exceptional Conditions",
+   "def": "A10, new in 2025: when something unexpected happens, the program guesses instead of stopping. When unsure, fail closed rather than carry on."
+  },
+  {
+   "term": "Defence in depth",
+   "def": "Using more than one layer, so a single mistake doesn't undo everything. Here: an approved list, the inside blocked, and a token on the keys."
+  },
+  {
+   "term": "ISO/IEC 27001",
+   "def": "An international standard for managing information security. Its Annex A lists controls, including secure coding and network security."
+  },
+  {
+   "term": "SOC 2",
+   "def": "An audit of a company's security controls against the Trust Services Criteria, including protecting systems from outside threats."
+  },
+  {
+   "term": "OWASP ASVS",
+   "def": "The Application Security Verification Standard: an OWASP checklist of security requirements you can test a site against."
+  }
+ ],
+ "atWork": "Look for any feature in your systems that takes an address or a link from a user and has the server fetch it: a 'preview this URL' box, an avatar-from-a-link, a webhook, a report that pulls a file for you. Each one can be talked into reaching your own inside, where a cloud's settings service (its metadata endpoint) will hand out the server's keys to anything local. For every such feature, write down what it may fetch, whether it checks the destination or only the link's spelling, and what the server can reach that a user's browser cannot. Then put an allow-list in front of the fetch, block internal and link-local addresses at the network, and require a token on the metadata service, and build that rule in one shared place every feature uses, so the next feature inherits it instead of shipping without it. Check your logs too: make sure none of them write secrets down, the way the picture log did. Standards: if your company is pursuing ISO/IEC 27001:2022, this is Annex A 8.28 (secure coding) and A 8.20 (network security); if it is pursuing SOC 2, it is CC6.6 (protecting against threats from outside the system boundary) and CC7.1 (detecting configuration changes and new vulnerabilities); and the OWASP ASVS is a good checklist to test against. An app that fetches a user's link with no allow-list is a finding an auditor is likely to raise, so design the fetch rule in from the first draft rather than bolting it on at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "owasp-top-10",
+    "title": "OWASP Top 10"
+   },
+   {
+    "id": "2025",
+    "title": "2025"
+   },
+   {
+    "id": "a01-broken-access-control",
+    "title": "A01 Access Control"
+   },
+   {
+    "id": "a02-security-misconfiguration",
+    "title": "A02 Misconfig"
+   }
+  ],
+  "strings": [
+   {
+    "from": "owasp-top-10",
+    "to": "2025",
+    "label": "updated 2025"
+   },
+   {
+    "from": "owasp-top-10",
+    "to": "a01-broken-access-control",
+    "label": "number one"
+   },
+   {
+    "from": "a01-broken-access-control",
+    "to": "a02-security-misconfiguration",
+    "label": "number two"
+   },
+   {
+    "from": "a01-broken-access-control",
+    "to": "authorization",
+    "label": "who may act"
+   },
+   {
+    "from": "a01-broken-access-control",
+    "to": "secrets-management",
+    "label": "the keys next"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s7e06-r1",
+   "kind": "free",
+   "prompt": "Your website lets a member paste a web link to a photo, and your server fetches that link to show the picture. One night it fetched an address on your cloud's own inside and sent back your server's own keys. A colleague says to just check the link finishes in .jpg. What went wrong, and what would you build?",
+   "keyIdeas": [
+    {
+     "idea": "The server fetched a destination on the visitor's behalf that only the server could reach, which is SSRF",
+     "match": [
+      "ssrf",
+      "server-side request forgery",
+      "on its behalf",
+      "on the visitor's behalf",
+      "only the server can reach",
+      "reach the inside",
+      "an internal address",
+      "internal service"
+     ]
+    },
+    {
+     "idea": "Fetch only from an approved list of allowed sites, and block internal addresses",
+     "match": [
+      "approved list",
+      "allow list",
+      "allow-list",
+      "allowlist",
+      "block internal",
+      "block the inside",
+      "list of allowed"
+     ]
+    },
+    {
+     "idea": "Require a token on the settings or metadata service, so a bare fetch gets no keys",
+     "match": [
+      "require a token",
+      "requires a token",
+      "needs a token",
+      "token on the",
+      "token-required",
+      "imdsv2",
+      "metadata service"
+     ]
+    }
+   ],
+   "model": "The real fault is not the ending. Your server was handed a link and fetched it on the visitor's behalf, and the link pointed at an address only the server can reach, on the cloud's inside, where the settings service hands back its keys. That is SSRF, and checking the link finishes in .jpg fixes nothing, because an inside address can finish in .jpg too; an ending is text the writer chooses. Instead, fetch only from an approved list of allowed image sites and refuse every other address, block internal addresses at the network, and require a token on the settings or metadata service so a bare fetch gets no keys. Any one layer would help; together they mean one slip no longer leaks keys. Then rotate the keys that leaked and check nothing wrote them to a log."
+  },
+  {
+   "id": "s7e06-r2",
+   "kind": "mcq",
+   "prompt": "What does a web address finishing in .jpg tell you about where it leads?",
+   "options": [
+    "Nothing; the ending is just text the link's writer chose",
+    "That it is a picture file, and therefore safe to fetch",
+    "That it points to a site out on the open web, not the inside",
+    "That the server is allowed to fetch it without checking"
+   ],
+   "answer": 0,
+   "why": "An ending is written by whoever makes the link, so it says nothing about the address it sits on. An address finishing .jpg can still lead to the inside, which is exactly how the keys were reached."
+  },
+  {
+   "id": "s7e06-r3",
+   "kind": "mcq",
+   "prompt": "Why would a web firewall in front of the ticket site not have stopped this?",
+   "options": [
+    "It was switched off that night",
+    "The risky request was the server's own, going out to the inside, so an ordinary link passed",
+    "A web firewall cannot read web requests at all",
+    "The feature simply had no firewall rules written for it"
+   ],
+   "answer": 1,
+   "why": "A web firewall reads requests coming in from the web. The dangerous request went the other way: the server sent it out to the inside, and an ordinary-looking picture link gave the firewall nothing to catch."
+  },
+  {
+   "id": "s7e06-r4",
+   "kind": "mcq",
+   "prompt": "In the OWASP Top 10:2025, which category now covers server-side request forgery (SSRF)?",
+   "options": [
+    "A05 Injection",
+    "A01 Broken Access Control",
+    "A09 Security Logging and Alerting Failures",
+    "A02 Security Misconfiguration"
+   ],
+   "answer": 1,
+   "why": "SSRF sits under A01 Broken Access Control in the 2025 list: the server reached a place it should not have been allowed to reach."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. The approved list went onto the picture feature in October and has held; no guest's link has reached the inside since. But in February Swetha added a second feature, a 'fetch a map from a link' for directions, and a new developer wrote its fetch fresh, with no list. On its first busy night the sim shows a map link reaching the settings service again. This time nothing came back: we had also set the settings service to require a token. The door opened; the keys stayed put.",
+  "prompt": "Reply to OP. Why did a brand-new feature open the same door again, and what should Rookhurst build so this keeps on being caught?",
+  "keyIdeas": [
+   {
+    "idea": "The approved-list check lived in one feature only, not in shared code, so the new feature had none of it",
+    "match": [
+     "one feature",
+     "single feature",
+     "per feature",
+     "per-feature",
+     "not shared",
+     "wrote it fresh",
+     "copied by hand",
+     "its own copy"
+    ]
+   },
+   {
+    "idea": "Put the fetch rule in one shared place every feature must call",
+    "match": [
+     "one shared place",
+     "shared place",
+     "one place",
+     "in one place",
+     "build it once",
+     "write it once",
+     "shared code",
+     "reuse the rule"
+    ]
+   },
+   {
+    "idea": "Defence in depth caught it: the token on the settings service meant no keys came back",
+    "match": [
+     "defence in depth",
+     "defense in depth",
+     "the token",
+     "token on the",
+     "second layer",
+     "another layer",
+     "no keys came back"
+    ]
+   }
+  ],
+  "model": "The list was never the whole fix; it was a check built into one feature. The map feature was written fresh, so it inherited none of it and reached the inside the same way. The answer is to stop writing the fetch twice: build the rule, the approved list and the refusal of inside addresses, in one shared place that every feature must call, so a new feature can't fetch without it. The happy part is why nobody lost keys this time: the token on the settings service was a second layer, and when the door opened, the keys stayed put. That is defence in depth working as intended, and it is the argument for keeping all the layers even once the list is in place. Add a test that tries to fetch an inside address and fails, and run it against every feature."
+ },
+ "next": "Next, Secrets in the Walls: a house with notes hidden in the walls, and keeping passwords and keys out of code.",
+ "sources": [
+  {
+   "title": "OWASP Top 10:2025 (the ten categories in order; A10 Mishandling of Exceptional Conditions is new for 2025), read 15 October 2026",
+   "url": "https://top10.owasp.org/2025/"
+  },
+  {
+   "title": "OWASP Top 10:2025, A01 Broken Access Control (lists CWE-918 SSRF and CWE-352 CSRF; 'Except for public resources, deny by default'), read 15 October 2026",
+   "url": "https://top10.owasp.org/2025/A01_2025-Broken_Access_Control/"
+  },
+  {
+   "title": "OWASP Cheat Sheet Series, Server Side Request Forgery Prevention Cheat Sheet ('Deny-lists are bypass-prone. Prefer allow-lists'; 'Match the host against an allowlist, and build the request yourself'), read 15 October 2026",
+   "url": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+   "title": "Amazon EC2 User Guide, Use the Instance Metadata Service to access instance metadata (IMDSv2 uses session-oriented requests; configure IMDS to only accept IMDSv2 calls; the token is required), read 15 October 2026",
+   "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html"
+  },
+  {
+   "title": "Capital One, Information on the 2019 Cyber Incident ('This occurred on March 22 and 23, 2019'; approximately 100 million in the United States and 6 million in Canada; a 'configuration vulnerability'), read 15 October 2026",
+   "url": "https://www.capitalone.com/digital/facts2019/"
+  },
+  {
+   "title": "U.S. Federal Trade Commission, Equifax to Pay $575 Million as Part of Settlement (September 2017; 147 million people; failed to patch after being alerted in March 2017), read 15 October 2026",
+   "url": "https://www.ftc.gov/news-events/news/press-releases/2019/07/equifax-pay-575-million-part-settlement-ftc-cfpb-states-related-2017-data-breach"
+  },
+  {
+   "title": "OWASP Cheat Sheet Series, Cross-Site Request Forgery Prevention Cheat Sheet ('Stateful software should use the synchronizer token pattern'; 'SameSite is a cookie attribute ... which aims to mitigate CSRF attacks'), read 15 October 2026",
+   "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+   "title": "OWASP Top 10:2025, A09 Security Logging and Alerting Failures ('logging sensitive information that should not be logged (such as PII or PHI)'; 'The integrity of logs is not properly protected from tampering'), read 15 October 2026",
+   "url": "https://top10.owasp.org/2025/A09_2025-Security_Logging_and_Alerting_Failures/"
+  }
+ ]
+}
