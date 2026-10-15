@@ -1,0 +1,759 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-15) first version"
+ ],
+ "id": "s7e08",
+ "season": 7,
+ "n": 8,
+ "title": "The Tenant Upstairs",
+ "setting": "a row of shops sharing one back office",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "multi-tenancy-isolation",
+  "row-level",
+  "schema-per-tenant",
+  "account-per-tenant"
+ ],
+ "prerequisites": [
+  "s1e09",
+  "s3e07",
+  "s7e02"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/gorsebrook_ledger_siobhan",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 2974,
+  "title": "I'm the night bookkeeper for nine shops on one street. Tonight the cobbler's month-end report printed the toy shop's customers.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Siobhan, night bookkeeper for Gorsebrook Parade: nine small shops in a row, among them a cobbler, a toy shop, a tailor and a clock mender. Each is its own business. To save money they share one back office, and one computer system for bookings and accounts."
+   },
+   {
+    "t": "p",
+    "text": "That system keeps everything in one database, an organised store of records, like one big filing cabinet. Each shop is what the trade calls a tenant: a separate customer of one shared system, like flats in one building that share one post room."
+   },
+   {
+    "t": "p",
+    "text": "Inside the database, records are kept in tables: long lists with one record per line. Each line is called a row. One table holds every shop's bookings."
+   },
+   {
+    "t": "p",
+    "text": "Every row carries a shop id, a number that says whose it is. Thimblewick Toys is shop 1. Mr Elphick, the cobbler, is shop 2. The system asks the database for rows with a written question called a query. Every query is meant to name one shop, so it gets only that shop's rows."
+   },
+   {
+    "t": "p",
+    "text": "Everything in the system signs in to the database with the same login, the back office's own name and password, and that login can read all nine shops' rows. So the shop id written in each query is the only wall between nine businesses."
+   },
+   {
+    "t": "p",
+    "text": "On Monday 14 September, Anneliese, who looks after the system two days a week, released a new month-end report. Its test passed. A test is a small program that runs the report on sample records and checks the answer. Hers used sample records from one shop only."
+   },
+   {
+    "t": "p",
+    "text": "Wednesday 30 September was the new report's first month-end; August's had used the old reports. At 23:00 the system sent each shop its report: eight by email, and Mr Elphick's to my printer, because he has no email. His is usually thirteen pages. At 23:05 the printer was still going."
+   },
+   {
+    "t": "beat",
+    "text": "It stopped at page 94."
+   },
+   {
+    "t": "p",
+    "text": "Page 1 wasn't his. Each line was a customer's name and an amount, and the first names were Thimblewick's customers. Anneliese matched every line to the database later: 1,300 lines were the toy shop's, our busiest. Only 610 were his own. The other 2,790 belonged to the seven other shops."
+   },
+   {
+    "t": "evidence",
+    "label": "printer_30_september.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "The back-office printer from 23:00 on 30 September. The top row shows what Mr Elphick's right report would have printed: his own 610 lines on 13 pages, done by 23:02:36. The bottom row shows what did print: 4,700 lines on 94 pages, until 23:18:48. A marker at 23:05 is when Siobhan looked up; a marker at 23:18:48 is page 94.",
+     "start": "23:00:00",
+     "seconds": 1200,
+     "ticksEvery": 300,
+     "rows": [
+      {
+       "label": "His 610 lines",
+       "segments": [
+        [
+         0,
+         156,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "What printed",
+       "segments": [
+        [
+         0,
+         1128,
+         "bad"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 300,
+       "label": "still going",
+       "tone": "warn"
+      },
+      {
+       "t": 1128,
+       "label": "page 94",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Redrawn from the printer's own record. It prints 5 pages a minute, 50 lines a page. His own 610 lines would have filled 13 pages and finished at 23:02:36. Instead it printed 4,700 lines on 94 pages and stopped at 23:18:48: 1,300 lines from the toy shop, 610 his, 2,790 from the seven other shops."
+   },
+   {
+    "t": "p",
+    "text": "Anneliese found why this morning. In her printout, a line starting with two dashes is a note; the line under it is that report's query. Read it as: fetch the name and total from the bookings table, only where the shop id and month match the ones filled in."
+   },
+   {
+    "t": "log",
+    "text": "-- every other report\nSELECT name, total FROM bookings WHERE shop_id = :shop AND month = :month\n-- the new month-end report\nSELECT name, total FROM bookings WHERE month = :month"
+   },
+   {
+    "t": "p",
+    "text": "The new query forgot the shop filter, the words that name one shop. Nothing caught it: the database answers exactly what it is asked, and every query must remember the filter by hand. So Mr Elphick's report held all 4,700 September bookings, 4,090 of them not his. The sent folder shows the other eight reports went out the same way."
+   },
+   {
+    "t": "p",
+    "text": "I rang Anneliese, and at 00:20 she switched the report off. I've asked the eight shops to delete it unread. Mr Elphick's copy is in my drawer. The next month-end is 31 October. What should we change?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 142,
+   "age": "5h",
+   "text": "Three questions before you choose, Siobhan. When the new query left out the shop filter, was there anything else standing between Mr Elphick's report and the toy shop's rows? Which login did the report sign in with, and whose rows could that login read? And how many shops were in the sample records Anneliese's test ran on?",
+   "replies": [
+    {
+     "author": "u/gorsebrook_ledger_siobhan",
+     "op": true,
+     "points": 48,
+     "age": "4h",
+     "text": "Anneliese says: nothing else. The database did exactly what it was asked. Every report signs in with the back office's one login, which reads all nine shops. And her test's sample held shop 2's records only, so leaving out the filter changed nothing it could see."
+    }
+   ]
+  },
+  {
+   "author": "u/careful_queries_fyodor",
+   "points": 87,
+   "age": "4h",
+   "text": "Someone will tell you to set row rules: rules kept inside the database that hide some rows from some logins. Don't. They slow every query down and they hide bugs, because a report that comes back short gives no reason why. Just write careful queries, with the shop id in every one. That's how most small systems work, and it worked for you for years.",
+   "replies": [
+    {
+     "author": "u/gorsebrook_ledger_siobhan",
+     "op": true,
+     "points": 26,
+     "age": "3h",
+     "text": "Anneliese has written every report we have, carefully. This is the first one that forgot."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "The next month-end run is on 31 October. What should Gorsebrook's back office change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Add a test that runs the month-end report for each shop and checks the right totals.",
+    "tone": "bad",
+    "verdict": "Guards one report, not the next",
+    "part2": "Anneliese wrote a test that runs the month-end report for each of the nine shops and checks each total against that shop's own bookings. We replayed September in the sim. On 14 September the test would have failed at once: shop 2's total came back over 4,700 bookings, not 610, so the report was held back, and Mr Elphick's report held 0 other shops' lines. Then we tried the next query, a bookings export for the accountant, written the same way and with no test of its own. The month-end test never runs it. In the sim it handed Mr Elphick 4,700 lines again, 4,090 of them other shops', and 9 of 9 reports leaked. The test guarded one report. The wall between the shops was still a line every new query has to remember.",
+    "senior": "A test of one report proves that report right; it says nothing about the next query someone writes. Tests are worth having, especially ones that try to cross from one tenant to another using sample records from at least two, but they only check what they are pointed at. While the login can read every tenant's rows, the only wall is the filter each query remembers by hand. Build a wall into the database, and keep the tests as the second layer that finds mistakes before release."
+   },
+   {
+    "text": "Give every shop its own copy of the database, so no query can ever reach another's.",
+    "tone": "warn",
+    "verdict": "Strong, at nine times the upkeep",
+    "part2": "Anneliese priced a separate database for every shop. In the sim, with a database per shop, Mr Elphick's report came back with his own 610 lines even with the filter left out: there was nothing else in his database to leak, and 0 reports held other shops' rows. But the running cost went from £40 a month to £360, given data from our supplier, and every change now has to be made, checked, upgraded and backed up nine times. For a big customer under strict rules, that is often worth it. For nine small shops, the bill and the upkeep were more than the back office could carry, and the shops said no.",
+    "senior": "A database per tenant, which AWS calls the silo model, is the strongest wall: a forgotten filter has nothing else to reach. It is the right call for large tenants, or ones under strict rules, and many firms mix it with sharing. But it multiplies running cost and upkeep by the number of tenants: nine upgrades, nine backups, nine places every fix must land. For many small tenants, a shared database with the wall built into it usually gives most of the safety for a fraction of the cost."
+   },
+   {
+    "text": "Have the database itself hide other shops' rows from any query a shop's login runs.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Anneliese gave each shop its own login to the database, and set one row rule on the bookings table: a login sees only rows whose shop id is its own. Each shop's report now signs in as that shop, never as the back office. We replayed September in the sim with the filter still left out. Mr Elphick's report came back with 610 lines on 13 pages, all his, and 0 from other shops; 0 of 9 reports held another shop's rows. The bookings export, also missing its filter, came back the same. The running cost stayed £40 a month. She kept the shop filter in every query too, and added a test that runs each new query as one shop over sample records from two shops, and fails if the other shop's rows appear. The filter is still a habit. It is no longer the only wall.",
+    "senior": "Row-level security moves the wall from every query into the database itself: one rule per shared table says a login sees only its own tenant's rows, so a query that forgets the filter gets less, not more. Each tenant's work must sign in as that tenant, and that login must not own the tables, because in PostgreSQL table owners and superusers skip the rules unless the table is told to apply them to its owner too. Keep the filter in the code anyway, and add tests that try to cross tenants: the rule catches what the filter forgets, and the tests catch a missing rule before release. That is defence in depth for the most common way shared systems leak, and it is a different fault from the review at a regional paper (s5e08) that let a check be removed: here no check was ever written, and the fix lives in the database, not in review."
+   },
+   {
+    "text": "Move the toy shop to its own system, since it is the biggest and has the most to lose.",
+    "tone": "bad",
+    "verdict": "One shop safe, eight still exposed",
+    "part2": "The back office moved Thimblewick Toys to a system of its own. In the sim, the toy shop's customers no longer appear in anyone's report: 0 toy-shop lines in Mr Elphick's. But the other eight shops still share one database, one login and one forgotten filter. With the filter left out, his report held 3,400 lines on 68 pages, 2,790 of them from the seven other shops, and 8 of 9 reports leaked. The cost went up to £80 a month for two systems. The toy shop was safe. The tailor, the clock mender and the rest were exactly where they had been.",
+    "senior": "Moving the biggest or most worried tenant onto its own system is a real move, a mixed model with some tenants alone and the rest shared, and it can suit a customer with special rules. But it protects one tenant and fixes nothing for the others: the shared system still leans on every query remembering the filter. Decide isolation by the risk to everyone in the shared pool, not by who has the most to lose, and then build the wall where the pool shares a table."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s7e08",
+  "title": "Run the Gorsebrook month-end, and choose the wall between shops",
+  "lede": "You're Anneliese, on 30 September, before the 23:00 month-end run. As given data: nine shops share one database, and September has 4,700 bookings: Thimblewick Toys (shop 1) 1,300, Mr Elphick the cobbler (shop 2) 610, the tailor 520, the key cutter 490, the music shop 480, the clock mender 410, the framer 350, the hatter 300 and the bookbinder 240. A printed page holds 50 lines. Running costs, also given data: one shared database is £40 a month; a database per shop is £40 each, £360 for nine; moving one shop to a system of its own adds £40. Choose how the shops are kept apart (the shop filter in each query only, as built; row rules in the database; a schema per shop; or a database per shop), whether the query has its shop filter, whether a test runs the month-end report for each shop before release, which query runs (the month-end report, or a bookings export, a query that copies the month's bookings into a spreadsheet, added later with no test of its own), and whether the toy shop moves out. Then run the month-end and read Mr Elphick's report: its lines coloured by the shop that owns them, how many are other shops', the pages printed, how many shops' reports leaked, and the cost and upkeep of each way.",
+  "tryThis": "Try this: run it as built. Mr Elphick's report has 4,700 lines on 94 pages, 4,090 of them other shops', 1,300 the toy shop's, and 9 of 9 reports leak. Write the filter: 610 lines, 13 pages, 0 other shops'. Leave the filter out and switch to row rules: still 610 and 0, at the same £40 a month. Switch to a database per shop: 0 again, at £360. Back to the shop filter only, with the test on: the month-end report is held back on 14 September, 0 leaked. Now switch the query to the bookings export: 4,090 again, because the test never runs it. Finally move the toy shop out: 3,400 lines, 2,790 from seven other shops, 8 of 9 reports leak."
+ },
+ "explain": {
+  "oneLine": "Nobody broke in. A new report's query left out the shop filter, and because everything signed in with one login that could read all nine shops, the database handed over all 4,700 September bookings. Give each shop its own login and let the database itself hide other shops' rows, and a forgotten filter returns only the shop's own.",
+  "steps": [
+   {
+    "title": "Nine tenants in one cabinet.",
+    "text": "Gorsebrook's system is multi-tenant: one database serves nine separate businesses, and each is a tenant. Sharing is cheap: one database to run, back up and upgrade, which is why most software sold to many small customers works this way. The price is that every tenant's records sit side by side. So every row needs a tenant id, here the shop id, and every query must ask for one tenant's rows only. It is like flats sharing one post room: it works while every letter is sorted by flat number."
+   },
+   {
+    "title": "One forgotten line.",
+    "text": "The month-end report's query asked for every booking in September and never said which shop. The database did as it was asked, because nothing in it knew that shop 2's report should see only shop 2. The login it signed in with could read all nine shops, so the only wall was a few words each query has to remember. Anneliese's test missed it because its sample held one shop: a query that forgets the shop filter returns the same rows when there is only one shop to return. In the OWASP Top 10:2025 this is A01, Broken Access Control: someone was shown records outside what they should see."
+   },
+   {
+    "title": "Row rules: the database checks every time.",
+    "text": "Row-level security puts the wall inside the database. First, each shop gets its own login. Second, the bookings table gets one rule, a policy: a login may see only rows whose shop id is its own. Third, every report signs in as the shop it is for. Now when a query forgets the filter, the database applies the rule anyway and hands back only that shop's rows: 610 for Mr Elphick, not 4,700. What can go wrong: in PostgreSQL the table's owner and superusers skip the rules unless the table is told to apply them to its owner, so reports must never sign in as the owner. And a table with row security switched on but no policy shows no rows at all, which fails safe."
+   },
+   {
+    "title": "Drawers and cabinets: a schema or a database per tenant.",
+    "text": "Two stronger walls cost more. A schema per shop gives each shop its own drawer: its own copy of every table inside the one database, so a query in shop 2's drawer cannot see shop 1's rows. The cost is upkeep: every new column must be added nine times. A database per shop, which AWS calls the silo model, gives each shop its own cabinet: nothing shared to leak, at nine times the running cost and nine of every upgrade and backup. Sharing everything is the pool model. Choose by cost, upkeep and risk: a pool with row rules for many small tenants, a silo for a large tenant or one under strict rules, and a mix when you have both."
+   },
+   {
+    "title": "Tests that try to cross.",
+    "text": "Walls need checking. A cross-tenant test loads sample records for at least two tenants, runs each query as one of them, and fails if the other's rows come back. Run it on every query, not one report, because the next query is the one nobody has tested. The test finds a missing filter or a missing rule before release; the rule stops whatever the tests miss. Neither alone is enough."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 300,
+   "aria": "The fix, drawn for Mr Elphick's report. The month-end report, still without its shop filter, signs in with shop 2's own login and queries the bookings table, which now has a row rule: own shop only. The table returns 610 rows, all shop 2's. The 4,090 rows of other shops are hidden by the rule, drawn as a dashed red line.",
+   "nodes": [
+    {
+     "id": "report",
+     "label": "Month-end report",
+     "sub": "no shop filter",
+     "x": 120,
+     "y": 80,
+     "w": 180,
+     "h": 60,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "login",
+     "label": "Shop 2's login",
+     "sub": "not the owner",
+     "x": 370,
+     "y": 80,
+     "w": 170,
+     "h": 60,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "table",
+     "label": "Bookings table",
+     "sub": "row rule: own shop",
+     "x": 620,
+     "y": 80,
+     "w": 190,
+     "h": 64,
+     "shape": "db",
+     "tone": "ok"
+    },
+    {
+     "id": "own",
+     "label": "610 rows, shop 2",
+     "x": 620,
+     "y": 230,
+     "w": 190,
+     "h": 56,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "others",
+     "label": "4,090 other rows",
+     "sub": "hidden by the rule",
+     "x": 300,
+     "y": 230,
+     "w": 190,
+     "h": 60,
+     "shape": "box",
+     "tone": "muted"
+    }
+   ],
+   "edges": [
+    {
+     "from": "report",
+     "to": "login",
+     "label": "signs in",
+     "tone": ""
+    },
+    {
+     "from": "login",
+     "to": "table",
+     "label": "query",
+     "tone": ""
+    },
+    {
+     "from": "table",
+     "to": "own",
+     "label": "returns",
+     "tone": "ok"
+    },
+    {
+     "from": "table",
+     "to": "others",
+     "label": "hidden",
+     "dash": true,
+     "tone": "bad"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for Mr Elphick's report. The report still has no shop filter, but it now signs in with shop 2's own login, which does not own the table. The row rule on the bookings table hands back his 610 rows and hides the other shops' 4,090, whatever the query forgot.",
+  "fix": {
+   "title": "The fix: a login per shop, and a row rule on every shared table",
+   "text": "Give each shop its own login to the database, one that does not own the tables, and make every report and export for a shop sign in as that shop. Put one row rule on every shared table: a login sees and changes only rows whose shop id is its own. Then a query that forgets its shop filter gets only its own shop's rows, as Mr Elphick's report would have: 610 lines, not 4,700. Keep the shop filter in every query as well, so the code says what it means. Add a cross-shop test that loads sample records from at least two shops, runs every query as one of them, and fails if the other's rows come back, and run it before every release. Keep a database or system of its own for any shop that later needs one for its size or its rules. And tell the eight shops what happened: each shop's customers are that shop's personal data, and a leak of them may need reporting."
+  },
+  "limits": [
+   "Row rules guard only the logins they apply to. In PostgreSQL, the table's owner and superusers skip them unless the table is told to apply them to its owner, so the back office's own login must never run a shop's report.",
+   "A rule is only as right as the shop id on each row. A booking saved with the wrong shop id is shown to the wrong shop, rule or not, so check the shop id when rows are written.",
+   "Row rules add a check to every query. On most systems it costs little when the database can find a shop's rows quickly, but measure it on your own tables rather than assume."
+  ],
+  "tradeoff": {
+   "head": [
+    "How shops are kept apart",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Shop filter in each query only (as built)",
+     "Cheapest: £40 a month, one database.",
+     "One forgotten filter shows every shop's rows: 4,090 in his report."
+    ],
+    [
+     "Row rules in the database, a login per shop",
+     "A forgotten filter returns only the shop's own rows; still £40.",
+     "A rule per table to keep; owners and superusers skip it."
+    ],
+    [
+     "A schema per shop",
+     "Each shop's tables sit in its own drawer; nothing else to find.",
+     "Every change made nine times, in nine sets of tables."
+    ],
+    [
+     "A database per shop",
+     "The strongest wall: nothing shared to leak.",
+     "£360 a month; nine databases to upgrade and back up."
+    ],
+    [
+     "Move the biggest shop out",
+     "That one shop's customers are safe.",
+     "The other eight still leak: 2,790 lines; £80 a month."
+    ],
+    [
+     "A test of the month-end report",
+     "Catches this report before release.",
+     "Never runs the next query, which leaks 4,090 again."
+    ],
+    [
+     "A cross-shop test on every query",
+     "Finds a missing filter or rule before release.",
+     "Only checks what it is given; a layer, not the wall."
+    ]
+   ]
+  },
+  "seniorTake": "In a shared system the scary thing is not a stranger breaking in; it is one of your own queries asking for too much and getting it. Every tenant's rows sit in the same tables, so the question is where the wall lives. If it lives only in each query's filter, it is exactly as strong as the least careful query anyone ever writes, and a test of one report cannot see the next. Move the wall into the database with row-level security: one login per tenant, never the table owner, and one rule per shared table that shows a login only its own rows. Then a forgotten filter gets less, not more. Keep the filter anyway, and run tests that try to cross from one tenant to another on every query. Schemas and databases per tenant are stronger walls with real costs, nine sets of tables or nine bills; use them where a tenant's size or rules pay for it, and mix models when your tenants differ. This is OWASP's first category, Broken Access Control, in its most ordinary form, and AWS's SaaS guidance treats a crossed tenant boundary as a potentially unrecoverable event for the business.",
+  "realWorld": [
+   {
+    "title": "PostgreSQL: row security policies",
+    "text": "The PostgreSQL documentation says tables \"can have row security policies that restrict, on a per-user basis, which rows can be returned by normal queries or inserted, updated, or deleted by data modification commands. This feature is also known as Row-Level Security.\" That is the row rule: the database, not the query, decides which rows a login sees.",
+    "source": 0
+   },
+   {
+    "title": "PostgreSQL: who skips the rules, and the safe default",
+    "text": "The same page warns: \"Superusers and roles with the BYPASSRLS attribute always bypass the row security system when accessing a table.\" It adds that \"Table owners normally bypass row security as well\", which is why a shop's report must never sign in as the owner. And it fails safe: \"If no policy exists for the table, a default-deny policy is used, meaning that no rows are visible or can be modified.\"",
+    "source": 0
+   },
+   {
+    "title": "AWS SaaS Lens: tenant isolation",
+    "text": "AWS's guidance for SaaS, software sold as a service over the web, says \"Tenant isolation is one of the foundational topics that every SaaS provider must address.\" Of one tenant reaching another's resources, it says \"Crossing this boundary in any form would represent a significant and potentially unrecoverable event for a SaaS business.\"",
+    "source": 1
+   },
+   {
+    "title": "AWS SaaS Lens: silo and pool",
+    "text": "AWS names the two ends of the choice. \"The silo model refers to an architecture where tenants are provided dedicated resources\", such as a separate database each; \"the pool model of SaaS refers to a scenario where tenants share resources.\" It adds that many systems mix the two, which it calls the bridge model.",
+    "source": 2
+   },
+   {
+    "title": "OWASP Top 10:2025, A01 Broken Access Control",
+    "text": "OWASP says \"Access control enforces policy such that users cannot act outside of their intended permissions.\" Its advice fits a shared system closely: \"Model access controls should enforce record ownership rather than allowing users to create, read, update, or delete any record\", and \"Developers and QA staff should include functional access control in their unit and integration tests.\"",
+    "source": 3
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How do you isolate tenants in a SaaS product?",
+    "Row-level, schema or account per tenant: how do you choose?",
+    "How do you test tenant isolation?"
+   ],
+   "answer": "Start from the risk: in a pooled, multi-tenant system every tenant's rows share tables, so the common failure is not an outsider but one query that forgets the tenant filter and returns everyone's data. That is OWASP A01, Broken Access Control. So I put a tenant id on every row and filter on it in every query, but I don't let the filter be the only wall. I enforce isolation in the database with row-level security: each request runs under a tenant-scoped role or sign-in setting, never the table owner or a role that bypasses the policies, and one policy per shared table limits rows to the current tenant, so a forgotten filter returns less, not more. Choosing a model is cost, upkeep and risk. Pool with row-level security is cheapest and easiest to run for many small tenants. Schema per tenant gives a clearer boundary but multiplies every table change by the number of tenants. A database or a cloud account per tenant, the silo model, gives the strongest isolation and per-tenant backups and limits, at the highest cost and upkeep; I'd use it for large or regulated tenants, and mix models where tenants differ. Testing: seed at least two tenants, run every query and every screen's request as tenant A, and assert none of tenant B's rows come back; run that in the release steps before every release, and raise an alarm on any query that runs as an owner or a role that skips the policies. I'd close with the shops story: a month-end report with no shop filter printed 4,700 lines for a cobbler whose own were 610; with a login per shop and a row policy, the same broken query would have returned his 610 and nothing else."
+  }
+ },
+ "terms": [
+  {
+   "term": "Gorsebrook Parade",
+   "def": "The row of nine small shops on one street in this story. They share one back office and one booking and accounts system."
+  },
+  {
+   "term": "Back office",
+   "def": "The shared office that keeps the nine shops' bookings and accounts. Siobhan is its night bookkeeper; Anneliese looks after its system."
+  },
+  {
+   "term": "Night bookkeeper",
+   "def": "The person who keeps the accounts after hours and sees the month-end reports out. Siobhan, at Gorsebrook Parade."
+  },
+  {
+   "term": "Database",
+   "def": "An organised store of records that programs can search and change, like one big filing cabinet. All nine shops' records sit in one."
+  },
+  {
+   "term": "Tenant",
+   "def": "A separate customer of one shared system, like a flat in a building that shares one post room. Each of the nine shops is a tenant."
+  },
+  {
+   "term": "Multi-tenancy",
+   "def": "One system and one database serving many separate customers at once. Cheap to run, but every tenant's records sit side by side."
+  },
+  {
+   "term": "Table",
+   "def": "One long list inside a database, one record per line. The bookings table holds every booking of every shop."
+  },
+  {
+   "term": "Row",
+   "def": "One line of a table: here, one booking, with its customer's name, its total, its month and its shop id."
+  },
+  {
+   "term": "Shop id",
+   "def": "The number on every row that says which shop it belongs to. Thimblewick Toys is shop 1; Mr Elphick, the cobbler, is shop 2. Also called a tenant id."
+  },
+  {
+   "term": "Query",
+   "def": "A written question a program sends to a database, such as 'the name and total of every September booking for shop 2'. The database answers exactly what is asked."
+  },
+  {
+   "term": "Shop filter",
+   "def": "The words in a query that name one shop, shop_id = :shop. Without them, the query asks for every shop's rows. Also called a tenant filter."
+  },
+  {
+   "term": "Login",
+   "def": "A name and password a program uses to sign in to the database. What a login may read decides what any query run with it can get."
+  },
+  {
+   "term": "Month-end report",
+   "def": "The list each shop gets on the last night of the month: every booking's customer name and amount. The new one was released on 14 September."
+  },
+  {
+   "term": "Test",
+   "def": "A small program that runs part of the system on sample records and checks the answer. Anneliese's used one shop's records, so it could not see a missing shop filter."
+  },
+  {
+   "term": "Cross-tenant test",
+   "def": "A test that loads sample records for two or more tenants, runs a query as one, and fails if another's rows come back. Run on every query, not one."
+  },
+  {
+   "term": "Row rules",
+   "def": "Rules kept inside the database that let a login see only some rows, such as only its own shop's. Also called row-level security."
+  },
+  {
+   "term": "Row-level security",
+   "def": "The database itself hiding rows a login should not see, by a rule on the table, even when a query forgets its filter. PostgreSQL calls the rules row security policies."
+  },
+  {
+   "term": "Policy (row security)",
+   "def": "One row rule on one table, such as 'a login sees only rows whose shop id is its own'. With row security on and no policy, no rows show."
+  },
+  {
+   "term": "Table owner",
+   "def": "The login that created a table and controls it. In PostgreSQL it normally skips row rules, so a shop's report must never sign in as the owner."
+  },
+  {
+   "term": "Superuser",
+   "def": "A database login with every right. In PostgreSQL it always skips row rules, so it should run no shop's work."
+  },
+  {
+   "term": "Schema",
+   "def": "A named group of tables inside one database, like a labelled drawer. A schema per shop gives each shop its own copy of every table."
+  },
+  {
+   "term": "Schema per tenant",
+   "def": "Giving each tenant its own drawer of tables in one shared database. A query in one drawer cannot see another's rows; every change is made once per tenant."
+  },
+  {
+   "term": "Database per tenant",
+   "def": "Giving each tenant its own database, or even its own cloud account: the strongest wall, at the highest running cost and upkeep."
+  },
+  {
+   "term": "Silo and pool",
+   "def": "AWS's names for the two ends: a silo gives each tenant its own resources, such as a database; a pool has tenants share them. A mix is called a bridge."
+  },
+  {
+   "term": "SaaS",
+   "def": "Short for software as a service: software a company runs for many customers and sells over the web, instead of each customer installing their own."
+  },
+  {
+   "term": "PostgreSQL",
+   "def": "A popular free database program that speaks SQL. It can keep row rules on a table, which it calls row security policies."
+  },
+  {
+   "term": "AWS",
+   "def": "Amazon Web Services, a company that rents out computers and databases over the internet. Its SaaS Lens is guidance on building software for many customers."
+  },
+  {
+   "term": "Isolation (tenants)",
+   "def": "Keeping each tenant's records out of every other tenant's reach: a wall between customers who share one system."
+  },
+  {
+   "term": "Export",
+   "def": "A query that copies records out of the system into a file, such as a spreadsheet for the accountant. It needs the same shop filter as a report."
+  },
+  {
+   "term": "Personal data",
+   "def": "Information about a person who can be identified from it, such as a customer's name and what they spent. Each shop's customers are that shop's personal data."
+  },
+  {
+   "term": "Defence in depth",
+   "def": "Using more than one layer, so a single mistake doesn't undo everything. Here: the shop filter, a row rule in the database, and cross-tenant tests."
+  },
+  {
+   "term": "OWASP Top 10",
+   "def": "The Open Worldwide Application Security Project's list of the ten most common web application security risks. The 2025 edition puts Broken Access Control first."
+  },
+  {
+   "term": "Broken Access Control",
+   "def": "A01 in the OWASP Top 10:2025: someone able to see or change what they should not. A report showing another shop's customers is one."
+  },
+  {
+   "term": "ISO/IEC 27001",
+   "def": "An international standard for running information security. Annex A control A.8.3 covers information access restriction, and A.5.15 access control."
+  },
+  {
+   "term": "SOC 2",
+   "def": "An audit report, written by an outside checker, on a company's controls against the AICPA's Trust Services Criteria. CC6.1 covers logical access security."
+  },
+  {
+   "term": "GDPR",
+   "def": "The EU's General Data Protection Regulation. Article 32 asks for security suited to the risk, including the ongoing confidentiality of processing systems."
+  },
+  {
+   "term": "PDPA",
+   "def": "Singapore's Personal Data Protection Act. Its protection obligation asks organisations to make reasonable security arrangements for personal data."
+  }
+ ],
+ "atWork": "Look for every query in your systems that serves more than one customer: reports, exports, search, admin screens, background jobs, and anything written in a hurry for month-end. For each, ask three things. Does it filter on the tenant id? Which login or role does it run as, and could that login read every tenant's rows? Is there a test that seeds two tenants and fails if one sees the other's rows? Then move the wall into the data layer: in PostgreSQL (including Amazon RDS and Aurora PostgreSQL), row-level security policies with a tenant-scoped role or session setting, and make sure no application role owns the tables or has the bypass attribute. Where a tenant's size or rules call for more, consider a schema, database or AWS account per tenant, and write down why. Tie it into a Build Night: in Build Night N5 you add tenant isolation to a small service next to roles, hashed API keys and an audit log. Standards: if your company is pursuing ISO/IEC 27001:2022, this is Annex A 8.3 (information access restriction) and A.5.15 (access control); if it is pursuing SOC 2, it is CC6.1 (logical access security); and since each tenant's customer records are personal data, GDPR Article 32 or the PDPA protection obligation may apply where you operate. A shared table with no enforced tenant boundary is a finding an auditor is likely to raise, so build the boundary in from the first design rather than adding it at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "multi-tenancy-isolation",
+    "title": "Tenant isolation"
+   },
+   {
+    "id": "row-level",
+    "title": "Row-level"
+   },
+   {
+    "id": "schema-per-tenant",
+    "title": "Schema per tenant"
+   },
+   {
+    "id": "account-per-tenant",
+    "title": "Account per tenant"
+   }
+  ],
+  "strings": [
+   {
+    "from": "multi-tenancy-isolation",
+    "to": "row-level",
+    "label": "database checks"
+   },
+   {
+    "from": "multi-tenancy-isolation",
+    "to": "schema-per-tenant",
+    "label": "a drawer each"
+   },
+   {
+    "from": "multi-tenancy-isolation",
+    "to": "account-per-tenant",
+    "label": "a cabinet each"
+   },
+   {
+    "from": "row-level",
+    "to": "least-privilege",
+    "label": "own login only"
+   },
+   {
+    "from": "multi-tenancy-isolation",
+    "to": "a01-broken-access-control",
+    "label": "A01 when it fails"
+   },
+   {
+    "from": "multi-tenancy-isolation",
+    "to": "sharding",
+    "label": "tenants as keys"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s7e08-r1",
+   "kind": "free",
+   "prompt": "Your company sells a booking app to 200 gyms from one shared database. A developer adds a 'members who haven't visited' export, and a gym owner rings to say her export lists other gyms' members. What went wrong, and what would you build so the next new query can't do it again?",
+   "keyIdeas": [
+    {
+     "idea": "The query left out the tenant (gym) filter, and the login it ran as could read every tenant's rows, so nothing else stopped it",
+     "match": [
+      "tenant filter",
+      "gym filter",
+      "forgot the filter",
+      "missing filter",
+      "left out the",
+      "without the filter",
+      "tenant id",
+      "gym id"
+     ]
+    },
+    {
+     "idea": "Enforce isolation in the database with row-level security: a login per tenant and a rule that shows only its own rows",
+     "match": [
+      "row-level security",
+      "row level security",
+      "row rules",
+      "row rule",
+      "row security",
+      "database itself"
+     ]
+    },
+    {
+     "idea": "Add cross-tenant tests that seed two tenants and run on every query, not just this one export",
+     "match": [
+      "cross-tenant",
+      "cross tenant",
+      "two tenants",
+      "two gyms",
+      "every query",
+      "every new query",
+      "each query"
+     ]
+    }
+   ],
+   "model": "The export left out the tenant filter, the gym id, and the login it ran as could read every gym's rows, so nothing else stopped it: the database answered exactly what it was asked. Fixing this one export isn't enough, because the next query can forget the same way. Move the wall into the database with row-level security: give each gym's work its own login or session, never the table owner, and put a rule on every shared table so a login sees only its own gym's rows. Then a query that forgets the filter gets less, not more. Keep the filter in the code too, and add cross-tenant tests that seed two gyms, run every query as one of them, and fail if the other's members appear. Then tell the gyms whose members leaked."
+  },
+  {
+   "id": "s7e08-r2",
+   "kind": "mcq",
+   "prompt": "Each shop now signs in with its own login, and the bookings table has a row rule: own shop only. The cobbler's report still forgets its shop filter. How many lines does his report get for September?",
+   "options": [
+    "610, his own bookings only",
+    "4,700, every shop's bookings",
+    "None; the database refuses the query",
+    "4,090, every other shop's bookings"
+   ],
+   "answer": 0,
+   "why": "The rule is applied by the database to every query the login runs, so a query that asks for everything gets only the rows the login may see: his 610."
+  },
+  {
+   "id": "s7e08-r3",
+   "kind": "mcq",
+   "prompt": "Which way of keeping tenants apart leaves no shared table to leak from, but costs the most to run and look after?",
+   "options": [
+    "A filter naming the shop in the code",
+    "Database rules on one shared set of tables",
+    "A schema per tenant in one database",
+    "A database per tenant"
+   ],
+   "answer": 3,
+   "why": "A database per tenant shares nothing, so a forgotten filter has nothing else to reach; at Gorsebrook it would cost £360 a month against £40, with nine databases to upgrade and back up."
+  },
+  {
+   "id": "s7e08-r4",
+   "kind": "mcq",
+   "prompt": "In the OWASP Top 10:2025, which category covers one customer being shown another customer's records?",
+   "options": [
+    "A05 Injection",
+    "A01 Broken Access Control",
+    "A04 Cryptographic Failures",
+    "A09 Security Logging and Alerting Failures"
+   ],
+   "answer": 1,
+   "why": "Being able to see records outside your own permissions is broken access control, A01, the first category on the 2025 list."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. Row rules went on in October, every shop's report signed in as that shop, and the October to December month-end runs were clean. In January Anneliese added a 'best customers of the year' sheet for each shop. To save time she let it sign in with the back office's login, the one that created the bookings table. Thimblewick Toys got its sheet on the last night of January, and it listed the top customers of all nine shops. The row rule was still on the table. It simply never applied.",
+  "prompt": "Reply to OP. Why did the row rule not hide the other shops' customers this time, and what should change so it can't happen again?",
+  "keyIdeas": [
+   {
+    "idea": "The sheet ran as the login that owns the table, and the table's owner normally skips row rules",
+    "match": [
+     "owner",
+     "owns the table",
+     "created the table",
+     "bypass",
+     "skips the rule",
+     "exempt"
+    ]
+   },
+   {
+    "idea": "Every shop's work must run as that shop's own login, never the owner; make the rule apply to the owner too",
+    "match": [
+     "shop's own login",
+     "own login",
+     "per-shop login",
+     "force row",
+     "apply to the owner",
+     "rules to its owner",
+     "never sign in as"
+    ]
+   },
+   {
+    "idea": "A cross-tenant test run on every new query, as the login it really uses, would have caught it before release",
+    "match": [
+     "cross-tenant",
+     "cross tenant",
+     "two shops",
+     "every new query",
+     "each new query",
+     "before release"
+    ]
+   }
+  ],
+  "model": "The rule was fine; the sheet went round it. It signed in as the back office's own login, the one that created the table, and in PostgreSQL a table's owner normally skips row rules, so the database showed it everything. Every shop's work must run as that shop's own login, never the owner, and the owner should have no part in daily reports. Set the table to apply the rules to its owner as well, so even that slip comes back empty. Then add a cross-tenant test to the release steps: for every new query, run it as the login it will really use, with sample records from two shops, and fail if the other shop's rows appear. That would have stopped the sheet before the last night of January. And tell the eight shops whose customers were shown."
+ },
+ "next": "Next, The Watchman's Book: a canal lock-keeper's ledger, and records nobody can quietly change.",
+ "sources": [
+  {
+   "title": "PostgreSQL Documentation (current), Row Security Policies ('row security policies that restrict, on a per-user basis, which rows can be returned'; superusers and BYPASSRLS roles always bypass; table owners normally bypass; default-deny when no policy exists), read 15 October 2026",
+   "url": "https://www.postgresql.org/docs/current/ddl-rowsecurity.html"
+  },
+  {
+   "title": "AWS Well-Architected Framework, SaaS Lens, Tenant Isolation ('one of the foundational topics that every SaaS provider must address'; crossing the boundary 'a significant and potentially unrecoverable event'), read 15 October 2026",
+   "url": "https://docs.aws.amazon.com/wellarchitected/latest/saas-lens/tenant-isolation.html"
+  },
+  {
+   "title": "AWS Well-Architected Framework, SaaS Lens, Silo, Pool, and Bridge Models (silo: tenants provided dedicated resources; pool: tenants share resources), read 15 October 2026",
+   "url": "https://docs.aws.amazon.com/wellarchitected/latest/saas-lens/silo-pool-and-bridge-models.html"
+  },
+  {
+   "title": "OWASP Top 10:2025, A01 Broken Access Control (access control enforces policy; enforce record ownership; include functional access control in unit and integration tests), read 15 October 2026",
+   "url": "https://top10.owasp.org/2025/A01_2025-Broken_Access_Control/"
+  },
+  {
+   "title": "GDPR Article 32, Security of processing (point 1(b): 'the ability to ensure the ongoing confidentiality, integrity, availability and resilience of processing systems and services'), read 15 October 2026",
+   "url": "https://gdpr-info.eu/art-32-gdpr/"
+  }
+ ]
+}
