@@ -1,5 +1,6 @@
-/* engine/core-v1.2.2.js
+/* engine/core-v1.2.3.js
    CHANGELOG
+   v1.2.3 (2026-10-17) Kiln: build ids K1 to K9 belong to LATENT, like the crossover X ids.
    v1.2.2 (2026-10-16) prompts.interview takes optional course and subject (defaults Dead Letter and system design) so LATENT finales name their own course.
    v1.2.1 (2026-10-07) default pace is plan B for learning both courses in parallel: 45 minutes on weekdays, 80 on weekend days.
    v1.2.0 (2026-10-07) engine contract v1.1.0 section 9 (9.1 to 9.8): two
@@ -43,7 +44,7 @@
        core, season, title, weekendOnly, phase }. Builds: kind "build",
        weekendOnly true, core true, season null, minutes from the file
        (default 75), status "ready" when unlocked else "locked", course
-       "lt" for X ids and "dl" for the rest. Unknown ids are skipped.
+       "lt" for X and K (Kiln) ids and "dl" for the rest. Unknown ids are skipped.
      - 9.5 pace.plan: on a weekday, weekendOnly items never enter
        newItems (the next eligible items in order do); they still count in
        share and status. The cap uses each item's own minutes and still
@@ -487,7 +488,7 @@
 
   /* Contract 9.4: the crossover milestones X1..X7 belong to LATENT; every
      other milestone (Gatekeeper, Loadout, Nightwatch N1..N7) to Dead Letter. */
-  function buildCourse(id) { return /^X\d/i.test(String(id)) ? "lt" : "dl"; }
+  function buildCourse(id) { return /^[XK]\d/i.test(String(id)) ? "lt" : "dl"; }
 
   function buildMinutes(m) {
     return typeof m.minutes === "number" && m.minutes > 0 ? m.minutes : SESSION_MINUTES.build;

@@ -1,0 +1,176 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-17) first version, from docs/projects-v1.0.1.md section 5 (Kiln), itself from the proposed steps in latent-season10-bible-v1.0.2.md; each milestone unlocks after the LATENT Season 10 cases that feed it"
+  ],
+  "project": "kiln",
+  "title": "Kiln",
+  "repo": "kiln",
+  "language": "Python",
+  "pitch": "A tiny LLM inference server, built a piece at a time and raced against real serving engines.",
+  "milestones": [
+    {
+      "id": "K1",
+      "title": "The roofline: predict a card's writing speed",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e01"
+      ],
+      "spec": "Measure the card's memory speed and sum rate, then predict writing speed from bytes moved per token.\n\n- A small benchmark for memory bandwidth and for sums a second.\n- A prediction: model bytes divided by bandwidth gives the least time a token can take.",
+      "promptPack": "Write a Python tool that measures a GPU's memory bandwidth and its sums a second with two small benchmarks, then predicts the model's writing speed in tokens a second from its size in bytes divided by the measured bandwidth. Run the real model, measure its tokens a second, and print prediction against measurement. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Prediction within 20% of the measured tokens a second",
+        "Benchmarks and model run in one command",
+        "README explains the prediction in plain words"
+      ],
+      "tag": "k01-roofline",
+      "share": false,
+      "decisionPrompt": "Your card's writing speed was set by which number, memory speed or sums a second, and how do you know?"
+    },
+    {
+      "id": "K2",
+      "title": "Two clocks: reading and writing timed apart",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e02"
+      ],
+      "spec": "A generate loop that reports time to first token, the gap between tokens, and reading and writing speeds separately.\n\n- A job planner that predicts a batch job's time from the two speeds.",
+      "promptPack": "Build a minimal generate loop in Python on top of the model's forward pass. Time the reading of the prompt and each written token separately, and report time to first token, inter-token latency, reading speed and writing speed. Add a planner that predicts how long a job of N prompts with given lengths will take, then check it on a real 100-prompt job. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Time to first token and inter-token latency reported per request",
+        "The planner times a 100-prompt job within 10%",
+        "Tests for the timing code"
+      ],
+      "tag": "k02-two-clocks",
+      "share": false,
+      "decisionPrompt": "Which of your two speeds would a faster card change, and which would it barely touch?"
+    },
+    {
+      "id": "K3",
+      "title": "Paged memory: a working-memory cache in blocks",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e03"
+      ],
+      "spec": "Keep each chat's working memory (the KV cache) in 16-token blocks with a block table, instead of reserving the longest chat up front.\n\n- A memory report: blocks in use, blocks free, chats held.",
+      "promptPack": "Replace the plain per-request KV cache with a paged one: fixed 16-token blocks, a free list, and a block table per request mapping token positions to blocks. Report memory in use and how many average chats fit at a fixed memory size. Prove the output text is identical to the plain cache. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "The same text as the plain cache on a fixed test set",
+        "A report of chats held at a fixed memory size, plain against paged",
+        "Tests for allocating and freeing blocks"
+      ],
+      "tag": "k03-paged-memory",
+      "share": false,
+      "decisionPrompt": "What does reserving the longest chat up front buy you, and when would you still choose it?"
+    },
+    {
+      "id": "K4",
+      "title": "Many at once: continuous batching",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e04",
+        "a10e09"
+      ],
+      "spec": "An iteration-level scheduler: finished answers leave after every step and waiting ones join, with an option to read long prompts in chunks.\n\n- A replay of mixed-length requests.",
+      "promptPack": "Add a scheduler that keeps a batch of slots and, after every decoding step, removes finished requests and admits waiting ones. Add an option to read long prompts in chunks so writing never stalls for a whole reading. Replay a recorded mix of short and long requests and report each request's wait. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "On the mixed-length replay, short answers never wait for long ones",
+        "Waits reported per request, static against continuous batching",
+        "Tests for the scheduler's admit and evict"
+      ],
+      "tag": "k04-continuous-batching",
+      "share": true,
+      "decisionPrompt": "What does your scheduler do when every slot is full and a short question arrives?"
+    },
+    {
+      "id": "K5",
+      "title": "Squeeze and score: smaller copies, measured",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e05"
+      ],
+      "spec": "Store the model's weights in 16, 8 and 4 bits, and score each copy on your own task sets, sums included.\n\n- A table of score, memory and speed per precision.",
+      "promptPack": "Load the same model at 16-bit, 8-bit and 4-bit precision. Build two small task sets of your own, one of them arithmetic, with right answers agreed in advance. Score every copy on both sets and report score, memory and tokens a second per precision. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "A table: score on each set, memory and speed for every precision",
+        "The arithmetic set is run on every copy",
+        "Write-up names the copy you would ship and why"
+      ],
+      "tag": "k05-squeeze-and-score",
+      "share": false,
+      "decisionPrompt": "Which of your task sets moved most when the weights were squeezed, and why that one?"
+    },
+    {
+      "id": "K6",
+      "title": "Guess ahead: speculative decoding",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e06"
+      ],
+      "spec": "A small draft model guesses a few tokens and the big model checks them in one pass.\n\n- An acceptance meter per kind of request; the speed-up turned off where it loses.",
+      "promptPack": "Add speculative decoding: a small draft model proposes k tokens, the target model verifies them in one pass and keeps the longest correct prefix plus one token of its own. Measure the acceptance rate and the speed-up for two or more kinds of request, and switch drafting off for a kind whose speed-up falls below 1. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Output identical to the target model alone on a fixed test set",
+        "Acceptance and speed-up reported per kind of request",
+        "Drafting turns off automatically where it is slower"
+      ],
+      "tag": "k06-guess-ahead",
+      "share": false,
+      "decisionPrompt": "At what acceptance rate does guessing stop paying for your draft model and k?"
+    },
+    {
+      "id": "K7",
+      "title": "A fair race: Kiln against real engines",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e07",
+        "a10e08"
+      ],
+      "spec": "A replay harness that runs one recorded trace through Kiln and real serving engines with the same settings.\n\n- A written plan for splitting a bigger model across cards (no multi-card build).",
+      "promptPack": "Record a trace of requests with arrival times and lengths. Build a replay harness that plays the same trace into Kiln and into vLLM and SGLang (and TensorRT-LLM if you have an NVIDIA card), with the same model, precision and limits. Report time to first token, inter-token latency and throughput for each. Add a README section on how you would split a model too big for one card. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "The same trace and settings for every engine",
+        "Method and limits written next to the results",
+        "Results reproducible from one command"
+      ],
+      "tag": "k07-fair-race",
+      "share": true,
+      "decisionPrompt": "Which setting, if changed for one engine only, would make your race unfair?"
+    },
+    {
+      "id": "K8",
+      "title": "The router: two copies, one front door",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e09"
+      ],
+      "spec": "Two Kiln copies behind a router that sends each request to the copy already holding its prompt's beginning, unless that copy is busy.",
+      "promptPack": "Run two Kiln copies with prefix caching. Build a router that tracks which copy holds which shared prompt beginning and sends each request there unless that copy is overloaded, then to the least busy copy. Replay a trace with shared prefixes and compare hit rate and time to first token against round robin. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "Hit rate and time to first token reported, prefix-aware against round robin",
+        "A busy copy is skipped",
+        "Tests for the routing table"
+      ],
+      "tag": "k08-router",
+      "share": false,
+      "decisionPrompt": "What in your prompts must never change for the router's cache hits to hold?"
+    },
+    {
+      "id": "K9",
+      "title": "Cost per million: the honest bill",
+      "minutes": 75,
+      "unlockAfter": [
+        "a10e10"
+      ],
+      "spec": "Cost per million tokens at measured fill, from card hours and real throughput; when to turn a card off.",
+      "promptPack": "From your own replays, compute cost per million tokens for each setup at the fill you actually measured, not at a busy meter. Add a rule that turns a second copy on and off with load. Publish a small leaderboard of your setups by cost per million and by speed per answer. Use a small open model (about 1 billion weights) on one rented GPU or your own laptop's CPU; set a spending cap with the GPU provider before the first run.\n\nRules for this repo: public on GitHub under the Apache-2.0 licence. Never commit secrets: use environment variables, add a .gitignore for .env files, and turn on secret scanning. Write tests before or with the code. Keep a short CHANGELOG.md. Explain every decision in docs/decisions.md.",
+      "doneWhen": [
+        "A cost report from real measurements only",
+        "The on-and-off rule tested on a replay",
+        "Leaderboard of setups by cost per million and by speed per answer"
+      ],
+      "tag": "k09-cost-per-million",
+      "share": true,
+      "decisionPrompt": "Your cheapest setup per million is slowest per answer: who decides which wins, and by what number?"
+    }
+  ]
+}
