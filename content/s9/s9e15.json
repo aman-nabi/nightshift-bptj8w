@@ -1,0 +1,856 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-16) first version"
+ ],
+ "id": "s9e15",
+ "season": 9,
+ "n": 15,
+ "title": "Matching Engine",
+ "setting": "an all-night auction house",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "low-latency-systems"
+ ],
+ "prerequisites": [
+  "s5e03",
+  "s4e09",
+  "s8e03",
+  "s8e05",
+  "s5e01",
+  "s3e02",
+  "s1e08",
+  "s1e07"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/packing_bench_ligaya",
+  "flair": "Part 1",
+  "age": "6h",
+  "votes": 2964,
+  "title": "I pack sold lots at night for an online auction house. At 03:00:07 a second collection slip printed for lot 77, a signed guitar. Two winners, each with a \"you won\" email. Both slips are genuine.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Ligaya, night porter at an online auction house that sells all night. Lots close one a minute, on the minute. When a lot closes, the winner gets a \"you won\" email, and a second later a collection slip prints at my packing bench. I pack the lot for the morning van."
+   },
+   {
+    "t": "p",
+    "text": "Lot 77 was an acoustic guitar signed by Jubal Okerlund. It closed at 03:00:00 on Saturday 7 November. At 03:00:01 its slip printed: £450, fretwire_kwaku. At 03:00:07 a second slip printed for the same lot: £450, capo_haizea. Both bidders had a \"you won\" email."
+   },
+   {
+    "t": "beat",
+    "text": "One guitar. Two winners. Both slips genuine."
+   },
+   {
+    "t": "p",
+    "text": "Zurab, the engineer on call, talked me through it by phone. Bids are judged by a program, a set of instructions a computer follows, called a matching engine. It takes each bid as it comes in and keeps every lot's highest, like an auctioneer's clerk with one ledger."
+   },
+   {
+    "t": "p",
+    "text": "The house runs two engines, in the machine room across the yard. The primary runs the sale. The standby is a spare that gets a copy of every bid, ready to take over if the primary stops."
+   },
+   {
+    "t": "p",
+    "text": "Inside each engine the work is done by 4 threads: workers inside one program, like four clerks at one counter, each taking the next bid that's waiting."
+   },
+   {
+    "t": "p",
+    "text": "A bid's trip goes in steps. The bidder taps Bid. One of the site's two front doors, the computers that take bids from the internet, stamps the time and passes it on. A copy goes to each engine. There a free thread applies it: compares it with the lot's highest bid and keeps it if it's higher."
+   },
+   {
+    "t": "p",
+    "text": "Equal bids are two bids of the same amount on one lot. The second isn't higher, so whichever is applied first wins. That's the house rule."
+   },
+   {
+    "t": "p",
+    "text": "If the primary stops, the standby takes over, in steps. The primary sends a heartbeat, a tiny \"still here\" message, every second. After 2 seconds with none, the standby makes itself primary. Then it sends again the result of every lot closed in the last 10 seconds, in case the primary died mid-send. It can't see which results the primary already sent. A repeat to the same winner is dropped."
+   },
+   {
+    "t": "p",
+    "text": "Zurab sent me both engines' records of lot 77's last bids. Each line shows the time its front door stamped on the bid, to a ten-thousandth of a second, the bidder, the amount, and what that engine did with it, in the order it applied them:"
+   },
+   {
+    "t": "log",
+    "text": "primary\n02:59:56.5000  another bidder   £440  highest\n02:59:58.4127  fretwire_kwaku   £450  highest\n02:59:58.4127  capo_haizea      £450  equal, refused\n03:00:00  lot 77 closes: email to fretwire_kwaku\n\nstandby\n02:59:56.5000  another bidder   £440  highest\n02:59:58.4127  capo_haizea      £450  highest\n02:59:58.4127  fretwire_kwaku   £450  equal, refused\n03:00:04  primary's power supply fails\n03:00:06  takes over: email to capo_haizea"
+   },
+   {
+    "t": "p",
+    "text": "A recorder in the machine room, which notes every bid passing by one clock, shows the two £450 bids arrived 0.3 ms apart; ms is short for millisecond, a thousandth of a second. Zurab says equal bids that close together are rare. The standby had taken over twice before, both times in a quiet minute between closes."
+   },
+   {
+    "t": "evidence",
+    "label": "lot_77_close.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Saturday 7 November 2026, 02:59:50 to 03:00:10. Lot 77 is open until 03:00:00, then closed. The primary engine runs until its power supply fails at 03:00:04. The standby waits, then takes over at 03:00:06. Markers: 02:59:58 two bids of 450 pounds, 0.3 ms apart; 03:00:00 email to fretwire_kwaku; 03:00:01 first slip; 03:00:04 power fails; 03:00:06 takeover and email to capo_haizea; 03:00:07 second slip.",
+     "start": "02:59:50",
+     "seconds": 20,
+     "ticksEvery": 5,
+     "rows": [
+      {
+       "label": "lot 77",
+       "segments": [
+        [
+         0,
+         10,
+         "ok"
+        ]
+       ],
+       "gaps": [
+        [
+         10,
+         20,
+         "closed"
+        ]
+       ]
+      },
+      {
+       "label": "primary",
+       "segments": [
+        [
+         0,
+         14,
+         "ok"
+        ]
+       ],
+       "gaps": [
+        [
+         14,
+         20,
+         "no power"
+        ]
+       ]
+      },
+      {
+       "label": "standby",
+       "segments": [
+        [
+         0,
+         16,
+         "muted"
+        ],
+        [
+         16,
+         20,
+         "warn"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 8.4,
+       "label": "two £450 bids",
+       "tone": "warn"
+      },
+      {
+       "t": 10,
+       "label": "email: kwaku",
+       "tone": "ok"
+      },
+      {
+       "t": 11,
+       "label": "slip 1",
+       "tone": "ok"
+      },
+      {
+       "t": 14,
+       "label": "power fails",
+       "tone": "bad"
+      },
+      {
+       "t": 16,
+       "label": "takeover, email: haizea",
+       "tone": "bad"
+      },
+      {
+       "t": 17,
+       "label": "slip 2",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Redrawn from Zurab's records. Lot 77 was open until 03:00:00. The two £450 bids arrived at 02:59:58, 0.3 ms apart. The primary emailed fretwire_kwaku at 03:00:00, and the first slip printed at 03:00:01. Its power supply failed at 03:00:04. At 03:00:06, after 2 seconds without a heartbeat, the standby took over and sent its own result, capo_haizea, and the second slip printed at 03:00:07."
+   },
+   {
+    "t": "p",
+    "text": "Both slips are on my bench, one guitar between them. What should the house change so its engines can never name two winners again?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 141,
+   "age": "5h",
+   "text": "Put the two records side by side. Same bids, same amounts, same 0.3 ms. What differs? Then look at 03:00:06: what did the standby have to go on when it sent its result? In Replay the Night, a court rebuilt its list of hearings by replaying its tapes: running the same recorded events through again, in the same order. Ask Zurab what decided the order inside each engine.",
+   "replies": [
+    {
+     "author": "u/packing_bench_ligaya",
+     "op": true,
+     "points": 52,
+     "age": "5h",
+     "text": "Zurab says the two £450 bids were picked up by two threads at once, in each engine. Each thread must take the lot's lock first: a marker only one thread can hold at a time, like the single key to a room. Whichever got it first went first, down to timing inside that machine. At 03:00:06 the standby had only its memory, the working space that empties when the power goes, with its own order and its own winner."
+    }
+   ]
+  },
+  {
+   "author": "u/all_cores_ganzorig",
+   "points": 88,
+   "age": "5h",
+   "text": "Four threads is timid for a matching engine. A machine has many cores: separate workers inside it, each able to run a thread at the same moment. A matching engine should use every core it has; add threads and it gets faster. At a close, speed is what stops bids piling up."
+  },
+  {
+   "author": "u/microsecond_niillas",
+   "points": 57,
+   "age": "4h",
+   "text": "Some systems number bids as they arrive, 1, 2, 3, like raffle tickets. Why bother? The clock already does that, and finer. Stamp each bid with the moment it arrived, to the microsecond, a millionth of a second, and sort equal bids by it. Earliest wins, on both engines."
+  },
+  {
+   "author": "u/lock_the_row_haingo",
+   "points": 46,
+   "age": "3h",
+   "text": "Banks sorted this out long ago. Keep each lot as a row, one line in the house's database, the program that stores its records, and lock that row for every bid. One bid at a time, one order, and both engines read it from the same place."
+  }
+ ],
+ "reply": {
+  "prompt": "The house's engineers meet on Monday 9 November. What should they change? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Give each engine 8 threads instead of 4, so bids are applied faster at every close.",
+    "tone": "bad",
+    "verdict": "More threads, more orders, and slower",
+    "part2": "Zurab gave each engine 8 threads. In the sim, replaying the close with 8 threads: the two £450 bids still arrive 0.3 ms apart and are picked up at once, and each thread can now wait up to 4 ms for the lot's lock instead of 2. The primary applies fretwire_kwaku first, the standby capo_haizea first. After the takeover at 03:00:06, two emails and two slips go out again. And the bids a second one engine can apply fall from 20,000 to 12,500, because 8 threads spend longer handing one lock between them.",
+    "senior": "More threads give the same bids more ways to be applied in a different order, not fewer. Nothing in the engine decides which of two bids a few thousandths of a second apart goes first, so each copy decides by chance. And at a close most bids are for the same lot, so the threads queue for the same lock: more threads means more handing over and less work. The engine doesn't need more hands; it needs one agreed order."
+   },
+   {
+    "text": "Order equal bids by the exact time each one arrived, to the microsecond, on both engines.",
+    "tone": "bad",
+    "verdict": "A tie at the microsecond",
+    "part2": "Zurab sorted equal bids by their arrival stamp, written by the front door each bid came through, to the microsecond. In the sim, replaying the close: fretwire_kwaku's bid came through front door 1 and was stamped 02:59:58.412700. capo_haizea's came through door 2, 0.3 ms later, but door 2's clock runs 0.3 ms behind door 1's, so its stamp reads 02:59:58.412700 too. A tie. Both engines fall back on the threads: the primary applies kwaku first, the standby haizea first, and after the takeover two emails and two slips go out again. Rule 6 was on the note all along: \"Never trust the clock on the wall.\"",
+    "senior": "Time is a poor referee for bids a fraction of a millisecond apart. Each stamp comes from a clock, and no two clocks agree exactly, as Never Trust the Clock showed: here door 2's ran 0.3 ms behind, the whole gap between the bids. Even one perfect clock can give two bids the same microsecond, and then something else has to break the tie. The engines need one agreed order, settled once, not a measurement that two machines can read differently."
+   },
+   {
+    "text": "Lock each lot's row in the database for every bid, so only one bid is applied at a time.",
+    "tone": "warn",
+    "verdict": "Trade-off: one order, a 10-second queue",
+    "part2": "Every bid went through the database: the lot's row locked while the bid was applied and saved to the database's disk, 5 ms a bid, one at a time, 200 bids a second. In the sim, replaying the close: one order for everyone, fretwire_kwaku first, one winner, one email, one slip. But from 02:59:50 bids for all lots arrive at 400 a second, so the line for the disk grows by 200 every second. kwaku's £450 waited 8.4 s and was applied at 03:00:06.8410, after the standby had taken over. The last bid placed before the close was applied at 03:00:10.0260, so the result went out 10 seconds after the close and the slip printed at 03:00:11. On a busier close the wait would likely grow longer still.",
+    "senior": "A lock in a database does give one order: every bid takes the row's lock, so they line up. The price is that every bid now waits for a disk, far slower than memory, and at a close, when bids arrive fastest, the line grows by the second. It also moves the one source of order into the database, which then needs its own standby. For a quiet shop that can be fine; at an auction's close, the queue is the problem."
+   },
+   {
+    "text": "Number every bid as it arrives, apply them in that order one at a time, and replay it.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Zurab put a sequencer in front of both engines: a small program every bid passes through first, in three steps. It stamps the bid with the next number. It writes it to the journal, a file on disk that keeps every bid in number order. Then it hands it on to both engines. Each engine applies bids strictly in number order, with one thread, in memory, and no lock. In the sim, replaying the close: fretwire_kwaku's £450 is bid 123,369 and capo_haizea's is 123,370 on both engines, so both pick kwaku. The primary emails kwaku at 03:00:00 and the slip prints at 03:00:01. At 03:00:06 the standby, which has replayed the same journal, sends kwaku again; same winner, so the repeat is dropped. One email, one slip. One thread with no lock applies 50,000 bids a second, and no bid waits more than 10 ms for the journal.",
+    "senior": "Make the order of the inputs identical, not the speed of applying them. Number every input once, in one place, write it down, and let one thread apply them in that order: the same inputs in the same order give the same result, every time, on every copy. A standby that replays the same journal is a second copy of one answer, not a second opinion, so a takeover changes nothing. And dropping the locks between threads is what makes one thread fast: no waiting, no handing over, everything in memory."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s9e15",
+  "title": "Replay the close of lot 77",
+  "lede": "You're Ligaya, replaying the close of lot 77 on Saturday 7 November 2026, from 02:59:50. As given data, lot 77's bids, at the times the machine room's recorder noted them by one clock: fretwire_kwaku £420 at 02:59:51.0000 (front door 1), capo_haizea £430 at 02:59:54.0000 (door 2), another bidder £440 at 02:59:56.5000 (door 1), fretwire_kwaku £450 at 02:59:58.4127 (door 1), capo_haizea £450 at 02:59:58.4130 (door 2). Lot 77 closes at 03:00:00; between equal bids, the one applied first wins. Thread race: with 4 threads a bid waits a random time of up to 2 ms for its thread to get the lot's lock, up to 4 ms with 8, none with 1; the sim draws these times from its seeded random numbers. Arrival stamps: door 2's clock runs 0.3 ms behind door 1's. Applying a bid takes 0.02 ms; threads sharing a lot's lock spend 0.0075 ms a bid per thread handing it over. From 02:59:50 bids for all lots arrive evenly, 400 a second. Row lock: each bid is saved to the database's disk before its lock is let go, 5 ms a bid, one at a time. Sequencer: its count stood at 120,000 at 02:59:50, and its journal saves every 5 ms. The primary sends a heartbeat every second and its power supply fails at 03:00:04; after 2 seconds of silence the standby takes over and sends again every result from the last 10 seconds. A repeat to the same winner is dropped, and a slip prints 1 second after its email. A primary with no power never answers; the standby waits 2 seconds for it. The standby had taken over twice before, both times in a quiet minute between closes. Step the close event by event.",
+  "tryThis": "Try this: step six times: the primary applies fretwire_kwaku first, the standby capo_haizea first. Play to the end: emails at 03:00:00 and 03:00:06, slips at 03:00:01 and 03:00:07. Keep the primary running: one email, but the engines still disagree. Try 8 threads: still two winners, and 12,500 bids a second instead of 20,000. Try 1 thread: one winner tonight, but nothing recorded to replay. Try arrival stamps: both read 02:59:58.412700, a tie. Turn on the row lock: one winner, but the result goes out at 03:00:10. Try the sequencer: bids 123,369 and 123,370, one winner, and the standby's repeat is dropped. Ask the primary: no answer, and a second email at 03:00:08."
+ },
+ "explain": {
+  "oneLine": "Nothing at the packing bench went wrong. Inside each engine, threads raced to apply two equal bids that arrived 0.3 ms apart, and the race went one way on the primary and the other way on the standby. When the primary's power supply failed at 03:00:04, the standby took over, could not see the email already sent, and sent its own winner: two genuine slips for one guitar.",
+  "steps": [
+   {
+    "title": "Four threads, two orders.",
+    "text": "A bid's trip ends with a thread applying it, in three steps. First the bid waits in the engine's line. Then a free thread picks it up and takes the lot's lock, so no other thread changes the lot at the same moment. Then it compares the bid with the highest and keeps it if it is higher; what can go wrong is the step before, because two bids that arrive within a couple of milliseconds are picked up by two threads at once, and which thread gets the lock first depends on tiny timings inside that machine: which thread woke first, what else its core was doing. On the primary, fretwire_kwaku's thread got there first; on the standby, capo_haizea's. Each engine followed the house rule exactly. Equal bids made the order matter, and the order was chance. In the sim, 8 threads keep the two orders and cut the bids a second one engine can apply from 20,000 to 12,500, because more threads spend longer handing one lock around. The Event Loop's restaurant had one waiter serving every table in turn: one thread, so there was never a question of who went first."
+   },
+   {
+    "title": "The takeover, step by step.",
+    "text": "First the primary sends a heartbeat every second; what can go wrong is a primary that is alive but too slow to send one. Second, after 2 seconds of silence, the standby makes itself primary; at 03:00:06 that was right, because the primary had no power. Third, it sends again the result of every lot closed in the last 10 seconds, in case the primary died halfway through sending; this is where it went wrong. The standby sees every bid, but not what the primary did with them: the emails go out on a line it never reads. The designers assumed it would hold the same winner anyway, so a repeat would be dropped as harmless. It held a different one. Asking the primary who won cannot help, because a primary with no power never answers: in the sim the standby waits 2 seconds and sends capo_haizea at 03:00:08 instead. Two Heads of Shift made sure only one primary acts at a time; that held here, and it still went wrong, because the two copies had two answers. Keeping the primary from failing only hides the disagreement: in the sim the standby still holds a different winner, waiting for the next takeover."
+   },
+   {
+    "title": "One numbered line and a journal.",
+    "text": "The fix gives every bid its place in line once, before either engine sees it. A sequencer, a small program every bid passes through, works in three steps. First it stamps the bid with the next number: 123,369 for fretwire_kwaku's £450, 123,370 for capo_haizea's. Second it writes the bid to the journal, a file on disk that keeps every bid in number order; what can go wrong is a slow disk, so the journal saves everything that arrived since its last save, every 5 ms, and no bid waits more than 10 ms. Third it hands the bid on to both engines, which apply bids strictly in number order. The standby replays the same journal, as Replay the Night rebuilt its hearings from its tapes, so it holds the primary's answer, not its own; at 03:00:06 its repeat is the same winner, and it is dropped. Why a number and not a time? A time comes from a clock, and Rule 6 says \"Never trust the clock on the wall\": door 2's clock ran 0.3 ms behind door 1's, so both bids were stamped 02:59:58.412700, and the tie went back to the threads. A number is given once, by one program, and never ties."
+   },
+   {
+    "title": "One thread, no locks, a ring between.",
+    "text": "Between the sequencer, the journal and the engines sits a ring buffer: a fixed row of slots used round and round, like a sushi conveyor. The sequencer fills the next slot; the journal and each engine read the slots behind it at their own pace, each keeping its own count of how far it has read. One writer per slot means nobody needs a lock. Each engine then applies bids with one thread, entirely in memory. With no locks there is no waiting and no handing over, so one thread applies 50,000 bids a second here, more than the 20,000 that 4 threads managed; and the same bids in the same order always give the same winner. That is low latency: a short wait between a bid arriving and its result. A row lock in the database also gives one order, but every bid waits 5 ms for a disk: at 400 bids a second the line grows by 200 a second, fretwire_kwaku's bid waited 8.4 s, and the result went out at 03:00:10."
+   },
+   {
+    "title": "The walk into the machine room.",
+    "text": "At 03:25, with the guitar boxed and both slips under it, Ligaya crossed the yard to the machine room, where she had never been. Zurab, on the phone, read her the door code. Two tall cabinets stood side by side, a hand's width apart. The left one was dark, the light on its power supply out. The right one hummed, its fans steady, its little screen reading \"primary\". They had been given the same five bids, the last two 0.3 ms apart. Each had kept faithfully to the rule. Each had simply heard the last two in a different order, and nothing in the room had ever written the order down."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 350,
+   "aria": "The fix, drawn for the next close. Every bid comes in through the two front doors, 400 a second at the close, and passes through the sequencer, which numbers each bid, 123,369 then 123,370, and writes it to the journal, which keeps every bid in number order and saves every 5 ms. The sequencer hands the bids in number order to the primary engine, one thread in memory, and in the same order to the standby engine, which replays the same journal. Both engines name the same winner, fretwire_kwaku.",
+   "nodes": [
+    {
+     "id": "doors",
+     "label": "Two front doors",
+     "sub": "take every bid",
+     "meta": "400 a second at the close",
+     "x": 370,
+     "y": 50,
+     "w": 240,
+     "h": 72,
+     "shape": "box",
+     "tone": "muted"
+    },
+    {
+     "id": "seq",
+     "label": "Sequencer",
+     "sub": "numbers each bid",
+     "meta": "123,369 then 123,370",
+     "x": 370,
+     "y": 170,
+     "w": 240,
+     "h": 72,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "journal",
+     "label": "Journal",
+     "sub": "every bid, in order",
+     "meta": "saved every 5 ms",
+     "x": 100,
+     "y": 170,
+     "w": 180,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "primary",
+     "label": "Primary engine",
+     "sub": "one thread, in memory",
+     "meta": "winner: fretwire_kwaku",
+     "x": 200,
+     "y": 300,
+     "w": 240,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "standby",
+     "label": "Standby engine",
+     "sub": "replays the same journal",
+     "meta": "winner: fretwire_kwaku",
+     "x": 560,
+     "y": 300,
+     "w": 240,
+     "h": 72,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "doors",
+     "to": "seq",
+     "label": "every bid",
+     "tone": "muted"
+    },
+    {
+     "from": "seq",
+     "to": "journal",
+     "label": "writes",
+     "tone": "ok"
+    },
+    {
+     "from": "seq",
+     "to": "primary",
+     "label": "in order",
+     "tone": "ok"
+    },
+    {
+     "from": "seq",
+     "to": "standby",
+     "label": "same order",
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the next close. Every bid passes through the sequencer, which numbers it and writes it to the journal before handing it on. Both engines apply bids strictly in number order with one thread, in memory, and the standby replays the same journal. In the sim: fretwire_kwaku's £450 is bid 123,369 and capo_haizea's 123,370 on both engines, so both name fretwire_kwaku, and the standby's repeat at 03:00:06 is dropped: one email, one slip.",
+  "fix": {
+   "title": "The fix: one sequencer, one journal, one thread per engine",
+   "text": "Put a sequencer in front of the engines. For every bid it stamps the next number, writes the bid to the journal, and only then hands it on. Each engine applies bids strictly in number order with one thread, in memory, with no locks, and the close of a lot arrives as a numbered input too, so every copy sees it at the same place in line. The standby replays the same journal, so at any moment it holds the same winners as the primary, and a takeover re-sends a result that matches what was already sent. Keep the sequencer's own spare, and when it takes over it carries on from the last number in the journal."
+  },
+  "limits": [
+   "The sequencer is now the one place every bid passes through. If it stops, nothing is numbered, so it needs its own spare, and the spare must carry on from the last number in the journal, never from a count of its own.",
+   "One thread is only as fast as the slowest thing it does. A disk read or a call to another program inside it stops every bid behind it, so that work belongs before the sequencer or after the engine.",
+   "Replay gives the same result only if the engine depends on nothing but its numbered inputs: no reading the wall clock, no random numbers inside. Even a lot's close has to arrive as a numbered input."
+  ],
+  "tradeoff": {
+   "head": [
+    "How equal bids are ordered",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "4 threads race (as run)",
+     "20,000 bids a second; waits of up to 2 ms.",
+     "Each engine's order is chance: two winners after the takeover."
+    ],
+    [
+     "8 threads",
+     "More cores busy.",
+     "Still two winners, and only 12,500 bids a second."
+    ],
+    [
+     "Arrival stamps to the microsecond",
+     "Easy to explain to bidders.",
+     "Clocks differ: both stamped 02:59:58.412700, a tie, two winners."
+    ],
+    [
+     "Row lock in the database",
+     "One order, one winner.",
+     "200 bids a second; the result 10 seconds after the close."
+    ],
+    [
+     "Standby asks the primary",
+     "Nothing to build.",
+     "A primary with no power never answers: two winners."
+    ],
+    [
+     "Sequencer, journal, one thread (the fix)",
+     "One order on every copy, one winner, 50,000 bids a second.",
+     "The sequencer needs its own spare; nothing slow may run inside the one thread."
+    ]
+   ]
+  },
+  "seniorTake": "When two copies must give the same answer, give them the same inputs in the same order and let nothing else decide. Threads racing for a lock decide by timing, and timing differs on every machine; clocks differ too. A sequencer that numbers every input once, a journal that keeps them, and one thread per copy that applies them in memory turns the engine into a function of its journal: replay it anywhere and you get the same result. That is also why it is fast. A lock you never take costs nothing, and memory is far quicker than a disk.",
+  "realWorld": [
+   {
+    "title": "Fowler: one thread, in memory",
+    "text": "Martin Fowler's 2011 write-up of LMAX, a trading platform, describes a business logic processor \"that can handle 6 million orders per second on a single thread\". He adds: \"The Business Logic Processor runs entirely in-memory using event sourcing.\" Event sourcing means its state is rebuilt by applying its inputs in order, the idea behind Replay the Night.",
+    "source": 0
+   },
+   {
+    "title": "Fowler: the journal and the replica",
+    "text": "Before the business logic runs, the inputs are written down and copied. Fowler: \"The journaler's job is to store all the events in a durable form, so that they can be replayed should anything go wrong.\" And: \"The replicator broadcasts the input events to the follower nodes.\" The followers are standbys that apply the same inputs.",
+    "source": 0
+   },
+   {
+    "title": "Fowler: why queues between threads were slow",
+    "text": "LMAX found ordinary queues between threads costly. Fowler: \"To deal with the write contention a queue often uses locks.\" Write contention is several threads wanting to change the same thing at once.",
+    "source": 0
+   },
+   {
+    "title": "The Disruptor paper: locks and the ring buffer",
+    "text": "Thompson, Farley, Barker, Gee and Stewart (May 2011): \"Locks are incredibly expensive because they require arbitration when contended.\" Their replacement: \"At the heart of the disruptor mechanism sits a pre-allocated bounded data structure in the form of a ring-buffer.\"",
+    "source": 1
+   },
+   {
+    "title": "The Disruptor paper: one writer",
+    "text": "The paper's design rule is that \"any data should be owned by only one thread for write access, therefore eliminating write contention.\" One writer per slot is why the sequencer, the journal and each engine can share a ring buffer without a lock.",
+    "source": 1
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Design the matching engine for a stock exchange.",
+    "Why can one thread be faster than many?",
+    "How does a standby take over without changing the result?"
+   ],
+   "answer": "I'd start with what must never happen: two copies naming different results for the same inputs. So I'd put a sequencer at the front. It gives every order a number as it arrives, writes it to a journal on disk in batches, and hands it on through a ring buffer, a fixed ring of slots each written by one owner, so no stage needs a lock. Behind it, the matching engine is one thread applying orders strictly in number order, entirely in memory. That sounds slow, but it is usually the fast choice: with many threads, most of the time goes on taking and handing over locks when they all want the same order book, and the order they apply things in depends on timing. One thread never waits for a lock, and the same inputs in the same order always give the same result. For failover, the standby reads the same journal and applies the same numbers, so at any moment it holds the same state; when it takes over, nothing changes. The close of trading, or of an auction lot, arrives as a numbered input too, so every copy closes at the same place in line. The weak spots I'd call out: the sequencer needs its own spare that continues from the journal's last number, and nothing slow, such as disk reads or calls to other services, can live inside the one thread. LMAX reported about 6 million orders a second on a single thread this way. I'd tell the story of an auction house where two equal bids 0.3 ms apart were applied in different orders by 4 threads on two engines, and a takeover produced two genuine winners for one signed guitar."
+  }
+ },
+ "terms": [
+  {
+   "term": "Auction house",
+   "def": "A business that sells items to whoever bids the most. This one sells online, all night, one lot closing every minute."
+  },
+  {
+   "term": "Lot",
+   "def": "One item for sale at an auction, with its own number. Lot 77 was a guitar signed by Jubal Okerlund."
+  },
+  {
+   "term": "Night porter",
+   "def": "The person who packs sold lots through the night for collection in the morning. Ligaya."
+  },
+  {
+   "term": "Collection slip",
+   "def": "The label that prints at the packing bench a second after a winner's email: lot number, price and winner. The porter packs the lot to it."
+  },
+  {
+   "term": "Packing bench",
+   "def": "Where the night porter boxes sold lots and where their collection slips print."
+  },
+  {
+   "term": "'You won' email",
+   "def": "The message a winning bidder gets when a lot closes. A repeat to the same winner for the same lot is dropped."
+  },
+  {
+   "term": "Program",
+   "def": "A set of instructions a computer follows. A matching engine is one."
+  },
+  {
+   "term": "Matching engine",
+   "def": "The program that takes every bid as it arrives and keeps each lot's highest, like an auctioneer's clerk with one ledger. Exchanges use one to match buyers with sellers."
+  },
+  {
+   "term": "Primary",
+   "def": "The engine that runs the sale and sends the results. Like the primary in Two Heads of Shift, only one should act at a time."
+  },
+  {
+   "term": "Standby",
+   "def": "A spare engine that gets a copy of every bid and takes over if the primary stops, like an understudy in a play."
+  },
+  {
+   "term": "Machine room",
+   "def": "The room across the yard that holds the house's computers, including both engines."
+  },
+  {
+   "term": "Thread",
+   "def": "One worker inside a program, taking one job at a time, like one of several clerks at one counter. Each engine ran 4."
+  },
+  {
+   "term": "Core",
+   "def": "One of several workers inside a computer's chip. Each can run one thread at a time, so a chip with more cores can run more threads at once."
+  },
+  {
+   "term": "Front door",
+   "def": "Here, one of the two computers that take bids from the internet, stamp the time and pass them on. Each has its own clock."
+  },
+  {
+   "term": "Apply (a bid)",
+   "def": "Compare a bid with the lot's highest and keep it if it is higher. An equal bid applied second is refused."
+  },
+  {
+   "term": "Equal bids",
+   "def": "Two bids of the same amount on the same lot. The house rule: whichever is applied first wins."
+  },
+  {
+   "term": "Takeover",
+   "def": "The standby becoming primary. In steps: heartbeats stop, 2 seconds pass, it makes itself primary, and it sends again every result from the last 10 seconds."
+  },
+  {
+   "term": "Failover",
+   "def": "The usual name for a takeover: switching the job of primary to the standby when the primary seems to have failed (Two Heads of Shift)."
+  },
+  {
+   "term": "Heartbeat",
+   "def": "A tiny \"still here\" message the primary sends every second. Silence is what makes the standby act."
+  },
+  {
+   "term": "Power supply",
+   "def": "The part of a computer that turns mains electricity into the power its parts use. The primary's failed at 03:00:04."
+  },
+  {
+   "term": "ms",
+   "def": "Short for millisecond: a thousandth of a second. The two £450 bids arrived 0.3 ms apart."
+  },
+  {
+   "term": "Microsecond",
+   "def": "A millionth of a second: a thousandth of a millisecond."
+  },
+  {
+   "term": "Lock",
+   "def": "A marker only one thread can hold at a time, like the single key to a room (Two Hands, One Cup). A thread takes the lot's lock before changing it."
+  },
+  {
+   "term": "Memory",
+   "def": "A computer's fast working space, where a running program keeps what it is working on. It empties when the power goes."
+  },
+  {
+   "term": "Disk",
+   "def": "The part of a computer that keeps data with the power off. Far slower than memory: here 5 ms to save one bid."
+  },
+  {
+   "term": "Thread race",
+   "def": "Threads picking up bids at the same moment, where the result depends on which gets the lock first. Like a race condition in Two Hands, One Cup, it is decided by timing."
+  },
+  {
+   "term": "Arrival stamp",
+   "def": "The time a front door writes on a bid, to the microsecond. Door 2's clock ran 0.3 ms behind door 1's, so both £450 bids read 02:59:58.412700."
+  },
+  {
+   "term": "Database",
+   "def": "A program that stores records, usually on disk, and finds them again on request, like a filing cabinet."
+  },
+  {
+   "term": "Row",
+   "def": "One line in a database table: here, one lot, with its highest bid."
+  },
+  {
+   "term": "Row lock",
+   "def": "A lock a database takes on one row, so every other change to it waits (All or Nothing). In the warn option each bid also waits 5 ms for the disk."
+  },
+  {
+   "term": "Queue wait",
+   "def": "How long a bid waits in line before it is applied. With the row lock at the close, 10 seconds."
+  },
+  {
+   "term": "Bids a second",
+   "def": "How many bids one engine can apply each second: 20,000 with 4 threads sharing a lock, 12,500 with 8, 50,000 with one thread and no lock, 200 with the row lock."
+  },
+  {
+   "term": "Sequencer",
+   "def": "A small program every bid passes through first. In steps: it stamps the next number, writes the bid to the journal, then hands it on to both engines."
+  },
+  {
+   "term": "Bid number",
+   "def": "The number the sequencer gives each bid, one higher each time, like a raffle ticket. fretwire_kwaku's £450 is 123,369."
+  },
+  {
+   "term": "Journal",
+   "def": "A file on disk that keeps every bid in number order. It saves every 5 ms, taking everything waiting, so a bid waits at most 10 ms."
+  },
+  {
+   "term": "Replay",
+   "def": "Running the same recorded inputs through again, in the same order, to get the same result (Replay the Night). The standby replays the journal."
+  },
+  {
+   "term": "Ring buffer",
+   "def": "A fixed row of slots used round and round, like a sushi conveyor. One stage fills the next slot; the stages behind read at their own pace, without locks."
+  },
+  {
+   "term": "Low latency",
+   "def": "A short wait between something arriving and its result. A matching engine aims for thousandths of a second or less."
+  },
+  {
+   "term": "Write contention",
+   "def": "Several threads wanting to change the same thing at the same moment, so all but one must wait."
+  },
+  {
+   "term": "Event sourcing",
+   "def": "Keeping every input in order and rebuilding the current state by applying them, instead of keeping only the latest state (Replay the Night)."
+  },
+  {
+   "term": "LMAX",
+   "def": "A London trading platform whose matching engine was written up by Martin Fowler in 2011: one thread, in memory, inputs journaled and replicated."
+  },
+  {
+   "term": "Disruptor",
+   "def": "LMAX's ring buffer for passing data between threads without locks, described in a 2011 paper by Thompson, Farley, Barker, Gee and Stewart."
+  },
+  {
+   "term": "Rule 6",
+   "def": "Never trust the clock on the wall. Earned in Never Trust the Clock; here, why arrival stamps from two front doors tied."
+  },
+  {
+   "term": "Order book",
+   "def": "An exchange's list of open offers to buy and sell, which its matching engine keeps and matches."
+  },
+  {
+   "term": "SOC 2",
+   "def": "A US audit report on how a company runs its systems, against the AICPA's Trust Services Criteria. PI1 covers processing integrity."
+  },
+  {
+   "term": "Processing integrity",
+   "def": "A SOC 2 criterion: processing is complete, valid, accurate, timely and authorised. Here, one result per lot."
+  },
+  {
+   "term": "ISO/IEC 27001",
+   "def": "An international standard for running information security. Annex A 8.14 covers redundancy: spare systems that can take over."
+  },
+  {
+   "term": "Redundancy",
+   "def": "Keeping a spare of something important, so one failure does not stop you. It only helps if the spare gives the same answer."
+  }
+ ],
+ "atWork": "Look for any primary and standby that both apply the same inputs themselves: a trading or bidding engine, a payment ledger kept warm on a second server, a game server with a hot spare. If either uses several threads, a lock, or the wall clock to decide the order of inputs, the two can quietly disagree, and nobody notices until a takeover; this is a common pattern, and it usually shows up only on the rare night when two inputs arrive almost together. Ask three questions. Is every input numbered once, in one place, and written down before anything acts on it? Does each copy apply inputs strictly in that order, with nothing else, such as timing, clocks or random numbers, inside? On takeover, does the new primary know what the old one already sent? Standards, if your company is pursuing them, as the nearest fit: SOC 2 processing integrity, PI1, where one auditor's explainer of the criteria lists \"Data is processed completely, accurately, and timely as authorized\"; one winner per lot is that criterion in practice. ISO/IEC 27001:2022 control A.8.14, redundancy of information processing facilities, where ISMS.online's explainer says \"Testing redundant systems regularly in production mode ensures fail-over systems are functioning as intended.\" A takeover drill that compares the standby's results with the primary's, input by input, is the evidence an auditor would look for; a standby that merely starts is not. Build the numbered journal and the comparison into the first design rather than adding them at audit time. This is not audit advice.",
+ "board": {
+  "cards": [
+   {
+    "id": "low-latency-systems",
+    "title": "Low-latency systems"
+   }
+  ],
+  "strings": [
+   {
+    "from": "low-latency-systems",
+    "to": "event-loop",
+    "label": "one thread"
+   },
+   {
+    "from": "low-latency-systems",
+    "to": "event-sourcing",
+    "label": "replay the journal"
+   },
+   {
+    "from": "low-latency-systems",
+    "to": "leader-election",
+    "label": "safe takeover"
+   },
+   {
+    "from": "low-latency-systems",
+    "to": "race-conditions",
+    "label": "why orders differ"
+   },
+   {
+    "from": "low-latency-systems",
+    "to": "clock-skew",
+    "label": "not the clock"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s9e15-r1",
+   "kind": "free",
+   "prompt": "Your company's payment service runs a primary and a hot spare. Both receive every transfer request from a shared feed and apply it with a pool of 16 workers, using a lock per account. After the spare took over during a maintenance window, three customers' balances differed from what the old primary had shown them minutes earlier. What happened, and how would you redesign it?",
+   "keyIdeas": [
+    {
+     "idea": "The workers applied the same requests in different orders on each copy, decided by timing",
+     "match": [
+      "different order",
+      "different orders",
+      "order differs",
+      "orders differ",
+      "thread race",
+      "by timing",
+      "down to timing"
+     ]
+    },
+    {
+     "idea": "Number every request once, in one place, and write it to a journal before applying it",
+     "match": [
+      "sequencer",
+      "sequence number",
+      "number every",
+      "numbered",
+      "journal"
+     ]
+    },
+    {
+     "idea": "One thread applies them in that order, and the spare replays the same journal, so both always agree",
+     "match": [
+      "one thread",
+      "single thread",
+      "single-threaded",
+      "replays",
+      "replay the",
+      "same order"
+     ]
+    }
+   ],
+   "model": "Both copies got the same requests but applied them in different orders: with 16 workers taking a lock per account, which request went first was down to timing on each machine, so two transfers on the same account landed in a different order on the spare, and its balances differed. Redesign it with a sequencer: every request gets a sequence number once, in one place, and is written to a journal before anything applies it. Each copy then applies requests in number order with one thread, in memory, and the spare replays the same journal in the same order, so at the moment it takes over it already holds exactly the primary's balances."
+  },
+  {
+   "id": "s9e15-r2",
+   "kind": "mcq",
+   "prompt": "In the sim, as run (4 threads, thread race, the primary's power supply failing at 03:00:04), when do the two 'you won' emails for lot 77 go out, and to whom?",
+   "options": [
+    "03:00:00 to fretwire_kwaku, and 03:00:06 to capo_haizea",
+    "03:00:00 to capo_haizea, and 03:00:06 to fretwire_kwaku",
+    "03:00:00 to fretwire_kwaku, and 03:00:10 to capo_haizea",
+    "Only one, at 03:00:00 to fretwire_kwaku"
+   ],
+   "answer": 0,
+   "why": "The primary's threads applied fretwire_kwaku's £450 first, so it emailed kwaku at 03:00:00 and the slip printed at 03:00:01. Its power failed at 03:00:04; after 2 seconds without a heartbeat the standby took over at 03:00:06 and sent its own result, capo_haizea, whose bid its threads had applied first. The second slip printed at 03:00:07."
+  },
+  {
+   "id": "s9e15-r3",
+   "kind": "mcq",
+   "prompt": "A row lock in the database gives both engines one order and one winner. Why is it the trade-off rather than the fix?",
+   "options": [
+    "It doesn't line the bids up: the threads still race",
+    "Every bid waits 5 ms for the disk, so at 400 bids a second the line grows and the result comes 10 seconds after the close",
+    "Databases cannot lock a row while another row is being read",
+    "It only works if the primary never fails"
+   ],
+   "answer": 1,
+   "why": "The lock lines the bids up, so both engines read one order. But each bid is saved to the disk before the lock is let go, 5 ms a bid, 200 a second, while bids for all lots arrive at 400 a second at the close. In the sim fretwire_kwaku's bid waits 8.4 s and the result goes out at 03:00:10. A sequencer with one thread in memory gives the same one order at 50,000 bids a second."
+  },
+  {
+   "id": "s9e15-r4",
+   "kind": "free",
+   "prompt": "In an interview you're asked: for a matching engine, why can one thread be faster than many?",
+   "keyIdeas": [
+    {
+     "idea": "Many threads spend their time taking and handing over locks on the same data",
+     "match": [
+      "no locks",
+      "without locks",
+      "lock contention",
+      "contended",
+      "contention",
+      "handing over"
+     ]
+    },
+    {
+     "idea": "One thread works entirely in memory and never waits",
+     "match": [
+      "in memory",
+      "in-memory",
+      "never waits",
+      "no waiting"
+     ]
+    },
+    {
+     "idea": "One thread gives one order, so the same inputs always give the same result and a standby can replay them",
+     "match": [
+      "same result",
+      "one order",
+      "repeatable",
+      "deterministic",
+      "replay"
+     ]
+    }
+   ],
+   "model": "Because most of the work in a matching engine is on the same few order books, many threads mostly queue for the same locks: the contention, taking and handing over a lock, costs more than the matching itself. One thread with no locks works entirely in memory and never waits, so each order takes a tiny, steady time; LMAX reported about 6 million orders a second on one thread. It also gives one order: the same inputs in the same order give the same result, so a standby can replay the journal and agree exactly."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 4 months later. The sequencer works. Every bid is numbered and journaled, each engine applies them with one thread, and in December the standby took over twice with the same winners as the primary. The sequencer has a spare of its own. At 01:12 on Saturday 6 March the sequencer's computer restarted. Its spare took over and numbered the next three bids 512,301, 512,302 and 512,303, from a count it had copied a few seconds earlier, when the journal already held bids with those numbers. Both engines skip a number they have already applied, so a bid sent twice is never applied twice, and the three new bids were dropped. One was the top bid on lot 140, £260. The lot closed at 01:13 and sold for £240 to someone else.",
+  "prompt": "Reply to OP. The sequencer did what it was built to do. Why were three bids lost, and what should change?",
+  "keyIdeas": [
+   {
+    "idea": "The spare reused numbers already in the journal, so the engines treated new bids as repeats",
+    "match": [
+     "reused",
+     "duplicate",
+     "same numbers",
+     "numbers again",
+     "looked like repeats"
+    ]
+   },
+   {
+    "idea": "A spare that takes over must read the journal's last number and carry on after it",
+    "match": [
+     "last number",
+     "read the journal",
+     "carry on from",
+     "continue from",
+     "after the last"
+    ]
+   },
+   {
+    "idea": "Only one sequencer may number at a time, with a term number, and an engine should raise an alarm on a repeated number with a different bid instead of skipping it",
+    "match": [
+     "term number",
+     "higher term",
+     "fencing",
+     "only one sequencer",
+     "alarm",
+     "alert",
+     "different bid"
+    ]
+   }
+  ],
+  "model": "The spare reused numbers: it counted from a copy taken seconds earlier, so 512,301 to 512,303 were duplicates of bids already in the journal, and the engines, which skip any number they have already applied, treated three new bids as repeats. A sequencer that takes over must read the journal's last number and carry on after it; the journal, not any count in memory, decides what comes next. Only one sequencer may number at a time: give each a term number, as in Two Heads of Shift, and have the journal refuse anything from an older term. And an engine that sees a number it has applied before, with a different bid under it, should raise an alarm and stop that lot, not quietly skip it: here lot 140's £260 bid would have been caught before the close."
+ },
+ "next": "Next, The Model Farm: a mushroom farm's picking robots, and serving AI models to many machines at once: GPUs, batching, caching and rate limits.",
+ "sources": [
+  {
+   "title": "Martin Fowler, The LMAX Architecture, martinfowler.com, published 12 July 2011, read 16 October 2026",
+   "url": "https://martinfowler.com/articles/lmax.html"
+  },
+  {
+   "title": "Martin Thompson, Dave Farley, Michael Barker, Patricia Gee and Andrew Stewart, LMAX Disruptor: High performance alternative to bounded queues for exchanging data between concurrent threads, May 2011, LMAX Disruptor site, read 16 October 2026",
+   "url": "https://lmax-exchange.github.io/disruptor/disruptor.html"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.14, Redundancy of Information Processing Facilities (an explainer of the control; the standard itself is sold by ISO), read 16 October 2026",
+   "url": "https://www.isms.online/iso-27001/annex-a-2022/8-14-redundancy-of-information-processing-facilities-2022/"
+  },
+  {
+   "title": "Linford & Co, SOC 2 Processing Integrity (an explainer of the Trust Services Criteria PI1.1 to PI1.6, not the AICPA's own text), read 16 October 2026",
+   "url": "https://linfordco.com/blog/processing-integrity/"
+  }
+ ]
+}
