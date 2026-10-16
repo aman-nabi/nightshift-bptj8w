@@ -1,918 +1,924 @@
 {
- "_changelog": [
-  "v1.0.0 (2026-10-14) first version"
- ],
- "id": "s5e02",
- "season": 5,
- "n": 2,
- "title": "The Deadlock in Room 4",
- "setting": "a hotel with two keys per room",
- "core": true,
- "minutes": 12,
- "concepts": [
-  "deadlocks",
-  "lock-ordering",
-  "priority-inversion"
- ],
- "prerequisites": [
-  "s5e01",
-  "s3e02",
-  "s1e08",
-  "s1e02",
-  "s1e09"
- ],
- "rule": null,
- "post": {
-  "author": "u/night_manager_cassilda",
-  "flair": "Part 1",
-  "age": "6h",
-  "votes": 3874,
-  "title": "I'm the night manager of a small hotel. At 3 AM the door to room 4 refused the guest's card, then my master card. The system said she was still checking out. She was sitting in my lobby.",
-  "blocks": [
-   {
-    "t": "p",
-    "text": "I run nights at the Pomfret, a fourteen-room hotel. Every door has a card reader. A guest's card opens her own room, and my master card opens all of them: two keys for every room. Dumitru, the contractor who wrote the program that checks both, calls it the key-card server. A server is a program that answers requests: the reader asks \"may this card open room 4?\" and the server says yes or no."
-   },
-   {
-    "t": "p",
-    "text": "The server does many things at once. Each runs on its own thread: a line of work inside the program that runs alongside the others, like several clerks sharing one desk. Two clerks must never change the same record at the same moment."
-   },
-   {
-    "t": "p",
-    "text": "So every room and every guest record has a lock. One thread at a time can hold it; any other thread that wants it waits in line until the holder lets go. Dumitru wrote the server in Java, a programming language, where the word *synchronized* means: take this lock, do the work, let go. Three places matter. Each comment names a piece of work, with the locks it takes below it, outer one first:"
-   },
-   {
-    "t": "log",
-    "text": "// housekeeping job, 03:00\nsynchronized (room4) {\n  synchronized (guest) { ... } }\n// checkout kiosk, 03:00\nsynchronized (guest) {\n  synchronized (room4) { ... } }\n// every card tap at room 4's door\nsynchronized (room4) {\n  return room4.allows(card); }"
-   },
-   {
-    "t": "p",
-    "text": "At 03:00:00 the housekeeping job, work the server runs by itself nightly, took room 4's lock to mark the room for a deep clean, and a second later asked for the guest's lock, to note it on her record. At 03:00:00.4 Ms Grimsditch checked out at the lobby kiosk, the self-service screen, leaving for a 06:10 flight. Checkout took her guest lock to close her bill, and a second later asked for room 4's, to mark the room empty."
-   },
-   {
-    "t": "beat",
-    "text": "Each held what the other wanted. Each waited for the other to let go."
-   },
-   {
-    "t": "p",
-    "text": "Dumitru calls that a deadlock: threads that each hold a lock another needs, all waiting, so none can ever move. And every card tap at room 4 needs room 4's lock too, for a moment. A checked-out card still opens its door until noon. At 03:06 she went up for her forgotten passport. The reader waits five seconds for an answer. Each line of its log shows the time, the card and what happened:"
-   },
-   {
-    "t": "log",
-    "text": "03:06:00.0  guest card   waiting\n03:06:05.0  guest card   RED, no answer in 5 s\n03:06:40.0  master card  waiting\n03:06:45.0  master card  RED, no answer in 5 s"
-   },
-   {
-    "t": "p",
-    "text": "All night the admin screen said both jobs were in progress. It said she was still checking out. She sat across from me in her coat."
-   },
-   {
-    "t": "p",
-    "text": "At 06:30 Dumitru saved a thread dump: a list of every thread, the locks it holds and the lock it waits for. At the bottom Java had written *Found one Java-level deadlock*. Then he restarted the server at 06:45: stopped the program and started it again, which empties every lock and forgets any half-done job. Her flight had left at 06:10."
-   },
-   {
-    "t": "p",
-    "text": "He says a database, the program that keeps a company's records, usually spots a loop like this within about a second and cancels one side. His locks had no watcher. What should he change before tonight?"
-   },
-   {
-    "t": "evidence",
-    "label": "thread_dump_0630_redrawn.png",
+  "_changelog": [
+    "v1.0.1 (2026-10-17) the 'by aborting one of the transactions' quote moved to its own item sourced to the Explicit Locking chapter",
+    "v1.0.0 (2026-10-14) first version"
+  ],
+  "id": "s5e02",
+  "season": 5,
+  "n": 2,
+  "title": "The Deadlock in Room 4",
+  "setting": "a hotel with two keys per room",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "deadlocks",
+    "lock-ordering",
+    "priority-inversion"
+  ],
+  "prerequisites": [
+    "s5e01",
+    "s3e02",
+    "s1e08",
+    "s1e02",
+    "s1e09"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/night_manager_cassilda",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 3874,
+    "title": "I'm the night manager of a small hotel. At 3 AM the door to room 4 refused the guest's card, then my master card. The system said she was still checking out. She was sitting in my lobby.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I run nights at the Pomfret, a fourteen-room hotel. Every door has a card reader. A guest's card opens her own room, and my master card opens all of them: two keys for every room. Dumitru, the contractor who wrote the program that checks both, calls it the key-card server. A server is a program that answers requests: the reader asks \"may this card open room 4?\" and the server says yes or no."
+      },
+      {
+        "t": "p",
+        "text": "The server does many things at once. Each runs on its own thread: a line of work inside the program that runs alongside the others, like several clerks sharing one desk. Two clerks must never change the same record at the same moment."
+      },
+      {
+        "t": "p",
+        "text": "So every room and every guest record has a lock. One thread at a time can hold it; any other thread that wants it waits in line until the holder lets go. Dumitru wrote the server in Java, a programming language, where the word *synchronized* means: take this lock, do the work, let go. Three places matter. Each comment names a piece of work, with the locks it takes below it, outer one first:"
+      },
+      {
+        "t": "log",
+        "text": "// housekeeping job, 03:00\nsynchronized (room4) {\n  synchronized (guest) { ... } }\n// checkout kiosk, 03:00\nsynchronized (guest) {\n  synchronized (room4) { ... } }\n// every card tap at room 4's door\nsynchronized (room4) {\n  return room4.allows(card); }"
+      },
+      {
+        "t": "p",
+        "text": "At 03:00:00 the housekeeping job, work the server runs by itself nightly, took room 4's lock to mark the room for a deep clean, and a second later asked for the guest's lock, to note it on her record. At 03:00:00.4 Ms Grimsditch checked out at the lobby kiosk, the self-service screen, leaving for a 06:10 flight. Checkout took her guest lock to close her bill, and a second later asked for room 4's, to mark the room empty."
+      },
+      {
+        "t": "beat",
+        "text": "Each held what the other wanted. Each waited for the other to let go."
+      },
+      {
+        "t": "p",
+        "text": "Dumitru calls that a deadlock: threads that each hold a lock another needs, all waiting, so none can ever move. And every card tap at room 4 needs room 4's lock too, for a moment. A checked-out card still opens its door until noon. At 03:06 she went up for her forgotten passport. The reader waits five seconds for an answer. Each line of its log shows the time, the card and what happened:"
+      },
+      {
+        "t": "log",
+        "text": "03:06:00.0  guest card   waiting\n03:06:05.0  guest card   RED, no answer in 5 s\n03:06:40.0  master card  waiting\n03:06:45.0  master card  RED, no answer in 5 s"
+      },
+      {
+        "t": "p",
+        "text": "All night the admin screen said both jobs were in progress. It said she was still checking out. She sat across from me in her coat."
+      },
+      {
+        "t": "p",
+        "text": "At 06:30 Dumitru saved a thread dump: a list of every thread, the locks it holds and the lock it waits for. At the bottom Java had written *Found one Java-level deadlock*. Then he restarted the server at 06:45: stopped the program and started it again, which empties every lock and forgets any half-done job. Her flight had left at 06:10."
+      },
+      {
+        "t": "p",
+        "text": "He says a database, the program that keeps a company's records, usually spots a loop like this within about a second and cancels one side. His locks had no watcher. What should he change before tonight?"
+      },
+      {
+        "t": "evidence",
+        "label": "thread_dump_0630_redrawn.png",
+        "diagram": {
+          "type": "arch",
+          "w": 760,
+          "h": 380,
+          "aria": "Dumitru's thread dump from 06:30, redrawn as a loop. The housekeeping job holds room 4's lock since 03:00:00.0 and has wanted the guest's lock since 03:00:01.0. The guest's lock is held by the checkout kiosk job since 03:00:00.4, and checkout has wanted room 4's lock since 03:00:01.4. Room 4's door reader also wants room 4's lock; it showed red at 03:06:05 and at 03:06:45.",
+          "nodes": [
+            {
+              "id": "hk",
+              "label": "Housekeeping job",
+              "sub": "holds room 4",
+              "meta": "since 03:00:00.0",
+              "x": 130,
+              "y": 70,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "glock",
+              "label": "Guest's lock",
+              "sub": "held by checkout",
+              "meta": "since 03:00:00.4",
+              "x": 470,
+              "y": 70,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "co",
+              "label": "Checkout kiosk job",
+              "sub": "holds the guest",
+              "meta": "in progress",
+              "x": 470,
+              "y": 210,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "rlock",
+              "label": "Room 4's lock",
+              "sub": "held by housekeeping",
+              "meta": "since 03:00:00.0",
+              "x": 130,
+              "y": 210,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "reader",
+              "label": "Room 4's door reader",
+              "sub": "red at 03:06:05",
+              "meta": "and again at 03:06:45",
+              "x": 130,
+              "y": 330,
+              "w": 200,
+              "h": 62,
+              "shape": "box",
+              "tone": "warn"
+            }
+          ],
+          "edges": [
+            {
+              "from": "hk",
+              "to": "glock",
+              "label": "wants, 03:00:01.0",
+              "tone": "bad"
+            },
+            {
+              "from": "glock",
+              "to": "co",
+              "label": "held by",
+              "tone": "muted"
+            },
+            {
+              "from": "co",
+              "to": "rlock",
+              "label": "wants, 03:00:01.4",
+              "tone": "bad"
+            },
+            {
+              "from": "rlock",
+              "to": "hk",
+              "label": "held by",
+              "tone": "muted"
+            },
+            {
+              "from": "reader",
+              "to": "rlock",
+              "label": "waits 5 s",
+              "tone": "warn"
+            }
+          ],
+          "notes": [
+            {
+              "x": 560,
+              "y": 330,
+              "text": "Found one Java-level deadlock",
+              "tone": "bad",
+              "anchor": "middle"
+            }
+          ]
+        },
+        "caption": "Dumitru redrew his 06:30 thread dump for me as a wait-for graph: an arrow from each job to the lock it wants, and from each lock to its holder. Housekeeping has held room 4's lock since 03:00:00.0 and wants the guest's. Checkout has held the guest's lock since 03:00:00.4 and wants room 4's. Follow the arrows and you come back to where you started. The door reader waits behind the loop for five seconds at a time."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 142,
+      "age": "5h",
+      "text": "A deadlock needs four things at the same time. Mutual exclusion: each lock has one holder at a time. Hold and wait: a thread keeps one lock while it waits for another. No preemption: nothing can take a lock away from its holder. Circular wait: the waiting closes into a loop, where A waits for B and B waits for A. Take away any one of the four and it can't happen. Now read your three pieces of code next to Dumitru's thread dump. Which line gives you which of the four? And what else at the Pomfret touches a room and a guest record in one piece of work, and in which order?",
+      "replies": [
+        {
+          "author": "u/night_manager_cassilda",
+          "op": true,
+          "points": 51,
+          "age": "4h",
+          "text": "Dumitru found four more: late check-in, a room change, the minibar charge and swapping a lost card. Two of them take the room first, two take the guest first. Our head housekeeper asked whether her job could simply run at 14:00, when nobody is checking out."
+        }
+      ]
+    },
+    {
+      "author": "u/always_up_ovanes",
+      "points": 97,
+      "age": "4h",
+      "text": "Honestly, a watchdog that restarts anything stuck is how real systems stay up. A watchdog is a small timer that checks the main program is still getting its work done, and restarts it if not. Phones, routers and spacecraft all have one. You will never find every bug like this, and Dumitru has a day job. Have it restart the server whenever a job has been in progress for ten minutes. Worst case, ten minutes of red doors, and nobody has to wake up."
+    },
+    {
+      "author": "u/trylock_mischa",
+      "points": 63,
+      "age": "3h",
+      "text": "Java has a second kind of lock, ReentrantLock, that you can ask for with a time limit. That limit is a timeout: tryLock with two seconds waits at most two seconds, then answers no instead of waiting forever. The job can then let go of whatever it holds and start again from the top. Starting again is called a retry. synchronized can't do that; it waits for as long as it takes.",
+      "replies": [
+        {
+          "author": "u/night_manager_cassilda",
+          "op": true,
+          "points": 18,
+          "age": "2h",
+          "text": "Dumitru says that would have broken last night's loop in two seconds. He's less sure about what happens when both jobs give up at the same moment."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "Housekeeping runs again at 03:00 tonight. What should Dumitru change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Make every job take its locks in one fixed order, room before guest, so no loop of waits forms.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Dumitru changed checkout, the late check-in, the room change, the minibar charge and the lost-card swap so that each takes room 4's lock first and the guest's second, and wrote the rule at the top of the file. A fortnight later a guest checked out at 03:00:00.4 while housekeeping ran. Checkout asked for room 4's lock, found it held, and waited 1.6 seconds. Housekeeping was done at 03:00:02.0 and checkout at 03:00:04.0. At 03:06 the guest went back up for her charger and the door opened at once, and so did my master card at 03:06:40. The admin screen said both jobs were done. It was right. Dumitru also set the server to ask Java every minute whether it can see a loop, and to page him if it ever does. It hasn't.",
+        "senior": "A deadlock needs all four conditions, and the cheapest one to remove is circular wait. If every piece of code takes its locks in one agreed order, a thread holding the later lock can never be waiting for the earlier one, so the loop can't close. Threads still wait, briefly, but always in a line, never in a ring. Write the order down, check new code against it, and keep an alarm for the day someone forgets."
+      },
+      {
+        "text": "Restart the key-card server automatically whenever a job has shown in progress for ten minutes.",
+        "tone": "bad",
+        "verdict": "Recovers, and forgets",
+        "part2": "Dumitru set a watchdog. A fortnight later the same two jobs met at 03:00:01.4. The guest's card went red at 03:06:05 and my master card at 03:06:45, exactly as before. At 03:10:00 the watchdog restarted the server and the doors worked again. Both half-done jobs were gone. Room 4 was never marked for its deep clean, so nobody cleaned it, and the checkout never happened, so the guest's bill stayed open and she was charged for a night she never stayed. The loop is still in the code. It now costs ten minutes and two lost jobs each time it closes.",
+        "senior": "A watchdog is a good last line of defence, and Pathfinder's computer had one, but it treats the symptom. Restarting clears the locks and also throws away the work, and the doors stay shut until the timer fires. The deadlock will happen again on any night the two jobs meet. Keep a watchdog for the bugs you don't know about, and fix the one you do."
+      },
+      {
+        "text": "Swap synchronized for locks with a two-second timeout, and retry a job from the start if one fails.",
+        "tone": "warn",
+        "verdict": "Trade-off: breaks it, doesn't prevent it",
+        "part2": "The first night it worked. Housekeeping gave up at 03:00:03.0 and let go of room 4's lock, checkout finished at 03:00:04.0, and housekeeping tried again and was done at 03:00:06.0. A fortnight later checkout started at 03:00:00.0, the same tenth of a second as housekeeping. They took their first locks together, waited together, gave up together after two seconds, and started again together, every three seconds, until Dumitru restarted the server at 06:45. The log counted 4,500 deadlocks and 8,998 retries, and neither job ever finished. The doors did open: the guest's card at 03:06 waited 3.0 seconds, my master card at 03:06:40 waited 2.0.",
+        "senior": "Timeouts are a real tool: they turn a forever-wait into a failure the code can handle. But they leave the cause in place, and two jobs that give up and retry in step can collide forever. That is called a livelock: everyone busy, nobody getting anywhere. If you use timeouts, add a random pause before each retry so the two drift apart, and still fix the order."
+      },
+      {
+        "text": "Move the housekeeping job to 14:00, when no guest is checking out, so the two jobs never meet.",
+        "tone": "bad",
+        "verdict": "A different pair meets",
+        "part2": "The night was quiet. Checkout ran alone and was done at 03:00:02.4, and both cards opened at 03:06. At 14:00:00.0 housekeeping took room 4's lock. At 14:00:00.3 the desk moved a new guest into room 4: the room change took the guest's lock, then asked for room 4's at 14:00:01.3. Housekeeping was already waiting for the guest's. At 14:05 the new guest tapped her card, and five seconds later the door went red. At 15:00 both jobs still said in progress, and the new guests were sitting in the lobby with their cases.",
+        "senior": "Moving one job changes which two pieces of code meet, not whether they can. The room change, the late check-in and the minibar charge take the same two locks in the other order, so any of them can close the loop with housekeeping at any hour. A timetable is not a lock order."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s5e02",
+    "title": "Run room 4's locks through the night",
+    "lede": "You're Dumitru, replaying the night from 02:59:58. Two jobs and the door reader share two locks: room 4's and the guest's. Each job takes its first lock, works 1.0 s, asks for its second, works 1.0 s with both, then lets both go. That one second of work is a teaching model. A lock has one holder; anyone else waits in line, first come, first served. Every card tap needs room 4's lock for a moment, and the reader gives up after 5 s. With lock timeouts on, a job that has waited 2 s lets go of what it holds and starts again at once, with no random pause. The watchdog restarts the server when a job has been in progress for 10 minutes; a restart empties every lock and loses any half-done job. At 06:45 Dumitru restarts it if anything is still stuck. At 14:00:00.3 the desk runs a room change into room 4, which takes the guest's lock first unless you change the order. Every card is valid. Use Jump to and Clock speed to move through the night.",
+    "tryThis": "Try this: watch the first four seconds. The loop closes at 03:00:01.4 and all four conditions light up. Jump to 03:06:45.0: both cards are red. Choose One order and jump again: checkout waits 1.6 s and both cards open. Back to As built, turn lock timeouts on and jump to 03:06:45.0; then start checkout 0.0 s after housekeeping and jump to 06:45:00.0. Try the watchdog. Last, move housekeeping to 14:00 and jump to 15:00:00.0."
+  },
+  "explain": {
+    "oneLine": "Nothing was wrong with either card. Two jobs took the same two locks in opposite orders, each grabbed one, and each waited forever for the other's; the door reader needed one of those locks, so it waited behind them.",
+    "steps": [
+      {
+        "title": "Two locks, taken in opposite orders.",
+        "text": "First, at 03:00:00.0, housekeeping took room 4's lock. Then, at 03:00:00.4, checkout took the guest's lock, which was free. At 03:00:01.0 housekeeping asked for the guest's lock and joined the line behind checkout. At 03:00:01.4 checkout asked for room 4's lock and joined the line behind housekeeping. What can go wrong is right there: each was now waiting for a thread that was waiting for it. Had checkout started a full second later, housekeeping would already have held both locks and finished, which is why the bug can hide for months."
+      },
+      {
+        "title": "All four conditions, in three lines of code.",
+        "text": "Mutual exclusion: synchronized lets one thread hold a lock at a time, which is the point of a lock. Hold and wait: the outer synchronized block keeps its lock while the inner one waits. No preemption: synchronized has no time limit and nothing can take the lock away. Circular wait: housekeeping goes room then guest, checkout goes guest then room, so the waits can form a ring. Remove any one and the deadlock can't happen; the first is the lock's job, so the choice is among the other three."
+      },
+      {
+        "title": "The door waited behind the loop.",
+        "text": "A card tap is a third thread that needs room 4's lock for a moment to read the room's record. It joined the line behind checkout, waited, and after five seconds the reader gave up and showed red. The card was fine. The server never got as far as reading it. Any thread that needs a lock caught in a deadlock is stuck too, which is how two jobs closed a door for nearly four hours."
+      },
+      {
+        "title": "Java could see it; nothing was asking.",
+        "text": "The Java runtime keeps track of which thread holds and waits for each lock. A thread dump prints the loop with Found one Java-level deadlock, and ThreadMXBean.findDeadlockedThreads returns the stuck threads, so a check once a minute could have paged someone at 03:01. It can't break the loop, because synchronized can't be undone from outside. A database does this for you: by default PostgreSQL checks after one second of waiting, picks one transaction as the victim and cancels it, and the other goes on (s3e02)."
+      },
+      {
+        "title": "The same shape on Mars: priority inversion.",
+        "text": "A scheduler, the part of the system that picks which thread runs next, usually runs the most urgent, highest-priority thread first. Now suppose a low-priority thread holds a lock that a high-priority thread needs. The high one waits for the low one to let go. Then medium-priority threads, which need no lock, keep getting chosen ahead of the low one, so it never finishes and the urgent thread waits behind work less urgent than itself. That is priority inversion. The usual fix is priority inheritance: while the low thread holds a lock that someone more urgent wants, it runs at that thread's priority, finishes and lets go."
+      }
+    ],
     "diagram": {
-     "type": "arch",
-     "w": 760,
-     "h": 380,
-     "aria": "Dumitru's thread dump from 06:30, redrawn as a loop. The housekeeping job holds room 4's lock since 03:00:00.0 and has wanted the guest's lock since 03:00:01.0. The guest's lock is held by the checkout kiosk job since 03:00:00.4, and checkout has wanted room 4's lock since 03:00:01.4. Room 4's door reader also wants room 4's lock; it showed red at 03:06:05 and at 03:06:45.",
-     "nodes": [
+      "type": "arch",
+      "w": 760,
+      "h": 330,
+      "aria": "The fix, drawn for tonight. Housekeeping, checkout and the room change each take room 4's lock first and the guest's lock second. A note below says the server also asks Java every minute for deadlocked threads and pages Dumitru if there are any.",
+      "nodes": [
+        {
+          "id": "hk",
+          "label": "Housekeeping",
+          "x": 120,
+          "y": 60,
+          "w": 200,
+          "h": 52,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "co",
+          "label": "Checkout",
+          "x": 120,
+          "y": 170,
+          "w": 200,
+          "h": 52,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "rc",
+          "label": "Room change",
+          "x": 120,
+          "y": 280,
+          "w": 200,
+          "h": 52,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "rlock",
+          "label": "1. Room 4's lock",
+          "sub": "always first",
+          "x": 430,
+          "y": 170,
+          "w": 190,
+          "h": 62,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "glock",
+          "label": "2. Guest's lock",
+          "sub": "always second",
+          "x": 660,
+          "y": 170,
+          "w": 170,
+          "h": 62,
+          "shape": "box",
+          "tone": "accent"
+        }
+      ],
+      "edges": [
+        {
+          "from": "hk",
+          "to": "rlock",
+          "label": "first"
+        },
+        {
+          "from": "co",
+          "to": "rlock",
+          "label": "first"
+        },
+        {
+          "from": "rc",
+          "to": "rlock",
+          "label": "first"
+        },
+        {
+          "from": "rlock",
+          "to": "glock",
+          "label": "then"
+        }
+      ],
+      "notes": [
+        {
+          "x": 470,
+          "y": 300,
+          "text": "alarm: findDeadlockedThreads, every minute",
+          "tone": "ok",
+          "anchor": "middle"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for tonight. Every job that needs both locks takes room 4's first and the guest's second. A thread holding the guest's lock already holds room 4's, so nothing can be waiting for room 4's lock while holding the guest's, and the ring can't close. The once-a-minute alarm is for the day someone writes a job that breaks the rule.",
+    "fix": {
+      "title": "The fix: one lock order for every job, and an alarm for the day it's broken",
+      "text": "Pick one order for every lock in the server: room before guest. Change every piece of code that takes two locks to follow it, and write the rule at the top of the file so a reviewer can check new code against it. Keep each lock for as short a time as possible, so the door reader waits milliseconds, not seconds. Then add the alarm: once a minute, ask Java's ThreadMXBean for deadlocked threads and page someone if it finds any. The alarm can't break a loop of synchronized locks, but it turns four silent hours into one phone call."
+    },
+    "limits": [
+      "A lock order only works if every piece of code follows it. One new job written the other way round brings the deadlock back, so the rule has to be written down, checked in review and backed by the alarm.",
+      "Ordering needs to know both locks before taking the first. When a job only learns its second lock after reading the first record, use a lock with a timeout, let go of everything on failure, and wait a random moment before retrying.",
+      "Order stops the ring, not the waiting. A job that holds room 4's lock for a long time still keeps the door reader in line, so keep the work inside a lock short, and don't make card taps wait on slow jobs."
+    ],
+    "tradeoff": {
+      "head": [
+        "Approach",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "Locks taken in any order (as built)",
+          "Nothing to agree on. Most nights the jobs never meet.",
+          "When they meet within a second, both stop forever and the door goes with them."
+        ],
+        [
+          "Watchdog restart after ten minutes",
+          "Recovers from any hang, including ones you never imagined.",
+          "Ten minutes of red doors each time, half-done work thrown away, and the cause left in place."
+        ],
+        [
+          "Lock timeouts, retry at once",
+          "No wait lasts forever; a deadlock breaks in two seconds.",
+          "Jobs that give up in step collide again: a livelock. The cause stays."
+        ],
+        [
+          "Lock timeouts, random pause before retry",
+          "Breaks loops and lets the jobs drift apart. Works when the order can't be known ahead.",
+          "Every job must undo its half-done work cleanly. Wasted work under load."
+        ],
+        [
+          "Move the job to another hour",
+          "Nothing in the code changes.",
+          "Any other pair of jobs with opposite orders still meets."
+        ],
+        [
+          "One lock order for every job",
+          "The ring can't form, so there is nothing to detect or undo.",
+          "Everyone must know and follow it, including next year's new job."
+        ],
+        [
+          "One order plus a deadlock alarm",
+          "Prevention, and a loud signal on the day someone breaks the rule.",
+          "The alarm reports a loop of synchronized locks; a person still has to restart."
+        ]
+      ]
+    },
+    "seniorTake": "Deadlocks are designed out, not fixed at 3 AM. Of the four conditions, circular wait is the cheapest to remove: agree one order for every lock and make it part of review. Timeouts and random pauses are the tool when you can't know the order ahead, and a watchdog is the last resort for bugs you haven't met. Whatever you choose, make the stuck state visible: the runtime already knows when threads are in a loop, and it costs one scheduled check to ask. And watch for the slow cousin, priority inversion, where nothing loops but the urgent work still waits behind the unimportant.",
+    "realWorld": [
       {
-       "id": "hk",
-       "label": "Housekeeping job",
-       "sub": "holds room 4",
-       "meta": "since 03:00:00.0",
-       "x": 130,
-       "y": 70,
-       "w": 200,
-       "h": 62,
-       "shape": "box",
-       "tone": "bad"
+        "title": "Mars Pathfinder, 1997: the reset was priority inversion",
+        "text": "Glenn Reeves, the engineer responsible for the lander's flight software, wrote that \"The failure turned out to be a case of priority inversion\". The low-priority weather task, ASI/MET, \"had acquired this resource and then been preempted by several of the medium priority tasks\". The urgent data-distribution task, bc_dist, didn't complete its cycle, and the bus scheduler \"declared the error that initiated the reset.\"",
+        "source": 0
       },
       {
-       "id": "glock",
-       "label": "Guest's lock",
-       "sub": "held by checkout",
-       "meta": "since 03:00:00.4",
-       "x": 470,
-       "y": 70,
-       "w": 200,
-       "h": 62,
-       "shape": "box",
-       "tone": "bad"
+        "title": "The fix was one flag, sent to Mars",
+        "text": "The lock was a VxWorks mutual exclusion semaphore created without priority inheritance. Reeves: \"We did end up modifying the global variable to include the priority inheritance option.\" His advice about bought-in software, COTS: \"A good lesson when you fly COTS stuff - make sure you know how it works.\"",
+        "source": 0
       },
       {
-       "id": "co",
-       "label": "Checkout kiosk job",
-       "sub": "holds the guest",
-       "meta": "in progress",
-       "x": 470,
-       "y": 210,
-       "w": 200,
-       "h": 62,
-       "shape": "box",
-       "tone": "bad"
+        "title": "The watchdog only noticed",
+        "text": "Mike Jones's summary of a talk by David Wilner of Wind River says \"a watchdog timer would go off, notice that the data bus task had not been executed for some time\" and \"initiate a total system reset.\" The reset was what the team saw; the cause was a lock and three priorities.",
+        "source": 1
       },
       {
-       "id": "rlock",
-       "label": "Room 4's lock",
-       "sub": "held by housekeeping",
-       "meta": "since 03:00:00.0",
-       "x": 130,
-       "y": 210,
-       "w": 200,
-       "h": 62,
-       "shape": "box",
-       "tone": "bad"
+        "title": "Java can find the loop for you",
+        "text": "Oracle's documentation says ThreadMXBean.findDeadlockedThreads \"Finds cycles of platform threads that are in deadlock waiting to acquire object monitors or ownable synchronizers\", and returns \"an array of IDs of the platform threads that are deadlocked\", or null when there are none.",
+        "source": 2
       },
       {
-       "id": "reader",
-       "label": "Room 4's door reader",
-       "sub": "red at 03:06:05",
-       "meta": "and again at 03:06:45",
-       "x": 130,
-       "y": 330,
-       "w": 200,
-       "h": 62,
-       "shape": "box",
-       "tone": "warn"
+        "title": "Thread dumps print the deadlock",
+        "text": "Java's troubleshooting guide shows thread dump output starting \"Found one Java-level deadlock:\" and says \"The default deadlock detection works with locks that are obtained using the synchronized keyword, as well as with locks that are obtained using the java.util.concurrent package.\"",
+        "source": 4
+      },
+      {
+        "title": "A lock with a time limit",
+        "text": "ReentrantLock.tryLock with a timeout \"Acquires the lock if it is not held by another thread within the given waiting time\", and \"If the specified waiting time elapses then the value false is returned.\" synchronized has no such limit.",
+        "source": 3
+      },
+      {
+        "title": "PostgreSQL checks after a second",
+        "text": "PostgreSQL's deadlock_timeout is \"the amount of time to wait on a lock before checking to see if there is a deadlock condition\", and \"The default is one second\".",
+        "source": 5
+      },
+      {
+        "title": "PostgreSQL breaks the deadlock",
+        "text": "When it finds a deadlock, the manual's chapter on explicit locking says PostgreSQL resolves it \"by aborting one of the transactions involved, allowing the other(s) to complete.\"",
+        "source": 6
+      },
+      {
+        "title": "The database manual's advice: one order",
+        "text": "Even with detection built in, the PostgreSQL manual says \"The best defense against deadlocks is generally to avoid them by being certain that all applications using a database acquire locks on multiple objects in a consistent order.\"",
+        "source": 6
       }
-     ],
-     "edges": [
+    ],
+    "interview": {
+      "asked": [
+        "What are the four conditions for deadlock?",
+        "How do you prevent one?",
+        "What is priority inversion?"
+      ],
+      "answer": "A deadlock needs four conditions at once: mutual exclusion, where a lock has one holder; hold and wait, where a thread keeps one lock while waiting for another; no preemption, where nobody can take a lock away; and circular wait, where the waits form a ring. Remove any one and it can't happen. In practice you remove circular wait with a global lock order: every thread takes locks in the same agreed order, such as by type and then by id, so the ring can't close. Where you can't know every lock up front, use timed lock attempts, let go of everything on failure and retry after a random pause, which removes hold and wait at the cost of redone work and a livelock risk if retries stay in step. Add detection either way: databases such as PostgreSQL detect deadlocks and cancel one transaction, and in Java you can call ThreadMXBean.findDeadlockedThreads on a schedule and alert. Priority inversion is the cousin: a high-priority thread waits for a lock held by a low-priority one, while medium-priority threads keep the low one from running. The fix is priority inheritance, where the lock holder temporarily runs at the waiter's priority. Mars Pathfinder's 1997 resets were exactly this, fixed by turning inheritance on."
+    }
+  },
+  "terms": [
+    {
+      "term": "Night manager",
+      "def": "The person in charge of a hotel overnight. Cassilda runs the Pomfret's desk alone after midnight."
+    },
+    {
+      "term": "Key-card server",
+      "def": "The Pomfret's program that decides whether a card may open a door, and runs jobs such as housekeeping and checkout. Dumitru wrote it in Java."
+    },
+    {
+      "term": "Master card",
+      "def": "A key card that opens every room in the hotel. The night manager carries one."
+    },
+    {
+      "term": "Kiosk",
+      "def": "A self-service touch screen in the hotel lobby, where guests check themselves in or out without the desk."
+    },
+    {
+      "term": "Java",
+      "def": "A programming language. Programs written in it run on the Java runtime, which also keeps track of their threads and locks."
+    },
+    {
+      "term": "jstack",
+      "def": "A command that comes with Java and prints a thread dump of a running Java program, given its process number."
+    },
+    {
+      "term": "Mars Pathfinder",
+      "def": "NASA's Mars lander of 1997. Its computer reset itself more than once on Mars, until the team found the cause: priority inversion."
+    },
+    {
+      "term": "ASI/MET and bc_dist",
+      "def": "Two of Pathfinder's tasks: ASI/MET gathered weather data at low priority; bc_dist moved data on the craft's main data line at high priority and had to finish every cycle."
+    },
+    {
+      "term": "Gatekeeper",
+      "def": "The proxy you build across the Build Nights: a program that sits between users and a group of servers and passes each request on."
+    },
+    {
+      "term": "Server",
+      "def": "A program that waits for requests and answers them, and the computer it runs on. Here, the door reader asks and the key-card server answers yes or no."
+    },
+    {
+      "term": "Thread",
+      "def": "One line of work inside a program, running alongside the others, like one of several clerks sharing a desk. The key-card server runs a thread for each job and each card tap."
+    },
+    {
+      "term": "Record",
+      "def": "One stored entry about one thing, such as a room or a guest, with its details. A guest's record holds her stay and her bill."
+    },
+    {
+      "term": "Lock",
+      "def": "A marker one thread holds while it works on something shared. Any other thread that wants it waits until the holder lets go. Like the one key to a single-person room."
+    },
+    {
+      "term": "synchronized",
+      "def": "Java's built-in way to use a lock: synchronized (room4) { ... } takes room 4's lock, runs the block, and lets go at the end. If the lock is taken, it waits with no time limit."
+    },
+    {
+      "term": "Job",
+      "def": "A piece of work the server runs, by itself on a schedule (housekeeping at 03:00) or when someone asks (checkout at the kiosk)."
+    },
+    {
+      "term": "In progress",
+      "def": "What the admin screen shows for a job that has started and not finished. A deadlocked job shows it forever."
+    },
+    {
+      "term": "Deadlock",
+      "def": "Threads that each hold a lock another one needs, all waiting, so none can ever move on. Like two people in a narrow corridor, each waiting for the other to step back."
+    },
+    {
+      "term": "Thread dump",
+      "def": "A printout of every thread in a running Java program: what it is doing, the locks it holds and the lock it waits for. Java adds a note at the end if it finds a deadlock."
+    },
+    {
+      "term": "Restart",
+      "def": "Stopping a program and starting it again. It empties every lock and forgets any work that was half done."
+    },
+    {
+      "term": "Mutual exclusion",
+      "def": "The first condition for a deadlock: a lock has at most one holder at a time. It's the reason locks exist, so it's the one condition you keep."
+    },
+    {
+      "term": "Hold and wait",
+      "def": "The second condition: a thread keeps a lock it already has while it waits for another one."
+    },
+    {
+      "term": "No preemption",
+      "def": "The third condition: nothing can take a lock away from its holder; only the holder can let go."
+    },
+    {
+      "term": "Circular wait",
+      "def": "The fourth condition: the waiting forms a ring. A waits for B, and B waits for A, or a longer loop back to the start."
+    },
+    {
+      "term": "Watchdog",
+      "def": "A small timer that checks a program is still making progress and restarts it if not. It recovers from a hang; it doesn't remove the cause."
+    },
+    {
+      "term": "Timeout",
+      "def": "A limit on how long to wait. A lock with a two-second timeout gives up and says no after two seconds instead of waiting forever."
+    },
+    {
+      "term": "Retry",
+      "def": "Starting a piece of work again after it failed or gave up. Here, a job that times out lets go of its locks and starts again from its first lock."
+    },
+    {
+      "term": "ReentrantLock and tryLock",
+      "def": "A Java lock you take and release by hand. tryLock(2, SECONDS) waits up to two seconds, then returns false if the lock is still taken, so the code can give up."
+    },
+    {
+      "term": "Wait-for graph",
+      "def": "A drawing of which thread waits for which: an arrow from each waiting thread to the thread holding the lock it wants. A loop in it is a deadlock."
+    },
+    {
+      "term": "Lock ordering",
+      "def": "Agreeing one order for taking locks, such as room before guest, then lower number first, and making every piece of code follow it. The ring of waits can't form."
+    },
+    {
+      "term": "Livelock",
+      "def": "Threads that keep reacting to each other, giving up and retrying, so they stay busy but never finish. Like two people stepping aside the same way in a corridor, again and again."
+    },
+    {
+      "term": "Random pause (backoff)",
+      "def": "Waiting a short random time before a retry, so two threads that failed together don't try again at the same moment."
+    },
+    {
+      "term": "ThreadMXBean.findDeadlockedThreads",
+      "def": "A Java call that asks the running program which threads are stuck in a deadlock and returns their ids, or null if none are. Safe to call on a schedule for an alarm."
+    },
+    {
+      "term": "Java runtime",
+      "def": "The program that runs Java code and keeps track of its threads and locks. It is what notices a deadlock in a thread dump."
+    },
+    {
+      "term": "Page (someone)",
+      "def": "Send an urgent alert to a person's phone so they wake up and look."
+    },
+    {
+      "term": "Priority",
+      "def": "How urgent a thread is. When several are ready, a scheduler usually runs the highest-priority one first."
+    },
+    {
+      "term": "Scheduler",
+      "def": "The part of an operating system that decides which ready thread runs next, often by priority, and can pause a running one for a more urgent one."
+    },
+    {
+      "term": "Preempt",
+      "def": "To pause a running thread so another, usually more urgent one, can run. A lock isn't taken away when its holder is preempted."
+    },
+    {
+      "term": "Priority inversion",
+      "def": "An urgent thread waits for a lock held by an unimportant one, while middling threads keep the unimportant one from running, so the urgent work waits behind less urgent work."
+    },
+    {
+      "term": "Priority inheritance",
+      "def": "A fix for priority inversion: while a thread holds a lock a more urgent thread wants, it runs at that thread's priority, finishes its work and lets go."
+    },
+    {
+      "term": "Mutual exclusion semaphore",
+      "def": "The name VxWorks uses for its lock. Mars Pathfinder's was created without priority inheritance."
+    },
+    {
+      "term": "VxWorks",
+      "def": "An operating system from Wind River for machines that must react on time, such as spacecraft. Mars Pathfinder's computer ran it."
+    },
+    {
+      "term": "COTS",
+      "def": "Short for commercial off-the-shelf: bought-in software or parts rather than ones built for the job. Reeves's warning was to know how they work."
+    },
+    {
+      "term": "Transaction",
+      "def": "A group of database changes that all count together or not at all (s3e02). Each transaction holds its row locks until it ends."
+    },
+    {
+      "term": "Deadlock victim",
+      "def": "The transaction a database cancels to break a deadlock, so the other can go on. It's undone completely, so trying it again is safe (s3e02)."
+    },
+    {
+      "term": "deadlock_timeout",
+      "def": "How long PostgreSQL lets a transaction wait on a lock before checking for a deadlock. The default is one second."
+    },
+    {
+      "term": "Build Night",
+      "def": "A hands-on project evening in this course, where you build or fix part of a real program. G5 unlocks after s5e01 and s5e02."
+    },
+    {
+      "term": "SOC 2",
+      "def": "An audit report, written by an outside checker, on a company's controls against the AICPA's Trust Services Criteria. Availability is one optional category."
+    },
+    {
+      "term": "SOC 2 A1.1",
+      "def": "The availability criterion that asks a company to maintain, monitor and evaluate current processing capacity and use of system components."
+    }
+  ],
+  "atWork": "Look for two services or two jobs that change the same pair of records in opposite orders. A common pattern: a billing job locks a customer's account and then the invoice, while a refund path locks the invoice and then the account. Each works alone for months, and the first busy night they meet, both stop. Read-only access is enough to check. List every place that takes two locks, in code or in a database transaction, and write down the order each one uses; any pair that disagrees is a deadlock waiting for its night. In a Java service, run jstack against a stuck process to get a thread dump, or schedule a call to ThreadMXBean.findDeadlockedThreads and alert when it returns anything. In a database, read its deadlock log: PostgreSQL logs every deadlock it breaks. Build Night G5 (unlocks after s5e01 and s5e02) asks you to prove the gatekeeper proxy is free of race conditions under load; while you review every piece of shared state, note the order wherever code takes two locks, and make it one order. If your company is pursuing SOC 2 with the availability category, criterion A1.1 expects it to maintain, monitor and evaluate current processing capacity and use of system components. Threads stuck in a deadlock are capacity in use for nothing, so build the alarm in now rather than at audit time.",
+  "board": {
+    "cards": [
       {
-       "from": "hk",
-       "to": "glock",
-       "label": "wants, 03:00:01.0",
-       "tone": "bad"
+        "id": "deadlocks",
+        "title": "Deadlocks"
       },
       {
-       "from": "glock",
-       "to": "co",
-       "label": "held by",
-       "tone": "muted"
+        "id": "lock-ordering",
+        "title": "Lock ordering"
       },
       {
-       "from": "co",
-       "to": "rlock",
-       "label": "wants, 03:00:01.4",
-       "tone": "bad"
-      },
-      {
-       "from": "rlock",
-       "to": "hk",
-       "label": "held by",
-       "tone": "muted"
-      },
-      {
-       "from": "reader",
-       "to": "rlock",
-       "label": "waits 5 s",
-       "tone": "warn"
+        "id": "priority-inversion",
+        "title": "Priority inversion"
       }
-     ],
-     "notes": [
+    ],
+    "strings": [
       {
-       "x": 560,
-       "y": 330,
-       "text": "Found one Java-level deadlock",
-       "tone": "bad",
-       "anchor": "middle"
+        "from": "deadlocks",
+        "to": "locks",
+        "label": "two locks, a ring"
+      },
+      {
+        "from": "deadlocks",
+        "to": "threads",
+        "label": "threads wait"
+      },
+      {
+        "from": "lock-ordering",
+        "to": "deadlocks",
+        "label": "prevents it"
+      },
+      {
+        "from": "deadlocks",
+        "to": "optimistic-vs-pessimistic-locking",
+        "label": "a DB breaks it"
+      },
+      {
+        "from": "priority-inversion",
+        "to": "locks",
+        "label": "low task holds it"
       }
-     ]
+    ]
+  },
+  "recall": [
+    {
+      "id": "s5e02-r1",
+      "kind": "free",
+      "prompt": "Your team's order service runs two background jobs. One locks a customer's account, then their latest order. The other locks the order, then the account. Twice this month both jobs froze at the same moment and stayed frozen until someone restarted the service. What is happening, and what do you change?",
+      "keyIdeas": [
+        {
+          "idea": "A deadlock: each job holds one lock and waits for the one the other holds, in a ring",
+          "match": [
+            "deadlock",
+            "circular wait",
+            "waiting for each other",
+            "wait for each other",
+            "waits for the other",
+            "each holds",
+            "each one holds"
+          ]
+        },
+        {
+          "idea": "Make every job take its locks in one agreed order, such as account before order",
+          "match": [
+            "same order",
+            "one order",
+            "fixed order",
+            "global order",
+            "consistent order",
+            "lock order",
+            "agreed order"
+          ]
+        },
+        {
+          "idea": "Add detection so the next one is seen at once: a thread dump or findDeadlockedThreads check with an alert, or timed locks as a backstop",
+          "match": [
+            "finddeadlockedthreads",
+            "thread dump",
+            "detect",
+            "trylock",
+            "jstack",
+            "alert"
+          ]
+        }
+      ],
+      "model": "It's a deadlock. The two jobs take the same two locks in opposite orders, so when they run at the same moment each holds one and waits for the one the other holds, and neither can ever move. A restart only clears it until the next time they meet. Change one job so both take the locks in the same order, account before order, and make that one order the rule for every piece of code that takes both. Then add detection: schedule a findDeadlockedThreads check (or take a thread dump) and alert when it finds a loop, so if someone breaks the rule you hear about it in a minute, not at the next restart."
     },
-    "caption": "Dumitru redrew his 06:30 thread dump for me as a wait-for graph: an arrow from each job to the lock it wants, and from each lock to its holder. Housekeeping has held room 4's lock since 03:00:00.0 and wants the guest's. Checkout has held the guest's lock since 03:00:00.4 and wants room 4's. Follow the arrows and you come back to where you started. The door reader waits behind the loop for five seconds at a time."
-   }
+    {
+      "id": "s5e02-r2",
+      "kind": "mcq",
+      "prompt": "Every job at the Pomfret now takes room 4's lock before the guest's. Which of the four conditions for a deadlock does that remove?",
+      "options": [
+        "Mutual exclusion",
+        "Hold and wait",
+        "No preemption",
+        "Circular wait"
+      ],
+      "answer": 3,
+      "why": "Jobs still hold one lock while waiting for the next, nothing takes a lock away, and each lock still has one holder. What can't happen is a ring: a thread that holds the guest's lock already holds room 4's, so nobody holding the guest's lock can be waiting for room 4's."
+    },
+    {
+      "id": "s5e02-r3",
+      "kind": "free",
+      "prompt": "A spacecraft computer runs an urgent data-handling task that must finish every cycle, a low-urgency weather task, and several tasks of middling urgency. The urgent task keeps missing its deadline and the computer resets, though each task works correctly on its own. Explain how the weather task can hold up the urgent one, and what single setting fixes it.",
+      "keyIdeas": [
+        {
+          "idea": "The low-priority task holds a lock the high-priority task needs, so the high one waits for it",
+          "match": [
+            "holds a lock",
+            "holds the lock",
+            "holding a lock",
+            "holding the lock",
+            "shared resource",
+            "semaphore",
+            "mutex"
+          ]
+        },
+        {
+          "idea": "Medium-priority tasks keep preempting the low one, so it can't finish and let go: priority inversion",
+          "match": [
+            "inversion",
+            "medium",
+            "preempting",
+            "preempted",
+            "never gets to run",
+            "can't run",
+            "cannot run"
+          ]
+        },
+        {
+          "idea": "Priority inheritance: the lock holder temporarily runs at the waiting task's priority",
+          "match": [
+            "inherit",
+            "borrows",
+            "raised to",
+            "raise its priority",
+            "boost"
+          ]
+        }
+      ],
+      "model": "The weather task takes a lock, a semaphore guarding a shared resource, that the urgent task also needs. When the urgent task asks for it, it has to wait until the weather task lets go. But the weather task has low priority, so the medium tasks keep preempting it, and it can't run long enough to finish and release the lock. The urgent task ends up waiting behind work less urgent than itself: priority inversion. It misses its deadline and the computer resets. The fix is priority inheritance on that lock: while the weather task holds a lock the urgent task wants, it is boosted to the urgent task's priority, so the medium tasks can't push it aside, and it finishes and lets go quickly. That is what fixed Mars Pathfinder in 1997."
+    },
+    {
+      "id": "s5e02-r4",
+      "kind": "mcq",
+      "prompt": "Two jobs lock the same two records in opposite orders. Both use tryLock with a two-second timeout and, on failure, let go and retry at once with no pause. Tonight they start in the same tenth of a second. What happens?",
+      "options": [
+        "One finishes after about three seconds, then the other",
+        "They give up together and collide again every few seconds, and neither finishes",
+        "Java spots the loop and cancels one of them",
+        "Both finish after two seconds"
+      ],
+      "answer": 1,
+      "why": "Starting together, they take their first locks together, wait together, time out together and retry together, so the same deadlock forms every cycle: a livelock. A random pause before each retry lets them drift apart; one lock order stops the loop forming at all. Java can report a loop but doesn't cancel anything."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. The one order has held: room before guest, everywhere, and not one loop since. Last week Dumitru added a feature to merge two duplicate guest records into one. It locks the record being kept, then the record being merged into it. On Tuesday at 23:14 the desk merged guest 1182 into 1190 while the booking line, at the same moment, merged 1190 into 1182. Both screens froze. This time the alarm paged Dumitru within a minute, and the thread dump showed one more loop.",
+    "prompt": "Reply to OP. Why did the merges deadlock when every job follows room before guest, and what rule should Dumitru add?",
+    "keyIdeas": [
+      {
+        "idea": "Both locks are guest locks, so room-before-guest says nothing about their order; the two merges took them in opposite orders",
+        "match": [
+          "both guest",
+          "two guest",
+          "same kind",
+          "same type",
+          "opposite order",
+          "doesn't cover",
+          "does not cover"
+        ]
+      },
+      {
+        "idea": "Order locks of the same kind by a fixed key, such as the lower guest number first",
+        "match": [
+          "lowest",
+          "lower number",
+          "smaller number",
+          "smallest",
+          "by number",
+          "ascending",
+          "numeric order"
+        ]
+      },
+      {
+        "idea": "The merge knows both ids before it starts, so it can sort them and lock in that order regardless of which is kept",
+        "match": [
+          "sort",
+          "before taking",
+          "before locking",
+          "up front",
+          "in advance",
+          "regardless of which"
+        ]
+      }
+    ],
+    "model": "Room before guest only orders locks of different kinds. A merge takes two guest locks, the same kind, and each merge locked the kept record first, so the desk took 1190 then 1182 while the booking line took 1182 then 1190: opposite orders, a ring again. Add a rule for locks of the same kind: lower number first. The merge knows both ids before it starts, so it should sort them and take 1182 then 1190 regardless of which record is kept. Then both merges line up behind the same first lock, one waits a moment, and no loop can form. Keep the alarm; it's what turned this one into a page within a minute."
+  },
+  "next": "Next, The Event Loop: a one-waiter restaurant, and async and await, the event loop, and what happens when one slow task blocks it.",
+  "sources": [
+    {
+      "title": "Glenn E. Reeves, Mars Pathfinder flight software cognizant engineer, reply to \"What really happened on Mars?\", email of 15 December 1997 (copy hosted by the University of North Carolina)",
+      "url": "https://www.cs.unc.edu/~anderson/teach/comp790/papers/mars_pathfinder_long_version.html"
+    },
+    {
+      "title": "Mike Jones, What Happened on Mars? (email of 5 December 1997 summarising David Wilner's talk; copy hosted at Carnegie Mellon University)",
+      "url": "https://www.cs.cmu.edu/afs/cs/user/raj/www/mars.html"
+    },
+    {
+      "title": "Oracle, Java SE 21 API: java.lang.management.ThreadMXBean (findDeadlockedThreads)",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/ThreadMXBean.html"
+    },
+    {
+      "title": "Oracle, Java SE 21 API: java.util.concurrent.locks.ReentrantLock (tryLock with a timeout)",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantLock.html"
+    },
+    {
+      "title": "Oracle, Java SE 17 Troubleshooting Guide: Troubleshoot Process Hangs and Loops (Deadlock Detected)",
+      "url": "https://docs.oracle.com/en/java/javase/17/troubleshoot/troubleshoot-process-hangs-and-loops.html"
+    },
+    {
+      "title": "PostgreSQL Documentation (current): Lock Management, deadlock_timeout",
+      "url": "https://www.postgresql.org/docs/current/runtime-config-locks.html"
+    },
+    {
+      "title": "PostgreSQL Documentation (current): Explicit Locking, Deadlocks",
+      "url": "https://www.postgresql.org/docs/current/explicit-locking.html"
+    },
+    {
+      "title": "AICPA, 2017 Trust Services Criteria (with revised points of focus, 2022), availability criterion A1.1",
+      "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+    }
   ]
- },
- "comments": [
-  {
-   "author": "u/grey_pager",
-   "points": 142,
-   "age": "5h",
-   "text": "A deadlock needs four things at the same time. Mutual exclusion: each lock has one holder at a time. Hold and wait: a thread keeps one lock while it waits for another. No preemption: nothing can take a lock away from its holder. Circular wait: the waiting closes into a loop, where A waits for B and B waits for A. Take away any one of the four and it can't happen. Now read your three pieces of code next to Dumitru's thread dump. Which line gives you which of the four? And what else at the Pomfret touches a room and a guest record in one piece of work, and in which order?",
-   "replies": [
-    {
-     "author": "u/night_manager_cassilda",
-     "op": true,
-     "points": 51,
-     "age": "4h",
-     "text": "Dumitru found four more: late check-in, a room change, the minibar charge and swapping a lost card. Two of them take the room first, two take the guest first. Our head housekeeper asked whether her job could simply run at 14:00, when nobody is checking out."
-    }
-   ]
-  },
-  {
-   "author": "u/always_up_ovanes",
-   "points": 97,
-   "age": "4h",
-   "text": "Honestly, a watchdog that restarts anything stuck is how real systems stay up. A watchdog is a small timer that checks the main program is still getting its work done, and restarts it if not. Phones, routers and spacecraft all have one. You will never find every bug like this, and Dumitru has a day job. Have it restart the server whenever a job has been in progress for ten minutes. Worst case, ten minutes of red doors, and nobody has to wake up."
-  },
-  {
-   "author": "u/trylock_mischa",
-   "points": 63,
-   "age": "3h",
-   "text": "Java has a second kind of lock, ReentrantLock, that you can ask for with a time limit. That limit is a timeout: tryLock with two seconds waits at most two seconds, then answers no instead of waiting forever. The job can then let go of whatever it holds and start again from the top. Starting again is called a retry. synchronized can't do that; it waits for as long as it takes.",
-   "replies": [
-    {
-     "author": "u/night_manager_cassilda",
-     "op": true,
-     "points": 18,
-     "age": "2h",
-     "text": "Dumitru says that would have broken last night's loop in two seconds. He's less sure about what happens when both jobs give up at the same moment."
-    }
-   ]
-  }
- ],
- "reply": {
-  "prompt": "Housekeeping runs again at 03:00 tonight. What should Dumitru change before then? Part 2 follows your advice.",
-  "options": [
-   {
-    "text": "Make every job take its locks in one fixed order, room before guest, so no loop of waits forms.",
-    "tone": "ok",
-    "verdict": "Senior answer",
-    "part2": "Dumitru changed checkout, the late check-in, the room change, the minibar charge and the lost-card swap so that each takes room 4's lock first and the guest's second, and wrote the rule at the top of the file. A fortnight later a guest checked out at 03:00:00.4 while housekeeping ran. Checkout asked for room 4's lock, found it held, and waited 1.6 seconds. Housekeeping was done at 03:00:02.0 and checkout at 03:00:04.0. At 03:06 the guest went back up for her charger and the door opened at once, and so did my master card at 03:06:40. The admin screen said both jobs were done. It was right. Dumitru also set the server to ask Java every minute whether it can see a loop, and to page him if it ever does. It hasn't.",
-    "senior": "A deadlock needs all four conditions, and the cheapest one to remove is circular wait. If every piece of code takes its locks in one agreed order, a thread holding the later lock can never be waiting for the earlier one, so the loop can't close. Threads still wait, briefly, but always in a line, never in a ring. Write the order down, check new code against it, and keep an alarm for the day someone forgets."
-   },
-   {
-    "text": "Restart the key-card server automatically whenever a job has shown in progress for ten minutes.",
-    "tone": "bad",
-    "verdict": "Recovers, and forgets",
-    "part2": "Dumitru set a watchdog. A fortnight later the same two jobs met at 03:00:01.4. The guest's card went red at 03:06:05 and my master card at 03:06:45, exactly as before. At 03:10:00 the watchdog restarted the server and the doors worked again. Both half-done jobs were gone. Room 4 was never marked for its deep clean, so nobody cleaned it, and the checkout never happened, so the guest's bill stayed open and she was charged for a night she never stayed. The loop is still in the code. It now costs ten minutes and two lost jobs each time it closes.",
-    "senior": "A watchdog is a good last line of defence, and Pathfinder's computer had one, but it treats the symptom. Restarting clears the locks and also throws away the work, and the doors stay shut until the timer fires. The deadlock will happen again on any night the two jobs meet. Keep a watchdog for the bugs you don't know about, and fix the one you do."
-   },
-   {
-    "text": "Swap synchronized for locks with a two-second timeout, and retry a job from the start if one fails.",
-    "tone": "warn",
-    "verdict": "Trade-off: breaks it, doesn't prevent it",
-    "part2": "The first night it worked. Housekeeping gave up at 03:00:03.0 and let go of room 4's lock, checkout finished at 03:00:04.0, and housekeeping tried again and was done at 03:00:06.0. A fortnight later checkout started at 03:00:00.0, the same tenth of a second as housekeeping. They took their first locks together, waited together, gave up together after two seconds, and started again together, every three seconds, until Dumitru restarted the server at 06:45. The log counted 4,500 deadlocks and 8,998 retries, and neither job ever finished. The doors did open: the guest's card at 03:06 waited 3.0 seconds, my master card at 03:06:40 waited 2.0.",
-    "senior": "Timeouts are a real tool: they turn a forever-wait into a failure the code can handle. But they leave the cause in place, and two jobs that give up and retry in step can collide forever. That is called a livelock: everyone busy, nobody getting anywhere. If you use timeouts, add a random pause before each retry so the two drift apart, and still fix the order."
-   },
-   {
-    "text": "Move the housekeeping job to 14:00, when no guest is checking out, so the two jobs never meet.",
-    "tone": "bad",
-    "verdict": "A different pair meets",
-    "part2": "The night was quiet. Checkout ran alone and was done at 03:00:02.4, and both cards opened at 03:06. At 14:00:00.0 housekeeping took room 4's lock. At 14:00:00.3 the desk moved a new guest into room 4: the room change took the guest's lock, then asked for room 4's at 14:00:01.3. Housekeeping was already waiting for the guest's. At 14:05 the new guest tapped her card, and five seconds later the door went red. At 15:00 both jobs still said in progress, and the new guests were sitting in the lobby with their cases.",
-    "senior": "Moving one job changes which two pieces of code meet, not whether they can. The room change, the late check-in and the minibar charge take the same two locks in the other order, so any of them can close the loop with housekeeping at any hour. A timetable is not a lock order."
-   }
-  ]
- },
- "sim": {
-  "module": "s5e02",
-  "title": "Run room 4's locks through the night",
-  "lede": "You're Dumitru, replaying the night from 02:59:58. Two jobs and the door reader share two locks: room 4's and the guest's. Each job takes its first lock, works 1.0 s, asks for its second, works 1.0 s with both, then lets both go. That one second of work is a teaching model. A lock has one holder; anyone else waits in line, first come, first served. Every card tap needs room 4's lock for a moment, and the reader gives up after 5 s. With lock timeouts on, a job that has waited 2 s lets go of what it holds and starts again at once, with no random pause. The watchdog restarts the server when a job has been in progress for 10 minutes; a restart empties every lock and loses any half-done job. At 06:45 Dumitru restarts it if anything is still stuck. At 14:00:00.3 the desk runs a room change into room 4, which takes the guest's lock first unless you change the order. Every card is valid. Use Jump to and Clock speed to move through the night.",
-  "tryThis": "Try this: watch the first four seconds. The loop closes at 03:00:01.4 and all four conditions light up. Jump to 03:06:45.0: both cards are red. Choose One order and jump again: checkout waits 1.6 s and both cards open. Back to As built, turn lock timeouts on and jump to 03:06:45.0; then start checkout 0.0 s after housekeeping and jump to 06:45:00.0. Try the watchdog. Last, move housekeeping to 14:00 and jump to 15:00:00.0."
- },
- "explain": {
-  "oneLine": "Nothing was wrong with either card. Two jobs took the same two locks in opposite orders, each grabbed one, and each waited forever for the other's; the door reader needed one of those locks, so it waited behind them.",
-  "steps": [
-   {
-    "title": "Two locks, taken in opposite orders.",
-    "text": "First, at 03:00:00.0, housekeeping took room 4's lock. Then, at 03:00:00.4, checkout took the guest's lock, which was free. At 03:00:01.0 housekeeping asked for the guest's lock and joined the line behind checkout. At 03:00:01.4 checkout asked for room 4's lock and joined the line behind housekeeping. What can go wrong is right there: each was now waiting for a thread that was waiting for it. Had checkout started a full second later, housekeeping would already have held both locks and finished, which is why the bug can hide for months."
-   },
-   {
-    "title": "All four conditions, in three lines of code.",
-    "text": "Mutual exclusion: synchronized lets one thread hold a lock at a time, which is the point of a lock. Hold and wait: the outer synchronized block keeps its lock while the inner one waits. No preemption: synchronized has no time limit and nothing can take the lock away. Circular wait: housekeeping goes room then guest, checkout goes guest then room, so the waits can form a ring. Remove any one and the deadlock can't happen; the first is the lock's job, so the choice is among the other three."
-   },
-   {
-    "title": "The door waited behind the loop.",
-    "text": "A card tap is a third thread that needs room 4's lock for a moment to read the room's record. It joined the line behind checkout, waited, and after five seconds the reader gave up and showed red. The card was fine. The server never got as far as reading it. Any thread that needs a lock caught in a deadlock is stuck too, which is how two jobs closed a door for nearly four hours."
-   },
-   {
-    "title": "Java could see it; nothing was asking.",
-    "text": "The Java runtime keeps track of which thread holds and waits for each lock. A thread dump prints the loop with Found one Java-level deadlock, and ThreadMXBean.findDeadlockedThreads returns the stuck threads, so a check once a minute could have paged someone at 03:01. It can't break the loop, because synchronized can't be undone from outside. A database does this for you: by default PostgreSQL checks after one second of waiting, picks one transaction as the victim and cancels it, and the other goes on (s3e02)."
-   },
-   {
-    "title": "The same shape on Mars: priority inversion.",
-    "text": "A scheduler, the part of the system that picks which thread runs next, usually runs the most urgent, highest-priority thread first. Now suppose a low-priority thread holds a lock that a high-priority thread needs. The high one waits for the low one to let go. Then medium-priority threads, which need no lock, keep getting chosen ahead of the low one, so it never finishes and the urgent thread waits behind work less urgent than itself. That is priority inversion. The usual fix is priority inheritance: while the low thread holds a lock that someone more urgent wants, it runs at that thread's priority, finishes and lets go."
-   }
-  ],
-  "diagram": {
-   "type": "arch",
-   "w": 760,
-   "h": 330,
-   "aria": "The fix, drawn for tonight. Housekeeping, checkout and the room change each take room 4's lock first and the guest's lock second. A note below says the server also asks Java every minute for deadlocked threads and pages Dumitru if there are any.",
-   "nodes": [
-    {
-     "id": "hk",
-     "label": "Housekeeping",
-     "x": 120,
-     "y": 60,
-     "w": 200,
-     "h": 52,
-     "shape": "box",
-     "tone": "ok"
-    },
-    {
-     "id": "co",
-     "label": "Checkout",
-     "x": 120,
-     "y": 170,
-     "w": 200,
-     "h": 52,
-     "shape": "box",
-     "tone": "ok"
-    },
-    {
-     "id": "rc",
-     "label": "Room change",
-     "x": 120,
-     "y": 280,
-     "w": 200,
-     "h": 52,
-     "shape": "box",
-     "tone": "ok"
-    },
-    {
-     "id": "rlock",
-     "label": "1. Room 4's lock",
-     "sub": "always first",
-     "x": 430,
-     "y": 170,
-     "w": 190,
-     "h": 62,
-     "shape": "box",
-     "tone": "accent"
-    },
-    {
-     "id": "glock",
-     "label": "2. Guest's lock",
-     "sub": "always second",
-     "x": 660,
-     "y": 170,
-     "w": 170,
-     "h": 62,
-     "shape": "box",
-     "tone": "accent"
-    }
-   ],
-   "edges": [
-    {
-     "from": "hk",
-     "to": "rlock",
-     "label": "first"
-    },
-    {
-     "from": "co",
-     "to": "rlock",
-     "label": "first"
-    },
-    {
-     "from": "rc",
-     "to": "rlock",
-     "label": "first"
-    },
-    {
-     "from": "rlock",
-     "to": "glock",
-     "label": "then"
-    }
-   ],
-   "notes": [
-    {
-     "x": 470,
-     "y": 300,
-     "text": "alarm: findDeadlockedThreads, every minute",
-     "tone": "ok",
-     "anchor": "middle"
-    }
-   ]
-  },
-  "caption": "The fix, drawn for tonight. Every job that needs both locks takes room 4's first and the guest's second. A thread holding the guest's lock already holds room 4's, so nothing can be waiting for room 4's lock while holding the guest's, and the ring can't close. The once-a-minute alarm is for the day someone writes a job that breaks the rule.",
-  "fix": {
-   "title": "The fix: one lock order for every job, and an alarm for the day it's broken",
-   "text": "Pick one order for every lock in the server: room before guest. Change every piece of code that takes two locks to follow it, and write the rule at the top of the file so a reviewer can check new code against it. Keep each lock for as short a time as possible, so the door reader waits milliseconds, not seconds. Then add the alarm: once a minute, ask Java's ThreadMXBean for deadlocked threads and page someone if it finds any. The alarm can't break a loop of synchronized locks, but it turns four silent hours into one phone call."
-  },
-  "limits": [
-   "A lock order only works if every piece of code follows it. One new job written the other way round brings the deadlock back, so the rule has to be written down, checked in review and backed by the alarm.",
-   "Ordering needs to know both locks before taking the first. When a job only learns its second lock after reading the first record, use a lock with a timeout, let go of everything on failure, and wait a random moment before retrying.",
-   "Order stops the ring, not the waiting. A job that holds room 4's lock for a long time still keeps the door reader in line, so keep the work inside a lock short, and don't make card taps wait on slow jobs."
-  ],
-  "tradeoff": {
-   "head": [
-    "Approach",
-    "Good",
-    "Bad"
-   ],
-   "rows": [
-    [
-     "Locks taken in any order (as built)",
-     "Nothing to agree on. Most nights the jobs never meet.",
-     "When they meet within a second, both stop forever and the door goes with them."
-    ],
-    [
-     "Watchdog restart after ten minutes",
-     "Recovers from any hang, including ones you never imagined.",
-     "Ten minutes of red doors each time, half-done work thrown away, and the cause left in place."
-    ],
-    [
-     "Lock timeouts, retry at once",
-     "No wait lasts forever; a deadlock breaks in two seconds.",
-     "Jobs that give up in step collide again: a livelock. The cause stays."
-    ],
-    [
-     "Lock timeouts, random pause before retry",
-     "Breaks loops and lets the jobs drift apart. Works when the order can't be known ahead.",
-     "Every job must undo its half-done work cleanly. Wasted work under load."
-    ],
-    [
-     "Move the job to another hour",
-     "Nothing in the code changes.",
-     "Any other pair of jobs with opposite orders still meets."
-    ],
-    [
-     "One lock order for every job",
-     "The ring can't form, so there is nothing to detect or undo.",
-     "Everyone must know and follow it, including next year's new job."
-    ],
-    [
-     "One order plus a deadlock alarm",
-     "Prevention, and a loud signal on the day someone breaks the rule.",
-     "The alarm reports a loop of synchronized locks; a person still has to restart."
-    ]
-   ]
-  },
-  "seniorTake": "Deadlocks are designed out, not fixed at 3 AM. Of the four conditions, circular wait is the cheapest to remove: agree one order for every lock and make it part of review. Timeouts and random pauses are the tool when you can't know the order ahead, and a watchdog is the last resort for bugs you haven't met. Whatever you choose, make the stuck state visible: the runtime already knows when threads are in a loop, and it costs one scheduled check to ask. And watch for the slow cousin, priority inversion, where nothing loops but the urgent work still waits behind the unimportant.",
-  "realWorld": [
-   {
-    "title": "Mars Pathfinder, 1997: the reset was priority inversion",
-    "text": "Glenn Reeves, the engineer responsible for the lander's flight software, wrote that \"The failure turned out to be a case of priority inversion\". The low-priority weather task, ASI/MET, \"had acquired this resource and then been preempted by several of the medium priority tasks\". The urgent data-distribution task, bc_dist, didn't complete its cycle, and the bus scheduler \"declared the error that initiated the reset.\"",
-    "source": 0
-   },
-   {
-    "title": "The fix was one flag, sent to Mars",
-    "text": "The lock was a VxWorks mutual exclusion semaphore created without priority inheritance. Reeves: \"We did end up modifying the global variable to include the priority inheritance option.\" His advice about bought-in software, COTS: \"A good lesson when you fly COTS stuff - make sure you know how it works.\"",
-    "source": 0
-   },
-   {
-    "title": "The watchdog only noticed",
-    "text": "Mike Jones's summary of a talk by David Wilner of Wind River says \"a watchdog timer would go off, notice that the data bus task had not been executed for some time\" and \"initiate a total system reset.\" The reset was what the team saw; the cause was a lock and three priorities.",
-    "source": 1
-   },
-   {
-    "title": "Java can find the loop for you",
-    "text": "Oracle's documentation says ThreadMXBean.findDeadlockedThreads \"Finds cycles of platform threads that are in deadlock waiting to acquire object monitors or ownable synchronizers\", and returns \"an array of IDs of the platform threads that are deadlocked\", or null when there are none.",
-    "source": 2
-   },
-   {
-    "title": "Thread dumps print the deadlock",
-    "text": "Java's troubleshooting guide shows thread dump output starting \"Found one Java-level deadlock:\" and says \"The default deadlock detection works with locks that are obtained using the synchronized keyword, as well as with locks that are obtained using the java.util.concurrent package.\"",
-    "source": 4
-   },
-   {
-    "title": "A lock with a time limit",
-    "text": "ReentrantLock.tryLock with a timeout \"Acquires the lock if it is not held by another thread within the given waiting time\", and \"If the specified waiting time elapses then the value false is returned.\" synchronized has no such limit.",
-    "source": 3
-   },
-   {
-    "title": "PostgreSQL checks after a second",
-    "text": "PostgreSQL's deadlock_timeout is \"the amount of time to wait on a lock before checking to see if there is a deadlock condition\", and \"The default is one second\". When it finds one, the manual says it resolves it \"by aborting one of the transactions involved, allowing the other(s) to complete.\"",
-    "source": 5
-   },
-   {
-    "title": "The database manual's advice: one order",
-    "text": "Even with detection built in, the PostgreSQL manual says \"The best defense against deadlocks is generally to avoid them by being certain that all applications using a database acquire locks on multiple objects in a consistent order.\"",
-    "source": 6
-   }
-  ],
-  "interview": {
-   "asked": [
-    "What are the four conditions for deadlock?",
-    "How do you prevent one?",
-    "What is priority inversion?"
-   ],
-   "answer": "A deadlock needs four conditions at once: mutual exclusion, where a lock has one holder; hold and wait, where a thread keeps one lock while waiting for another; no preemption, where nobody can take a lock away; and circular wait, where the waits form a ring. Remove any one and it can't happen. In practice you remove circular wait with a global lock order: every thread takes locks in the same agreed order, such as by type and then by id, so the ring can't close. Where you can't know every lock up front, use timed lock attempts, let go of everything on failure and retry after a random pause, which removes hold and wait at the cost of redone work and a livelock risk if retries stay in step. Add detection either way: databases such as PostgreSQL detect deadlocks and cancel one transaction, and in Java you can call ThreadMXBean.findDeadlockedThreads on a schedule and alert. Priority inversion is the cousin: a high-priority thread waits for a lock held by a low-priority one, while medium-priority threads keep the low one from running. The fix is priority inheritance, where the lock holder temporarily runs at the waiter's priority. Mars Pathfinder's 1997 resets were exactly this, fixed by turning inheritance on."
-  }
- },
- "terms": [
-  {
-   "term": "Night manager",
-   "def": "The person in charge of a hotel overnight. Cassilda runs the Pomfret's desk alone after midnight."
-  },
-  {
-   "term": "Key-card server",
-   "def": "The Pomfret's program that decides whether a card may open a door, and runs jobs such as housekeeping and checkout. Dumitru wrote it in Java."
-  },
-  {
-   "term": "Master card",
-   "def": "A key card that opens every room in the hotel. The night manager carries one."
-  },
-  {
-   "term": "Kiosk",
-   "def": "A self-service touch screen in the hotel lobby, where guests check themselves in or out without the desk."
-  },
-  {
-   "term": "Java",
-   "def": "A programming language. Programs written in it run on the Java runtime, which also keeps track of their threads and locks."
-  },
-  {
-   "term": "jstack",
-   "def": "A command that comes with Java and prints a thread dump of a running Java program, given its process number."
-  },
-  {
-   "term": "Mars Pathfinder",
-   "def": "NASA's Mars lander of 1997. Its computer reset itself more than once on Mars, until the team found the cause: priority inversion."
-  },
-  {
-   "term": "ASI/MET and bc_dist",
-   "def": "Two of Pathfinder's tasks: ASI/MET gathered weather data at low priority; bc_dist moved data on the craft's main data line at high priority and had to finish every cycle."
-  },
-  {
-   "term": "Gatekeeper",
-   "def": "The proxy you build across the Build Nights: a program that sits between users and a group of servers and passes each request on."
-  },
-  {
-   "term": "Server",
-   "def": "A program that waits for requests and answers them, and the computer it runs on. Here, the door reader asks and the key-card server answers yes or no."
-  },
-  {
-   "term": "Thread",
-   "def": "One line of work inside a program, running alongside the others, like one of several clerks sharing a desk. The key-card server runs a thread for each job and each card tap."
-  },
-  {
-   "term": "Record",
-   "def": "One stored entry about one thing, such as a room or a guest, with its details. A guest's record holds her stay and her bill."
-  },
-  {
-   "term": "Lock",
-   "def": "A marker one thread holds while it works on something shared. Any other thread that wants it waits until the holder lets go. Like the one key to a single-person room."
-  },
-  {
-   "term": "synchronized",
-   "def": "Java's built-in way to use a lock: synchronized (room4) { ... } takes room 4's lock, runs the block, and lets go at the end. If the lock is taken, it waits with no time limit."
-  },
-  {
-   "term": "Job",
-   "def": "A piece of work the server runs, by itself on a schedule (housekeeping at 03:00) or when someone asks (checkout at the kiosk)."
-  },
-  {
-   "term": "In progress",
-   "def": "What the admin screen shows for a job that has started and not finished. A deadlocked job shows it forever."
-  },
-  {
-   "term": "Deadlock",
-   "def": "Threads that each hold a lock another one needs, all waiting, so none can ever move on. Like two people in a narrow corridor, each waiting for the other to step back."
-  },
-  {
-   "term": "Thread dump",
-   "def": "A printout of every thread in a running Java program: what it is doing, the locks it holds and the lock it waits for. Java adds a note at the end if it finds a deadlock."
-  },
-  {
-   "term": "Restart",
-   "def": "Stopping a program and starting it again. It empties every lock and forgets any work that was half done."
-  },
-  {
-   "term": "Mutual exclusion",
-   "def": "The first condition for a deadlock: a lock has at most one holder at a time. It's the reason locks exist, so it's the one condition you keep."
-  },
-  {
-   "term": "Hold and wait",
-   "def": "The second condition: a thread keeps a lock it already has while it waits for another one."
-  },
-  {
-   "term": "No preemption",
-   "def": "The third condition: nothing can take a lock away from its holder; only the holder can let go."
-  },
-  {
-   "term": "Circular wait",
-   "def": "The fourth condition: the waiting forms a ring. A waits for B, and B waits for A, or a longer loop back to the start."
-  },
-  {
-   "term": "Watchdog",
-   "def": "A small timer that checks a program is still making progress and restarts it if not. It recovers from a hang; it doesn't remove the cause."
-  },
-  {
-   "term": "Timeout",
-   "def": "A limit on how long to wait. A lock with a two-second timeout gives up and says no after two seconds instead of waiting forever."
-  },
-  {
-   "term": "Retry",
-   "def": "Starting a piece of work again after it failed or gave up. Here, a job that times out lets go of its locks and starts again from its first lock."
-  },
-  {
-   "term": "ReentrantLock and tryLock",
-   "def": "A Java lock you take and release by hand. tryLock(2, SECONDS) waits up to two seconds, then returns false if the lock is still taken, so the code can give up."
-  },
-  {
-   "term": "Wait-for graph",
-   "def": "A drawing of which thread waits for which: an arrow from each waiting thread to the thread holding the lock it wants. A loop in it is a deadlock."
-  },
-  {
-   "term": "Lock ordering",
-   "def": "Agreeing one order for taking locks, such as room before guest, then lower number first, and making every piece of code follow it. The ring of waits can't form."
-  },
-  {
-   "term": "Livelock",
-   "def": "Threads that keep reacting to each other, giving up and retrying, so they stay busy but never finish. Like two people stepping aside the same way in a corridor, again and again."
-  },
-  {
-   "term": "Random pause (backoff)",
-   "def": "Waiting a short random time before a retry, so two threads that failed together don't try again at the same moment."
-  },
-  {
-   "term": "ThreadMXBean.findDeadlockedThreads",
-   "def": "A Java call that asks the running program which threads are stuck in a deadlock and returns their ids, or null if none are. Safe to call on a schedule for an alarm."
-  },
-  {
-   "term": "Java runtime",
-   "def": "The program that runs Java code and keeps track of its threads and locks. It is what notices a deadlock in a thread dump."
-  },
-  {
-   "term": "Page (someone)",
-   "def": "Send an urgent alert to a person's phone so they wake up and look."
-  },
-  {
-   "term": "Priority",
-   "def": "How urgent a thread is. When several are ready, a scheduler usually runs the highest-priority one first."
-  },
-  {
-   "term": "Scheduler",
-   "def": "The part of an operating system that decides which ready thread runs next, often by priority, and can pause a running one for a more urgent one."
-  },
-  {
-   "term": "Preempt",
-   "def": "To pause a running thread so another, usually more urgent one, can run. A lock isn't taken away when its holder is preempted."
-  },
-  {
-   "term": "Priority inversion",
-   "def": "An urgent thread waits for a lock held by an unimportant one, while middling threads keep the unimportant one from running, so the urgent work waits behind less urgent work."
-  },
-  {
-   "term": "Priority inheritance",
-   "def": "A fix for priority inversion: while a thread holds a lock a more urgent thread wants, it runs at that thread's priority, finishes its work and lets go."
-  },
-  {
-   "term": "Mutual exclusion semaphore",
-   "def": "The name VxWorks uses for its lock. Mars Pathfinder's was created without priority inheritance."
-  },
-  {
-   "term": "VxWorks",
-   "def": "An operating system from Wind River for machines that must react on time, such as spacecraft. Mars Pathfinder's computer ran it."
-  },
-  {
-   "term": "COTS",
-   "def": "Short for commercial off-the-shelf: bought-in software or parts rather than ones built for the job. Reeves's warning was to know how they work."
-  },
-  {
-   "term": "Transaction",
-   "def": "A group of database changes that all count together or not at all (s3e02). Each transaction holds its row locks until it ends."
-  },
-  {
-   "term": "Deadlock victim",
-   "def": "The transaction a database cancels to break a deadlock, so the other can go on. It's undone completely, so trying it again is safe (s3e02)."
-  },
-  {
-   "term": "deadlock_timeout",
-   "def": "How long PostgreSQL lets a transaction wait on a lock before checking for a deadlock. The default is one second."
-  },
-  {
-   "term": "Build Night",
-   "def": "A hands-on project evening in this course, where you build or fix part of a real program. G5 unlocks after s5e01 and s5e02."
-  },
-  {
-   "term": "SOC 2",
-   "def": "An audit report, written by an outside checker, on a company's controls against the AICPA's Trust Services Criteria. Availability is one optional category."
-  },
-  {
-   "term": "SOC 2 A1.1",
-   "def": "The availability criterion that asks a company to maintain, monitor and evaluate current processing capacity and use of system components."
-  }
- ],
- "atWork": "Look for two services or two jobs that change the same pair of records in opposite orders. A common pattern: a billing job locks a customer's account and then the invoice, while a refund path locks the invoice and then the account. Each works alone for months, and the first busy night they meet, both stop. Read-only access is enough to check. List every place that takes two locks, in code or in a database transaction, and write down the order each one uses; any pair that disagrees is a deadlock waiting for its night. In a Java service, run jstack against a stuck process to get a thread dump, or schedule a call to ThreadMXBean.findDeadlockedThreads and alert when it returns anything. In a database, read its deadlock log: PostgreSQL logs every deadlock it breaks. Build Night G5 (unlocks after s5e01 and s5e02) asks you to prove the gatekeeper proxy is free of race conditions under load; while you review every piece of shared state, note the order wherever code takes two locks, and make it one order. If your company is pursuing SOC 2 with the availability category, criterion A1.1 expects it to maintain, monitor and evaluate current processing capacity and use of system components. Threads stuck in a deadlock are capacity in use for nothing, so build the alarm in now rather than at audit time.",
- "board": {
-  "cards": [
-   {
-    "id": "deadlocks",
-    "title": "Deadlocks"
-   },
-   {
-    "id": "lock-ordering",
-    "title": "Lock ordering"
-   },
-   {
-    "id": "priority-inversion",
-    "title": "Priority inversion"
-   }
-  ],
-  "strings": [
-   {
-    "from": "deadlocks",
-    "to": "locks",
-    "label": "two locks, a ring"
-   },
-   {
-    "from": "deadlocks",
-    "to": "threads",
-    "label": "threads wait"
-   },
-   {
-    "from": "lock-ordering",
-    "to": "deadlocks",
-    "label": "prevents it"
-   },
-   {
-    "from": "deadlocks",
-    "to": "optimistic-vs-pessimistic-locking",
-    "label": "a DB breaks it"
-   },
-   {
-    "from": "priority-inversion",
-    "to": "locks",
-    "label": "low task holds it"
-   }
-  ]
- },
- "recall": [
-  {
-   "id": "s5e02-r1",
-   "kind": "free",
-   "prompt": "Your team's order service runs two background jobs. One locks a customer's account, then their latest order. The other locks the order, then the account. Twice this month both jobs froze at the same moment and stayed frozen until someone restarted the service. What is happening, and what do you change?",
-   "keyIdeas": [
-    {
-     "idea": "A deadlock: each job holds one lock and waits for the one the other holds, in a ring",
-     "match": [
-      "deadlock",
-      "circular wait",
-      "waiting for each other",
-      "wait for each other",
-      "waits for the other",
-      "each holds",
-      "each one holds"
-     ]
-    },
-    {
-     "idea": "Make every job take its locks in one agreed order, such as account before order",
-     "match": [
-      "same order",
-      "one order",
-      "fixed order",
-      "global order",
-      "consistent order",
-      "lock order",
-      "agreed order"
-     ]
-    },
-    {
-     "idea": "Add detection so the next one is seen at once: a thread dump or findDeadlockedThreads check with an alert, or timed locks as a backstop",
-     "match": [
-      "finddeadlockedthreads",
-      "thread dump",
-      "detect",
-      "trylock",
-      "jstack",
-      "alert"
-     ]
-    }
-   ],
-   "model": "It's a deadlock. The two jobs take the same two locks in opposite orders, so when they run at the same moment each holds one and waits for the one the other holds, and neither can ever move. A restart only clears it until the next time they meet. Change one job so both take the locks in the same order, account before order, and make that one order the rule for every piece of code that takes both. Then add detection: schedule a findDeadlockedThreads check (or take a thread dump) and alert when it finds a loop, so if someone breaks the rule you hear about it in a minute, not at the next restart."
-  },
-  {
-   "id": "s5e02-r2",
-   "kind": "mcq",
-   "prompt": "Every job at the Pomfret now takes room 4's lock before the guest's. Which of the four conditions for a deadlock does that remove?",
-   "options": [
-    "Mutual exclusion",
-    "Hold and wait",
-    "No preemption",
-    "Circular wait"
-   ],
-   "answer": 3,
-   "why": "Jobs still hold one lock while waiting for the next, nothing takes a lock away, and each lock still has one holder. What can't happen is a ring: a thread that holds the guest's lock already holds room 4's, so nobody holding the guest's lock can be waiting for room 4's."
-  },
-  {
-   "id": "s5e02-r3",
-   "kind": "free",
-   "prompt": "A spacecraft computer runs an urgent data-handling task that must finish every cycle, a low-urgency weather task, and several tasks of middling urgency. The urgent task keeps missing its deadline and the computer resets, though each task works correctly on its own. Explain how the weather task can hold up the urgent one, and what single setting fixes it.",
-   "keyIdeas": [
-    {
-     "idea": "The low-priority task holds a lock the high-priority task needs, so the high one waits for it",
-     "match": [
-      "holds a lock",
-      "holds the lock",
-      "holding a lock",
-      "holding the lock",
-      "shared resource",
-      "semaphore",
-      "mutex"
-     ]
-    },
-    {
-     "idea": "Medium-priority tasks keep preempting the low one, so it can't finish and let go: priority inversion",
-     "match": [
-      "inversion",
-      "medium",
-      "preempting",
-      "preempted",
-      "never gets to run",
-      "can't run",
-      "cannot run"
-     ]
-    },
-    {
-     "idea": "Priority inheritance: the lock holder temporarily runs at the waiting task's priority",
-     "match": [
-      "inherit",
-      "borrows",
-      "raised to",
-      "raise its priority",
-      "boost"
-     ]
-    }
-   ],
-   "model": "The weather task takes a lock, a semaphore guarding a shared resource, that the urgent task also needs. When the urgent task asks for it, it has to wait until the weather task lets go. But the weather task has low priority, so the medium tasks keep preempting it, and it can't run long enough to finish and release the lock. The urgent task ends up waiting behind work less urgent than itself: priority inversion. It misses its deadline and the computer resets. The fix is priority inheritance on that lock: while the weather task holds a lock the urgent task wants, it is boosted to the urgent task's priority, so the medium tasks can't push it aside, and it finishes and lets go quickly. That is what fixed Mars Pathfinder in 1997."
-  },
-  {
-   "id": "s5e02-r4",
-   "kind": "mcq",
-   "prompt": "Two jobs lock the same two records in opposite orders. Both use tryLock with a two-second timeout and, on failure, let go and retry at once with no pause. Tonight they start in the same tenth of a second. What happens?",
-   "options": [
-    "One finishes after about three seconds, then the other",
-    "They give up together and collide again every few seconds, and neither finishes",
-    "Java spots the loop and cancels one of them",
-    "Both finish after two seconds"
-   ],
-   "answer": 1,
-   "why": "Starting together, they take their first locks together, wait together, time out together and retry together, so the same deadlock forms every cycle: a livelock. A random pause before each retry lets them drift apart; one lock order stops the loop forming at all. Java can report a loop but doesn't cancel anything."
-  }
- ],
- "coldCase": {
-  "update": "UPDATE, 4 months later. The one order has held: room before guest, everywhere, and not one loop since. Last week Dumitru added a feature to merge two duplicate guest records into one. It locks the record being kept, then the record being merged into it. On Tuesday at 23:14 the desk merged guest 1182 into 1190 while the booking line, at the same moment, merged 1190 into 1182. Both screens froze. This time the alarm paged Dumitru within a minute, and the thread dump showed one more loop.",
-  "prompt": "Reply to OP. Why did the merges deadlock when every job follows room before guest, and what rule should Dumitru add?",
-  "keyIdeas": [
-   {
-    "idea": "Both locks are guest locks, so room-before-guest says nothing about their order; the two merges took them in opposite orders",
-    "match": [
-     "both guest",
-     "two guest",
-     "same kind",
-     "same type",
-     "opposite order",
-     "doesn't cover",
-     "does not cover"
-    ]
-   },
-   {
-    "idea": "Order locks of the same kind by a fixed key, such as the lower guest number first",
-    "match": [
-     "lowest",
-     "lower number",
-     "smaller number",
-     "smallest",
-     "by number",
-     "ascending",
-     "numeric order"
-    ]
-   },
-   {
-    "idea": "The merge knows both ids before it starts, so it can sort them and lock in that order regardless of which is kept",
-    "match": [
-     "sort",
-     "before taking",
-     "before locking",
-     "up front",
-     "in advance",
-     "regardless of which"
-    ]
-   }
-  ],
-  "model": "Room before guest only orders locks of different kinds. A merge takes two guest locks, the same kind, and each merge locked the kept record first, so the desk took 1190 then 1182 while the booking line took 1182 then 1190: opposite orders, a ring again. Add a rule for locks of the same kind: lower number first. The merge knows both ids before it starts, so it should sort them and take 1182 then 1190 regardless of which record is kept. Then both merges line up behind the same first lock, one waits a moment, and no loop can form. Keep the alarm; it's what turned this one into a page within a minute."
- },
- "next": "Next, The Event Loop: a one-waiter restaurant, and async and await, the event loop, and what happens when one slow task blocks it.",
- "sources": [
-  {
-   "title": "Glenn E. Reeves, Mars Pathfinder flight software cognizant engineer, reply to \"What really happened on Mars?\", email of 15 December 1997 (copy hosted by the University of North Carolina)",
-   "url": "https://www.cs.unc.edu/~anderson/teach/comp790/papers/mars_pathfinder_long_version.html"
-  },
-  {
-   "title": "Mike Jones, What Happened on Mars? (email of 5 December 1997 summarising David Wilner's talk; copy hosted at Carnegie Mellon University)",
-   "url": "https://www.cs.cmu.edu/afs/cs/user/raj/www/mars.html"
-  },
-  {
-   "title": "Oracle, Java SE 21 API: java.lang.management.ThreadMXBean (findDeadlockedThreads)",
-   "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.management/java/lang/management/ThreadMXBean.html"
-  },
-  {
-   "title": "Oracle, Java SE 21 API: java.util.concurrent.locks.ReentrantLock (tryLock with a timeout)",
-   "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/ReentrantLock.html"
-  },
-  {
-   "title": "Oracle, Java SE 17 Troubleshooting Guide: Troubleshoot Process Hangs and Loops (Deadlock Detected)",
-   "url": "https://docs.oracle.com/en/java/javase/17/troubleshoot/troubleshoot-process-hangs-and-loops.html"
-  },
-  {
-   "title": "PostgreSQL Documentation (current): Lock Management, deadlock_timeout",
-   "url": "https://www.postgresql.org/docs/current/runtime-config-locks.html"
-  },
-  {
-   "title": "PostgreSQL Documentation (current): Explicit Locking, Deadlocks",
-   "url": "https://www.postgresql.org/docs/current/explicit-locking.html"
-  },
-  {
-   "title": "AICPA, 2017 Trust Services Criteria (with revised points of focus, 2022), availability criterion A1.1",
-   "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
-  }
- ]
 }

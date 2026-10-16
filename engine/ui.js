@@ -1,9 +1,15 @@
-/* engine/ui-v1.2.5.js
+/* engine/ui-v1.2.6.js
    Dead Letter UI (DL.ui): the shell, router wiring and every view. Published as engine/ui.js.
    Contract: docs/dead-letter-engine-contract-v1.1.0.md, sections 6 and 9.9. Needs engine/core-v1.2.0.js (the merged
    catalog, state v2, DL.builds, DL.credits, decision cards; DL.sync, DL.prompts and the #interview/<id> route from
-   v1.1). Styles: index-v1.1.0.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
+   v1.1). Styles: index-v1.2.0.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
    CHANGELOG
+   v1.2.6 (2026-10-17) UI and UX pass: Seasons rows drop the repeated course chip, the 'core' chip and the 'ready'
+        chip (a row shows a 'bonus' chip, a state chip only when it is not ready, or its done chip); each season is a
+        collapsible block with a progress bar and an 'N of M closed' count, open by default only for the season you
+        are in (your toggles are kept for the visit in S.seasonOpen, which a progress event does not clear); each course head shows its core progress;
+        the Evidence board's empty state is a panel with a link to Tonight. Needs index-v1.2.0.html for the new
+        styles.
    v1.2.5 (2026-10-16) the 3 AM Interview room and the text-only interview name the interview's own course and subject
         (LATENT finales no longer say Dead Letter or system design): fillRoom fills {{COURSE}} and {{SUBJECT}} from the
         course (courses-v1.0.2.json `subject`; fallback by id: dl system design, lt AI engineering), and
@@ -2258,9 +2264,8 @@
         kind ? h("span", { class: "si-kind", text: kind }) : null
       ]),
       h("div", { class: "chips" }, [
-        courseChip(info.course),
-        h("span", { class: "chip" + (info.core ? " core" : ""), text: info.core ? "core" : "bonus" }),
-        done ? h("span", { class: "chip ok", text: doneText }) : h("span", { class: "chip", text: stateText })
+        info.core ? null : h("span", { class: "chip", text: "bonus" }),
+        done ? h("span", { class: "chip ok", text: doneText }) : ready ? null : h("span", { class: "chip", text: stateText })
       ])
     ]);
   }
@@ -2284,36 +2289,54 @@
       var doneAll = items.filter(function (it) { return isDone(it.id); }).length;
       var solved = coreItems.length > 0 && coreItems.every(function (it) { return isDone(it.id); });
       var here = !solved && se.n === current;
+      var key = cid + ":" + se.n;
+      var openMap = S.seasonOpen || (S.seasonOpen = {});
+      var isOpen = hasOwn(openMap, key) ? !!openMap[key] : here;
+      var pct = items.length ? Math.round(doneAll * 100 / items.length) : 0;
       var chip = solved ? h("span", { class: "chip ok", text: "Solved" })
         : here ? h("span", { class: "chip warn", text: "You are here" })
-        : h("span", { class: "chip", text: doneAll ? doneAll + " of " + items.length + " closed" : plural(items.length, "session") });
-      list.appendChild(h("li", { class: "season-block" + (solved ? " solved" : here ? " here" : "") }, [
-        h("div", { class: "season-head" }, [
-          h("span", { class: "s-n", text: "S" + se.n }),
-          h("div", null, [
-            h(withHead ? "h3" : "h2", { md: se.title || "Season " + se.n }),
-            se.rank ? h("p", { class: "s-rank", text: se.rank }) : null,
-            se.blurb ? h("p", { class: "s-blurb", md: se.blurb }) : null
-          ]),
-          chip
+        : h("span", { class: "chip", text: items.length ? doneAll + " of " + items.length + " closed" : "being written" });
+      var bar = h("span", { class: "s-prog-fill" });
+      bar.style.width = pct + "%";
+      var prog = h("div", { class: "s-prog", role: "img", "aria-label": doneAll + " of " + items.length + " closed" }, bar);
+      var summary = h("summary", { class: "season-head" }, [
+        h("span", { class: "s-n", text: "S" + se.n }),
+        h("div", null, [
+          h(withHead ? "h3" : "h2", { md: se.title || "Season " + se.n }),
+          se.rank ? h("p", { class: "s-rank", text: se.rank }) : null,
+          se.blurb ? h("p", { class: "s-blurb", md: se.blurb }) : null,
+          prog
         ]),
-        items.length ? h("ul", { class: "season-items" }, items.map(seasonItem))
-          : h("p", { class: "season-empty", text: "Cases for this season are being written." })
-      ]));
+        chip
+      ]);
+      var body = items.length ? h("ul", { class: "season-items" }, items.map(seasonItem))
+        : h("p", { class: "season-empty", text: "Cases for this season are being written." });
+      var det = h("details", { class: "season-det" }, [summary, body]);
+      if (isOpen) det.open = true;
+      det.addEventListener("toggle", function () { openMap[key] = det.open; });
+      list.appendChild(h("li", { class: "season-block" + (solved ? " solved" : here ? " here" : "") }, det));
     });
     if (groups[0] && groups[0].length) {
-      list.appendChild(h("li", { class: "season-block" }, [
-        h("div", { class: "season-head" }, [h("span", { class: "s-n", text: "+" }), h("div", null, h(withHead ? "h3" : "h2", { text: "More sessions" }))]),
+      var moreKey = cid + ":0";
+      var moreMap = S.seasonOpen || (S.seasonOpen = {});
+      var moreDet = h("details", { class: "season-det" }, [
+        h("summary", { class: "season-head" }, [h("span", { class: "s-n", text: "+" }), h("div", null, h(withHead ? "h3" : "h2", { text: "More sessions" }))]),
         h("ul", { class: "season-items" }, groups[0].map(seasonItem))
-      ]));
+      ]);
+      if (hasOwn(moreMap, moreKey) && moreMap[moreKey]) moreDet.open = true;
+      moreDet.addEventListener("toggle", function () { moreMap[moreKey] = moreDet.open; });
+      list.appendChild(h("li", { class: "season-block" }, moreDet));
     }
     if (!withHead) return list;
     var hid = nextId("course");
+    var coreAll = courseSessions(planOf(), cid).filter(function (it) { return it.kind !== "build"; });
+    var coreDone = coreAll.filter(function (it) { return isDone(it.id); }).length;
     return h("section", { class: "course-group", "data-course": cid, "aria-labelledby": hid }, [
       h("header", { class: "course-head" }, [
         h("h2", { id: hid, text: course.title || cid }),
         course.board ? h("span", { class: "course-board", text: course.board }) : null,
-        course.tagline ? h("p", { class: "course-tag", text: course.tagline }) : null
+        course.tagline ? h("p", { class: "course-tag", text: course.tagline }) : null,
+        h("p", { class: "course-prog", text: coreDone + " of " + coreAll.length + " sessions on your plan closed" })
       ]),
       list
     ]);
@@ -2750,9 +2773,13 @@
     ctx.root.appendChild(sec);
     var ids = doneCaseIds();
     if (!ids.length) {
-      sec.appendChild(h("p", { class: "muted", text: note
-        ? "Nothing pinned from " + courseTitle(S.board) + " yet. Close one of its cases and its cards go up here."
-        : "Nothing pinned yet. Close your first case and its cards go up here." }));
+      sec.appendChild(h("div", { class: "empty-state" }, [
+        h("p", { class: "empty-title", text: "No evidence yet" }),
+        h("p", { class: "muted", text: note
+          ? "Nothing pinned from " + courseTitle(S.board) + " yet. Close one of its cases and its cards go up here."
+          : "Nothing pinned yet. Close your first case and its cards go up here." }),
+        h("div", { class: "btn-row" }, link("Open tonight's shift", "tonight", "btn btn-primary"))
+      ]));
       return null;
     }
     var loading = h("p", { class: "loading", role: "status", text: "Pinning the cards..." });

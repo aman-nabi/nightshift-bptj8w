@@ -1,1017 +1,1023 @@
 {
- "_changelog": [
-  "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
-  "v1.0.0 (2026-10-11) first version"
- ],
- "id": "s3e17",
- "season": 3,
- "n": 17,
- "title": "Field Report: A Million Writes a Second",
- "setting": "the Netflix TechBlog archive",
- "core": false,
- "minutes": 12,
- "concepts": [
-  "cassandra-on-aws",
-  "benchmarking-a-database-before-you-trust-it",
-  "growing-a-cluster-from-48-to-288-nodes",
-  "checking-that-throughput-grows-in-a-straight-line"
- ],
- "prerequisites": [
-  "s3e06",
-  "s3e08",
-  "s3e09",
-  "s3e13",
-  "s3e04",
-  "s1e01",
-  "s1e02",
-  "s1e06",
-  "s1e07",
-  "s1e10",
-  "s1e12",
-  "s2e01",
-  "s2e03",
-  "s2e08",
-  "s2e09",
-  "s2e13",
-  "s2e15",
-  "s2e16"
- ],
- "rule": null,
- "post": {
-  "author": "u/night_desk_malvina",
-  "flair": "Field Report",
-  "age": "8h",
-  "votes": 3204,
-  "title": "I keep the night desk at a water utility. Our database was sized from a Netflix post from 2011. This morning's report says the whole east bank used no water overnight, the hospital included.",
-  "blocks": [
-   {
-    "t": "p",
-    "text": "I keep the night desk at Cressbeck Water. Each of our 1.2 million smart meters, water meters that send in their own readings, sends us its day once a night: 96 rows (records), one for every 15 minutes. Since the diagnostics firmware, a new version of the meters' built-in program, finished rolling out on Tuesday, a row is about 4 KB: four thousand bytes, a byte being about one typed letter. It carries pressure, battery and event flags as well as litres; it used to be about 2 KB. On a night with pressure events it runs nearer 8 KB."
-   },
-   {
-    "t": "p",
-    "text": "The meters report through 32 gateways, radio boxes on poles around town. The head-end, the system that collects every upload, wakes them in this order:"
-   },
-   {
-    "t": "note",
-    "title": "HEAD-END UPLOAD ORDER",
-    "items": [
-     "02:00 SHARP: G01 TO G23, WEST AND CENTRE. 862,500 METERS.",
-     "02:30: G24 TO G32, THE EAST BANK. 337,500 METERS.",
-     "EACH GATEWAY: 2,000 ROWS A SECOND FOR 30 MINUTES."
+  "_changelog": [
+    "v1.1.1 (2026-10-17) the Cassandra 0.8.6 quote is now sourced to the Netflix post that says it; the 5.0 docs line has its own item",
+    "v1.1.0 (2026-10-14) plain-language pass: every technical word explained where it first appears; options in plain words",
+    "v1.0.0 (2026-10-11) first version"
+  ],
+  "id": "s3e17",
+  "season": 3,
+  "n": 17,
+  "title": "Field Report: A Million Writes a Second",
+  "setting": "the Netflix TechBlog archive",
+  "core": false,
+  "minutes": 12,
+  "concepts": [
+    "cassandra-on-aws",
+    "benchmarking-a-database-before-you-trust-it",
+    "growing-a-cluster-from-48-to-288-nodes",
+    "checking-that-throughput-grows-in-a-straight-line"
+  ],
+  "prerequisites": [
+    "s3e06",
+    "s3e08",
+    "s3e09",
+    "s3e13",
+    "s3e04",
+    "s1e01",
+    "s1e02",
+    "s1e06",
+    "s1e07",
+    "s1e10",
+    "s1e12",
+    "s2e01",
+    "s2e03",
+    "s2e08",
+    "s2e09",
+    "s2e13",
+    "s2e15",
+    "s2e16"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/night_desk_malvina",
+    "flair": "Field Report",
+    "age": "8h",
+    "votes": 3204,
+    "title": "I keep the night desk at a water utility. Our database was sized from a Netflix post from 2011. This morning's report says the whole east bank used no water overnight, the hospital included.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I keep the night desk at Cressbeck Water. Each of our 1.2 million smart meters, water meters that send in their own readings, sends us its day once a night: 96 rows (records), one for every 15 minutes. Since the diagnostics firmware, a new version of the meters' built-in program, finished rolling out on Tuesday, a row is about 4 KB: four thousand bytes, a byte being about one typed letter. It carries pressure, battery and event flags as well as litres; it used to be about 2 KB. On a night with pressure events it runs nearer 8 KB."
+      },
+      {
+        "t": "p",
+        "text": "The meters report through 32 gateways, radio boxes on poles around town. The head-end, the system that collects every upload, wakes them in this order:"
+      },
+      {
+        "t": "note",
+        "title": "HEAD-END UPLOAD ORDER",
+        "items": [
+          "02:00 SHARP: G01 TO G23, WEST AND CENTRE. 862,500 METERS.",
+          "02:30: G24 TO G32, THE EAST BANK. 337,500 METERS.",
+          "EACH GATEWAY: 2,000 ROWS A SECOND FOR 30 MINUTES."
+        ],
+        "sig": "- taped to the desk"
+      },
+      {
+        "t": "p",
+        "text": "That's 115.2 million rows between 02:00 and 04:00, and 46,000 a second from 02:00. They go into Cassandra, a database that spreads its rows over many computers, called nodes, and keeps three copies of each row. Together the nodes are a cluster."
+      },
+      {
+        "t": "p",
+        "text": "In 2023 Ansgar, who built the system, sized our cluster from a printout still pinned by the screen: \"Benchmarking Cassandra Scalability on AWS - Over a million writes per second\", from the Netflix Tech Blog, 2 November 2011. Netflix ran \"a workload of 1.1 million client writes per second\" on 288 instances (computers rented from Amazon), 96 in each of three availability zones (separate buildings), and \"the throughput scaled linearly\" from 48 to 288: the writes done a second, the throughput, grew in step with the nodes. Ansgar's margin: 1,100,000 / 288 = 3,819 a node. 46,000 needed. 12 nodes. Even on the printout's numbers, 12 nodes make 45,833, a hair under our peak. He wrote \"close enough\"."
+      },
+      {
+        "t": "p",
+        "text": "So we have 12 nodes, all in the server room under the pumping station. Each write waits until two of the three copies are saved, a setting called LOCAL_QUORUM. So the control room's dashboards, our operators' screens, always see the latest readings. They read all night. Ansgar left in the spring."
+      },
+      {
+        "t": "p",
+        "text": "Here is last night's log. Each line shows the time, the system that wrote it, and what happened. Cassandra saves new rows to disk as files called SSTables, and a tidy-up called compaction later merges them; files still waiting are its backlog. A GB is a billion bytes. A batch is one meter's 96 rows:"
+      },
+      {
+        "t": "log",
+        "text": "02:00:00  head-end   G01-G23 awake. 46,000 rows/s offered, 46,000 written\n02:30:00  cassandra  63.2 GB of SSTables per node waiting for compaction\n02:30:00  head-end   G24-G32 awake. 18,000 rows/s offered, 0 written\n02:40:00  head-end   first batches timed out after 10 min. meters retrying\n03:39:00  head-end   last retries failed. 337,500 batches dropped, all G24-G32\n03:58:00  cassandra  compaction caught up. writes resumed"
+      },
+      {
+        "t": "beat",
+        "text": "At 06:00 the morning report printed. Every house on the east bank used 0 litres overnight. So did Cressbeck General. No one washed, no one flushed, no ward tap ran. A town of ghosts, on paper."
+      },
+      {
+        "t": "p",
+        "text": "Nobody vanished. The report sums each meter's readings and prints 0 when there are none; it can't tell an empty house from a missing batch. The east bank's meters woke at 02:30 and sent their days, and nothing wrote them down. The board meets on Friday, and Ansgar's sheet is all they have. What do I tell them to change?"
+      },
+      {
+        "t": "evidence",
+        "label": "netflix_techblog_2011-11-02_cassandra.png",
+        "diagram": {
+          "type": "arch",
+          "w": 740,
+          "h": 400,
+          "aria": "Netflix's 2011 Cassandra benchmark, redrawn from the post. 60 stress clients, m2.4xl instances in one zone, send 1.1 million client writes a second. The cluster is 288 m1.xl nodes running Cassandra 0.8.6, 96 in each of three US-East availability zones, and each zone holds one copy of every row. Consistency ONE. Each write is 10 columns of 10 bytes, about 400 bytes on disk. A write-only test of about ten minutes, run once.",
+          "groups": [
+            {
+              "label": "US-East zone 1",
+              "x": 15,
+              "y": 140,
+              "w": 230,
+              "h": 200
+            },
+            {
+              "label": "US-East zone 2",
+              "x": 255,
+              "y": 140,
+              "w": 230,
+              "h": 200
+            },
+            {
+              "label": "US-East zone 3",
+              "x": 495,
+              "y": 140,
+              "w": 230,
+              "h": 200
+            }
+          ],
+          "nodes": [
+            {
+              "id": "cli",
+              "label": "60 stress clients",
+              "sub": "m2.4xl, in one zone",
+              "meta": "1.1 million writes/s",
+              "x": 370,
+              "y": 60,
+              "w": 240,
+              "h": 70,
+              "shape": "box",
+              "tone": "accent"
+            },
+            {
+              "id": "z1",
+              "label": "96 m1.xl nodes",
+              "sub": "Cassandra 0.8.6",
+              "meta": "a copy of every row",
+              "x": 130,
+              "y": 255,
+              "w": 190,
+              "h": 80,
+              "shape": "db",
+              "tone": "ok"
+            },
+            {
+              "id": "z2",
+              "label": "96 m1.xl nodes",
+              "sub": "Cassandra 0.8.6",
+              "meta": "a copy of every row",
+              "x": 370,
+              "y": 255,
+              "w": 190,
+              "h": 80,
+              "shape": "db",
+              "tone": "ok"
+            },
+            {
+              "id": "z3",
+              "label": "96 m1.xl nodes",
+              "sub": "Cassandra 0.8.6",
+              "meta": "a copy of every row",
+              "x": 610,
+              "y": 255,
+              "w": 190,
+              "h": 80,
+              "shape": "db",
+              "tone": "ok"
+            }
+          ],
+          "edges": [
+            {
+              "from": "cli",
+              "to": "z1"
+            },
+            {
+              "from": "cli",
+              "to": "z2"
+            },
+            {
+              "from": "cli",
+              "to": "z3"
+            },
+            {
+              "from": "z1",
+              "to": "z2",
+              "dash": true,
+              "tone": "muted"
+            },
+            {
+              "from": "z2",
+              "to": "z3",
+              "dash": true,
+              "tone": "muted"
+            }
+          ],
+          "notes": [
+            {
+              "x": 20,
+              "y": 365,
+              "text": "Consistency ONE. 10 columns of 10 bytes a row, about 400 bytes on disk.",
+              "tone": "muted",
+              "anchor": "start"
+            },
+            {
+              "x": 20,
+              "y": 387,
+              "text": "Write-only, about ten minutes, run once. Redrawn from the post, 2 November 2011.",
+              "tone": "muted",
+              "anchor": "start"
+            }
+          ]
+        },
+        "caption": "The post's test, redrawn and simplified. 288 m1.xl instances, 96 in each of three availability zones, and 60 more running the stress tool: 1.1 million client writes a second, \"a total of 3.3 million writes per second across the cluster\" once each row's three copies are counted. The same test at 48, 96, 144 and 288 instances, with 10, 20, 30 and 60 clients, \"scaled linearly\". Writes used consistency \"ONE\"; with \"LOCAL QUORUM\", the post adds, \"the work done by the Cassandra cluster is essentially the same\"."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 127,
+      "age": "7h",
+      "text": "Three words, then questions. A benchmark is a test that runs a known load against a system and measures what it does, so you can predict what it will do under yours. Per-node rate is the work each node does a second; a cluster's total is that times the nodes. And the backlog in your log is compaction debt. A Cassandra write goes in steps: first it lands in the commit log on disk and in memory, and counts as saved. When memory fills, it's flushed: written out as a new SSTable. Later, compaction reads several SSTables, merges them into one, and deletes the old ones. If files arrive faster than compaction merges them, the unmerged ones pile up, work each node still owes its disks. Now the printout. Ansgar divided writes by nodes. How big is one of the post's writes on disk, and how big is one of yours? Each copy lands on some node: count what lands on one of theirs and one of yours a second, in rows and then in bytes. The post's test ran for about ten minutes. What was your backlog doing at 02:10, and what was it doing at 02:30?",
+      "replies": [
+        {
+          "author": "u/night_desk_malvina",
+          "op": true,
+          "points": 41,
+          "age": "6h",
+          "text": "I pulled the head-end's lines for the hospital's meter. 02:30:00, sent. 02:40:00, timed out, retry 1 of 3. 02:50:00, retry 2 of 3. 03:00:00, retry 3 of 3. 03:10:00, dropped. Their facilities manager rang at 07:10. Their own gauge says the wards ran water all night. Ours says nobody was there."
+        }
+      ]
+    },
+    {
+      "author": "u/straight_line_ossian",
+      "points": 88,
+      "age": "6h",
+      "text": "Netflix proved it's linear, a straight line: each node you add does the same work as the others. So just add nodes. They went from 48 to 288 and the line never bent, and they say themselves the benchmark should be \"reproducible by anyone\". Your 12 were short of the peak by their own maths, 45,833 against 46,000, with nothing spare. Double it to 24 and you have 91,667 a second, twice what the meters can throw at you. Compaction and consistency and the rest are details inside the line. The graph is the graph."
+    },
+    {
+      "author": "u/ack_at_one_ebba",
+      "points": 63,
+      "age": "5h",
+      "text": "Look at the setting nobody copied. A consistency level says how many copies must confirm a write before the writer is told it worked. The post wrote at consistency ONE: a write is \"acknowledged when one node has acknowledged the data\" (confirmed by one node). You write at LOCAL_QUORUM, so every write waits for two of the three copies, and on a busy night that second copy is the one that keeps you waiting past the timeout. Drop to ONE like Netflix did and each write comes back as soon as the first copy lands. A dashboard can live with a reading a few seconds old."
+    },
+    {
+      "author": "u/firmware_pruett",
+      "points": 47,
+      "age": "5h",
+      "text": "Firmware is the small program built into every meter, and a firmware push sends a new version to all of them over the network, a gateway at a time. You just did one for diagnostics. Do another that changes the wake time: let each meter pick its own minute between 02:00 and 04:00. 115.2 million rows over two hours is 16,000 a second, about a third of your 02:00 peak. No new servers, and no more cliff at 02:00."
+    }
+  ],
+  "reply": {
+    "prompt": "On Friday the board decides what to change before next Thursday's upload. What should Malvina tell them? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Double the cluster to 24 nodes, since the Netflix post shows throughput grows in a straight line as nodes are added.",
+        "tone": "bad",
+        "verdict": "Works this week, measures nothing",
+        "part2": "The board approved 12 more nodes, and they joined the ring, Cassandra's circle that shares the rows out, by Wednesday, in the same room. Thursday's night passed. At 02:00 the meters offered 46,000 rows a second, and each node took 23.6 MB/s, megabytes (millions of bytes) a second. By 02:30 the backlog had peaked at 20.8 GB per node, a third of the stall point, the backlog at which writes stop. Every batch landed, the east bank had its water in the morning, and the board called it fixed. Ansgar's sheet now says 24 nodes carry 91,667 rows a second, twice our peak. I did the sum the sheet doesn't do. On a pressure-event night our rows run to 8 KB, and 24 nodes at 8 KB is 47.1 MB/s each, exactly what 12 nodes took at 4 KB on the night of the ghosts. I set the lab to it: the stall came at 02:30, to the minute, and the report printed the east bank at 0, the hospital with it. The pressure-event nights come when the mains decide.",
+        "senior": "The post's straight line is real: the work each node did a second held flat from 48 to 288 instances, so twice the nodes gave twice the throughput. It never said your per-node rate equals theirs. Doubling took a figure that was wrong by bytes and multiplied it by two. It happened to clear a 4 KB night, at twice the bill, with the limit still unknown. A heavier row, a longer burst or a lost node would find that limit with no warning. Measure where your own per-node line bends, then choose the count."
+      },
+      {
+        "text": "Write at consistency ONE, as the Netflix post did, so that each write returns once one copy has it instead of two.",
+        "tone": "bad",
+        "verdict": "Same work, same night",
+        "part2": "We switched the head-end to ONE on Wednesday, and Thursday ran the same as the night of the ghosts, to the minute. At 02:30 the backlog was 63.2 GB per node, past the 63 GB stall point, and every write stopped. A write at ONE still sends all three copies, and each node still has to write out and merge its share, 47.1 MB/s of it. The first batches timed out at 02:40, the east bank's were dropped from 03:10 to 03:39, and the report printed 337,500 meters at 0 again, the hospital among them. The only change was in the control room. At 02:20 two dashboards disagreed about the north reservoir for a minute, and the operator asked me which one was lying.",
+        "senior": "A consistency level decides how many copies the coordinator, the node handling the write, waits for, not how many it writes. The post says it outright: with LOCAL QUORUM \"the work done by the Cassandra cluster is essentially the same\". Each node still takes 47.1 MB/s, so the backlog and the stall are identical. ONE only shortens a write's wait while the cluster is healthy. And it gives up read-your-writes, the promise that the dashboards see a reading as soon as it's written. Keep LOCAL_QUORUM and fix the capacity, how much the cluster can carry."
+      },
+      {
+        "text": "Benchmark our own rows, 02:00 rush and dashboard reads till compaction settles; size well below the limit found.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Cassandra comes with a load-testing tool, cassandra-stress, and you describe your own table to it in a settings file called a profile. I wrote one with our table and our rows, the 4 KB ones and the 8 KB rows of a pressure-event night, with the dashboards' queries (their requests for data) running alongside. I ran it on a copy of our 12 nodes, stepping the load up 25% at a time. First the post's way, ten minutes at the peak: every step up to 94.2 MB/s per node landed every row. Then the night's shape, two hours: every row landed up to 35.3 MB/s per node at the peak, and at 47.1 only 71.9% did. That is where our line bends, and ten minutes never saw it. I sized an 8 KB night's peak to the last clean step, the highest load at which every row landed: 46,000 rows x 8 KB x 3 copies / 35.3 MB/s is 32 nodes. On a 4 KB night that is 17.7 MB/s each, half the clean step, which leaves room for repair (the nodes comparing and fixing their copies) and a lost node. The board took 32. On Thursday the backlog peaked at 10.2 GB per node, and at 06:00 every meter had its readings, the hospital's too. Afterwards I reread the printout and stopped at the commit log, the record each node writes before it confirms a write: the data \"has been written to memory in three different instances in three different availability zones\". All 32 of ours are in one room.",
+        "senior": "Only this option finds the number Ansgar guessed. Benchmark your own rows, your own burst (the rush at the peak) and your own reads, and run it until compaction shows. That gives your per-node line and the load where it bends, where adding load stops adding throughput. Size the peak below it, with room for repair, a lost node and heavier nights. It costs a week and more nodes than 24, and the answer is only as good as the load you modelled. The next risk it surfaced isn't capacity. The post's commit log was saved to disk every 10 seconds, which was safe across three buildings, and this cluster lives in one room."
+      },
+      {
+        "text": "Spread the meters' uploads across the whole night with a firmware push, so the 02:00 peak never comes back again.",
+        "tone": "warn",
+        "verdict": "Trade-off: right, slow, and still blind",
+        "part2": "The meter vendor could push new wake times a gateway at a time, with a rollback plan for each, a way to put the old version back, and quoted June. Until then every night ended like the night of the ghosts, and the morning report gained a footnote: zero may mean no data. In June each meter began waking at its own minute between 02:00 and 04:00: 16,000 rows a second, 16.4 MB/s per node, a backlog that peaked at 31.6 GB, and every batch landed. In August the mains under the reservoir began to fail, and the meters sent their 8 KB pressure-event rows: 32.8 MB/s per node, the stall at 02:51, and 500,000 meters at 0 the next morning, scattered over every gateway, a street here and a house there. The hospital had its readings that night. We still don't know what our cluster can carry.",
+        "senior": "Spreading the uploads is a real fix and the cheapest per night: the same rows over two hours never pile up at 02:00, so keep it on the list. But it takes months to ship to 1.2 million meters, and nights fail in the meantime. It also shrinks the peak without measuring the limit, so the first heavier night found the limit for you. Do it as well as, not instead of, measuring your cluster."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s3e17",
+    "title": "Size Cressbeck's cluster, then play the night",
+    "lede": "You're Malvina at 01:59, before the gateways wake. 32 gateways of 37,500 meters: G01 to G23 (862,500 meters, west and centre) wake at 02:00, G24 to G32 (337,500, the east bank) at 02:30, and each sends 2,000 rows a second for 30 minutes, 115.2 million rows in all. A row is 4 KB (4,096 bytes; an MB here is a million bytes), and a meter's 96 rows are one batch that lands whole or not at all. Every row is written as 3 copies, so a node takes rows x row size x 3 / nodes bytes a second. New SSTables wait for compaction, which clears 12 MB/s per node with the dashboards reading and 20 MB/s without. Past 63 GB waiting on a node, the stall point, flushes wait and so does every write, until compaction has caught up. A waiting batch times out after 10 minutes and the meter retries, three times at most. The compaction and stall figures are Cressbeck's own, from the benchmark in Part 2, and invented for this story.",
+    "tryThis": "Try this: press Play to the morning report. The backlog passes 63 GB at 02:30, the minute the east bank wakes; timeouts start at 02:40 and 337,500 batches are dropped, all on G24 to G32. Set 24 nodes and play again: nothing is dropped. Now choose 8 KB rows: 47.1 MB/s per node, and the same night to the minute. Try consistency ONE: identical. Spread the uploads: fine at 4 KB, a stall at 02:51 at 8 KB. Then run the Benchmark both ways on 12 nodes and 4 KB: ten minutes at the peak finds no bend up to 94.2 MB/s per node, and the night's shape bends between 35.3 and 47.1. Last, try 32 nodes at 8 KB."
+  },
+  "explain": {
+    "oneLine": "Ansgar copied a count, and the cost is in bytes. Each Cressbeck node took about as many writes a second as each Netflix node, but each write was ten times the size, and over a 30-minute burst compaction fell 63 GB behind on every node. The cluster stopped writing at 02:30, the minute the east bank woke, and the report printed their missing batches as zeros.",
+    "steps": [
+      {
+        "title": "Count bytes, not writes.",
+        "text": "What a disk pays for is bytes, so turn every write rate into bytes per node per second, written MB/s (millions of bytes a second). The post's 3.3 million writes a second, copies included, spread over 288 nodes is 11,458 landing on each node a second, about 400 bytes each: 1,100,000 x 400 x 3 / 288 is about 4.58 MB/s per node. At 02:00 Cressbeck's 46,000 rows x 3 copies over 12 nodes is 11,500 a second on each node, almost the same count. But each row is 4 KB: 46,000 x 4,096 x 3 / 12 is 47.1 MB/s per node, about ten times the post's. Ansgar's sheet matched the count and never looked at the bytes."
+      },
+      {
+        "title": "Writes are cheap until compaction sends the bill.",
+        "text": "Cassandra is an LSM store, short for log-structured merge: the write-now, tidy-later design from s3e13. A write goes in steps. First it is added to the commit log, a running record on disk, and to the memtable, a sorted table in memory, and the writer is told it worked. Next, when the memtable fills, it is flushed: written to disk as a new SSTable, a sorted file that is never changed. Last, compaction merges several SSTables into one and deletes the old ones. Each step can fall behind. If flushes are slow, memory fills; if compaction is slow, files pile up on disk. That's why the first 30 minutes looked fine: 46,000 rows a second offered and 46,000 written. The cost comes later, when compaction merges those SSTables. With the dashboards reading, each node compacted 12 MB/s of new data and took in 47.1, so its backlog grew by 35.1 MB a second. By 02:30 it was 63.2 GB per node, past the point where flushes wait and writes wait behind them. The east bank woke into a stopped cluster. Its batches waited, timed out from 02:40, were sent again three times, and were dropped from 03:10 to 03:39."
+      },
+      {
+        "title": "What \"scaled linearly\" promises, and what it doesn't.",
+        "text": "The post ran the same test at 48, 96, 144 and 288 instances and \"the load on each instance was very similar in all cases\". That's the promise: the work each node does a second stays flat as you add nodes, so the total grows in a straight line. It says nothing about what your per-node rate is. Rows ten times the size, dashboards reading at the same time and a burst three times as long put Cressbeck's per-node line in a different place. 24 nodes would have carried this night; on an 8 KB night it is the same 47.1 MB/s per node. And the consistency level doesn't move the line at all: ONE and LOCAL_QUORUM both write all three copies."
+      },
+      {
+        "title": "Ten minutes can't see a two-hour night.",
+        "text": "The post's test \"was run for about ten minutes, which was long enough to show a clear steady state load level\", and the CPU figure, how busy the processors were, came from a test \"which we only ran once\". Netflix's question was whether their own setup tools and Cassandra could grow by adding machines, and for that it was enough. For a burst it isn't: at 47.1 MB/s a node's backlog needs about 30 minutes to reach 63 GB, so a ten-minute run at the peak shows every row landing. A good benchmark runs in steps. First, load your own rows, with your read mix, the reads that run alongside. Next, play your real burst for its full length, until compaction has shown its hand; stop early and you miss the slow pile-up. Then raise the load a step at a time, and note where your own line bends, where more load stops giving more throughput."
+      },
+      {
+        "title": "Three copies in three buildings, and headroom for all of it.",
+        "text": "A keyspace is Cassandra's top-level folder of tables, where the number of copies is set. Netflix's kept three copies with NetworkTopologyStrategy, a setting that places copies by building. The post says the data \"was automatically replicated across all three zones\", \"effectively in three different datacenter buildings\". So a row's replicas (copies), found by walking the ring (s3e08), sit in three buildings. A quorum (s3e06), here two of the three, still answers when one zone is lost. The post leans on that for durability, keeping data safe once it's saved, and on half of each disk for compaction. Size with headroom, spare capacity, for three things: compaction's disk space and time; repair, which copies and merges files too; and losing a node or a zone. Cressbeck's 12 nodes are in one room, which matters for more than capacity."
+      }
     ],
-    "sig": "- taped to the desk"
-   },
-   {
-    "t": "p",
-    "text": "That's 115.2 million rows between 02:00 and 04:00, and 46,000 a second from 02:00. They go into Cassandra, a database that spreads its rows over many computers, called nodes, and keeps three copies of each row. Together the nodes are a cluster."
-   },
-   {
-    "t": "p",
-    "text": "In 2023 Ansgar, who built the system, sized our cluster from a printout still pinned by the screen: \"Benchmarking Cassandra Scalability on AWS - Over a million writes per second\", from the Netflix Tech Blog, 2 November 2011. Netflix ran \"a workload of 1.1 million client writes per second\" on 288 instances (computers rented from Amazon), 96 in each of three availability zones (separate buildings), and \"the throughput scaled linearly\" from 48 to 288: the writes done a second, the throughput, grew in step with the nodes. Ansgar's margin: 1,100,000 / 288 = 3,819 a node. 46,000 needed. 12 nodes. Even on the printout's numbers, 12 nodes make 45,833, a hair under our peak. He wrote \"close enough\"."
-   },
-   {
-    "t": "p",
-    "text": "So we have 12 nodes, all in the server room under the pumping station. Each write waits until two of the three copies are saved, a setting called LOCAL_QUORUM. So the control room's dashboards, our operators' screens, always see the latest readings. They read all night. Ansgar left in the spring."
-   },
-   {
-    "t": "p",
-    "text": "Here is last night's log. Each line shows the time, the system that wrote it, and what happened. Cassandra saves new rows to disk as files called SSTables, and a tidy-up called compaction later merges them; files still waiting are its backlog. A GB is a billion bytes. A batch is one meter's 96 rows:"
-   },
-   {
-    "t": "log",
-    "text": "02:00:00  head-end   G01-G23 awake. 46,000 rows/s offered, 46,000 written\n02:30:00  cassandra  63.2 GB of SSTables per node waiting for compaction\n02:30:00  head-end   G24-G32 awake. 18,000 rows/s offered, 0 written\n02:40:00  head-end   first batches timed out after 10 min. meters retrying\n03:39:00  head-end   last retries failed. 337,500 batches dropped, all G24-G32\n03:58:00  cassandra  compaction caught up. writes resumed"
-   },
-   {
-    "t": "beat",
-    "text": "At 06:00 the morning report printed. Every house on the east bank used 0 litres overnight. So did Cressbeck General. No one washed, no one flushed, no ward tap ran. A town of ghosts, on paper."
-   },
-   {
-    "t": "p",
-    "text": "Nobody vanished. The report sums each meter's readings and prints 0 when there are none; it can't tell an empty house from a missing batch. The east bank's meters woke at 02:30 and sent their days, and nothing wrote them down. The board meets on Friday, and Ansgar's sheet is all they have. What do I tell them to change?"
-   },
-   {
-    "t": "evidence",
-    "label": "netflix_techblog_2011-11-02_cassandra.png",
     "diagram": {
-     "type": "arch",
-     "w": 740,
-     "h": 400,
-     "aria": "Netflix's 2011 Cassandra benchmark, redrawn from the post. 60 stress clients, m2.4xl instances in one zone, send 1.1 million client writes a second. The cluster is 288 m1.xl nodes running Cassandra 0.8.6, 96 in each of three US-East availability zones, and each zone holds one copy of every row. Consistency ONE. Each write is 10 columns of 10 bytes, about 400 bytes on disk. A write-only test of about ten minutes, run once.",
-     "groups": [
-      {
-       "label": "US-East zone 1",
-       "x": 15,
-       "y": 140,
-       "w": 230,
-       "h": 200
-      },
-      {
-       "label": "US-East zone 2",
-       "x": 255,
-       "y": 140,
-       "w": 230,
-       "h": 200
-      },
-      {
-       "label": "US-East zone 3",
-       "x": 495,
-       "y": 140,
-       "w": 230,
-       "h": 200
-      }
-     ],
-     "nodes": [
-      {
-       "id": "cli",
-       "label": "60 stress clients",
-       "sub": "m2.4xl, in one zone",
-       "meta": "1.1 million writes/s",
-       "x": 370,
-       "y": 60,
-       "w": 240,
-       "h": 70,
-       "shape": "box",
-       "tone": "accent"
-      },
-      {
-       "id": "z1",
-       "label": "96 m1.xl nodes",
-       "sub": "Cassandra 0.8.6",
-       "meta": "a copy of every row",
-       "x": 130,
-       "y": 255,
-       "w": 190,
-       "h": 80,
-       "shape": "db",
-       "tone": "ok"
-      },
-      {
-       "id": "z2",
-       "label": "96 m1.xl nodes",
-       "sub": "Cassandra 0.8.6",
-       "meta": "a copy of every row",
-       "x": 370,
-       "y": 255,
-       "w": 190,
-       "h": 80,
-       "shape": "db",
-       "tone": "ok"
-      },
-      {
-       "id": "z3",
-       "label": "96 m1.xl nodes",
-       "sub": "Cassandra 0.8.6",
-       "meta": "a copy of every row",
-       "x": 610,
-       "y": 255,
-       "w": 190,
-       "h": 80,
-       "shape": "db",
-       "tone": "ok"
-      }
-     ],
-     "edges": [
-      {
-       "from": "cli",
-       "to": "z1"
-      },
-      {
-       "from": "cli",
-       "to": "z2"
-      },
-      {
-       "from": "cli",
-       "to": "z3"
-      },
-      {
-       "from": "z1",
-       "to": "z2",
-       "dash": true,
-       "tone": "muted"
-      },
-      {
-       "from": "z2",
-       "to": "z3",
-       "dash": true,
-       "tone": "muted"
-      }
-     ],
-     "notes": [
-      {
-       "x": 20,
-       "y": 365,
-       "text": "Consistency ONE. 10 columns of 10 bytes a row, about 400 bytes on disk.",
-       "tone": "muted",
-       "anchor": "start"
-      },
-      {
-       "x": 20,
-       "y": 387,
-       "text": "Write-only, about ten minutes, run once. Redrawn from the post, 2 November 2011.",
-       "tone": "muted",
-       "anchor": "start"
-      }
-     ]
+      "type": "arch",
+      "w": 740,
+      "h": 360,
+      "aria": "Why the night failed, and the fix. Top left: a node in the post takes 11,458 writes a second of about 400 bytes, 4.58 MB/s. Top right: a Cressbeck node at 02:00 takes 11,500 writes a second of 4 KB, 47.1 MB/s. Below it, compaction clears 12 MB/s per node with the dashboards reading, so the backlog grows 35.1 MB a second and reaches 63.2 GB at 02:30, the stall. On the left, the fix: benchmark our own load in the night's shape with our rows and the reads on, which bends between 35.3 and 47.1 MB/s per node, then size to 32 nodes so an 8 KB night's peak is 35.3 MB/s per node.",
+      "nodes": [
+        {
+          "id": "post",
+          "label": "A node in the post",
+          "sub": "11,458 writes/s, about 400 B",
+          "meta": "4.58 MB/s landing",
+          "x": 190,
+          "y": 70,
+          "w": 300,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "ours",
+          "label": "A Cressbeck node at 02:00",
+          "sub": "11,500 writes/s, 4 KB each",
+          "meta": "47.1 MB/s landing",
+          "x": 550,
+          "y": 70,
+          "w": 300,
+          "h": 72,
+          "shape": "box",
+          "tone": "bad"
+        },
+        {
+          "id": "comp",
+          "label": "Compaction",
+          "sub": "clears 12 MB/s per node",
+          "meta": "with the dashboards reading",
+          "x": 550,
+          "y": 190,
+          "w": 300,
+          "h": 72,
+          "shape": "box",
+          "tone": "warn"
+        },
+        {
+          "id": "back",
+          "label": "Backlog per node",
+          "sub": "grows 35.1 MB a second",
+          "meta": "63.2 GB at 02:30: stall",
+          "x": 550,
+          "y": 310,
+          "w": 300,
+          "h": 72,
+          "shape": "db",
+          "tone": "bad"
+        },
+        {
+          "id": "bench",
+          "label": "Benchmark our own load",
+          "sub": "night's shape, our rows, reads on",
+          "meta": "bends between 35.3 and 47.1 MB/s",
+          "x": 190,
+          "y": 190,
+          "w": 300,
+          "h": 72,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "size",
+          "label": "Size for the bend: 32 nodes",
+          "sub": "8 KB peak: 35.3 MB/s per node",
+          "meta": "4 KB peak: 17.7 MB/s per node",
+          "x": 190,
+          "y": 310,
+          "w": 300,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        }
+      ],
+      "edges": [
+        {
+          "from": "ours",
+          "to": "comp",
+          "label": "new SSTables"
+        },
+        {
+          "from": "comp",
+          "to": "back",
+          "label": "falls behind",
+          "tone": "bad"
+        },
+        {
+          "from": "bench",
+          "to": "size",
+          "label": "plus headroom"
+        },
+        {
+          "from": "post",
+          "to": "bench",
+          "label": "not our load",
+          "dash": true,
+          "tone": "muted"
+        }
+      ]
     },
-    "caption": "The post's test, redrawn and simplified. 288 m1.xl instances, 96 in each of three availability zones, and 60 more running the stress tool: 1.1 million client writes a second, \"a total of 3.3 million writes per second across the cluster\" once each row's three copies are counted. The same test at 48, 96, 144 and 288 instances, with 10, 20, 30 and 60 clients, \"scaled linearly\". Writes used consistency \"ONE\"; with \"LOCAL QUORUM\", the post adds, \"the work done by the Cassandra cluster is essentially the same\"."
-   }
+    "caption": "Top: the same count of writes landing on a node a second, ten times the bytes. Right: compaction with the dashboards reading clears 12 MB/s per node, so the backlog grows 35.1 MB a second and passes the 63 GB stall point at 02:30. Left: the fix. Benchmark the night's shape with Cressbeck's own rows and reads, find where per-node throughput bends, and size an 8 KB night's peak to the last step where every row landed: 32 nodes.",
+    "fix": {
+      "title": "The fix: measure your own line, then size below its bend",
+      "text": "Write a cassandra-stress user profile, the load tool's settings file, with Cressbeck's own table and rows: 4 KB, and the 8 KB rows of a pressure-event night. Run the dashboards' queries alongside. Replay the night's shape, not ten minutes at a flat rate, on a copy of the cluster. Step the load up 25% at a time, each step lasting until compaction has caught up or fallen behind for good. On 12 nodes every row lands up to 35.3 MB/s per node at the peak, and at 47.1 only 71.9% does: that is where the line bends. Size an 8 KB night's peak to the last clean step, the highest load where every row landed. That is 32 nodes, so a 4 KB night runs at 17.7 MB/s per node, about half of it, leaving room for repair and a lost node. Rerun the benchmark whenever rows, reads or the burst change."
+    },
+    "limits": [
+      "A benchmark is a model of your load, and only as good as what it includes. A new dashboard, a firmware change that grows the rows again, or another 100,000 meters moves the bend; rerun it when the load changes, not once.",
+      "Headroom costs money: 32 nodes instead of 12 or 24, most of them idle most of the day. Spreading the uploads later can win some of it back, once it is measured too.",
+      "Capacity was only the first gap. All 32 nodes still sit in one room, and the post's durability argument rested on three buildings."
+    ],
+    "tradeoff": {
+      "head": [
+        "Choice",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "12 nodes, sized from the post (as now)",
+          "Cheap, and Ansgar's arithmetic is easy to follow.",
+          "47.1 MB/s per node against compaction's 12. The cluster stalled at 02:30 and 337,500 meters printed as 0."
+        ],
+        [
+          "Double to 24 nodes",
+          "Clears a 4 KB night: 23.6 MB/s per node, backlog peak 20.8 GB.",
+          "Twice the bill on a guess. An 8 KB night puts each node at 47.1 MB/s, the same night again."
+        ],
+        [
+          "Consistency ONE",
+          "Each write returns after one copy while the cluster is healthy.",
+          "The cluster's work is the same, so the same stall. Dashboards lose read-your-writes."
+        ],
+        [
+          "Spread uploads over two hours (firmware)",
+          "16,000 rows a second instead of 46,000. Clears a 4 KB night with no new servers.",
+          "Months to ship, nights fail meanwhile, and the limit stays unknown: an 8 KB night stalls at 02:51."
+        ],
+        [
+          "Benchmark our own load, size 32 nodes",
+          "The bend is measured. 8 KB nights fit, and 4 KB nights run at half the clean step.",
+          "A week of work and the most nodes of any option. Valid only while the load matches the profile."
+        ]
+      ]
+    },
+    "seniorTake": "Someone else's benchmark answers their question with their load. Before you size from one, translate it into your unit of cost, which is usually bytes per node per second. Then run your own: your rows, your read mix, your burst. Run it long enough for background work like compaction to show, and step the load up until your per-node line bends. \"Scales linearly\" tells you that line stays flat as you add nodes, which makes the arithmetic easy once you know where it sits. Then add headroom, spare capacity, for the things the benchmark didn't run: repair, a lost node, a lost room.",
+    "realWorld": [
+      {
+        "title": "Netflix, 2011: 288 nodes and 1.1 million writes a second",
+        "text": "Adrian Cockcroft and Denis Sheahan (the post's authors) ran \"288 medium sized instances, with 96 instances in each of three EC2 availability zones\", plus 60 instances running the stress program, for \"a workload of 1.1 million client writes per second\" and \"a total of 3.3 million writes per second across the cluster\" once the copies in all three zones are counted. The instances were m1.xl (one of Amazon's 2011 computer sizes), with four disks of 400GB striped together (each file spread across all four, so they work at once).",
+        "source": 0
+      },
+      {
+        "title": "48 to 288, in a straight line",
+        "text": "\"The same test was run with 48, 96, 144 and 288 instances, with 10, 20, 30 and 60 clients respectively. The load on each instance was very similar in all cases, and the throughput scaled linearly as we increased the number of instances.\" The test's purpose, the post says, was \"to validate our tooling and automation scalability as well as the performance characteristics of Cassandra\".",
+        "source": 0
+      },
+      {
+        "title": "Consistency ONE, and why LOCAL QUORUM costs the cluster the same",
+        "text": "The clients used consistency level \"ONE\", acknowledged \"when one node has acknowledged the data\". With \"LOCAL QUORUM\" the client waits for two of the three nodes \"and the write response time increases slightly, but the work done by the Cassandra cluster is essentially the same\".",
+        "source": 0
+      },
+      {
+        "title": "About 400 bytes, about ten minutes, run once",
+        "text": "The stress clients wrote \"10 columns per row key\", each with \"10 bytes of data\", and \"the total on disk size for each write including all overhead is about 400 bytes\". The post picked a write-only benchmark because \"writes stress a data store all the way to the disks\". \"The test itself was run for about ten minutes, which was long enough to show a clear steady state load level\", and the post notes a higher CPU reading (how busy the processors were) could be \"a random fluctuation in the test, which we only ran once\".",
+        "source": 0
+      },
+      {
+        "title": "Half the disk for compaction, in Cassandra 0.8.6",
+        "text": "Netflix's 2011 post: \"The usable storage capacity for a Cassandra 0.8.6 instance is half the available filesystem space, because Cassandra's current compaction algorithm needs space to compact into.\" The post says this changes with Cassandra 1.0.",
+        "source": 0
+      },
+      {
+        "title": "Cassandra 5.0: no flat fraction",
+        "text": "Today's 5.0 docs give no flat fraction; for size-tiered compaction (the kind that merges files of similar size) they warn that \"the amount of disk space needed for both the new and old SSTables simultaneously during STCS compaction can outstrip a typical amount of disk space on a node\".",
+        "source": 2
+      },
+      {
+        "title": "Compaction today: STCS by default",
+        "text": "The Cassandra 5.0 compaction overview says that \"to keep the database healthy, Cassandra periodically merges SSTables and discards old data\", and that \"STCS is the default compaction strategy\" (STCS is size-tiered compaction). How much spare disk and time compaction needs depends on the strategy you run and your load, so check the docs for your version, and your own benchmark, rather than the post's half.",
+        "source": 3
+      },
+      {
+        "title": "A 10-second commit log, made safe by three buildings",
+        "text": "\"The Cassandra commit log flushes to disk with an fsync call every 10 seconds by default. This means that there is up to ten seconds where the committed data is not actually on disk, but it has been written to memory in three different instances in three different availability zones (i.e. datacenter buildings).\" (An fsync call forces what is in memory onto the disk.) The post judges the chance of losing all three copies in that window \"small enough\".",
+        "source": 0
+      },
+      {
+        "title": "The same default today",
+        "text": "In the Cassandra 5.0 cassandra.yaml reference (its main settings file), commitlog_sync defaults to periodic, \"where writes may be acked immediately\" (confirmed at once) and \"the CommitLog is simply synced every commitlog_sync_period milliseconds\", and commitlog_sync_period defaults to 10000ms. Group mode instead will \"not ack writes until the commit log has been flushed to disk\". compaction_throughput, which \"throttles compaction to the given total throughput across the entire system\", defaults to 64MiB/s (a MiB is a little over a million bytes), a ceiling, not a promise of what your disks will reach.",
+        "source": 1
+      },
+      {
+        "title": "cassandra-stress: benchmark your own data model",
+        "text": "The Cassandra 4.1 docs say \"the cassandra-stress tool is used to benchmark and load-test a Cassandra cluster\" and that it \"supports testing arbitrary CQL tables and queries, allowing users to benchmark their own data model\" (CQL is Cassandra's query language). \"User mode allows you to stress your own schemas\", and \"user mode defines a profile using YAML\" (a plain-text settings format).",
+        "source": 4
+      },
+      {
+        "title": "\"Reproducible by anyone\"",
+        "text": "The post says \"the benchmark results should be reproducible by anyone\", and offers the details \"so that other performance teams working with Cassandra on AWS can leverage our work and replicate and extend our results\". Reproducing its test reproduces its numbers, for its 400-byte writes; extending it to your own load is the part that tells you about your cluster.",
+        "source": 0
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How would you size a database cluster for a new workload?",
+        "What does \"scales linearly\" mean, and what doesn't it mean?",
+        "How do you benchmark a database properly?"
+      ],
+      "answer": "Start from the workload, the work your system will really get, not someone's headline. Write down rows a second at the peak, row size, copies, read mix and how long the burst lasts. Turn it into bytes per node per second, because that is what the disks pay. Treat a published benchmark as a hint about shape. \"Scales linearly\" means the work each node does stays roughly flat as nodes are added, so the total grows in proportion. It doesn't mean your per-node rate matches theirs. Then benchmark properly. Use your own schema (table design) and data; cassandra-stress has a user mode for that. Run your reads alongside the writes, in the real burst shape. Run long enough for compaction and other background work to reach a steady state, a rate that stops drifting, or visibly fall behind. Step the load up and plot per-node throughput until it bends. Size the peak below the bend, with headroom for repair, a lost node or zone, and growth. Rerun the benchmark when the load changes. Finally, check the durability assumptions the benchmark relied on, such as copies spread across zones, so a saved write survives a lost building."
+    }
+  },
+  "terms": [
+    {
+      "term": "Water utility",
+      "def": "A company or public body that supplies a town's water and bills by what each meter records. Cressbeck Water serves the town of Cressbeck."
+    },
+    {
+      "term": "Night desk",
+      "def": "The overnight operator's post at Cressbeck Water, watching the meters' upload and the systems behind it."
+    },
+    {
+      "term": "Smart meter",
+      "def": "A water meter that records use itself and sends its readings over a network, instead of waiting for someone to read the dial."
+    },
+    {
+      "term": "Interval row",
+      "def": "One reading of a meter for a stretch of time. Cressbeck's meters keep one row for every 15 minutes, 96 a day."
+    },
+    {
+      "term": "Diagnostics (meter)",
+      "def": "Extra readings a meter sends about itself and the pipe: pressure, battery and event flags. They make each Cressbeck row about 4 KB."
+    },
+    {
+      "term": "Pressure event",
+      "def": "A sudden rise or drop in water pressure, often from a failing main. On such a night Cressbeck's meters log more, and rows run to about 8 KB."
+    },
+    {
+      "term": "Firmware",
+      "def": "The small program built into a device such as a meter. It decides what the device records, how much it sends and when it wakes."
+    },
+    {
+      "term": "Firmware push",
+      "def": "Sending a new firmware version to many devices over the network, usually in stages with a way to roll back. For 1.2 million meters it takes months."
+    },
+    {
+      "term": "Gateway (meter network)",
+      "def": "A radio box on a pole that collects nearby meters' data and forwards it. Cressbeck has 32, G01 to G32, with 37,500 meters each."
+    },
+    {
+      "term": "Head-end",
+      "def": "The system that wakes the meters through their gateways, receives each meter's batch and writes it to the database."
+    },
+    {
+      "term": "Batch (a meter's day)",
+      "def": "A meter's 96 rows for the day, sent together. In the sim a batch lands whole or not at all."
+    },
+    {
+      "term": "Wake time",
+      "def": "The minute a meter starts sending its day. Cressbeck's head-end wakes meters by gateway, so most wake at 02:00 sharp."
+    },
+    {
+      "term": "East bank",
+      "def": "The part of Cressbeck across the river, served by gateways G24 to G32: 337,500 meters, including Cressbeck General hospital."
+    },
+    {
+      "term": "Morning report",
+      "def": "Cressbeck Water's 06:00 summary of each meter's overnight use. It sums the readings it has and prints 0 for a meter with none."
+    },
+    {
+      "term": "Server room",
+      "def": "A room of servers on the company's own premises. Cressbeck's 12 nodes all sit in one, under the pumping station, on one power supply."
+    },
+    {
+      "term": "Benchmark",
+      "def": "A test that runs a known load against a system and measures what it does, so you can predict how it will behave under your own load."
+    },
+    {
+      "term": "Netflix Tech Blog",
+      "def": "Netflix engineering's public blog. The 2011 Cassandra post appeared there; this case reads it through an archived copy."
+    },
+    {
+      "term": "Stress tool",
+      "def": "A program that generates heavy load against a system for a test. Netflix used the one that ships with Cassandra, now called cassandra-stress."
+    },
+    {
+      "term": "cassandra-stress",
+      "def": "Cassandra's own load-testing tool. Its user mode reads a profile, a settings file you write, so you can test your own table, row sizes and queries."
+    },
+    {
+      "term": "User mode (cassandra-stress)",
+      "def": "The cassandra-stress mode that tests your own table design and queries, described in a profile file, instead of the tool's built-in table."
+    },
+    {
+      "term": "Profile (YAML)",
+      "def": "A text file that tells cassandra-stress which table to create, what the columns look like and which queries to run, and in what mix."
+    },
+    {
+      "term": "Client writes and replica writes",
+      "def": "A client write is one row a client sends. With three copies the cluster performs three replica writes for it: 1.1 million became 3.3 million."
+    },
+    {
+      "term": "Per-node rate",
+      "def": "The work each node does a second, in writes or in bytes. A cluster's total is the per-node rate times the number of nodes."
+    },
+    {
+      "term": "Bytes per node per second",
+      "def": "Rows a second x row size x copies / nodes. The post's nodes took about 4.58 MB/s each; Cressbeck's took 47.1 at 02:00."
+    },
+    {
+      "term": "Scales linearly",
+      "def": "Total throughput grows in proportion to the nodes, because each node's throughput stays about the same as nodes are added."
+    },
+    {
+      "term": "Where it bends",
+      "def": "The load at which per-node throughput stops rising with the load offered. Below it every row lands; past it the cluster falls behind."
+    },
+    {
+      "term": "Steady state",
+      "def": "The point in a test where the measured rate stops drifting. For a store with compaction it can take far longer to reach than the writes do."
+    },
+    {
+      "term": "Write-only load",
+      "def": "A test or workload that only writes, with no reads. The post chose one because writes reach the disks while reads may come from memory."
+    },
+    {
+      "term": "Read mix",
+      "def": "The reads that run alongside the writes, and how many. Cressbeck's dashboards read all night, and their reads compete with compaction for the disks."
+    },
+    {
+      "term": "Compaction backlog",
+      "def": "Files (SSTables) written to disk but not yet merged by compaction: work a node still owes its disks. Cassandra reports it as pending compactions."
+    },
+    {
+      "term": "Compaction rate (in the sim)",
+      "def": "How much new data a node's compaction clears a second: 12 MB/s with the dashboards reading, 20 without. Cressbeck's own figures, invented."
+    },
+    {
+      "term": "Stall point (in the sim)",
+      "def": "63 GB of SSTables waiting on a node. Past it, flushes wait and so does every write, until compaction has caught up."
+    },
+    {
+      "term": "Clean step (benchmark)",
+      "def": "The highest load step in a benchmark at which every row landed. Cressbeck's, on the night's shape, was 35.3 MB/s per node."
+    },
+    {
+      "term": "m1.xl and m2.4xl",
+      "def": "Sizes of Amazon's rented computers in 2011. m1.xl had four processors, 15GB of memory and four 400GB disks; m2.4xl, for the clients, had eight processors and 68GB."
+    },
+    {
+      "term": "Cassandra 0.8.6",
+      "def": "The Cassandra version Netflix ran in 2011. Its compaction needed half the disk space free; the post says Cassandra 1.0 changed that."
+    },
+    {
+      "term": "LOCAL QUORUM",
+      "def": "The post's spelling of LOCAL_QUORUM: wait until most of the copies in the nearest datacenter (group of buildings) have the write: two of three here."
+    },
+    {
+      "term": "Read-your-writes",
+      "def": "A reader that just wrote something sees it on its next read. LOCAL_QUORUM writes and reads give it, because two of three always overlap."
+    },
+    {
+      "term": "commitlog_sync",
+      "def": "The setting in cassandra.yaml, Cassandra's settings file, for when the commit log is forced onto disk. The default, periodic, confirms writes before that happens."
+    },
+    {
+      "term": "commitlog_sync_period",
+      "def": "How often a periodic commit log is synced to disk. The default is 10000ms, ten seconds, as in 2011."
+    },
+    {
+      "term": "Group mode (commit log)",
+      "def": "A commitlog_sync setting under which Cassandra does not confirm a write until the commit log has been forced onto disk. Safer, and each write waits longer."
+    },
+    {
+      "term": "compaction_throughput",
+      "def": "The cassandra.yaml throttle on compaction across a node, 64MiB/s by default. It is a ceiling; disks busy with reads may manage far less."
+    },
+    {
+      "term": "Throttle",
+      "def": "A limit a system puts on its own work so that it can't take all of a resource, such as disk bandwidth, from everything else."
+    },
+    {
+      "term": "Keyspace",
+      "def": "Cassandra's top-level folder of tables, where you set how many copies to keep and where they go. Netflix's kept three copies."
+    },
+    {
+      "term": "CQL",
+      "def": "Cassandra Query Language: the SQL-like language used to define Cassandra tables and read and write them."
+    },
+    {
+      "term": "YAML",
+      "def": "A plain-text format for settings and lists, using indentation. cassandra.yaml and cassandra-stress profiles are written in it."
+    },
+    {
+      "term": "MiB",
+      "def": "A mebibyte: 1,048,576 bytes, a little more than a million. Cassandra writes its compaction throttle in MiB a second."
+    },
+    {
+      "term": "Message broker",
+      "def": "A server that takes messages from the programs that send them, stores them, and hands them to the programs that read them. Kafka and RabbitMQ are examples."
+    },
+    {
+      "term": "Vendor benchmark",
+      "def": "A benchmark a product's maker publishes. It is usually run with small messages or rows and short tests, to show the product at its best."
+    }
+  ],
+  "atWork": "Picture a common incident. A team sizes a message broker cluster from the vendor's published benchmark. (A message broker is a server that holds messages between the programs that send them and the programs that read them; the vendor is the company selling it.) The benchmark ran small messages for a few minutes, and the team divides its headline messages a second by the brokers it wants. Their messages are tens of kilobytes. Every night a batch job, a program that works through a big pile at once, sends an hour-long burst. Forty minutes in, the brokers' disks fall behind and the sending programs start timing out, though the sheet says there is room. The fix is the one in this case. Benchmark your own message size and your own burst, for as long as the burst lasts. Find where each broker's throughput bends, and size below it. Look for the same in your systems. Find every capacity number that came from someone else's post, a vendor page or a load test with made-up data. Translate each into bytes per node per second at your peak. Then check what the test left out: your read mix, your burst length, a lost node, and background work. That includes compaction, repair, deleting old data on a schedule, and merging index files. Where you can, replay your real peak in a test setup with the same machine sizes, stepping the load up. If your company is pursuing ISO/IEC 27001:2022, control A.8.6 (capacity management) expects resource use to be monitored and adjusted against current and expected capacity needs; a benchmark of your own peak, a recorded per-node limit with headroom, and an alert when the peak approaches it are the kind of evidence that supports it, so build them in now rather than at audit time.",
+  "board": {
+    "cards": [
+      {
+        "id": "benchmarking-a-database-before-you-trust-it",
+        "title": "Benchmark first"
+      },
+      {
+        "id": "checking-that-throughput-grows-in-a-straight-line",
+        "title": "Linear scaling"
+      },
+      {
+        "id": "growing-a-cluster-from-48-to-288-nodes",
+        "title": "48 to 288 nodes"
+      },
+      {
+        "id": "cassandra-on-aws",
+        "title": "Cassandra on AWS"
+      },
+      {
+        "id": "compaction",
+        "title": "Compaction"
+      },
+      {
+        "id": "quorums",
+        "title": "Quorums"
+      },
+      {
+        "id": "consistent-hashing",
+        "title": "The ring"
+      },
+      {
+        "id": "durability",
+        "title": "Durability"
+      },
+      {
+        "id": "capacity",
+        "title": "Capacity"
+      }
+    ],
+    "strings": [
+      {
+        "from": "growing-a-cluster-from-48-to-288-nodes",
+        "to": "checking-that-throughput-grows-in-a-straight-line",
+        "label": "the post's test"
+      },
+      {
+        "from": "checking-that-throughput-grows-in-a-straight-line",
+        "to": "benchmarking-a-database-before-you-trust-it",
+        "label": "not your rate"
+      },
+      {
+        "from": "compaction",
+        "to": "benchmarking-a-database-before-you-trust-it",
+        "label": "shows up late"
+      },
+      {
+        "from": "benchmarking-a-database-before-you-trust-it",
+        "to": "capacity",
+        "label": "size the bend"
+      },
+      {
+        "from": "cassandra-on-aws",
+        "to": "quorums",
+        "label": "ONE or 2 of 3"
+      },
+      {
+        "from": "cassandra-on-aws",
+        "to": "consistent-hashing",
+        "label": "3 copies, 3 zones"
+      },
+      {
+        "from": "cassandra-on-aws",
+        "to": "durability",
+        "label": "10 s commit log"
+      },
+      {
+        "from": "cassandra-on-aws",
+        "to": "compaction",
+        "label": "LSM underneath"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s3e17-r1",
+      "kind": "free",
+      "prompt": "Your team sized a message broker cluster (servers that hold messages between programs) from the vendor's published benchmark: 2 million messages a second on 10 brokers, with 100-byte messages and 15-minute runs. Your messages average 20 KB, and every night a billing job sends 50,000 a second for an hour. At 00:40 producers, the programs sending the messages, start timing out, though the sheet said you were using a quarter of the vendor's figure. What went wrong, and how would you size the cluster?",
+      "keyIdeas": [
+        {
+          "idea": "The sheet compared message counts; the cost is bytes, and 20 KB messages are 200 times the benchmark's 100 bytes, so bytes per broker were far above anything the benchmark ran",
+          "match": [
+            "bytes per",
+            "bytes a second",
+            "in bytes",
+            "200 times",
+            "message size",
+            "gb a second",
+            "not the count",
+            "not messages"
+          ]
+        },
+        {
+          "idea": "Benchmark your own load: your message size and the real hour-long burst, run long enough for background work to show, since 15 minutes can't see a failure at 40",
+          "match": [
+            "our own benchmark",
+            "benchmark our",
+            "benchmark your",
+            "our own load",
+            "your own load",
+            "my own load",
+            "our own messages",
+            "real burst",
+            "whole hour",
+            "full hour",
+            "long enough"
+          ]
+        },
+        {
+          "idea": "Step the load to find where per-broker throughput bends, and size the peak below it with headroom",
+          "match": [
+            "where it bends",
+            "bends",
+            "knee",
+            "headroom",
+            "spare capacity",
+            "step the load",
+            "stepping"
+          ]
+        }
+      ],
+      "model": "The sheet compared counts, but brokers pay in bytes. The vendor's messages were 100 bytes and yours are 20 KB, 200 times the size. So 50,000 a second is about 1 GB a second across the cluster, far more bytes per broker than the benchmark ever wrote, even though the message count looked like a quarter of theirs. And their runs lasted 15 minutes, while yours fails 40 minutes into an hour-long burst. A short run never sees that kind of failure: disks and background work like log cleanup take time to fall behind. I'd benchmark our own load: our message size, the real burst for the whole hour, with our consumers, the programs reading the messages, running alongside. I'd step the load up until per-broker throughput bends. Then I'd size the peak below that bend with headroom, spare capacity, for a lost broker and growth, and rerun the test when message sizes or the burst change."
+    },
+    {
+      "id": "s3e17-r2",
+      "kind": "mcq",
+      "prompt": "Netflix's 2011 post says throughput \"scaled linearly\" as its cluster grew from 48 to 288 instances. What does that tell a team planning its own Cassandra cluster?",
+      "options": [
+        "Each node will handle about 3,819 writes a second, whatever its rows look like",
+        "Throughput per node stays about the same as nodes are added, so the total grows in proportion",
+        "Doubling the number of nodes will always fix write timeouts",
+        "Writing at consistency ONE costs the cluster half the work of LOCAL_QUORUM"
+      ],
+      "answer": 1,
+      "why": "Linear scaling is a statement about shape: the load on each instance stayed similar as instances were added, so the total grew in a straight line. It says nothing about what your per-node rate is: Netflix's 3,819 client writes a node were 400-byte writes in a ten-minute, write-only test. Doubling helps only if your per-node limit is where you think it is, and ONE does the same cluster work as LOCAL_QUORUM."
+    },
+    {
+      "id": "s3e17-r3",
+      "kind": "mcq",
+      "prompt": "At the peak, 46,000 rows a second arrive, each 4 KB (4,096 bytes), written as 3 copies across 12 nodes. Roughly how many bytes land on each node a second?",
+      "options": [
+        "About 4.6 MB/s",
+        "About 15.7 MB/s",
+        "About 47 MB/s",
+        "About 565 MB/s"
+      ],
+      "answer": 2,
+      "why": "46,000 x 4,096 x 3 / 12 = 47,104,000 bytes, about 47 MB/s per node. 15.7 forgets the copies, 565 is the whole cluster, and 4.6 is what each of Netflix's nodes took with 400-byte writes, about ten times less."
+    },
+    {
+      "id": "s3e17-r4",
+      "kind": "free",
+      "prompt": "Your company will move 2 million vehicle trackers onto a new Cassandra cluster. Each sends a 1 KB position every 30 seconds while the engine runs, and most vehicles start between 07:00 and 08:30, when a live map also reads the latest positions. A colleague wants to size it from a vendor's slide. Describe the benchmark you would run before choosing a node count.",
+      "keyIdeas": [
+        {
+          "idea": "Use your own data and queries: the real table and row size, with the live map's reads running alongside the writes",
+          "match": [
+            "our own schema",
+            "our own table",
+            "your own data",
+            "our own data",
+            "real rows",
+            "row size",
+            "user mode",
+            "map's reads",
+            "map reads",
+            "reads alongside",
+            "read mix"
+          ]
+        },
+        {
+          "idea": "Replay the real burst shape, the morning ramp for its full length, long enough for compaction to reach a steady state or fall behind",
+          "match": [
+            "steady state",
+            "compaction",
+            "full length",
+            "whole burst",
+            "burst shape",
+            "long enough",
+            "90 minutes",
+            "hour and a half"
+          ]
+        },
+        {
+          "idea": "Step the load up and plot per-node throughput to find where it bends",
+          "match": [
+            "where it bends",
+            "bends",
+            "knee",
+            "per node",
+            "per-node",
+            "step the load",
+            "stepping"
+          ]
+        },
+        {
+          "idea": "Size below the bend with headroom for repair, a lost node or zone, and growth",
+          "match": [
+            "headroom",
+            "lost node",
+            "lose a node",
+            "losing a node",
+            "repair",
+            "spare capacity"
+          ]
+        }
+      ],
+      "model": "I'd write a cassandra-stress user mode profile with our own table and real rows, about 1 KB a position, and run the live map's queries alongside the writes, since reads compete with compaction for the disks. I'd replay the burst shape: the ramp from 07:00 to 08:30 for its full length, not ten minutes at a flat rate, so compaction has time to reach a steady state or visibly fall behind. Then I'd step the load up, 25% at a time, and plot per-node throughput and latency, the wait for each request, to find where it bends. Finally I'd size the peak below the bend with headroom for repair, a lost node or a lost zone, and growth in the fleet, and rerun the benchmark whenever rows, reads or the burst change."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. The 32 nodes have carried every night since March, 8 KB nights included. Then on 9 July a storm cut the pumping station's power at 02:14 for four seconds, and every node in the server room restarted at once. The head-end's log shows every batch acknowledged, with no timeouts. But the morning report printed about 4,790 meters at 0, scattered across the west and centre, and every one of them had its batch acknowledged between 02:13:54 and 02:14:04. The board wants to know how an acknowledged write can disappear.",
+    "prompt": "Reply to OP. Where did those acknowledged batches go, and what should change?",
+    "keyIdeas": [
+      {
+        "idea": "The commit log is synced periodically, every 10 seconds by default, so writes are acknowledged while still only in memory, not yet fsynced",
+        "match": [
+          "periodic",
+          "commitlog_sync",
+          "10 seconds",
+          "ten seconds",
+          "not yet on disk",
+          "not on disk",
+          "in memory",
+          "fsync"
+        ]
+      },
+      {
+        "idea": "Netflix's safety came from three copies in three availability zones; here all three copies were in one room, so one power cut took all of them",
+        "match": [
+          "one room",
+          "same room",
+          "three zones",
+          "three buildings",
+          "availability zones",
+          "all three copies",
+          "every copy",
+          "all the copies"
+        ]
+      },
+      {
+        "idea": "Spread the replicas across separate failure domains, such as a second room or site, or make the commit log sync before acknowledging (group or batch mode) at a latency cost",
+        "match": [
+          "second room",
+          "second site",
+          "another site",
+          "another building",
+          "failure domain",
+          "group mode",
+          "batch mode",
+          "networktopologystrategy"
+        ]
+      }
+    ],
+    "model": "They were acknowledged from memory. Cassandra's default commitlog_sync is periodic. A write is acknowledged, confirmed, once it is in the commit log's buffer (a holding area in memory) and the memtable. Then the commit log is fsynced, forced onto disk, every 10 seconds. Netflix's post says the same and explains why that was safe for them. In those ten seconds each write was in memory in three instances in three availability zones, three buildings, so losing all of them at once was unlikely. Here all three copies sat in one room on one power supply. So one four-second cut could take every copy of up to the last ten seconds: a full window of 46,000 rows a second for ten seconds is 460,000 rows, about 4,790 meters. The fix is to give the copies separate failure domains, places that don't fail together. Use a second room or site, set up as a separate rack or datacenter in NetworkTopologyStrategy, so no single power cut reaches all three. Until then, group mode makes Cassandra wait for the commit log to reach disk before acknowledging. That costs latency, a longer wait per write, and needs a fresh benchmark. A UPS, a battery that keeps the room powered, helps but isn't a second building."
+  },
+  "next": "Next, Three Ways to Ask: a translator's booth, and choosing between REST, gRPC and GraphQL when you design an API.",
+  "sources": [
+    {
+      "title": "Adrian Cockcroft and Denis Sheahan, Benchmarking Cassandra Scalability on AWS - Over a million writes per second, The Netflix Tech Blog, 2 November 2011 (288 m1.xl instances, 96 per zone, 1.1 million client writes a second, 3.3 million with replication; linear from 48 to 288; consistency ONE; about 400 bytes a write; about ten minutes, run once; half the filesystem for compaction in 0.8.6; commit log fsync every 10 seconds), read via the Internet Archive, 11 October 2026",
+      "url": "https://web.archive.org/web/20130108133835/http://techblog.netflix.com/2011/11/benchmarking-cassandra-scalability-on.html"
+    },
+    {
+      "title": "Apache Cassandra 5.0 Documentation, cassandra.yaml file configuration (commitlog_sync periodic by default, commitlog_sync_period 10000ms, group mode, compaction_throughput 64MiB/s), read on 11 October 2026",
+      "url": "https://cassandra.apache.org/doc/stable/cassandra/managing/configuration/cass_yaml_file.html"
+    },
+    {
+      "title": "Apache Cassandra 5.0 Documentation, Size Tiered Compaction Strategy (disk space needed for both the new and old SSTables during STCS compaction), read on 11 October 2026",
+      "url": "https://cassandra.apache.org/doc/stable/cassandra/managing/operating/compaction/stcs.html"
+    },
+    {
+      "title": "Apache Cassandra 5.0 Documentation, Compaction overview (compaction merges SSTables and discards old data; STCS is the default strategy), read on 11 October 2026",
+      "url": "https://cassandra.apache.org/doc/stable/cassandra/managing/operating/compaction/overview.html"
+    },
+    {
+      "title": "Apache Cassandra 4.1 Documentation, cassandra-stress (benchmark and load-test a cluster; user mode and YAML profiles to benchmark your own data model), read on 11 October 2026",
+      "url": "https://cassandra.apache.org/doc/4.1/cassandra/tools/cassandra_stress.html"
+    },
+    {
+      "title": "ISMS.online, ISO 27001:2022 Annex A 8.6 Capacity Management (a summary of the control: manage IT resources to meet current and future demands), read on 11 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a/8-6-capacity-management-2022/"
+    }
   ]
- },
- "comments": [
-  {
-   "author": "u/grey_pager",
-   "points": 127,
-   "age": "7h",
-   "text": "Three words, then questions. A benchmark is a test that runs a known load against a system and measures what it does, so you can predict what it will do under yours. Per-node rate is the work each node does a second; a cluster's total is that times the nodes. And the backlog in your log is compaction debt. A Cassandra write goes in steps: first it lands in the commit log on disk and in memory, and counts as saved. When memory fills, it's flushed: written out as a new SSTable. Later, compaction reads several SSTables, merges them into one, and deletes the old ones. If files arrive faster than compaction merges them, the unmerged ones pile up, work each node still owes its disks. Now the printout. Ansgar divided writes by nodes. How big is one of the post's writes on disk, and how big is one of yours? Each copy lands on some node: count what lands on one of theirs and one of yours a second, in rows and then in bytes. The post's test ran for about ten minutes. What was your backlog doing at 02:10, and what was it doing at 02:30?",
-   "replies": [
-    {
-     "author": "u/night_desk_malvina",
-     "op": true,
-     "points": 41,
-     "age": "6h",
-     "text": "I pulled the head-end's lines for the hospital's meter. 02:30:00, sent. 02:40:00, timed out, retry 1 of 3. 02:50:00, retry 2 of 3. 03:00:00, retry 3 of 3. 03:10:00, dropped. Their facilities manager rang at 07:10. Their own gauge says the wards ran water all night. Ours says nobody was there."
-    }
-   ]
-  },
-  {
-   "author": "u/straight_line_ossian",
-   "points": 88,
-   "age": "6h",
-   "text": "Netflix proved it's linear, a straight line: each node you add does the same work as the others. So just add nodes. They went from 48 to 288 and the line never bent, and they say themselves the benchmark should be \"reproducible by anyone\". Your 12 were short of the peak by their own maths, 45,833 against 46,000, with nothing spare. Double it to 24 and you have 91,667 a second, twice what the meters can throw at you. Compaction and consistency and the rest are details inside the line. The graph is the graph."
-  },
-  {
-   "author": "u/ack_at_one_ebba",
-   "points": 63,
-   "age": "5h",
-   "text": "Look at the setting nobody copied. A consistency level says how many copies must confirm a write before the writer is told it worked. The post wrote at consistency ONE: a write is \"acknowledged when one node has acknowledged the data\" (confirmed by one node). You write at LOCAL_QUORUM, so every write waits for two of the three copies, and on a busy night that second copy is the one that keeps you waiting past the timeout. Drop to ONE like Netflix did and each write comes back as soon as the first copy lands. A dashboard can live with a reading a few seconds old."
-  },
-  {
-   "author": "u/firmware_pruett",
-   "points": 47,
-   "age": "5h",
-   "text": "Firmware is the small program built into every meter, and a firmware push sends a new version to all of them over the network, a gateway at a time. You just did one for diagnostics. Do another that changes the wake time: let each meter pick its own minute between 02:00 and 04:00. 115.2 million rows over two hours is 16,000 a second, about a third of your 02:00 peak. No new servers, and no more cliff at 02:00."
-  }
- ],
- "reply": {
-  "prompt": "On Friday the board decides what to change before next Thursday's upload. What should Malvina tell them? Part 2 follows your advice.",
-  "options": [
-   {
-    "text": "Double the cluster to 24 nodes, since the Netflix post shows throughput grows in a straight line as nodes are added.",
-    "tone": "bad",
-    "verdict": "Works this week, measures nothing",
-    "part2": "The board approved 12 more nodes, and they joined the ring, Cassandra's circle that shares the rows out, by Wednesday, in the same room. Thursday's night passed. At 02:00 the meters offered 46,000 rows a second, and each node took 23.6 MB/s, megabytes (millions of bytes) a second. By 02:30 the backlog had peaked at 20.8 GB per node, a third of the stall point, the backlog at which writes stop. Every batch landed, the east bank had its water in the morning, and the board called it fixed. Ansgar's sheet now says 24 nodes carry 91,667 rows a second, twice our peak. I did the sum the sheet doesn't do. On a pressure-event night our rows run to 8 KB, and 24 nodes at 8 KB is 47.1 MB/s each, exactly what 12 nodes took at 4 KB on the night of the ghosts. I set the lab to it: the stall came at 02:30, to the minute, and the report printed the east bank at 0, the hospital with it. The pressure-event nights come when the mains decide.",
-    "senior": "The post's straight line is real: the work each node did a second held flat from 48 to 288 instances, so twice the nodes gave twice the throughput. It never said your per-node rate equals theirs. Doubling took a figure that was wrong by bytes and multiplied it by two. It happened to clear a 4 KB night, at twice the bill, with the limit still unknown. A heavier row, a longer burst or a lost node would find that limit with no warning. Measure where your own per-node line bends, then choose the count."
-   },
-   {
-    "text": "Write at consistency ONE, as the Netflix post did, so that each write returns once one copy has it instead of two.",
-    "tone": "bad",
-    "verdict": "Same work, same night",
-    "part2": "We switched the head-end to ONE on Wednesday, and Thursday ran the same as the night of the ghosts, to the minute. At 02:30 the backlog was 63.2 GB per node, past the 63 GB stall point, and every write stopped. A write at ONE still sends all three copies, and each node still has to write out and merge its share, 47.1 MB/s of it. The first batches timed out at 02:40, the east bank's were dropped from 03:10 to 03:39, and the report printed 337,500 meters at 0 again, the hospital among them. The only change was in the control room. At 02:20 two dashboards disagreed about the north reservoir for a minute, and the operator asked me which one was lying.",
-    "senior": "A consistency level decides how many copies the coordinator, the node handling the write, waits for, not how many it writes. The post says it outright: with LOCAL QUORUM \"the work done by the Cassandra cluster is essentially the same\". Each node still takes 47.1 MB/s, so the backlog and the stall are identical. ONE only shortens a write's wait while the cluster is healthy. And it gives up read-your-writes, the promise that the dashboards see a reading as soon as it's written. Keep LOCAL_QUORUM and fix the capacity, how much the cluster can carry."
-   },
-   {
-    "text": "Benchmark our own rows, 02:00 rush and dashboard reads till compaction settles; size well below the limit found.",
-    "tone": "ok",
-    "verdict": "Senior answer",
-    "part2": "Cassandra comes with a load-testing tool, cassandra-stress, and you describe your own table to it in a settings file called a profile. I wrote one with our table and our rows, the 4 KB ones and the 8 KB rows of a pressure-event night, with the dashboards' queries (their requests for data) running alongside. I ran it on a copy of our 12 nodes, stepping the load up 25% at a time. First the post's way, ten minutes at the peak: every step up to 94.2 MB/s per node landed every row. Then the night's shape, two hours: every row landed up to 35.3 MB/s per node at the peak, and at 47.1 only 71.9% did. That is where our line bends, and ten minutes never saw it. I sized an 8 KB night's peak to the last clean step, the highest load at which every row landed: 46,000 rows x 8 KB x 3 copies / 35.3 MB/s is 32 nodes. On a 4 KB night that is 17.7 MB/s each, half the clean step, which leaves room for repair (the nodes comparing and fixing their copies) and a lost node. The board took 32. On Thursday the backlog peaked at 10.2 GB per node, and at 06:00 every meter had its readings, the hospital's too. Afterwards I reread the printout and stopped at the commit log, the record each node writes before it confirms a write: the data \"has been written to memory in three different instances in three different availability zones\". All 32 of ours are in one room.",
-    "senior": "Only this option finds the number Ansgar guessed. Benchmark your own rows, your own burst (the rush at the peak) and your own reads, and run it until compaction shows. That gives your per-node line and the load where it bends, where adding load stops adding throughput. Size the peak below it, with room for repair, a lost node and heavier nights. It costs a week and more nodes than 24, and the answer is only as good as the load you modelled. The next risk it surfaced isn't capacity. The post's commit log was saved to disk every 10 seconds, which was safe across three buildings, and this cluster lives in one room."
-   },
-   {
-    "text": "Spread the meters' uploads across the whole night with a firmware push, so the 02:00 peak never comes back again.",
-    "tone": "warn",
-    "verdict": "Trade-off: right, slow, and still blind",
-    "part2": "The meter vendor could push new wake times a gateway at a time, with a rollback plan for each, a way to put the old version back, and quoted June. Until then every night ended like the night of the ghosts, and the morning report gained a footnote: zero may mean no data. In June each meter began waking at its own minute between 02:00 and 04:00: 16,000 rows a second, 16.4 MB/s per node, a backlog that peaked at 31.6 GB, and every batch landed. In August the mains under the reservoir began to fail, and the meters sent their 8 KB pressure-event rows: 32.8 MB/s per node, the stall at 02:51, and 500,000 meters at 0 the next morning, scattered over every gateway, a street here and a house there. The hospital had its readings that night. We still don't know what our cluster can carry.",
-    "senior": "Spreading the uploads is a real fix and the cheapest per night: the same rows over two hours never pile up at 02:00, so keep it on the list. But it takes months to ship to 1.2 million meters, and nights fail in the meantime. It also shrinks the peak without measuring the limit, so the first heavier night found the limit for you. Do it as well as, not instead of, measuring your cluster."
-   }
-  ]
- },
- "sim": {
-  "module": "s3e17",
-  "title": "Size Cressbeck's cluster, then play the night",
-  "lede": "You're Malvina at 01:59, before the gateways wake. 32 gateways of 37,500 meters: G01 to G23 (862,500 meters, west and centre) wake at 02:00, G24 to G32 (337,500, the east bank) at 02:30, and each sends 2,000 rows a second for 30 minutes, 115.2 million rows in all. A row is 4 KB (4,096 bytes; an MB here is a million bytes), and a meter's 96 rows are one batch that lands whole or not at all. Every row is written as 3 copies, so a node takes rows x row size x 3 / nodes bytes a second. New SSTables wait for compaction, which clears 12 MB/s per node with the dashboards reading and 20 MB/s without. Past 63 GB waiting on a node, the stall point, flushes wait and so does every write, until compaction has caught up. A waiting batch times out after 10 minutes and the meter retries, three times at most. The compaction and stall figures are Cressbeck's own, from the benchmark in Part 2, and invented for this story.",
-  "tryThis": "Try this: press Play to the morning report. The backlog passes 63 GB at 02:30, the minute the east bank wakes; timeouts start at 02:40 and 337,500 batches are dropped, all on G24 to G32. Set 24 nodes and play again: nothing is dropped. Now choose 8 KB rows: 47.1 MB/s per node, and the same night to the minute. Try consistency ONE: identical. Spread the uploads: fine at 4 KB, a stall at 02:51 at 8 KB. Then run the Benchmark both ways on 12 nodes and 4 KB: ten minutes at the peak finds no bend up to 94.2 MB/s per node, and the night's shape bends between 35.3 and 47.1. Last, try 32 nodes at 8 KB."
- },
- "explain": {
-  "oneLine": "Ansgar copied a count, and the cost is in bytes. Each Cressbeck node took about as many writes a second as each Netflix node, but each write was ten times the size, and over a 30-minute burst compaction fell 63 GB behind on every node. The cluster stopped writing at 02:30, the minute the east bank woke, and the report printed their missing batches as zeros.",
-  "steps": [
-   {
-    "title": "Count bytes, not writes.",
-    "text": "What a disk pays for is bytes, so turn every write rate into bytes per node per second, written MB/s (millions of bytes a second). The post's 3.3 million writes a second, copies included, spread over 288 nodes is 11,458 landing on each node a second, about 400 bytes each: 1,100,000 x 400 x 3 / 288 is about 4.58 MB/s per node. At 02:00 Cressbeck's 46,000 rows x 3 copies over 12 nodes is 11,500 a second on each node, almost the same count. But each row is 4 KB: 46,000 x 4,096 x 3 / 12 is 47.1 MB/s per node, about ten times the post's. Ansgar's sheet matched the count and never looked at the bytes."
-   },
-   {
-    "title": "Writes are cheap until compaction sends the bill.",
-    "text": "Cassandra is an LSM store, short for log-structured merge: the write-now, tidy-later design from s3e13. A write goes in steps. First it is added to the commit log, a running record on disk, and to the memtable, a sorted table in memory, and the writer is told it worked. Next, when the memtable fills, it is flushed: written to disk as a new SSTable, a sorted file that is never changed. Last, compaction merges several SSTables into one and deletes the old ones. Each step can fall behind. If flushes are slow, memory fills; if compaction is slow, files pile up on disk. That's why the first 30 minutes looked fine: 46,000 rows a second offered and 46,000 written. The cost comes later, when compaction merges those SSTables. With the dashboards reading, each node compacted 12 MB/s of new data and took in 47.1, so its backlog grew by 35.1 MB a second. By 02:30 it was 63.2 GB per node, past the point where flushes wait and writes wait behind them. The east bank woke into a stopped cluster. Its batches waited, timed out from 02:40, were sent again three times, and were dropped from 03:10 to 03:39."
-   },
-   {
-    "title": "What \"scaled linearly\" promises, and what it doesn't.",
-    "text": "The post ran the same test at 48, 96, 144 and 288 instances and \"the load on each instance was very similar in all cases\". That's the promise: the work each node does a second stays flat as you add nodes, so the total grows in a straight line. It says nothing about what your per-node rate is. Rows ten times the size, dashboards reading at the same time and a burst three times as long put Cressbeck's per-node line in a different place. 24 nodes would have carried this night; on an 8 KB night it is the same 47.1 MB/s per node. And the consistency level doesn't move the line at all: ONE and LOCAL_QUORUM both write all three copies."
-   },
-   {
-    "title": "Ten minutes can't see a two-hour night.",
-    "text": "The post's test \"was run for about ten minutes, which was long enough to show a clear steady state load level\", and the CPU figure, how busy the processors were, came from a test \"which we only ran once\". Netflix's question was whether their own setup tools and Cassandra could grow by adding machines, and for that it was enough. For a burst it isn't: at 47.1 MB/s a node's backlog needs about 30 minutes to reach 63 GB, so a ten-minute run at the peak shows every row landing. A good benchmark runs in steps. First, load your own rows, with your read mix, the reads that run alongside. Next, play your real burst for its full length, until compaction has shown its hand; stop early and you miss the slow pile-up. Then raise the load a step at a time, and note where your own line bends, where more load stops giving more throughput."
-   },
-   {
-    "title": "Three copies in three buildings, and headroom for all of it.",
-    "text": "A keyspace is Cassandra's top-level folder of tables, where the number of copies is set. Netflix's kept three copies with NetworkTopologyStrategy, a setting that places copies by building. The post says the data \"was automatically replicated across all three zones\", \"effectively in three different datacenter buildings\". So a row's replicas (copies), found by walking the ring (s3e08), sit in three buildings. A quorum (s3e06), here two of the three, still answers when one zone is lost. The post leans on that for durability, keeping data safe once it's saved, and on half of each disk for compaction. Size with headroom, spare capacity, for three things: compaction's disk space and time; repair, which copies and merges files too; and losing a node or a zone. Cressbeck's 12 nodes are in one room, which matters for more than capacity."
-   }
-  ],
-  "diagram": {
-   "type": "arch",
-   "w": 740,
-   "h": 360,
-   "aria": "Why the night failed, and the fix. Top left: a node in the post takes 11,458 writes a second of about 400 bytes, 4.58 MB/s. Top right: a Cressbeck node at 02:00 takes 11,500 writes a second of 4 KB, 47.1 MB/s. Below it, compaction clears 12 MB/s per node with the dashboards reading, so the backlog grows 35.1 MB a second and reaches 63.2 GB at 02:30, the stall. On the left, the fix: benchmark our own load in the night's shape with our rows and the reads on, which bends between 35.3 and 47.1 MB/s per node, then size to 32 nodes so an 8 KB night's peak is 35.3 MB/s per node.",
-   "nodes": [
-    {
-     "id": "post",
-     "label": "A node in the post",
-     "sub": "11,458 writes/s, about 400 B",
-     "meta": "4.58 MB/s landing",
-     "x": 190,
-     "y": 70,
-     "w": 300,
-     "h": 72,
-     "shape": "box",
-     "tone": "ok"
-    },
-    {
-     "id": "ours",
-     "label": "A Cressbeck node at 02:00",
-     "sub": "11,500 writes/s, 4 KB each",
-     "meta": "47.1 MB/s landing",
-     "x": 550,
-     "y": 70,
-     "w": 300,
-     "h": 72,
-     "shape": "box",
-     "tone": "bad"
-    },
-    {
-     "id": "comp",
-     "label": "Compaction",
-     "sub": "clears 12 MB/s per node",
-     "meta": "with the dashboards reading",
-     "x": 550,
-     "y": 190,
-     "w": 300,
-     "h": 72,
-     "shape": "box",
-     "tone": "warn"
-    },
-    {
-     "id": "back",
-     "label": "Backlog per node",
-     "sub": "grows 35.1 MB a second",
-     "meta": "63.2 GB at 02:30: stall",
-     "x": 550,
-     "y": 310,
-     "w": 300,
-     "h": 72,
-     "shape": "db",
-     "tone": "bad"
-    },
-    {
-     "id": "bench",
-     "label": "Benchmark our own load",
-     "sub": "night's shape, our rows, reads on",
-     "meta": "bends between 35.3 and 47.1 MB/s",
-     "x": 190,
-     "y": 190,
-     "w": 300,
-     "h": 72,
-     "shape": "box",
-     "tone": "accent"
-    },
-    {
-     "id": "size",
-     "label": "Size for the bend: 32 nodes",
-     "sub": "8 KB peak: 35.3 MB/s per node",
-     "meta": "4 KB peak: 17.7 MB/s per node",
-     "x": 190,
-     "y": 310,
-     "w": 300,
-     "h": 72,
-     "shape": "box",
-     "tone": "ok"
-    }
-   ],
-   "edges": [
-    {
-     "from": "ours",
-     "to": "comp",
-     "label": "new SSTables"
-    },
-    {
-     "from": "comp",
-     "to": "back",
-     "label": "falls behind",
-     "tone": "bad"
-    },
-    {
-     "from": "bench",
-     "to": "size",
-     "label": "plus headroom"
-    },
-    {
-     "from": "post",
-     "to": "bench",
-     "label": "not our load",
-     "dash": true,
-     "tone": "muted"
-    }
-   ]
-  },
-  "caption": "Top: the same count of writes landing on a node a second, ten times the bytes. Right: compaction with the dashboards reading clears 12 MB/s per node, so the backlog grows 35.1 MB a second and passes the 63 GB stall point at 02:30. Left: the fix. Benchmark the night's shape with Cressbeck's own rows and reads, find where per-node throughput bends, and size an 8 KB night's peak to the last step where every row landed: 32 nodes.",
-  "fix": {
-   "title": "The fix: measure your own line, then size below its bend",
-   "text": "Write a cassandra-stress user profile, the load tool's settings file, with Cressbeck's own table and rows: 4 KB, and the 8 KB rows of a pressure-event night. Run the dashboards' queries alongside. Replay the night's shape, not ten minutes at a flat rate, on a copy of the cluster. Step the load up 25% at a time, each step lasting until compaction has caught up or fallen behind for good. On 12 nodes every row lands up to 35.3 MB/s per node at the peak, and at 47.1 only 71.9% does: that is where the line bends. Size an 8 KB night's peak to the last clean step, the highest load where every row landed. That is 32 nodes, so a 4 KB night runs at 17.7 MB/s per node, about half of it, leaving room for repair and a lost node. Rerun the benchmark whenever rows, reads or the burst change."
-  },
-  "limits": [
-   "A benchmark is a model of your load, and only as good as what it includes. A new dashboard, a firmware change that grows the rows again, or another 100,000 meters moves the bend; rerun it when the load changes, not once.",
-   "Headroom costs money: 32 nodes instead of 12 or 24, most of them idle most of the day. Spreading the uploads later can win some of it back, once it is measured too.",
-   "Capacity was only the first gap. All 32 nodes still sit in one room, and the post's durability argument rested on three buildings."
-  ],
-  "tradeoff": {
-   "head": [
-    "Choice",
-    "Good",
-    "Bad"
-   ],
-   "rows": [
-    [
-     "12 nodes, sized from the post (as now)",
-     "Cheap, and Ansgar's arithmetic is easy to follow.",
-     "47.1 MB/s per node against compaction's 12. The cluster stalled at 02:30 and 337,500 meters printed as 0."
-    ],
-    [
-     "Double to 24 nodes",
-     "Clears a 4 KB night: 23.6 MB/s per node, backlog peak 20.8 GB.",
-     "Twice the bill on a guess. An 8 KB night puts each node at 47.1 MB/s, the same night again."
-    ],
-    [
-     "Consistency ONE",
-     "Each write returns after one copy while the cluster is healthy.",
-     "The cluster's work is the same, so the same stall. Dashboards lose read-your-writes."
-    ],
-    [
-     "Spread uploads over two hours (firmware)",
-     "16,000 rows a second instead of 46,000. Clears a 4 KB night with no new servers.",
-     "Months to ship, nights fail meanwhile, and the limit stays unknown: an 8 KB night stalls at 02:51."
-    ],
-    [
-     "Benchmark our own load, size 32 nodes",
-     "The bend is measured. 8 KB nights fit, and 4 KB nights run at half the clean step.",
-     "A week of work and the most nodes of any option. Valid only while the load matches the profile."
-    ]
-   ]
-  },
-  "seniorTake": "Someone else's benchmark answers their question with their load. Before you size from one, translate it into your unit of cost, which is usually bytes per node per second. Then run your own: your rows, your read mix, your burst. Run it long enough for background work like compaction to show, and step the load up until your per-node line bends. \"Scales linearly\" tells you that line stays flat as you add nodes, which makes the arithmetic easy once you know where it sits. Then add headroom, spare capacity, for the things the benchmark didn't run: repair, a lost node, a lost room.",
-  "realWorld": [
-   {
-    "title": "Netflix, 2011: 288 nodes and 1.1 million writes a second",
-    "text": "Adrian Cockcroft and Denis Sheahan (the post's authors) ran \"288 medium sized instances, with 96 instances in each of three EC2 availability zones\", plus 60 instances running the stress program, for \"a workload of 1.1 million client writes per second\" and \"a total of 3.3 million writes per second across the cluster\" once the copies in all three zones are counted. The instances were m1.xl (one of Amazon's 2011 computer sizes), with four disks of 400GB striped together (each file spread across all four, so they work at once).",
-    "source": 0
-   },
-   {
-    "title": "48 to 288, in a straight line",
-    "text": "\"The same test was run with 48, 96, 144 and 288 instances, with 10, 20, 30 and 60 clients respectively. The load on each instance was very similar in all cases, and the throughput scaled linearly as we increased the number of instances.\" The test's purpose, the post says, was \"to validate our tooling and automation scalability as well as the performance characteristics of Cassandra\".",
-    "source": 0
-   },
-   {
-    "title": "Consistency ONE, and why LOCAL QUORUM costs the cluster the same",
-    "text": "The clients used consistency level \"ONE\", acknowledged \"when one node has acknowledged the data\". With \"LOCAL QUORUM\" the client waits for two of the three nodes \"and the write response time increases slightly, but the work done by the Cassandra cluster is essentially the same\".",
-    "source": 0
-   },
-   {
-    "title": "About 400 bytes, about ten minutes, run once",
-    "text": "The stress clients wrote \"10 columns per row key\", each with \"10 bytes of data\", and \"the total on disk size for each write including all overhead is about 400 bytes\". The post picked a write-only benchmark because \"writes stress a data store all the way to the disks\". \"The test itself was run for about ten minutes, which was long enough to show a clear steady state load level\", and the post notes a higher CPU reading (how busy the processors were) could be \"a random fluctuation in the test, which we only ran once\".",
-    "source": 0
-   },
-   {
-    "title": "Half the disk for compaction, in Cassandra 0.8.6",
-    "text": "\"The usable storage capacity for a Cassandra 0.8.6 instance is half the available filesystem space, because Cassandra's current compaction algorithm needs space to compact into.\" The post says this changes with Cassandra 1.0. Today's 5.0 docs give no flat fraction; for size-tiered compaction (the kind that merges files of similar size) they warn that \"the amount of disk space needed for both the new and old SSTables simultaneously during STCS compaction can outstrip a typical amount of disk space on a node\".",
-    "source": 2
-   },
-   {
-    "title": "Compaction today: STCS by default",
-    "text": "The Cassandra 5.0 compaction overview says that \"to keep the database healthy, Cassandra periodically merges SSTables and discards old data\", and that \"STCS is the default compaction strategy\" (STCS is size-tiered compaction). How much spare disk and time compaction needs depends on the strategy you run and your load, so check the docs for your version, and your own benchmark, rather than the post's half.",
-    "source": 3
-   },
-   {
-    "title": "A 10-second commit log, made safe by three buildings",
-    "text": "\"The Cassandra commit log flushes to disk with an fsync call every 10 seconds by default. This means that there is up to ten seconds where the committed data is not actually on disk, but it has been written to memory in three different instances in three different availability zones (i.e. datacenter buildings).\" (An fsync call forces what is in memory onto the disk.) The post judges the chance of losing all three copies in that window \"small enough\".",
-    "source": 0
-   },
-   {
-    "title": "The same default today",
-    "text": "In the Cassandra 5.0 cassandra.yaml reference (its main settings file), commitlog_sync defaults to periodic, \"where writes may be acked immediately\" (confirmed at once) and \"the CommitLog is simply synced every commitlog_sync_period milliseconds\", and commitlog_sync_period defaults to 10000ms. Group mode instead will \"not ack writes until the commit log has been flushed to disk\". compaction_throughput, which \"throttles compaction to the given total throughput across the entire system\", defaults to 64MiB/s (a MiB is a little over a million bytes), a ceiling, not a promise of what your disks will reach.",
-    "source": 1
-   },
-   {
-    "title": "cassandra-stress: benchmark your own data model",
-    "text": "The Cassandra 4.1 docs say \"the cassandra-stress tool is used to benchmark and load-test a Cassandra cluster\" and that it \"supports testing arbitrary CQL tables and queries, allowing users to benchmark their own data model\" (CQL is Cassandra's query language). \"User mode allows you to stress your own schemas\", and \"user mode defines a profile using YAML\" (a plain-text settings format).",
-    "source": 4
-   },
-   {
-    "title": "\"Reproducible by anyone\"",
-    "text": "The post says \"the benchmark results should be reproducible by anyone\", and offers the details \"so that other performance teams working with Cassandra on AWS can leverage our work and replicate and extend our results\". Reproducing its test reproduces its numbers, for its 400-byte writes; extending it to your own load is the part that tells you about your cluster.",
-    "source": 0
-   }
-  ],
-  "interview": {
-   "asked": [
-    "How would you size a database cluster for a new workload?",
-    "What does \"scales linearly\" mean, and what doesn't it mean?",
-    "How do you benchmark a database properly?"
-   ],
-   "answer": "Start from the workload, the work your system will really get, not someone's headline. Write down rows a second at the peak, row size, copies, read mix and how long the burst lasts. Turn it into bytes per node per second, because that is what the disks pay. Treat a published benchmark as a hint about shape. \"Scales linearly\" means the work each node does stays roughly flat as nodes are added, so the total grows in proportion. It doesn't mean your per-node rate matches theirs. Then benchmark properly. Use your own schema (table design) and data; cassandra-stress has a user mode for that. Run your reads alongside the writes, in the real burst shape. Run long enough for compaction and other background work to reach a steady state, a rate that stops drifting, or visibly fall behind. Step the load up and plot per-node throughput until it bends. Size the peak below the bend, with headroom for repair, a lost node or zone, and growth. Rerun the benchmark when the load changes. Finally, check the durability assumptions the benchmark relied on, such as copies spread across zones, so a saved write survives a lost building."
-  }
- },
- "terms": [
-  {
-   "term": "Water utility",
-   "def": "A company or public body that supplies a town's water and bills by what each meter records. Cressbeck Water serves the town of Cressbeck."
-  },
-  {
-   "term": "Night desk",
-   "def": "The overnight operator's post at Cressbeck Water, watching the meters' upload and the systems behind it."
-  },
-  {
-   "term": "Smart meter",
-   "def": "A water meter that records use itself and sends its readings over a network, instead of waiting for someone to read the dial."
-  },
-  {
-   "term": "Interval row",
-   "def": "One reading of a meter for a stretch of time. Cressbeck's meters keep one row for every 15 minutes, 96 a day."
-  },
-  {
-   "term": "Diagnostics (meter)",
-   "def": "Extra readings a meter sends about itself and the pipe: pressure, battery and event flags. They make each Cressbeck row about 4 KB."
-  },
-  {
-   "term": "Pressure event",
-   "def": "A sudden rise or drop in water pressure, often from a failing main. On such a night Cressbeck's meters log more, and rows run to about 8 KB."
-  },
-  {
-   "term": "Firmware",
-   "def": "The small program built into a device such as a meter. It decides what the device records, how much it sends and when it wakes."
-  },
-  {
-   "term": "Firmware push",
-   "def": "Sending a new firmware version to many devices over the network, usually in stages with a way to roll back. For 1.2 million meters it takes months."
-  },
-  {
-   "term": "Gateway (meter network)",
-   "def": "A radio box on a pole that collects nearby meters' data and forwards it. Cressbeck has 32, G01 to G32, with 37,500 meters each."
-  },
-  {
-   "term": "Head-end",
-   "def": "The system that wakes the meters through their gateways, receives each meter's batch and writes it to the database."
-  },
-  {
-   "term": "Batch (a meter's day)",
-   "def": "A meter's 96 rows for the day, sent together. In the sim a batch lands whole or not at all."
-  },
-  {
-   "term": "Wake time",
-   "def": "The minute a meter starts sending its day. Cressbeck's head-end wakes meters by gateway, so most wake at 02:00 sharp."
-  },
-  {
-   "term": "East bank",
-   "def": "The part of Cressbeck across the river, served by gateways G24 to G32: 337,500 meters, including Cressbeck General hospital."
-  },
-  {
-   "term": "Morning report",
-   "def": "Cressbeck Water's 06:00 summary of each meter's overnight use. It sums the readings it has and prints 0 for a meter with none."
-  },
-  {
-   "term": "Server room",
-   "def": "A room of servers on the company's own premises. Cressbeck's 12 nodes all sit in one, under the pumping station, on one power supply."
-  },
-  {
-   "term": "Benchmark",
-   "def": "A test that runs a known load against a system and measures what it does, so you can predict how it will behave under your own load."
-  },
-  {
-   "term": "Netflix Tech Blog",
-   "def": "Netflix engineering's public blog. The 2011 Cassandra post appeared there; this case reads it through an archived copy."
-  },
-  {
-   "term": "Stress tool",
-   "def": "A program that generates heavy load against a system for a test. Netflix used the one that ships with Cassandra, now called cassandra-stress."
-  },
-  {
-   "term": "cassandra-stress",
-   "def": "Cassandra's own load-testing tool. Its user mode reads a profile, a settings file you write, so you can test your own table, row sizes and queries."
-  },
-  {
-   "term": "User mode (cassandra-stress)",
-   "def": "The cassandra-stress mode that tests your own table design and queries, described in a profile file, instead of the tool's built-in table."
-  },
-  {
-   "term": "Profile (YAML)",
-   "def": "A text file that tells cassandra-stress which table to create, what the columns look like and which queries to run, and in what mix."
-  },
-  {
-   "term": "Client writes and replica writes",
-   "def": "A client write is one row a client sends. With three copies the cluster performs three replica writes for it: 1.1 million became 3.3 million."
-  },
-  {
-   "term": "Per-node rate",
-   "def": "The work each node does a second, in writes or in bytes. A cluster's total is the per-node rate times the number of nodes."
-  },
-  {
-   "term": "Bytes per node per second",
-   "def": "Rows a second x row size x copies / nodes. The post's nodes took about 4.58 MB/s each; Cressbeck's took 47.1 at 02:00."
-  },
-  {
-   "term": "Scales linearly",
-   "def": "Total throughput grows in proportion to the nodes, because each node's throughput stays about the same as nodes are added."
-  },
-  {
-   "term": "Where it bends",
-   "def": "The load at which per-node throughput stops rising with the load offered. Below it every row lands; past it the cluster falls behind."
-  },
-  {
-   "term": "Steady state",
-   "def": "The point in a test where the measured rate stops drifting. For a store with compaction it can take far longer to reach than the writes do."
-  },
-  {
-   "term": "Write-only load",
-   "def": "A test or workload that only writes, with no reads. The post chose one because writes reach the disks while reads may come from memory."
-  },
-  {
-   "term": "Read mix",
-   "def": "The reads that run alongside the writes, and how many. Cressbeck's dashboards read all night, and their reads compete with compaction for the disks."
-  },
-  {
-   "term": "Compaction backlog",
-   "def": "Files (SSTables) written to disk but not yet merged by compaction: work a node still owes its disks. Cassandra reports it as pending compactions."
-  },
-  {
-   "term": "Compaction rate (in the sim)",
-   "def": "How much new data a node's compaction clears a second: 12 MB/s with the dashboards reading, 20 without. Cressbeck's own figures, invented."
-  },
-  {
-   "term": "Stall point (in the sim)",
-   "def": "63 GB of SSTables waiting on a node. Past it, flushes wait and so does every write, until compaction has caught up."
-  },
-  {
-   "term": "Clean step (benchmark)",
-   "def": "The highest load step in a benchmark at which every row landed. Cressbeck's, on the night's shape, was 35.3 MB/s per node."
-  },
-  {
-   "term": "m1.xl and m2.4xl",
-   "def": "Sizes of Amazon's rented computers in 2011. m1.xl had four processors, 15GB of memory and four 400GB disks; m2.4xl, for the clients, had eight processors and 68GB."
-  },
-  {
-   "term": "Cassandra 0.8.6",
-   "def": "The Cassandra version Netflix ran in 2011. Its compaction needed half the disk space free; the post says Cassandra 1.0 changed that."
-  },
-  {
-   "term": "LOCAL QUORUM",
-   "def": "The post's spelling of LOCAL_QUORUM: wait until most of the copies in the nearest datacenter (group of buildings) have the write: two of three here."
-  },
-  {
-   "term": "Read-your-writes",
-   "def": "A reader that just wrote something sees it on its next read. LOCAL_QUORUM writes and reads give it, because two of three always overlap."
-  },
-  {
-   "term": "commitlog_sync",
-   "def": "The setting in cassandra.yaml, Cassandra's settings file, for when the commit log is forced onto disk. The default, periodic, confirms writes before that happens."
-  },
-  {
-   "term": "commitlog_sync_period",
-   "def": "How often a periodic commit log is synced to disk. The default is 10000ms, ten seconds, as in 2011."
-  },
-  {
-   "term": "Group mode (commit log)",
-   "def": "A commitlog_sync setting under which Cassandra does not confirm a write until the commit log has been forced onto disk. Safer, and each write waits longer."
-  },
-  {
-   "term": "compaction_throughput",
-   "def": "The cassandra.yaml throttle on compaction across a node, 64MiB/s by default. It is a ceiling; disks busy with reads may manage far less."
-  },
-  {
-   "term": "Throttle",
-   "def": "A limit a system puts on its own work so that it can't take all of a resource, such as disk bandwidth, from everything else."
-  },
-  {
-   "term": "Keyspace",
-   "def": "Cassandra's top-level folder of tables, where you set how many copies to keep and where they go. Netflix's kept three copies."
-  },
-  {
-   "term": "CQL",
-   "def": "Cassandra Query Language: the SQL-like language used to define Cassandra tables and read and write them."
-  },
-  {
-   "term": "YAML",
-   "def": "A plain-text format for settings and lists, using indentation. cassandra.yaml and cassandra-stress profiles are written in it."
-  },
-  {
-   "term": "MiB",
-   "def": "A mebibyte: 1,048,576 bytes, a little more than a million. Cassandra writes its compaction throttle in MiB a second."
-  },
-  {
-   "term": "Message broker",
-   "def": "A server that takes messages from the programs that send them, stores them, and hands them to the programs that read them. Kafka and RabbitMQ are examples."
-  },
-  {
-   "term": "Vendor benchmark",
-   "def": "A benchmark a product's maker publishes. It is usually run with small messages or rows and short tests, to show the product at its best."
-  }
- ],
- "atWork": "Picture a common incident. A team sizes a message broker cluster from the vendor's published benchmark. (A message broker is a server that holds messages between the programs that send them and the programs that read them; the vendor is the company selling it.) The benchmark ran small messages for a few minutes, and the team divides its headline messages a second by the brokers it wants. Their messages are tens of kilobytes. Every night a batch job, a program that works through a big pile at once, sends an hour-long burst. Forty minutes in, the brokers' disks fall behind and the sending programs start timing out, though the sheet says there is room. The fix is the one in this case. Benchmark your own message size and your own burst, for as long as the burst lasts. Find where each broker's throughput bends, and size below it. Look for the same in your systems. Find every capacity number that came from someone else's post, a vendor page or a load test with made-up data. Translate each into bytes per node per second at your peak. Then check what the test left out: your read mix, your burst length, a lost node, and background work. That includes compaction, repair, deleting old data on a schedule, and merging index files. Where you can, replay your real peak in a test setup with the same machine sizes, stepping the load up. If your company is pursuing ISO/IEC 27001:2022, control A.8.6 (capacity management) expects resource use to be monitored and adjusted against current and expected capacity needs; a benchmark of your own peak, a recorded per-node limit with headroom, and an alert when the peak approaches it are the kind of evidence that supports it, so build them in now rather than at audit time.",
- "board": {
-  "cards": [
-   {
-    "id": "benchmarking-a-database-before-you-trust-it",
-    "title": "Benchmark first"
-   },
-   {
-    "id": "checking-that-throughput-grows-in-a-straight-line",
-    "title": "Linear scaling"
-   },
-   {
-    "id": "growing-a-cluster-from-48-to-288-nodes",
-    "title": "48 to 288 nodes"
-   },
-   {
-    "id": "cassandra-on-aws",
-    "title": "Cassandra on AWS"
-   },
-   {
-    "id": "compaction",
-    "title": "Compaction"
-   },
-   {
-    "id": "quorums",
-    "title": "Quorums"
-   },
-   {
-    "id": "consistent-hashing",
-    "title": "The ring"
-   },
-   {
-    "id": "durability",
-    "title": "Durability"
-   },
-   {
-    "id": "capacity",
-    "title": "Capacity"
-   }
-  ],
-  "strings": [
-   {
-    "from": "growing-a-cluster-from-48-to-288-nodes",
-    "to": "checking-that-throughput-grows-in-a-straight-line",
-    "label": "the post's test"
-   },
-   {
-    "from": "checking-that-throughput-grows-in-a-straight-line",
-    "to": "benchmarking-a-database-before-you-trust-it",
-    "label": "not your rate"
-   },
-   {
-    "from": "compaction",
-    "to": "benchmarking-a-database-before-you-trust-it",
-    "label": "shows up late"
-   },
-   {
-    "from": "benchmarking-a-database-before-you-trust-it",
-    "to": "capacity",
-    "label": "size the bend"
-   },
-   {
-    "from": "cassandra-on-aws",
-    "to": "quorums",
-    "label": "ONE or 2 of 3"
-   },
-   {
-    "from": "cassandra-on-aws",
-    "to": "consistent-hashing",
-    "label": "3 copies, 3 zones"
-   },
-   {
-    "from": "cassandra-on-aws",
-    "to": "durability",
-    "label": "10 s commit log"
-   },
-   {
-    "from": "cassandra-on-aws",
-    "to": "compaction",
-    "label": "LSM underneath"
-   }
-  ]
- },
- "recall": [
-  {
-   "id": "s3e17-r1",
-   "kind": "free",
-   "prompt": "Your team sized a message broker cluster (servers that hold messages between programs) from the vendor's published benchmark: 2 million messages a second on 10 brokers, with 100-byte messages and 15-minute runs. Your messages average 20 KB, and every night a billing job sends 50,000 a second for an hour. At 00:40 producers, the programs sending the messages, start timing out, though the sheet said you were using a quarter of the vendor's figure. What went wrong, and how would you size the cluster?",
-   "keyIdeas": [
-    {
-     "idea": "The sheet compared message counts; the cost is bytes, and 20 KB messages are 200 times the benchmark's 100 bytes, so bytes per broker were far above anything the benchmark ran",
-     "match": [
-      "bytes per",
-      "bytes a second",
-      "in bytes",
-      "200 times",
-      "message size",
-      "gb a second",
-      "not the count",
-      "not messages"
-     ]
-    },
-    {
-     "idea": "Benchmark your own load: your message size and the real hour-long burst, run long enough for background work to show, since 15 minutes can't see a failure at 40",
-     "match": [
-      "our own benchmark",
-      "benchmark our",
-      "benchmark your",
-      "our own load",
-      "your own load",
-      "my own load",
-      "our own messages",
-      "real burst",
-      "whole hour",
-      "full hour",
-      "long enough"
-     ]
-    },
-    {
-     "idea": "Step the load to find where per-broker throughput bends, and size the peak below it with headroom",
-     "match": [
-      "where it bends",
-      "bends",
-      "knee",
-      "headroom",
-      "spare capacity",
-      "step the load",
-      "stepping"
-     ]
-    }
-   ],
-   "model": "The sheet compared counts, but brokers pay in bytes. The vendor's messages were 100 bytes and yours are 20 KB, 200 times the size. So 50,000 a second is about 1 GB a second across the cluster, far more bytes per broker than the benchmark ever wrote, even though the message count looked like a quarter of theirs. And their runs lasted 15 minutes, while yours fails 40 minutes into an hour-long burst. A short run never sees that kind of failure: disks and background work like log cleanup take time to fall behind. I'd benchmark our own load: our message size, the real burst for the whole hour, with our consumers, the programs reading the messages, running alongside. I'd step the load up until per-broker throughput bends. Then I'd size the peak below that bend with headroom, spare capacity, for a lost broker and growth, and rerun the test when message sizes or the burst change."
-  },
-  {
-   "id": "s3e17-r2",
-   "kind": "mcq",
-   "prompt": "Netflix's 2011 post says throughput \"scaled linearly\" as its cluster grew from 48 to 288 instances. What does that tell a team planning its own Cassandra cluster?",
-   "options": [
-    "Each node will handle about 3,819 writes a second, whatever its rows look like",
-    "Throughput per node stays about the same as nodes are added, so the total grows in proportion",
-    "Doubling the number of nodes will always fix write timeouts",
-    "Writing at consistency ONE costs the cluster half the work of LOCAL_QUORUM"
-   ],
-   "answer": 1,
-   "why": "Linear scaling is a statement about shape: the load on each instance stayed similar as instances were added, so the total grew in a straight line. It says nothing about what your per-node rate is: Netflix's 3,819 client writes a node were 400-byte writes in a ten-minute, write-only test. Doubling helps only if your per-node limit is where you think it is, and ONE does the same cluster work as LOCAL_QUORUM."
-  },
-  {
-   "id": "s3e17-r3",
-   "kind": "mcq",
-   "prompt": "At the peak, 46,000 rows a second arrive, each 4 KB (4,096 bytes), written as 3 copies across 12 nodes. Roughly how many bytes land on each node a second?",
-   "options": [
-    "About 4.6 MB/s",
-    "About 15.7 MB/s",
-    "About 47 MB/s",
-    "About 565 MB/s"
-   ],
-   "answer": 2,
-   "why": "46,000 x 4,096 x 3 / 12 = 47,104,000 bytes, about 47 MB/s per node. 15.7 forgets the copies, 565 is the whole cluster, and 4.6 is what each of Netflix's nodes took with 400-byte writes, about ten times less."
-  },
-  {
-   "id": "s3e17-r4",
-   "kind": "free",
-   "prompt": "Your company will move 2 million vehicle trackers onto a new Cassandra cluster. Each sends a 1 KB position every 30 seconds while the engine runs, and most vehicles start between 07:00 and 08:30, when a live map also reads the latest positions. A colleague wants to size it from a vendor's slide. Describe the benchmark you would run before choosing a node count.",
-   "keyIdeas": [
-    {
-     "idea": "Use your own data and queries: the real table and row size, with the live map's reads running alongside the writes",
-     "match": [
-      "our own schema",
-      "our own table",
-      "your own data",
-      "our own data",
-      "real rows",
-      "row size",
-      "user mode",
-      "map's reads",
-      "map reads",
-      "reads alongside",
-      "read mix"
-     ]
-    },
-    {
-     "idea": "Replay the real burst shape, the morning ramp for its full length, long enough for compaction to reach a steady state or fall behind",
-     "match": [
-      "steady state",
-      "compaction",
-      "full length",
-      "whole burst",
-      "burst shape",
-      "long enough",
-      "90 minutes",
-      "hour and a half"
-     ]
-    },
-    {
-     "idea": "Step the load up and plot per-node throughput to find where it bends",
-     "match": [
-      "where it bends",
-      "bends",
-      "knee",
-      "per node",
-      "per-node",
-      "step the load",
-      "stepping"
-     ]
-    },
-    {
-     "idea": "Size below the bend with headroom for repair, a lost node or zone, and growth",
-     "match": [
-      "headroom",
-      "lost node",
-      "lose a node",
-      "losing a node",
-      "repair",
-      "spare capacity"
-     ]
-    }
-   ],
-   "model": "I'd write a cassandra-stress user mode profile with our own table and real rows, about 1 KB a position, and run the live map's queries alongside the writes, since reads compete with compaction for the disks. I'd replay the burst shape: the ramp from 07:00 to 08:30 for its full length, not ten minutes at a flat rate, so compaction has time to reach a steady state or visibly fall behind. Then I'd step the load up, 25% at a time, and plot per-node throughput and latency, the wait for each request, to find where it bends. Finally I'd size the peak below the bend with headroom for repair, a lost node or a lost zone, and growth in the fleet, and rerun the benchmark whenever rows, reads or the burst change."
-  }
- ],
- "coldCase": {
-  "update": "UPDATE, 4 months later. The 32 nodes have carried every night since March, 8 KB nights included. Then on 9 July a storm cut the pumping station's power at 02:14 for four seconds, and every node in the server room restarted at once. The head-end's log shows every batch acknowledged, with no timeouts. But the morning report printed about 4,790 meters at 0, scattered across the west and centre, and every one of them had its batch acknowledged between 02:13:54 and 02:14:04. The board wants to know how an acknowledged write can disappear.",
-  "prompt": "Reply to OP. Where did those acknowledged batches go, and what should change?",
-  "keyIdeas": [
-   {
-    "idea": "The commit log is synced periodically, every 10 seconds by default, so writes are acknowledged while still only in memory, not yet fsynced",
-    "match": [
-     "periodic",
-     "commitlog_sync",
-     "10 seconds",
-     "ten seconds",
-     "not yet on disk",
-     "not on disk",
-     "in memory",
-     "fsync"
-    ]
-   },
-   {
-    "idea": "Netflix's safety came from three copies in three availability zones; here all three copies were in one room, so one power cut took all of them",
-    "match": [
-     "one room",
-     "same room",
-     "three zones",
-     "three buildings",
-     "availability zones",
-     "all three copies",
-     "every copy",
-     "all the copies"
-    ]
-   },
-   {
-    "idea": "Spread the replicas across separate failure domains, such as a second room or site, or make the commit log sync before acknowledging (group or batch mode) at a latency cost",
-    "match": [
-     "second room",
-     "second site",
-     "another site",
-     "another building",
-     "failure domain",
-     "group mode",
-     "batch mode",
-     "networktopologystrategy"
-    ]
-   }
-  ],
-  "model": "They were acknowledged from memory. Cassandra's default commitlog_sync is periodic. A write is acknowledged, confirmed, once it is in the commit log's buffer (a holding area in memory) and the memtable. Then the commit log is fsynced, forced onto disk, every 10 seconds. Netflix's post says the same and explains why that was safe for them. In those ten seconds each write was in memory in three instances in three availability zones, three buildings, so losing all of them at once was unlikely. Here all three copies sat in one room on one power supply. So one four-second cut could take every copy of up to the last ten seconds: a full window of 46,000 rows a second for ten seconds is 460,000 rows, about 4,790 meters. The fix is to give the copies separate failure domains, places that don't fail together. Use a second room or site, set up as a separate rack or datacenter in NetworkTopologyStrategy, so no single power cut reaches all three. Until then, group mode makes Cassandra wait for the commit log to reach disk before acknowledging. That costs latency, a longer wait per write, and needs a fresh benchmark. A UPS, a battery that keeps the room powered, helps but isn't a second building."
- },
- "next": "Next, Three Ways to Ask: a translator's booth, and choosing between REST, gRPC and GraphQL when you design an API.",
- "sources": [
-  {
-   "title": "Adrian Cockcroft and Denis Sheahan, Benchmarking Cassandra Scalability on AWS - Over a million writes per second, The Netflix Tech Blog, 2 November 2011 (288 m1.xl instances, 96 per zone, 1.1 million client writes a second, 3.3 million with replication; linear from 48 to 288; consistency ONE; about 400 bytes a write; about ten minutes, run once; half the filesystem for compaction in 0.8.6; commit log fsync every 10 seconds), read via the Internet Archive, 11 October 2026",
-   "url": "https://web.archive.org/web/20130108133835/http://techblog.netflix.com/2011/11/benchmarking-cassandra-scalability-on.html"
-  },
-  {
-   "title": "Apache Cassandra 5.0 Documentation, cassandra.yaml file configuration (commitlog_sync periodic by default, commitlog_sync_period 10000ms, group mode, compaction_throughput 64MiB/s), read on 11 October 2026",
-   "url": "https://cassandra.apache.org/doc/stable/cassandra/managing/configuration/cass_yaml_file.html"
-  },
-  {
-   "title": "Apache Cassandra 5.0 Documentation, Size Tiered Compaction Strategy (disk space needed for both the new and old SSTables during STCS compaction), read on 11 October 2026",
-   "url": "https://cassandra.apache.org/doc/stable/cassandra/managing/operating/compaction/stcs.html"
-  },
-  {
-   "title": "Apache Cassandra 5.0 Documentation, Compaction overview (compaction merges SSTables and discards old data; STCS is the default strategy), read on 11 October 2026",
-   "url": "https://cassandra.apache.org/doc/stable/cassandra/managing/operating/compaction/overview.html"
-  },
-  {
-   "title": "Apache Cassandra 4.1 Documentation, cassandra-stress (benchmark and load-test a cluster; user mode and YAML profiles to benchmark your own data model), read on 11 October 2026",
-   "url": "https://cassandra.apache.org/doc/4.1/cassandra/tools/cassandra_stress.html"
-  },
-  {
-   "title": "ISMS.online, ISO 27001:2022 Annex A 8.6 Capacity Management (a summary of the control: manage IT resources to meet current and future demands), read on 11 October 2026",
-   "url": "https://www.isms.online/iso-27001/annex-a/8-6-capacity-management-2022/"
-  }
- ]
 }
