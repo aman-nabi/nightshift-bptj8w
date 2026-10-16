@@ -1,0 +1,859 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-16) first version"
+ ],
+ "id": "s9e03",
+ "season": 9,
+ "n": 3,
+ "title": "How Many Machines",
+ "setting": "a florist on the night before Valentine's Day",
+ "core": true,
+ "minutes": 12,
+ "concepts": [
+  "capacity-planning",
+  "load-testing"
+ ],
+ "prerequisites": [
+  "s2e01",
+  "s2e08",
+  "s6e11",
+  "s2e04"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_wiring_gwenfair",
+  "flair": "Part 1",
+  "age": "5h",
+  "votes": 3156,
+  "title": "I wire bouquets on nights for an online flower shop. On the night before Valentine's Day our shop stuck at 450 orders a minute, and its dashboard said it was 38% busy.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Gwenfair, night florist for an online flower shop. Customers order on our website, and we wire and wrap their bouquets overnight for the 06:00 vans. My bench faces a wall screen: new orders at the bottom, and above them the shop's dashboard, a page of live numbers. Ikenna, our web developer, put it there so the night shift can see if the shop is up."
+   },
+   {
+    "t": "p",
+    "text": "Orders for the 06:00 round open at 21:30 and close at 23:00. The computers that show our pages and take each order are called web servers. We have 6, and each takes 200 orders a minute. Behind them sits one database, the computer that keeps our 40,000 customers' records."
+   },
+   {
+    "t": "p",
+    "text": "Each order needs 3 of a customer's records: account, address and saved card. A web server asks the database for them, in steps. First the database looks in its memory, a small fast store of records it used recently. If a record is there, it answers at once. If not, it reads it from its disk, the big slow store that holds everything, and keeps a copy in memory for next time. Our disk does 1,350 reads a minute."
+   },
+   {
+    "t": "p",
+    "text": "Last year, on our old shop, the busiest minute of the night was 400 orders. In May we launched a new shop on the same database. In January Ikenna wrote the plan: double last year, 800 a minute, plus half again as spare room, called headroom. That's 1,200 a minute, and 6 web servers cover it exactly."
+   },
+   {
+    "t": "p",
+    "text": "Then he checked it with a load test, which goes in steps: a test program pretends to be customers, sends orders at a set rate, and you watch whether every order gets through. Its report gives the date and rate, the pretend customers, and the result:"
+   },
+   {
+    "t": "log",
+    "text": "Tue 27 Jan  1,200 orders a minute for 15 minutes\ncustomers   5 test accounts, 3 test bouquets\nresult      18,000 of 18,000 through: PASSED"
+   },
+   {
+    "t": "p",
+    "text": "Since then the dashboard has carried a banner: load test passed at 1,200. Busy, on our dashboard, means orders through against the 1,200 the web servers were tested to. It shows nothing about the database."
+   },
+   {
+    "t": "p",
+    "text": "Friday 13 February. At 22:00 the shop emailed everyone on its list: last hour to order for the morning. Orders jumped from 400 a minute to 700. Ikenna once told me what happens when the database falls behind: orders wait in its line, which holds 1,000, and when that's full a new order fails at the checkout and its basket empties."
+   },
+   {
+    "t": "p",
+    "text": "At 22:04 the shop phone rang. A man whose basket had just emptied. Then another. The order screen sat at 450 a minute and wouldn't move. I rang Ikenna at home. His shop log, sent later: each line gives the minute, orders tried, through and failed, and the dashboard's busy figure:"
+   },
+   {
+    "t": "log",
+    "text": "22:00  tried 700  through 450  failed 0    busy 38%\n22:03  tried 700  through 450  failed 0    busy 38%\n22:04  tried 700  through 450  failed 250  busy 38%\n22:29  tried 700  through 450  failed 250  busy 38%"
+   },
+   {
+    "t": "beat",
+    "text": "Six web servers, a third busy, and nobody could buy a rose."
+   },
+   {
+    "t": "evidence",
+    "label": "order_screen_night.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Friday 13 February 2026, 21:30 to 23:00. Orders tried run green at 300 to 400 a minute until 22:00, red at 700 a minute from 22:00 to 22:30, then green again. Orders through are green until 22:00, amber, stuck at 450 a minute, from 22:00 to 22:43, then green. The web servers stay green all night, at 38% busy or less. Baskets emptied: none until 22:04, red from 22:04 to 22:30, none after. Markers: 22:00 the last-hour email, 22:04 the first failure, 22:30 orders back to 400 a minute.",
+     "start": "21:30:00",
+     "seconds": 5400,
+     "ticksEvery": 900,
+     "rows": [
+      {
+       "label": "orders tried",
+       "segments": [
+        [
+         0,
+         1800,
+         "ok"
+        ],
+        [
+         1800,
+         3600,
+         "bad"
+        ],
+        [
+         3600,
+         5400,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "orders through",
+       "segments": [
+        [
+         0,
+         1800,
+         "ok"
+        ],
+        [
+         1800,
+         4380,
+         "warn"
+        ],
+        [
+         4380,
+         5400,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "web servers",
+       "segments": [
+        [
+         0,
+         5400,
+         "ok"
+        ]
+       ]
+      },
+      {
+       "label": "baskets emptied",
+       "segments": [
+        [
+         2040,
+         3600,
+         "bad"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 1800,
+       "label": "22:00 email: 700",
+       "tone": "warn"
+      },
+      {
+       "t": 2040,
+       "label": "22:04 first failure",
+       "tone": "bad"
+      },
+      {
+       "t": 3600,
+       "label": "22:30 back to 400",
+       "tone": "ok"
+      }
+     ]
+    },
+    "caption": "Redrawn from Ikenna's shop log, Friday 13 February 2026. Red on the top row is 700 orders a minute, from the 22:00 email to 22:29. Amber is the order screen stuck at 450, until 22:43. The web servers never left green: 38% busy at most. Baskets emptied from 22:04 to 22:29, 6,500 in all."
+   },
+   {
+    "t": "p",
+    "text": "The owner and I took calls until midnight. Ikenna's test passed; the shop failed anyway. Mothering Sunday, our next big night, is a month away. What should we change before then?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 158,
+   "age": "4h",
+   "text": "Two sums first. Your disk does 1,350 reads a minute, and each order needs 3. How many orders a minute can the database take from disk? Your web servers take 1,200. In any chain of machines, the one that fills up first sets the pace for all of them; engineers call it the first limit, or the bottleneck. Then a question about memory. In January, how many different customers did the test pretend to be, and where were their records after their first order? Tonight, where were they?",
+   "replies": [
+    {
+     "author": "u/night_wiring_gwenfair",
+     "op": true,
+     "points": 51,
+     "age": "4h",
+     "text": "1,350 divided by 3 is 450. In January the same 5 customers ordered 18,000 times, so after their first order their records sat in memory. Tonight every order came from a different customer, so every read went to the disk."
+    }
+   ]
+  },
+  {
+   "author": "u/add_servers_vratislav",
+   "points": 93,
+   "age": "4h",
+   "text": "The web servers are the shop. When it slows, add servers; that's what autoscaling is for. It's a rule that works in steps: it watches how many orders are waiting, adds a web server while they pile up, and takes one away once the line clears. You ran six fixed servers on the busiest night of the year. Let the shop grow to twelve and the line clears itself.",
+   "replies": [
+    {
+     "author": "u/night_wiring_gwenfair",
+     "op": true,
+     "points": 22,
+     "age": "3h",
+     "text": "Ikenna says our hosting company can switch it on in an afternoon."
+    }
+   ]
+  },
+  {
+   "author": "u/soak_it_longer_zebulon",
+   "points": 41,
+   "age": "3h",
+   "text": "Fifteen minutes isn't a test, it's a warm-up. Run the same test for two hours. Some problems only show after a while, like a disk slowly filling up. Testers call a long run like that a soak test."
+  }
+ ],
+ "reply": {
+  "prompt": "Mothering Sunday is a month away. What should the shop change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Let the shop add web servers whenever orders start to wait, so it grows to meet the night.",
+    "tone": "bad",
+    "verdict": "More servers, same limit",
+    "part2": "From Tuesday 17 February the shop ran autoscaling: one more web server each minute while orders wait, up to 12. In the sim, replaying 13 February: orders start waiting at 22:00, the shop reaches 12 web servers at 22:06, and the order screen still sits at 450 a minute. 6,500 baskets still empty, and the dashboard now reads 19% busy. On Saturday 14 March, the eve of Mothering Sunday, the shop grew to 12 web servers within minutes of the evening rush, and the order screen stuck at 450 again. The phone rang until the orders closed.",
+    "senior": "Autoscaling adds more of whatever it scales, and here that was the part with room to spare. The web servers read 38% busy because they were waiting on the database, which was full at 450 orders a minute from disk. Twelve servers wait just the same, at 19%. Autoscaling is the right tool once a test shows the web servers are the first limit; it cannot move a limit that lives in another machine. Find the first limit before you scale anything."
+   },
+   {
+    "text": "Run the same load test for longer, so a slow problem shows itself before the big night.",
+    "tone": "bad",
+    "verdict": "Longer test, same blind spot",
+    "part2": "On Sunday 22 February Ikenna ran the January test again for two hours: the same 5 test customers and 3 test bouquets at 1,200 a minute. In the sim: 144,000 of 144,000 through, PASSED, the database 8% busy, every lookup after the first 5 orders from memory. The banner changed to say the shop had passed for two hours. On Saturday 14 March the order screen stuck at 450 again, with the dashboard at 38%.",
+    "senior": "A longer run finds problems that grow with time, like a disk filling or memory slowly running out; that is a soak test, and it has its place. But this test measured the wrong thing, and measuring it longer measures it more. Five customers' records stay in memory, so the database never touched its disk. A load test has to look like the real night: as many different customers as the shop really has, the real mix of bouquets, the real share of lookups that miss memory. Shape first, then length."
+   },
+   {
+    "text": "Buy machines for ten times the plan, 12,000 orders a minute, and keep them running all year.",
+    "tone": "warn",
+    "verdict": "Trade-off: never falls, always pays",
+    "part2": "The owner signed for a worst-case fleet: 60 web servers and a database whose disk does 36,000 reads a minute, 12,000 orders, running all year. In the sim, replaying 13 February: no basket empties, and at the peak both the web servers and the database are 6% busy. Mothering Sunday went through without a single call. The bill went from £1,120 a month to £15,200, nearly 14 times as much, and by June the owner was asking why the shop pays every day for one night a year.",
+    "senior": "Buying for the worst case is honest: it never falls over below 12,000 a minute, and worst cases do get beaten. Pokémon GO's launch traffic went to ten times its own worst-case estimate, which is where the ten here comes from. But the shop pays for 12,000 a minute every day to serve 700 one night, and machines sitting at 6% still hide an untested database at a bigger size. Most teams do better planning to a tested limit with headroom, and deciding in writing what happens above it."
+   },
+   {
+    "text": "Load test with real-shaped customers and bouquets, then plan to the first limit found.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "On Monday 16 February Ikenna loaded 40,000 test customers, as many as the shop has, and the real mix of bouquets, and ran the test again. In the sim: STALLED at 450 a minute, first limit the database, web servers 38% busy. The plan says 1,200, so he moved the database to a faster disk, 4,050 reads a minute, 1,350 orders. Tested again: PASSED at 1,200. At 1,500 it stalled at 1,200 on the web servers, the next limit. Then he put a waiting room in front, a page that lets in only what the first limit can take, 1,200 a minute, and asks the rest to wait their turn. Replaying 13 February: the peak runs 700 through, no basket empties, web servers 58% busy, database 52%. The bill went from £1,120 a month to £1,680. On Saturday 14 March the order screen rose and fell with the evening, and the phone stayed quiet.",
+    "senior": "Capacity planning is a method, not a number. Profile the traffic you will really get; set a target with headroom; test with traffic shaped like it, using data as big and as varied as the real shop's; find the first limit and plan to it; price the cheapest design that meets the target; and decide what happens above it. Here the shape was the whole story: five customers fit in memory, forty thousand never would. A waiting room is the honest answer to being wrong about the forecast: above the tested limit, customers wait in line instead of losing their baskets."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s9e03",
+  "title": "Replay the night of 13 February",
+  "lede": "You're Ikenna on Friday 13 February 2026 at 21:30, as orders for the 06:00 vans open. As given data: 6 web servers take 200 orders a minute each, 1,200 in all. Each order reads 3 customer records. The database's disk does 1,350 reads a minute, so 450 orders; from memory it answers 45,000 lookups a minute, and memory holds the records of the 2,000 customers used most recently. Tonight every order comes from a different customer, so every read is from disk. At most 1,000 orders wait in the database's line; past that, an order fails and its basket empties. Orders a minute: 300 from 21:30, 350 from 21:40, 400 from 21:50, 700 from 22:00 to 22:29, then 400, 300 and 150, closing at 23:00: 40,000 in all. Story prices a month: a web server £120, the database £400, or £900 with a faster disk (4,050 reads a minute), a waiting room (a page that lets customers in at a set rate) £60, and a worst-case fleet for 12,000 orders a minute £15,200. The load test sends orders straight to the web servers at a steady rate. Set the test's data, rate and length, the web servers, autoscaling, the disk, the waiting room and the fleet, then run the test or play the night.",
+  "tryThis": "Try this: run the load test as tested: PASSED at 1,200, database 8% busy. Switch the test data to 40,000 customers: STALLED at 450, first limit the database, web servers 38% busy. Play the night: at 22:04, 250 baskets empty with the web servers 38% busy, 6,500 by 22:29. Turn on autoscaling: 12 web servers by 22:06, still 450 through and 6,500 emptied. A 2-hour test with the same 5 customers still passes. The waiting room alone: 450 let in a minute, none failed, the longest wait 17 minutes, the last order through at 23:05. The faster disk: the 40,000-customer test passes at 1,200 and stalls on the web servers at 1,500; the night peaks at 58% and 52% busy. The worst-case fleet: 6% busy, £15,200 a month."
+ },
+ "explain": {
+  "oneLine": "Nothing in the web servers broke. The January test reused 5 customers whose records sat in the database's memory; on 13 February, 40,000 different customers' records came from its disk, which tops out at 450 orders a minute, so the web servers stood 38% busy, waiting on the machine behind them.",
+  "steps": [
+   {
+    "title": "The plan, and the test that checked it.",
+    "text": "Ikenna's plan followed the first steps of capacity planning. First, profile the traffic: last year's busiest minute was 400 orders. Second, forecast: double, 800. Third, add headroom for being wrong: half again, 1,200 a minute, the target. Fourth, test it. A load test, in steps: a test program pretends to be customers; it sends orders at a set rate; you raise the rate and watch every part of the shop; the first part to fill up is the first limit. What can go wrong: the test can only find limits its pretend customers reach. Five test customers and 3 test bouquets made a night that never happens, and the test passed at 1,200 on that night."
+   },
+   {
+    "title": "Memory against disk: why 5 customers passed and 40,000 did not.",
+    "text": "A lookup, in steps: the web server asks for a record; the database checks its memory; if the record is there it answers at once; if not, it reads the disk and keeps a copy in memory. That memory works as a cache, as in The Jar on the Counter, and the share of lookups it answers is the hit ratio. In January, after each test customer's first order, their 3 records sat in memory, so the hit ratio was nearly 100%: 1,200 orders a minute made 3,600 lookups, 8% of the 45,000 memory can answer. On 13 February every order was a different customer, so the hit ratio was 0 and every record came from disk. The napkin sum from Napkin Math that nobody did: 1,200 orders x 3 reads = 3,600 disk reads a minute, against a disk that does 1,350. 1,350 / 3 = 450 orders a minute."
+   },
+   {
+    "title": "Why the dashboard said 38%, and why it never showed before.",
+    "text": "From 22:00, 700 orders a minute arrived and 450 got through. The other 250 a minute joined the database's line: 250, 500, 750, then 1,000 by 22:03. At 22:04 the line was full, so 250 orders a minute failed and their baskets emptied, until demand fell at 22:30: 6,500 in all. The web servers were not busy; they were waiting. The dashboard measured them against the 1,200 they were tested to: 450 of 1,200 is 37.5%, shown as 38%, and it had no panel for the database. It never showed before because last year's busiest minute, 400, stayed under 450, and the new shop launched in May on the same database, with no real peak until this one."
+   },
+   {
+    "title": "The fix: test the real shape, plan to the first limit, decide what happens above it.",
+    "text": "The method, as steps a capacity planner can copy. One, traffic profile: last year 400 a minute, and what the night really looks like: 40,000 different customers, the real mix of bouquets. Two, target: 800 forecast plus headroom, 1,200. Three, a test shaped like real traffic: 40,000 distinct test customers, so lookups miss memory as they will on the night. Four, the first limit: the database, at 450. Five, raise it with headroom: a faster disk, 4,050 reads a minute, 1,350 orders, so the web servers at 1,200 become the first limit, and test again. Six, the cost of the cheapest design that meets the target: £1,680 a month, against £15,200 for the worst-case fleet. Seven, what happens above it: a waiting room that lets in only what the first limit can take and asks the rest to wait, so overload becomes a line, not emptied baskets."
+   },
+   {
+    "title": "Why the other fixes fail, and the walk into the database.",
+    "text": "Autoscaling adds web servers while orders wait: 12 by 22:06, still 450 through, 6,500 emptied, now 19% busy. Running the same test for two hours passes again: 144,000 of 144,000 through, all from memory. The worst-case fleet never falls over, but costs £15,200 a month to sit at 6%. On Monday 16 February Ikenna did what nobody had done since May: he opened the database's own page, the machine behind the shop that the dashboard never showed. Its disk had sat at 100% from 22:00 to 22:42, while the web servers' panel stayed green."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 740,
+   "h": 260,
+   "aria": "The fix, drawn for the next big night. Customers arrive at 700 orders a minute at the peak and reach a waiting room, which lets in up to 1,200 a minute and asks the rest to wait their turn. The 6 web servers take 200 each, 1,200 in all, now the first limit. Each order makes 3 reads at the database, whose faster disk takes 1,350 orders a minute. Below: above 1,200 a minute customers wait their turn instead of losing baskets; the next limit is the web servers at 1,200.",
+   "nodes": [
+    {
+     "id": "cust",
+     "label": "Customers",
+     "sub": "700 a minute",
+     "meta": "at the peak",
+     "x": 80,
+     "y": 70,
+     "w": 120,
+     "h": 72,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "room",
+     "label": "Waiting room",
+     "sub": "lets in 1,200",
+     "meta": "the rest wait",
+     "x": 270,
+     "y": 70,
+     "w": 120,
+     "h": 72,
+     "shape": "box",
+     "tone": "accent"
+    },
+    {
+     "id": "web",
+     "label": "Web servers",
+     "sub": "6 x 200: 1,200",
+     "meta": "first limit",
+     "x": 460,
+     "y": 70,
+     "w": 120,
+     "h": 72,
+     "shape": "box",
+     "tone": "warn"
+    },
+    {
+     "id": "db",
+     "label": "Database",
+     "sub": "1,350 a minute",
+     "meta": "faster disk",
+     "x": 650,
+     "y": 70,
+     "w": 120,
+     "h": 72,
+     "shape": "db",
+     "tone": "ok"
+    },
+    {
+     "id": "above",
+     "label": "above 1,200: they wait their turn",
+     "x": 175,
+     "y": 210,
+     "w": 300,
+     "h": 40,
+     "shape": "box",
+     "tone": "muted"
+    },
+    {
+     "id": "next",
+     "label": "next limit: web servers, 1,200",
+     "x": 555,
+     "y": 210,
+     "w": 300,
+     "h": 40,
+     "shape": "box",
+     "tone": "muted"
+    }
+   ],
+   "edges": [
+    {
+     "from": "cust",
+     "to": "room",
+     "label": "700/min"
+    },
+    {
+     "from": "room",
+     "to": "web",
+     "label": "1,200 max",
+     "tone": "ok"
+    },
+    {
+     "from": "web",
+     "to": "db",
+     "label": "3 reads",
+     "tone": "ok"
+    },
+    {
+     "from": "room",
+     "to": "above",
+     "dash": true,
+     "tone": "muted"
+    },
+    {
+     "from": "web",
+     "to": "next",
+     "dash": true,
+     "tone": "muted"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the next big night. The database's faster disk takes 1,350 orders a minute, so the web servers, at 1,200, are now the first limit, and the waiting room lets in no more than that. On 13 February's numbers the peak of 700 goes straight through; above 1,200, customers wait their turn instead of losing their baskets.",
+  "fix": {
+   "title": "The fix: a load test shaped like the real night, the database raised to the plan with headroom, and a waiting room for above it",
+   "text": "Fill the test database with as many distinct test customers as the shop really has, 40,000, and the real mix of bouquets, so the test's lookups miss memory the way the night's do. Run the test, raising the rate, and write down the first part to fill: the database, at 450. Raise that part above the target with headroom: the faster disk takes 1,350 orders a minute against the 1,200 plan. Test again and name the next limit: the web servers, at 1,200. Put a waiting room in front set to that limit, so anything above the plan waits in line. Price it: £1,680 a month. Add a database panel to the dashboard, and run the test again before every big night and after every change to the shop."
+  },
+  "limits": [
+   "A test is only as good as its shape. 40,000 test customers match this night, but a new kind of night, such as a rush on one bouquet or a partner sending orders in bulk, has its own shape, so profile and test again before each big night.",
+   "A waiting room swaps failures for waits. Below 1,200 a minute nobody waits; far above it for long, the line could grow past what customers will sit through, so it needs an honest wait time on screen and a rule for when to stop taking orders.",
+   "Raising one limit moves the bottleneck; it does not remove it. With the faster disk the web servers are the first limit at 1,200, and a forecast above that means running the whole method again."
+  ],
+  "tradeoff": {
+   "head": [
+    "What the shop does",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Test with 5 customers, 6 web servers (as built)",
+     "£1,120 a month; the test passed at 1,200.",
+     "Stalls at 450 from 22:00; 6,500 baskets empty with the dashboard at 38%."
+    ],
+    [
+     "Autoscaling up to 12 web servers",
+     "Grows by itself; right when the web servers are the limit.",
+     "12 servers by 22:06, still 450 through, 6,500 emptied, 19% busy."
+    ],
+    [
+     "The same test for two hours",
+     "Finds problems that grow slowly; cheap to run.",
+     "144,000 of 144,000 through from memory; the night still stalls at 450."
+    ],
+    [
+     "Worst-case fleet, 12,000 a minute all year",
+     "Never falls over below 12,000; 6% busy at the peak.",
+     "£15,200 a month, nearly 14 times as built, for one night a year."
+    ],
+    [
+     "Real-shaped test, faster disk, waiting room (the fix)",
+     "Tested to 1,200; the peak of 700 goes through, none failed; above 1,200, customers wait.",
+     "£1,680 a month, and the test data must keep growing with the real shop."
+    ]
+   ]
+  },
+  "seniorTake": "A load test answers exactly the question its traffic asks, so the work is in shaping the traffic: how many different customers, which bouquets, how many lookups miss memory, how fast the rush arrives. Plan in steps you can write down: profile, target with headroom, a test shaped like the real thing, the first limit, a design that raises it, its price, and what happens above it. Then expect to be wrong about the forecast, as Pokémon GO's planners were by ten times their worst case, and make being wrong a line of waiting customers rather than an outage. And look past the machines on your dashboard: the limit is usually in the one behind them.",
+  "realWorld": [
+   {
+    "title": "Pokémon GO, 2016: target, worst case, and what came",
+    "text": "Luke Stone of Google Cloud writes that for the launch \"the teams targeted 1X player traffic, with a worst-case estimate of roughly 5X this target.\" Then traffic \"surged player traffic to 50X the initial target, ten times the worst-case estimate.\" Ten times the worst case is the multiple behind option 2's 12,000 a minute, ten times the shop's 1,200 plan. The post does not describe a load test.",
+    "source": 0
+   },
+   {
+    "title": "Pokémon GO: capacity added as it came",
+    "text": "The same post says \"In response, Google CRE seamlessly provisioned extra capacity on behalf of Niantic to stay well ahead of their record-setting growth.\" CRE is Google's customer reliability engineering team; Niantic made the game. Few shops have a team like that on call, which is why the shop needs a waiting room.",
+    "source": 0
+   },
+   {
+    "title": "AWS Well-Architected: load test with real requests",
+    "text": "Among the common mistakes AWS lists for load testing: \"Performing load testing with a subset of requests and not a representative set of actual requests.\" Representative means shaped like the real thing; 5 test customers are a subset. It also says \"Load testing should have representative traffic similar to what you receive in production.\" Production is the real, live shop.",
+    "source": 1
+   },
+   {
+    "title": "AWS Well-Architected: find the breaking point",
+    "text": "The same page says \"Load tests should discover the breaking point and test the performance of your workload.\" The breaking point is the first limit, here the database at 450. It also lists, as a mistake, \"Performing load testing to a small safety factor above expected load.\" A safety factor is headroom.",
+    "source": 1
+   },
+   {
+    "title": "MySQL: the database's memory",
+    "text": "MySQL's manual says \"The buffer pool is an area in main memory where InnoDB caches table and index data as it is accessed.\" and \"The buffer pool permits frequently used data to be accessed directly from memory, which speeds up processing.\" Five test customers are frequently used data; 40,000 customers ordering once each are not.",
+    "source": 2
+   },
+   {
+    "title": "Cloudflare Waiting Room",
+    "text": "Cloudflare describes its waiting room as a way to \"route excess users of your website to a customized waiting room\", \"helping preserve customer experience and protect origin servers from being overwhelmed with requests.\" Origin servers are the shop's own machines; excess users are the ones above the limit.",
+    "source": 3
+   }
+  ],
+  "interview": {
+   "asked": [
+    "How would you plan capacity for a known peak?",
+    "Your load test passed and production fell over: what do you check first?",
+    "What happens above your planned peak?"
+   ],
+   "answer": "For a known peak I'd work in steps. First, a traffic profile: last year's busiest minute, the shape of the rush, and what the requests really are, how many different users, which items, how many lookups will miss memory. Second, a target: the forecast plus headroom for being wrong, say half again. Third, a load test shaped like that profile, with production-shaped test data: as many distinct users as production, the real mix, so caches behave as they will on the night. Raise the rate until something fills, and name the first limit. Fourth, raise that limit above the target with headroom, test again, and name the next one. Fifth, price the cheapest design that meets the target, and compare it with buying for the worst case. If a test passed and production fell over, I'd first check whether the test's traffic looked like production: the same few users and items served from memory is a common pattern, and then the bottleneck is a database or other machine behind the servers I was watching, often not even on the dashboard. Above the planned peak, I decide in advance what happens: a waiting room or queue that admits only what the first limit can take and tells everyone else their wait, so overload becomes a line rather than failures. I'd tell the story of a flower shop whose test reused 5 customers and passed at 1,200 a minute, then stalled at 450 on Valentine's eve because 40,000 real customers' records came from disk."
+  }
+ },
+ "terms": [
+  {
+   "term": "Night florist",
+   "def": "A florist who works overnight, wiring and wrapping bouquets for early deliveries. Gwenfair makes the bouquets for the 06:00 vans."
+  },
+  {
+   "term": "Wire (a bouquet)",
+   "def": "To fix flowers on thin florist's wire so they hold their place in an arrangement."
+  },
+  {
+   "term": "Dashboard",
+   "def": "A page of live numbers about a system. The shop's shows the web servers' busy figure and a banner, and nothing about the database."
+  },
+  {
+   "term": "Web server",
+   "def": "A computer that shows the shop's pages and takes each order. The shop has 6, each taking 200 orders a minute."
+  },
+  {
+   "term": "Database",
+   "def": "The computer that keeps the shop's records, here 40,000 customers' accounts, addresses and saved cards."
+  },
+  {
+   "term": "Customer record",
+   "def": "One saved piece of a customer's details. Each order needs 3: the account, the address and the saved card."
+  },
+  {
+   "term": "Memory",
+   "def": "The database's small, fast store of records it used recently, like the cards on a shop counter. Answering from memory is almost instant."
+  },
+  {
+   "term": "Disk",
+   "def": "The database's big, slow store that holds every record, like the stockroom out the back. The shop's does 1,350 reads a minute."
+  },
+  {
+   "term": "Lookup",
+   "def": "Asking the database for a record: it checks memory first, and reads the disk only if the record isn't there."
+  },
+  {
+   "term": "The plan",
+   "def": "Ikenna's January target: last year's 400 orders a minute, doubled to 800, plus half again as headroom: 1,200 a minute."
+  },
+  {
+   "term": "Forecast",
+   "def": "An estimate of the coming peak. The shop's was double last year's: 800 orders a minute."
+  },
+  {
+   "term": "Headroom",
+   "def": "Spare room above the forecast, for being wrong. The shop planned half again: 800 plus 400, so 1,200."
+  },
+  {
+   "term": "Load test",
+   "def": "A test program pretends to be customers, sends orders at a set rate, and you watch whether every order gets through and which part fills first."
+  },
+  {
+   "term": "Test customer",
+   "def": "A pretend account the load test orders from. The January test reused 5, so their records stayed in memory."
+  },
+  {
+   "term": "Banner",
+   "def": "A line of text across the top of the dashboard. The shop's has said \"load test passed at 1,200\" since January."
+  },
+  {
+   "term": "Busy (on the dashboard)",
+   "def": "Orders through a minute against the 1,200 the web servers were tested to. 450 of 1,200 is 37.5%, shown as 38%."
+  },
+  {
+   "term": "Database's line",
+   "def": "Orders waiting for the database, at most 1,000. When it is full, a new order fails and its basket empties."
+  },
+  {
+   "term": "Basket",
+   "def": "The shop's list of what a customer is buying, emptied when an order fails at the checkout."
+  },
+  {
+   "term": "Last-hour email",
+   "def": "The shop's 22:00 email to everyone on its list: last hour to order for the morning. Orders jumped from 400 a minute to 700."
+  },
+  {
+   "term": "First limit",
+   "def": "In a chain of machines, the one that fills up first and so sets the pace for all of them. Also called the bottleneck."
+  },
+  {
+   "term": "Bottleneck",
+   "def": "Another name for the first limit, like the narrow neck of a bottle that sets how fast it pours."
+  },
+  {
+   "term": "Next limit",
+   "def": "The part that fills first once the first limit is raised. With the faster disk, the web servers at 1,200."
+  },
+  {
+   "term": "Autoscaling",
+   "def": "A rule that adds machines when work piles up and removes them when it clears. In the sim: one more web server a minute while orders wait, up to 12."
+  },
+  {
+   "term": "Soak test",
+   "def": "A load test run for hours, to find problems that grow slowly, like a disk filling up."
+  },
+  {
+   "term": "Worst-case fleet",
+   "def": "Machines bought for the biggest peak imaginable and kept all year: 60 web servers and a database for 12,000 orders a minute, £15,200 a month."
+  },
+  {
+   "term": "Faster disk",
+   "def": "The fix's database disk: 4,050 reads a minute, so 1,350 orders, for £900 a month instead of £400."
+  },
+  {
+   "term": "Waiting room",
+   "def": "A page in front of the shop that lets customers in at a set rate, the first limit's, and shows the rest their place in line."
+  },
+  {
+   "term": "Production-shaped test data",
+   "def": "Test data that looks like the real shop's: as many different customers as it really has, and the real mix of bouquets, so the test's lookups miss memory as the real night's do."
+  },
+  {
+   "term": "Traffic profile",
+   "def": "A description of the real traffic: how many orders a minute, how fast the rush comes, and what the orders are, such as how many different customers."
+  },
+  {
+   "term": "Capacity planning",
+   "def": "Working out, before a peak, how much each part of a system must take, testing it, and pricing the cheapest design that meets it."
+  },
+  {
+   "term": "Story prices",
+   "def": "Monthly prices given in the story and the sim for comparing designs, not a real provider's list prices."
+  },
+  {
+   "term": "Mothering Sunday",
+   "def": "The UK's Mother's Day, in March in 2026, and the shop's next big night after 14 February."
+  },
+  {
+   "term": "Hit ratio",
+   "def": "The share of lookups answered from memory. Nearly 100% in the January test; 0 on 13 February."
+  },
+  {
+   "term": "Production",
+   "def": "The real, live system that customers use, as opposed to a test copy."
+  },
+  {
+   "term": "Representative",
+   "def": "Shaped like the real thing in the ways that matter, such as how many different customers there are."
+  },
+  {
+   "term": "Breaking point",
+   "def": "The load at which a system stops keeping up. For the shop as built, 450 orders a minute."
+  },
+  {
+   "term": "Safety factor",
+   "def": "How far above the expected load a system is built or tested; another name for headroom."
+  },
+  {
+   "term": "Pokémon GO",
+   "def": "A 2016 phone game whose launch traffic went far past its makers' estimates."
+  },
+  {
+   "term": "Niantic",
+   "def": "The company that made Pokémon GO and ran it on Google Cloud."
+  },
+  {
+   "term": "CRE",
+   "def": "Customer reliability engineering, short CRE: a Google team that helps customers keep their systems running."
+  },
+  {
+   "term": "Origin server",
+   "def": "A site's own machine, the one a waiting room or other front service protects. For the shop, its web servers and database."
+  },
+  {
+   "term": "Excess users",
+   "def": "Visitors above what the site can take at that moment; a waiting room holds them in line."
+  },
+  {
+   "term": "SOC 2 A1.1",
+   "def": "An availability criterion in the AICPA's Trust Services Criteria, used in SOC 2 audits: current processing capacity is maintained, monitored and evaluated, and planned for."
+  },
+  {
+   "term": "AICPA",
+   "def": "The American Institute of Certified Public Accountants, which publishes the Trust Services Criteria used in SOC 2 reports."
+  },
+  {
+   "term": "Build Night L8 and N7",
+   "def": "Two hands-on projects: L8, The capacity planner, and N7, Multi-region deploy, capacity and cost. Both unlock after Two Cities and this case."
+  }
+ ],
+ "atWork": "Find the load test your team trusts most and look at its test data. A load test whose data all fits in the database's memory is a common pattern: a handful of test accounts, the same few products, the same search every time, so every lookup is answered from memory and the disk is never measured. For each test, ask four things. How many different users and items does it use, against how many production has? What share of its lookups miss memory, against production on a busy night (on AWS, compare the database's read operations per second and its cache hit figures during the test and during the last real peak)? Which part filled first, and is that part on your dashboard? And what happens above the tested limit: is there a waiting room or queue, or do requests just fail? Build Night tie: L8, The capacity planner, and N7, Multi-region deploy, capacity and cost, unlock after s9e01 and s9e03. Write the method as steps the planner can copy: traffic profile, target with headroom, a test shaped like real traffic, the first bottleneck, raise it with headroom and test again, the cost of the cheapest design that meets the target, and what happens above it. Standards: if your company is pursuing ISO/IEC 27001:2022, Annex A 8.6 (capacity management) expects you to plan and monitor capacity for current and future demand; an auditor would look for a written capacity plan and test results that support it. If it is pursuing SOC 2, criterion A1.1 asks the same about current processing capacity. A load test with unrepresentative data is evidence that would not hold up, so build production-shaped test data into the first draft of the plan, not at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "capacity-planning",
+    "title": "Capacity planning"
+   },
+   {
+    "id": "load-testing",
+    "title": "Load testing"
+   }
+  ],
+  "strings": [
+   {
+    "from": "capacity-planning",
+    "to": "back-of-envelope-estimation",
+    "label": "starts as a sum"
+   },
+   {
+    "from": "capacity-planning",
+    "to": "capacity",
+    "label": "plan to the limit"
+   },
+   {
+    "from": "load-testing",
+    "to": "capacity-planning",
+    "label": "checks the plan"
+   },
+   {
+    "from": "load-testing",
+    "to": "hit-ratio",
+    "label": "memory flatters it"
+   },
+   {
+    "from": "capacity-planning",
+    "to": "autoscaling-policies",
+    "label": "scales one part"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s9e03-r1",
+   "kind": "free",
+   "prompt": "Your team's ticket site passed a load test at three times its expected peak. On launch day it slowed to a crawl at a third of that, and the web servers' graphs showed them mostly idle. The test script signed in as the same 10 test users every time. What happened, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The few test users' records stayed in the database's memory, so the test never measured the disk; real users' records came from disk",
+     "match": [
+      "in memory",
+      "from memory",
+      "from disk",
+      "cached",
+      "hit ratio",
+      "never touched the disk"
+     ]
+    },
+    {
+     "idea": "The first limit was the database behind the web servers, which sat idle waiting on it",
+     "match": [
+      "bottleneck",
+      "first limit",
+      "waiting on",
+      "behind the web",
+      "database was the"
+     ]
+    },
+    {
+     "idea": "Test with production-shaped data, as many distinct users as production, then plan to the limit found and decide what happens above it",
+     "match": [
+      "production-shaped",
+      "distinct users",
+      "real mix",
+      "as many users",
+      "representative",
+      "waiting room"
+     ]
+    }
+   ],
+   "model": "The test's 10 users ordered over and over, so after their first request their records sat in the database's memory and every lookup came from memory; the test never measured the disk. On launch day thousands of different users arrived, their records came from disk, and the database became the first limit, the bottleneck. The web servers looked idle because they were waiting on it. I'd load test with production-shaped data, as many distinct users as production and the real mix of requests, raise the rate until something fills, raise that limit above the target with headroom, and put a waiting room in front set to the tested limit."
+  },
+  {
+   "id": "s9e03-r2",
+   "kind": "mcq",
+   "prompt": "In the sim, replaying 13 February with everything else as built, which one change gets every order through with no basket emptied, nobody kept waiting, and a bill under £2,000 a month?",
+   "options": [
+    "Autoscaling up to 12 web servers",
+    "Letting customers in 450 a minute, the rest in line",
+    "The faster disk, 1,350 orders a minute",
+    "The worst-case fleet, 12,000 a minute"
+   ],
+   "answer": 2,
+   "why": "The faster disk lifts the database to 1,350 orders a minute, above the peak of 700 and the web servers' 1,200, so nothing waits or fails, for £1,620 a month. Autoscaling still stalls at 450 with 6,500 emptied; the waiting room alone saves every basket but keeps some customers waiting 17 minutes; the fleet works but costs £15,200."
+  },
+  {
+   "id": "s9e03-r3",
+   "kind": "mcq",
+   "prompt": "While baskets emptied, the shop's dashboard said the web servers were 38% busy. What did that figure measure?",
+   "options": [
+    "How hard the web servers' processors were working",
+    "Orders through against the 1,200 the web servers were tested to",
+    "The share of orders that failed at the checkout",
+    "How full the database's line of waiting orders was"
+   ],
+   "answer": 1,
+   "why": "Busy on the shop's dashboard is orders through a minute against the tested 1,200: 450 of 1,200 is 37.5%, shown as 38%. It looked calm because the web servers were waiting on the database, which the dashboard did not show."
+  },
+  {
+   "id": "s9e03-r4",
+   "kind": "free",
+   "prompt": "In an interview you're asked: how would you plan capacity for a known peak, and what happens above your planned peak?",
+   "keyIdeas": [
+    {
+     "idea": "Profile the traffic and set a target: the forecast plus headroom",
+     "match": [
+      "headroom",
+      "forecast",
+      "traffic profile",
+      "last year",
+      "target"
+     ]
+    },
+    {
+     "idea": "Load test with traffic and data shaped like production, and find the first bottleneck; raise it and test again",
+     "match": [
+      "shaped like",
+      "production-shaped",
+      "representative",
+      "bottleneck",
+      "first limit"
+     ]
+    },
+    {
+     "idea": "Price the cheapest design that meets the target, and decide what happens above it: a waiting room or queue that admits only what the limit can take",
+     "match": [
+      "waiting room",
+      "cheapest",
+      "turn away",
+      "shed",
+      "admits only"
+     ]
+    }
+   ],
+   "model": "First a traffic profile: last year's peak, the shape of the rush and what the requests really are. Then a target: the forecast plus headroom. Then a load test with production-shaped data, as many distinct users and the real mix, raising the rate until something fills: that's the first limit, the bottleneck. Raise it above the target, test again and name the next limit, and price the cheapest design that meets the target against buying for the worst case. Above the planned peak, decide in advance: a waiting room that admits only what the first limit can take and shows everyone else their wait, so overload becomes a line, not failures."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 5 months later. The real-shaped test, the faster disk and the waiting room held on Mothering Sunday: no basket emptied. Ikenna tests with 40,000 test customers and the real mix before every big night. On Saturday 20 June the owner emailed a one-hour offer at 20:00: half-price red roses. 600 orders a minute came, nearly all for the roses. The waiting room let all 600 in, under its 1,200, yet only 300 a minute got through and the rest failed. The database's new panel showed its disk 22% busy. Each order lowers the roses' stock figure by one, and the database lets only one order at a time change that figure, 0.2 seconds each.",
+  "prompt": "Reply to OP. The shop passed its test at 1,200 with the real mix. Why did it stall at 300 on the roses offer, and what should change?",
+  "keyIdeas": [
+   {
+    "idea": "Every order changed one shared record, the roses' stock figure, and changes to it go one after another: a new first limit the disk figure can't show",
+    "match": [
+     "shared record",
+     "hot record",
+     "single record",
+     "same record",
+     "contention"
+    ]
+   },
+   {
+    "idea": "The test's real mix spread orders over many bouquets; a one-bouquet rush is a different traffic shape the test never ran",
+    "match": [
+     "different shape",
+     "one-bouquet",
+     "never tested",
+     "never ran",
+     "spread"
+    ]
+   },
+   {
+    "idea": "Profile and test that shape too, set the waiting room per kind of rush, and split the count (several counters, or stock set aside in batches)",
+    "match": [
+     "split",
+     "several counters",
+     "set aside",
+     "in batches",
+     "per bouquet",
+     "test that shape"
+    ]
+   }
+  ],
+  "model": "The real mix spread orders over many bouquets, so no single record was busy. The roses offer put nearly every order on one shared record, the roses' stock figure, and changes to it go one after another, 0.2 seconds each: 60 / 0.2 = 300 a minute. That is the new first limit, a hot record, and a disk at 22% can't show it: 300 orders x 3 reads is 900 of its 4,050 reads a minute. It is a different shape of night that the test never ran. I'd add a one-bouquet rush to the traffic profile and test that shape too, set the waiting room's rate for offers from that test, and split the figure: several counters that add up to the stock, or stock set aside in batches, so most orders never touch the shared record."
+ },
+ "next": "Next, The Bill: a 24-hour car wash, and cloud cost: how a design decides what the cloud bill says, and how teams keep it in check.",
+ "sources": [
+  {
+   "title": "Luke Stone, Bringing Pokémon GO to life on Google Cloud, Google Cloud blog, 30 September 2016 (target 1X, worst case about 5X, actual 50X, ten times the worst case), read 16 October 2026",
+   "url": "https://cloud.google.com/blog/products/gcp/bringing-pokemon-go-to-life-on-google-cloud"
+  },
+  {
+   "title": "AWS Well-Architected Framework, Reliability Pillar, REL07-BP04 Load test your workload (representative requests, the breaking point, safety factor), read 16 October 2026",
+   "url": "https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_adapt_to_changes_load_tested_adapt.html"
+  },
+  {
+   "title": "MySQL 8.4 Reference Manual, 17.5.1 Buffer Pool (InnoDB keeps frequently used data in main memory), read 16 October 2026",
+   "url": "https://dev.mysql.com/doc/refman/8.4/en/innodb-buffer-pool.html"
+  },
+  {
+   "title": "Cloudflare Waiting Room documentation (route excess users to a waiting room, protect origin servers), read 16 October 2026",
+   "url": "https://developers.cloudflare.com/waiting-room/"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.6 Capacity Management (an explainer of the control; the standard itself is sold by ISO), read 16 October 2026",
+   "url": "https://www.isms.online/iso-27001/annex-a-2022/8-6-capacity-management-2022/"
+  },
+  {
+   "title": "Linford and Co, Availability Trust Services Criteria in a SOC 2 Audit (quotes AICPA criterion A1.1: the entity maintains, monitors, and evaluates current processing capacity), read 16 October 2026",
+   "url": "https://linfordco.com/blog/availability-soc-2-trust-service-principle/"
+  }
+ ]
+}
