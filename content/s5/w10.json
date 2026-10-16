@@ -1,0 +1,797 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-16) first version. Setting taken from the Workshop bible row and from w09's next field (the catalog's lld rows have no setting field). The bible's record says the tank 'reached 31°C at 03:10'; a fermenting tank with its chiller stopped warms far more slowly than that, so the story keeps 03:10 as the moment tank 3 crossed its critical line (21.0°C, warming 0.5°C an hour from 19.0°C at 23:10) and has it at 23.0°C when the brewer opened up at 07:10. The bible's Design Patterns quote on chain of responsibility is replaced by Wikipedia's article on the pattern: the patterns.univ-nantes.io catalogue used by s5e06 has no chain-of-responsibility page (it returned 404 on 2026-10-16). Names chosen after the name lookup and a containment check: Quernwold (brewery), Bryluen Tolquhoun (head brewer), Osgifu (cellar hand, cold case), handle endings kolawole, eadwulf, wynflaed. Names tried and dropped: Jorunn (one letter-pair from Jordan), Morfudd (Morfydd in s6e10), Domnall (Downall in s6e06), Gormlaith (shares Gor- with several names), Ysolde, Eluned, Gwenllian, Perpetua, Sigrun, Ottoline, Ailbhe, Eithne, Zuleika, Cynewulf and Aelfgifu (each used, near a used name, or too close to another name in this case). Concepts are the catalog's three w10 slugs, all present."
+ ],
+ "id": "w10",
+ "season": 5,
+ "n": 10,
+ "title": "The Pager That Stayed Quiet",
+ "setting": "a small brewery's night fermentation room",
+ "core": false,
+ "minutes": 20,
+ "concepts": [
+  "chain-of-responsibility",
+  "levels",
+  "sinks"
+ ],
+ "prerequisites": [
+  "s5e06",
+  "s5e04"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/workshop_nights_odgerel",
+  "flair": "Part 1",
+  "age": "7h",
+  "votes": 2874,
+  "title": "I finish my dead great-aunt's machines at night. Her logging program ran all night at a brewery. A tank went warm at 03:10, and the pager meant for it never rang.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Odgerel. My great-aunt, Winifrith Torvaine, built coin machines and automata for sixty years, and in her last ten wrote small programs for local firms. She died in the spring. Now I finish her half-done jobs at night, one paper work order at a time."
+   },
+   {
+    "t": "p",
+    "text": "This order was from Quernwold Brewery. In their fermentation room, yeast turns sugar into alcohol in six steel tanks of beer. The yeast makes heat, so a chiller pumps cold liquid round each tank. A sensor in each tank reads its temperature every 2 seconds."
+   },
+   {
+    "t": "p",
+    "text": "The order asked for a logging library: shared code that turns each reading into a message, a line of text with the time, and keeps it. Each message carries a level: how much it matters."
+   },
+   {
+    "t": "p",
+    "text": "From least to most: debug (every reading, for testing), info (a summary per tank every 10 minutes), warning and critical. Tank 3's beer should sit at 19.0°C; it sends a warning at 20.0°C and a critical line at 21.0°C, repeated every 10 minutes."
+   },
+   {
+    "t": "p",
+    "text": "Each message then goes along a chain of handlers. A handler takes a message and sends it to one place. Winifrith's design had three: the file on the memory card of the small computer running it all, the brew-house screen, and a pager handler that texts the head brewer, Bryluen Tolquhoun."
+   },
+   {
+    "t": "p",
+    "text": "Here is the chain as I finished it: each handler's level and next link, then what every handler does with a message:"
+   },
+   {
+    "t": "log",
+    "text": "FileHandler    level debug     next ScreenHandler\nScreenHandler  level info      next PagerHandler\nPagerHandler   level critical  next none\nhandle(message):\n  if message.level >= my level: send(message)\n  if next: next.handle(message)"
+   },
+   {
+    "t": "p",
+    "text": "In order: a handler checks the level; if the message matters enough, it sends it; then it hands the message to the next handler. Beside the listing, Winifrith had written one line: *The bell rings even when the ink runs dry.*"
+   },
+   {
+    "t": "p",
+    "text": "I set the file to debug while I tested, when I installed it in the small hours of Sunday 13 September, and never set it back. Six tanks every 2 seconds is 3 lines a second, each close to 60 bytes (a byte holds one letter). That is about 15.6 MB a day; an MB is a million bytes. The card keeps 500 MB for the file: enough for close to 32 days."
+   },
+   {
+    "t": "p",
+    "text": "On Wednesday night, tank 3's chiller stopped at 23:10. The tank warmed half a degree an hour. Its own panel keeps a chart: 20.0°C at 01:10, 21.0°C at 03:10."
+   },
+   {
+    "t": "p",
+    "text": "Bryluen opened up at 07:10 on Thursday. Tank 3 stood at 23.0°C, and its 1,600 litres of beer tasted of solvent; they poured it away. The pager had never rung. The screen still showed 02:40:00. The file's last lines (time, level, tank, temperature):"
+   },
+   {
+    "t": "log",
+    "text": "01:10:00  warning  tank 3  20.0°C\n02:46:58  debug    tank 3  20.8°C\n02:46:58  debug    tank 6  18.7°C"
+   },
+   {
+    "t": "p",
+    "text": "The card was full: 500 MB of 500 MB. When a program can't do a step, it throws an error: it stops and jumps back to the code that asked. That code can catch the error, deal with it and carry on. The loop that reads the sensors catches every error, so readings never stopped."
+   },
+   {
+    "t": "beat",
+    "text": "The program ran all night. Nothing it said reached anyone."
+   },
+   {
+    "t": "evidence",
+    "label": "chain_0230_to_0320.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Fifty minutes from 02:30:00. The file gets lines until 02:47:00, then nothing, because the card is full. The screen shows its last lines at 02:40:00 and nothing after. The pager sends nothing; from 03:10:00, when tank 3 reaches 21.0°C, it stays silent.",
+     "start": "02:30:00",
+     "seconds": 3000,
+     "ticksEvery": 600,
+     "rows": [
+      {
+       "label": "File",
+       "segments": [[0, 1020, "ok"]],
+       "gaps": [[1020, 3000, "nothing written"]]
+      },
+      {
+       "label": "Screen",
+       "segments": [[0, 600, "ok"]],
+       "gaps": [[600, 3000, "no new lines"]]
+      },
+      {
+       "label": "Pager",
+       "segments": [],
+       "gaps": [[2400, 3000, "silent"]]
+      }
+     ],
+     "markers": [
+      {
+       "t": 1020,
+       "label": "card full",
+       "tone": "bad"
+      },
+      {
+       "t": 2400,
+       "label": "tank 3 at 21.0°C",
+       "tone": "warn"
+      }
+     ]
+    },
+    "caption": "Wednesday night into Thursday, 02:30:00 to 03:20:00, drawn from the file, the screen and the tank's own chart. The file's last line is at 02:46:58; from 02:47:00 nothing more goes in. The screen's last lines are the info lines of 02:40:00. At 03:10:00 tank 3 reaches 21.0°C, its critical line, and the pager sends nothing then or at any 10-minute repeat until Bryluen opens up at 07:10."
+   },
+   {
+    "t": "p",
+    "text": "Bryluen fills tank 3 again on Monday. What should I change before then?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 152,
+   "age": "6h",
+   "text": "The place a handler sends to is often called a sink: your file, your screen, Bryluen's phone. And your chain has a name: programmers call it a chain of responsibility. Now walk one message by hand. Take the critical line at 03:10. Which handler gets it first? What does send() do when the card is full, and which line of handle() never runs after that? Then look at the levels: which of your three sinks needed debug lines at all? And what does the screen's 02:40:00 tell you about where the messages stopped?",
+   "replies": [
+    {
+     "author": "u/workshop_nights_odgerel",
+     "op": true,
+     "points": 48,
+     "age": "5h",
+     "text": "FileHandler is first for everything, so the 03:10 line went there before anywhere else. Bryluen lives 35 minutes' drive away, and says a text at 03:10 would have had them at tank 3 by 03:45."
+    }
+   ]
+  },
+  {
+   "author": "u/loudest_first_kolawole",
+   "points": 97,
+   "age": "5h",
+   "text": "Order by importance. A critical text should never wait behind a file write or a screen. Put the pager first and it hears about tank 3 before anything else can go wrong. The file and the screen are for reading later. The text is the only part that saves beer."
+  },
+  {
+   "author": "u/spare_card_eadwulf",
+   "points": 64,
+   "age": "4h",
+   "text": "This isn't a code problem, it's a storage problem. A 32 GB card holds 32,000 MB (a GB is a thousand MB) and costs less than one keg of that beer. At 15.6 MB a day it would take over five years to fill. Fit it, leave debug on, and you'll have every reading for the next time something goes wrong.",
+   "replies": [
+    {
+     "author": "u/workshop_nights_odgerel",
+     "op": true,
+     "points": 21,
+     "age": "3h",
+     "text": "Bryluen has a 32 GB card in the drawer already."
+    }
+   ]
+  },
+  {
+   "author": "u/own_line_wynflaed",
+   "points": 51,
+   "age": "3h",
+   "text": "Right now each handler waits for the one before it to finish. Give each handler its own queue instead: a waiting line of messages, first in, first out. Beside each queue, a background writer, a small separate worker, takes the oldest message, sends it, then takes the next. The chain only drops each message into the three queues and moves on. A stuck file can't keep the pager waiting."
+  }
+ ],
+ "reply": {
+  "prompt": "Bryluen fills tank 3 again on Monday. What should Odgerel change in the chain before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Move the pager handler to the front, so critical lines are texted before the file is touched.",
+    "tone": "bad",
+    "verdict": "Saves the text, loses the record",
+    "part2": "I moved PagerHandler to the front of the chain, and Bryluen cleared the card. Replayed against Wednesday night, the 03:10 line reaches the pager first: Bryluen is texted at 03:10 and is at tank 3 by 03:45, at 21.3°C, in time to restart the chiller and save the beer. But the file still fails at 02:47:00, and its error still stops the chain behind it: the screen stays on 02:40:00, and 47,520 lines never reach the file. Nothing tells anyone. Debug is still on, too, so close to 32 days after the card was cleared it will fill again, on a night when nobody is looking, and the temperature record Quernwold keeps for every batch will stop with it.",
+    "senior": "Reordering only changes who sits behind the failure. Any handler whose send throws still stops every handler after it; now the file and the screen are the ones that go silent, and nothing says so. If the pager itself fails one night, say the phone network is down, every critical line stops before the file and the screen too. The fault is that one link's error ends the chain. The order only picks the victim."
+   },
+   {
+    "text": "Give each handler its own queue and background writer, so one stuck handler can't hold up the rest.",
+    "tone": "warn",
+    "verdict": "Trade-off: isolated, but silent",
+    "part2": "I gave each handler its own queue and background writer. Replayed against Wednesday night, the file's writer hits the full card at 02:47:00 and stops, but the other two carry on. The screen shows every line to 07:00:00, and Bryluen is texted at 03:10 and is at tank 3 by 03:45, at 21.3°C: the beer is saved. But nothing said the file had stopped. Its queue grew in the small computer's memory all night: 47,520 lines by 07:09:58, about 2.9 MB. When Bryluen restarted the computer to clear the card, every one of those lines was gone, and with them the night's record for all six tanks.",
+    "senior": "A queue and writer per sink stop one slow or broken sink from holding up the rest, which is why logging libraries offer them (Python's QueueHandler and QueueListener). The costs are real: messages still waiting in memory are lost if the program stops, a writer that dies says nothing unless you make it, and a queue with no limit grows until memory runs out. Use it for slow sinks, with a size limit and a report when a writer stops. It does not replace catching each handler's own error."
+   },
+   {
+    "text": "Have each handler catch its own error, report it once, then pass the message on anyway.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "I changed handle() so each handler catches an error from its own send, reports the first one, and passes the message on whatever happens. Replayed against Wednesday night: at 02:47:00 the file handler catches its error and sends one critical report to the other handlers, \"file handler failing: card full\". Bryluen's phone buzzes at 02:47; Bryluen reads it and decides it can wait for the morning. At 03:10 the pager texts about tank 3, and Bryluen is at the tank by 03:45, at 21.3°C, and restarts the chiller. The beer is saved. The file still misses 47,520 lines, but everyone knew from 02:47. Then I set the file handler to info, and Bryluen cleared the card. At info the file grows about 52 KB a day (a KB is a thousand bytes), so 500 MB will last decades.",
+    "senior": "A handler's failure belongs to that handler. Catch it inside the link, report it once through the links that still work, and pass the message on, so one broken sink costs you that sink and nothing else. Python's logging library is built the same way: an error inside a handler's emit() goes to that handler's handleError(). Then set each handler's level for its reader: debug lines belong to a test with an end date, not to a card that must last."
+   },
+   {
+    "text": "Swap in a 32 GB card for the file, so it has room for over five years of debug lines.",
+    "tone": "bad",
+    "verdict": "Delays the fill, not the fault",
+    "part2": "Bryluen fitted the 32 GB card and debug stayed on; at about 15.6 MB a day it will take about 5.6 years to fill. For two weeks nothing went wrong. Then, on a cleaning night, someone unplugged the brew-house screen at 22:15 to plug in a floor scrubber, and left it out. From the next info line, at 22:20, ScreenHandler's send threw an error on every line it should show, and the pager behind it got nothing. Nobody noticed the dark screen until the morning. No tank ran warm that night, by luck. Replayed against Wednesday with the screen unplugged at 02:47, the pager stays silent: no texts, and tank 3 at 23.0°C at 07:10.",
+    "senior": "A bigger card moves the fill years away, which is worth doing for its own sake, but the card was never the fault. Any handler whose send throws still stops every handler after it, and a screen, a network or a phone service can fail tomorrow. Fix the chain so a broken link can't silence the rest; then size the storage, and keep debug lines off it."
+   }
+  ]
+ },
+ "sim": {
+  "module": "w10",
+  "title": "Replay the night through the chain",
+  "lede": "You're Odgerel at the workbench, replaying Wednesday night into Thursday from 02:30:00, before the first reading. Six tanks send a debug line every 2 seconds and an info line every 10 minutes; tank 3, warming 0.5°C an hour, sends a critical line at 03:10:00 and every 10 minutes after, to 07:00:00. Every line takes 60 bytes, and the card has 184,320 bytes left. The file handler is at debug, the screen at info, the pager at critical. Pick a design: the chain as built, the pager first, a 32 GB card, a queue and background writer per handler, or each handler catching its own error, reporting once and passing the message on. Pick what fails at 02:47: the full card, as on the night, or (with the card cleared) the screen unplugged, or nothing. Bryluen lives 35 minutes away; the replay doesn't move the tank once Bryluen arrives.",
+  "tryThis": "Try this: press step three times and read the line at 02:47:00, then once more for 03:10:00. Play the rest, and read the file's and screen's last lines. Try the pager first and count the texts, then the lines the file never wrote. Try the 32 GB card, then unplug the screen. Try the queues and read the lines waiting in memory. Last, catch, report once, pass on, with each fault, and then set the file to info."
+ },
+ "explain": {
+  "oneLine": "Nothing was wrong with the pager. The card filled at 02:47:00, the file handler's send threw an error on every line after that, and because each handler hands the message on only after its own send, that error ended the chain: the screen and the pager never saw another line, including tank 3's 24 critical lines.",
+  "steps": [
+   {
+    "title": "A month of debug lines filled the card.",
+    "text": "First, every reading became a debug line: six tanks every 2 seconds is 3 lines a second, at close to 60 bytes each (the replay counts exactly 60), 180 bytes a second. Second, the info lines added 0.6 bytes a second more (six lines every 10 minutes), so the file grew 180.6 bytes a second, about 15.6 MB a day. Third, 500 MB at that rate lasts 2,768,549 seconds, close to 32.04 days: from about 01:45 on Sunday 13 September to 02:47:00 on Thursday 15 October. At 02:30:00 the card had 184,320 bytes left, room for exactly 3,072 more lines, and the last of them went in at 02:46:58. What can go wrong here: nothing in the program watched the space shrink, so a month of warning went unseen. Debug was meant for a test, and nothing ended the test."
+   },
+   {
+    "title": "One error ended the chain.",
+    "text": "At 02:47:00 a debug line from tank 1 reached FileHandler. First, the level check passed, because the file was set to debug. Second, send() tried to write the line, found the card full, and threw an error. Third, handle() stopped right there, so next.handle(message) never ran: ScreenHandler and PagerHandler never saw the line. Fourth, the error jumped back to the loop that reads the sensors, which caught it and went on to the next reading. Every message after that went the same way. The screen's last lines were the info lines of 02:40:00. From 03:10:00 tank 3 sent a critical line every 10 minutes until 07:00:00: 24 lines, and each one died at the file, two handlers before the pager. In all, 47,520 lines never reached the file, and no text reached Bryluen."
+   },
+   {
+    "title": "A chain of responsibility, bent for logging.",
+    "text": "A design pattern is a named shape of code for a problem that keeps coming back (s5e06). In a chain of responsibility, a request passes from object to object until one of them handles it, so the sender never needs to know which one will. Logging libraries bend it: every handler in the chain may take the same message, each judging by its own level. In a classic chain, a link that stops the request does little harm, because only one link was going to handle it. In a logging chain, every link is somebody's only way of hearing, so each link's trouble must stay its own. Winifrith's line says it as a riddle: the bell, the pager, must ring even when the ink, the file, runs dry."
+   },
+   {
+    "title": "Catch in the link, report once, pass on.",
+    "text": "The fixed handle() does four things in order. First, it checks the level, as before. Second, it tries send() inside a catch, so an error from this handler's sink stops only this send. Third, on the first failure it sends one critical report to the other handlers: \"file handler failing: card full\". Later failures are counted, not reported again, so the pager isn't flooded every 2 seconds. Fourth, whatever happened, it calls next.handle(message). Replayed against Wednesday, the report texts Bryluen at 02:47:00 and the 03:10 line texts again: 25 texts, with Bryluen at the tank by 03:45, at 21.3°C. What can go wrong: the report travels through the same handlers, so if the pager is the one failing, the report reaches only the file and the screen. And catching the error doesn't save the lines: the file misses them until someone frees the space."
+   },
+   {
+    "title": "Levels per handler, and a file that can't fill.",
+    "text": "Each handler's level should match who reads it. The pager's reader is asleep, so it takes critical lines only. The screen's reader glances at it in passing, so info. The file's reader comes later, looking for what went wrong, so info in normal running, with debug switched on only for a test that has an end date. At info the file grows about 52 KB a day. Then bound the file: a rotating file handler closes the file when it reaches a set size and opens a new one, keeping only a set number of old files, so the card can't fill. What can go wrong: rotation throws old lines away on purpose, so choose the sizes for how far back you need to look."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 760,
+   "h": 270,
+   "aria": "The fix, drawn for Monday. A message passes from the sensors to the file handler, then the screen handler, then the pager handler. The file handler's card is full; it catches its error and passes the message on. Below it, a report box: file handler failing, card full, sent once to the pager. The screen and pager still get every message they should.",
+   "nodes": [
+    {
+     "id": "msg",
+     "label": "Message",
+     "sub": "tank 3, critical",
+     "x": 80,
+     "y": 80,
+     "w": 120,
+     "h": 62,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "file",
+     "label": "FileHandler",
+     "sub": "card full: caught",
+     "x": 260,
+     "y": 80,
+     "w": 140,
+     "h": 62,
+     "shape": "box",
+     "tone": "bad"
+    },
+    {
+     "id": "screen",
+     "label": "ScreenHandler",
+     "sub": "shows it",
+     "x": 450,
+     "y": 80,
+     "w": 140,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "pager",
+     "label": "PagerHandler",
+     "sub": "texts Bryluen",
+     "x": 640,
+     "y": 80,
+     "w": 140,
+     "h": 62,
+     "shape": "box",
+     "tone": "ok"
+    },
+    {
+     "id": "report",
+     "label": "Report, once",
+     "sub": "file failing: full",
+     "x": 260,
+     "y": 210,
+     "w": 160,
+     "h": 56,
+     "shape": "box",
+     "tone": "warn"
+    }
+   ],
+   "edges": [
+    {
+     "from": "msg",
+     "to": "file",
+     "label": "in"
+    },
+    {
+     "from": "file",
+     "to": "screen",
+     "label": "next"
+    },
+    {
+     "from": "screen",
+     "to": "pager",
+     "label": "next"
+    },
+    {
+     "from": "file",
+     "to": "report",
+     "label": "fails",
+     "tone": "muted"
+    },
+    {
+     "from": "report",
+     "to": "pager",
+     "label": "page",
+     "tone": "muted",
+     "dash": true
+    }
+   ]
+  },
+  "caption": "The fix, drawn for Monday. The file handler still can't write, but it catches its own error, sends one report, and passes the message on, so the screen shows it and the pager texts Bryluen. A full card now costs the file's lines and nothing else, and everyone knows about it from the first failure.",
+  "fix": {
+   "title": "The fix: each handler catches its own error, reports it once, and passes the message on",
+   "text": "Change handle() so every handler does four things: check the level; try send() inside a catch; on the first failure, send one critical report (\"file handler failing: card full\") to the other handlers, and count later failures quietly; and always call next.handle(message). Then set each handler's level for its reader: the pager at critical, the screen at info, the file at info, with debug only for a test with an end date. Last, make the file rotate at a set size so the card can't fill, and check the pager works on a schedule, from outside the program, because the report needs it too."
+  },
+  "limits": [
+   "Catching keeps the chain going, but the failed sink still loses its lines: 47,520 never reached the file. Only fixing the cause (space, level, rotation) stops the loss.",
+   "A slow sink doesn't throw; it just waits, and every handler after it waits too. Catching does nothing for that. For slow sinks, a queue and background writer, with a size limit and a report when it stops, is still the tool.",
+   "The report goes through the same chain. If the pager is the handler that fails, the report reaches only the file and the screen, so something outside the program still has to check that a test page gets through."
+  ],
+  "tradeoff": {
+   "head": [
+    "Design",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Chain as built",
+     "Simple: one handle(), every handler in order.",
+     "One handler's error stops every handler after it: 0 texts, 24 critical lines lost."
+    ],
+    [
+     "Pager first",
+     "The 03:10 line is texted: Bryluen at the tank by 03:45, at 21.3°C.",
+     "The file and screen still go silent at 02:47, unreported; a failing pager would now silence them."
+    ],
+    [
+     "A 32 GB card",
+     "The card lasts about 5.6 years at debug.",
+     "Any other failure, such as an unplugged screen, still silences the pager."
+    ],
+    [
+     "Queue and background writer per handler",
+     "One slow or broken sink can't hold up the others: 24 texts.",
+     "A stopped writer says nothing; 47,520 lines (about 2.9 MB) wait in memory and are lost on a restart."
+    ],
+    [
+     "Catch, report once, pass on",
+     "Every working sink keeps working; the failure is texted at 02:47.",
+     "The failed sink's lines are still lost; a slow sink still holds up the rest; the report needs a working pager."
+    ],
+    [
+     "Levels per handler, file rotation",
+     "Debug off the card; at info the file grows about 52 KB a day and can't fill.",
+     "Rotation throws old lines away; debug lines are gone when you need them unless a test switches them on."
+    ]
+   ]
+  },
+  "seniorTake": "A logger is the part of a program you only read when something has gone wrong, so it must keep working when other parts don't. Treat every sink as something that will fail: a full disk, an unplugged screen, a phone service that is down or slow. Each handler owns its own failure: catch it inside the link, report it once through the links that still work, and pass the message on. Put slow sinks behind a queue with a size limit, and know that what waits in memory is lost on a crash. Set each handler's level for the person who reads it, so the pager wakes someone only when they must act, and bound every file so it can't fill. Then test the alarm path itself from outside, because a pager that has never rung looks exactly like a quiet night.",
+  "realWorld": [
+   {
+    "title": "Python: a failing handler hands its error to handleError()",
+    "text": "Python's logging documentation says Handler.handleError() \"should be called from handlers when an exception is encountered during an emit() call.\" It adds: \"If the module-level attribute raiseExceptions is False, exceptions get silently ignored.\" and \"(The default value of raiseExceptions is True, as that is more useful during development).\" So the docs have the handler itself call handleError() when its emit() hits an error. Silent ignoring, though, is exactly what would have hidden Wednesday's full card, which is why the fix adds a report.",
+    "source": 0
+   },
+   {
+    "title": "Python: a level per handler",
+    "text": "Handler.setLevel(): \"Sets the threshold for this handler to level. Logging messages which are less severe than level will be ignored.\" The docs describe DEBUG as \"Detailed information, typically only of interest to a developer trying to diagnose a problem.\" and give WARNING the example \"(e.g. 'disk space low')\", the line Quernwold's file never had.",
+    "source": 0
+   },
+   {
+    "title": "Python: queues for handlers that are slow",
+    "text": "The logging.handlers documentation says QueueHandler \"can be used to let handlers do their work on a separate thread from the one which does the logging.\" Its partner, QueueListener, \"supports receiving logging messages from a queue\", and \"If respect_handler_level is True, a handler’s level is respected\".",
+    "source": 1
+   },
+   {
+    "title": "Python: a file that rotates instead of filling",
+    "text": "Of RotatingFileHandler, the same page says: \"When the size is about to be exceeded, the file is closed and a new file is silently opened for output.\"",
+    "source": 1
+   },
+   {
+    "title": "Chain of responsibility, and how loggers bend it",
+    "text": "Wikipedia's article lists the problems the pattern solves: \"Coupling the sender of a request to its receiver should be avoided.\" and \"It should be possible that more than one receiver can handle a request.\" In the classic form, \"The request gets passed along the chain until a receiver handles the request.\" The article notes that \"many implementations (such as loggers below, or UI event handling, or servlet filters in Java, etc.)\" let several links in the chain take the same request.",
+    "source": 2
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Design a logging framework.",
+    "What is the chain of responsibility pattern, and where have you seen it?",
+    "What happens in your logger when the disk is full?"
+   ],
+   "answer": "A logging framework has three parts. Messages carry a level (debug, info, warning, error, critical). A logger takes each message and passes it to a list or chain of handlers. Each handler sends to one sink, such as a file, a console, a chat channel or a pager, and has its own level, so the pager gets critical lines and the file gets info. That chain is a chain of responsibility, bent: in the classic pattern a request moves along until one object handles it; in logging every handler may take it. The design question that matters is failure. A sink will fail: a disk fills, a network drops, a service slows down. Each handler should catch its own send's error, report it once through the handlers that still work, and pass the message on, so one broken sink costs only that sink. Slow sinks go behind a bounded queue with a background writer, accepting that queued messages are lost on a crash. Files rotate at a set size so the disk can't fill. Debug is for tests with an end date. And the alert path itself gets tested from outside, because a silent pager looks like a quiet night."
+  }
+ },
+ "terms": [
+  {
+   "term": "Workshop (the series)",
+   "def": "Winifrith Torvaine's workshop of half-finished machines, each with a paper work order and a program to match. Odgerel finishes them at night."
+  },
+  {
+   "term": "Work order",
+   "def": "A paper note tied to each machine, saying what the client asked for."
+  },
+  {
+   "term": "Fermentation room",
+   "def": "Where beer sits in steel tanks while yeast turns sugar into alcohol and gives off heat."
+  },
+  {
+   "term": "Chiller",
+   "def": "A machine that pumps cold liquid round a tank to take away the yeast's heat, like a fridge's cooling pipes wrapped round a pot."
+  },
+  {
+   "term": "Sensor",
+   "def": "A small device in each tank that measures its temperature. Quernwold's read every 2 seconds."
+  },
+  {
+   "term": "Program",
+   "def": "A list of instructions a computer follows, step by step."
+  },
+  {
+   "term": "Logging library",
+   "def": "Shared code that turns events in a program into messages, each a line of text with the time, and keeps or sends them somewhere."
+  },
+  {
+   "term": "Message (log line)",
+   "def": "One line of text from the logging library: the time, the level, the tank and the reading."
+  },
+  {
+   "term": "Level",
+   "def": "How much a message matters: debug, info, warning or critical, from least to most. Each handler only sends messages at or above its own level."
+  },
+  {
+   "term": "Debug",
+   "def": "The lowest level: every single reading, useful while testing. Six tanks every 2 seconds is 3 debug lines a second."
+  },
+  {
+   "term": "Info",
+   "def": "A level for normal news: here, one summary line per tank every 10 minutes."
+  },
+  {
+   "term": "Warning and critical",
+   "def": "The two highest levels here. Tank 3 sends a warning at 20.0°C and a critical line at 21.0°C, repeated every 10 minutes."
+  },
+  {
+   "term": "Handler",
+   "def": "A piece of the logging library that takes a message and sends it to one place, if the message is at or above its level."
+  },
+  {
+   "term": "Sink",
+   "def": "The place a handler sends messages to: a file, a screen, a phone. Like the end of a pipe."
+  },
+  {
+   "term": "Chain (of handlers)",
+   "def": "Handlers linked one after another: each does its part, then hands the message to the next, like a bucket passed along a line of people."
+  },
+  {
+   "term": "Chain of responsibility",
+   "def": "A design pattern: a request passes along a chain of objects until one handles it, so the sender needn't know which. Logging bends it so every link may take part."
+  },
+  {
+   "term": "Design pattern",
+   "def": "A named shape of code for a problem that keeps coming back, with the places it fits (s5e06)."
+  },
+  {
+   "term": "Pager handler",
+   "def": "The handler that texts Bryluen's phone for critical lines, the way a pager buzzes a doctor on call."
+  },
+  {
+   "term": "Memory card",
+   "def": "A small card that stores files for the computer that runs the program. Quernwold's keeps 500 MB for the log file."
+  },
+  {
+   "term": "Byte",
+   "def": "The smallest amount of storage a file counts in; one byte holds one letter. Each log line is close to 60 bytes."
+  },
+  {
+   "term": "KB, MB, GB",
+   "def": "A KB is a thousand bytes, an MB a million bytes, a GB a thousand MB. Debug lines filled about 15.6 MB a day."
+  },
+  {
+   "term": "Error (throw)",
+   "def": "What a program raises when it can't do a step, such as writing to a full card. It stops that step and jumps back to the code that asked for it."
+  },
+  {
+   "term": "Catch",
+   "def": "Code that receives an error, deals with it, and lets the program carry on. The loop that reads Quernwold's sensors catches every error."
+  },
+  {
+   "term": "Class",
+   "def": "A template for making objects of one kind (s5e04). FileHandler, ScreenHandler and PagerHandler are three classes with the same handle()."
+  },
+  {
+   "term": "handle() and send()",
+   "def": "handle() is what every handler does with a message: check the level, send, pass on. send() puts the message in that handler's sink."
+  },
+  {
+   "term": "Queue",
+   "def": "A waiting line of messages, first in, first out, like a queue at a post office."
+  },
+  {
+   "term": "Background writer",
+   "def": "A small separate worker that takes the oldest message from its queue, sends it, then takes the next, while the rest of the program carries on."
+  },
+  {
+   "term": "Thread",
+   "def": "One line of work inside a program. A background writer runs on its own thread, so it can wait without stopping the rest."
+  },
+  {
+   "term": "Report (of a failure)",
+   "def": "One message a failing handler sends to the others, such as \"file handler failing: card full\", so someone knows that sink has stopped."
+  },
+  {
+   "term": "Rotating file handler",
+   "def": "A file handler that closes the file at a set size, opens a new one and keeps only a set number of old files, so the card can't fill."
+  },
+  {
+   "term": "Python",
+   "def": "A programming language whose built-in logging library has levels, handlers, handleError() and queue and rotating handlers."
+  },
+  {
+   "term": "emit() and handleError()",
+   "def": "In Python's logging library, emit() is a handler's send, and handleError() is what a handler calls when emit() hits an error."
+  },
+  {
+   "term": "raiseExceptions",
+   "def": "A setting in Python's logging library. When False, errors inside handlers are silently ignored; it is True by default."
+  },
+  {
+   "term": "QueueHandler and QueueListener",
+   "def": "Python's pair for putting handlers behind a queue: QueueHandler puts messages in, QueueListener takes them out and passes them to handlers."
+  },
+  {
+   "term": "Alert fatigue",
+   "def": "When an alarm goes off so often for small things that people stop listening, and miss the one that matters."
+  },
+  {
+   "term": "Annex A control 8.15 (ISO/IEC 27001:2022)",
+   "def": "The control on logging in the information security standard ISO/IEC 27001, the 2022 version."
+  },
+  {
+   "term": "Quernwold Brewery",
+   "def": "The small brewery in this story, with six fermentation tanks. Bryluen Tolquhoun is the head brewer."
+  },
+  {
+   "term": "Step (in the sim)",
+   "def": "Runs the replay to the next moment that matters: 02:40:00, 02:46:58, 02:47:00, 03:10:00 and 07:09:58."
+  }
+ ],
+ "atWork": "Look at how your services log. Most have a chain or list of handlers: a file or console, a log shipper, perhaps a chat channel or a pager for errors. Read-only access to the code and settings is enough to check three things. First, what happens when one handler fails, a full disk or an unreachable chat service: does the error stay inside that handler, or does it stop the ones after it, or vanish silently? Second, is debug switched on anywhere in production, and is every log file rotated at a set size? Third, would anyone know if the alert path itself stopped, and when did a test alert last go through it? If your organisation is pursuing ISO/IEC 27001:2022, Annex A control 8.15 covers logging; ISMS.online's guide describes it as \"logging critical system events to enhance security, detect breaches, and support investigations.\" A log that silently stops is a gap there, and so is a full disk nobody was told about. Build the rules in now (each handler catches and reports its own failure, files rotate, debug has an end date, the alert path is tested) rather than at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "chain-of-responsibility",
+    "title": "Chain of responsibility"
+   },
+   {
+    "id": "levels",
+    "title": "Levels"
+   },
+   {
+    "id": "sinks",
+    "title": "Sinks"
+   }
+  ],
+  "strings": [
+   {
+    "from": "chain-of-responsibility",
+    "to": "design-patterns",
+    "label": "a named shape"
+   },
+   {
+    "from": "chain-of-responsibility",
+    "to": "observer",
+    "label": "every link hears"
+   },
+   {
+    "from": "chain-of-responsibility",
+    "to": "sinks",
+    "label": "one link per sink"
+   },
+   {
+    "from": "levels",
+    "to": "sinks",
+    "label": "each sink filters"
+   },
+   {
+    "from": "sinks",
+    "to": "message-queues",
+    "label": "a queue per sink"
+   },
+   {
+    "from": "sinks",
+    "to": "oop-basics",
+    "label": "one class per sink"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "w10-r1",
+   "kind": "free",
+   "prompt": "Your team's web service logs through three handlers in order: a file on the server's disk, then one that posts errors to the team's chat, then one that texts whoever is on call for critical messages. On Saturday night the disk fills. On Monday you learn that a critical message at 03:00 texted nobody, and that chat went quiet at the same moment as the file. What happened, and what do you change?",
+   "keyIdeas": [
+    {
+     "idea": "The file handler's error stopped the chain, so the handlers after it never got the message",
+     "match": [
+      "stops the chain",
+      "stopped the chain",
+      "ends the chain",
+      "ended the chain",
+      "never got",
+      "never reached",
+      "after it never"
+     ]
+    },
+    {
+     "idea": "Each handler catches its own error, reports it once, and passes the message on",
+     "match": [
+      "catch its own",
+      "catches its own",
+      "catch the error",
+      "catches the error",
+      "report it once",
+      "reports it once",
+      "passes the message on",
+      "pass the message on"
+     ]
+    },
+    {
+     "idea": "Fix the cause too: set levels per handler, keep debug off, rotate the file at a set size",
+     "match": [
+      "debug off",
+      "rotate",
+      "rotation",
+      "level for its reader",
+      "levels per handler",
+      "size limit"
+     ]
+    }
+   ],
+   "model": "The disk filled, so the file handler's send threw an error. Each handler passes the message on only after its own send, so that error ended the chain: the chat and texting handlers after it never got the message. That is why chat went quiet at the same moment as the file, and why the 03:00 critical texted nobody. Change every handler so it catches its own error, reports it once through the handlers that still work, and passes the message on anyway. Then fix the cause: set each handler's level for its reader, keep debug off in production, and rotate the file at a set size so the disk can't fill."
+  },
+  {
+   "id": "w10-r2",
+   "kind": "mcq",
+   "prompt": "The file handler is set to info, the screen handler to info and the pager handler to critical. A warning message arrives and nothing fails. Which sinks get it?",
+   "options": [
+    "Only the file",
+    "The file and the screen",
+    "The file, the screen and the pager",
+    "Only the pager"
+   ],
+   "answer": 1,
+   "why": "A handler sends a message only if it is at or above the handler's own level. Warning is above info, so the file and the screen send it; it is below critical, so the pager skips it and the message simply passes on."
+  },
+  {
+   "id": "w10-r3",
+   "kind": "free",
+   "prompt": "A colleague wants to give each logging handler its own queue and background writer. What problem does that solve, and what new risks does it bring?",
+   "keyIdeas": [
+    {
+     "idea": "A slow or broken sink no longer holds up the other sinks",
+     "match": [
+      "slow sink",
+      "broken sink",
+      "holds up",
+      "held up",
+      "waits for",
+      "independent",
+      "doesn't wait"
+     ]
+    },
+    {
+     "idea": "Messages still waiting in a queue are lost if the program stops or restarts",
+     "match": [
+      "lost if",
+      "program stops",
+      "program dies",
+      "crash",
+      "restart",
+      "still waiting"
+     ]
+    },
+    {
+     "idea": "A writer that stops says nothing, and an unlimited queue grows until memory runs out: add a limit and a report",
+     "match": [
+      "says nothing",
+      "silent",
+      "size limit",
+      "bounded",
+      "memory runs out",
+      "out of memory",
+      "report when"
+     ]
+    }
+   ],
+   "model": "It solves the waiting: each sink gets its own line and its own writer, so a slow sink or a broken sink no longer holds up the others, and the pager's writer never waits for the file. The risks: messages still waiting in a queue live in memory, so they are lost if the program stops or restarts. A writer that stops says nothing unless you make it report, so a sink can be dead for hours. And a queue with no size limit grows until memory runs out. Bound each queue, report when a writer stops, and still catch each handler's own error."
+  },
+  {
+   "id": "w10-r4",
+   "kind": "mcq",
+   "prompt": "In Python's logging library, what do the docs say happens to exceptions in a handler's emit() when the module-level setting raiseExceptions is False?",
+   "options": [
+    "They stop the program",
+    "They get silently ignored",
+    "They are passed to the next handler",
+    "They are written to the log file"
+   ],
+   "answer": 1,
+   "why": "The docs say: \"If the module-level attribute raiseExceptions is False, exceptions get silently ignored.\" The default is True, \"as that is more useful during development\". Silent is safe for the program, but it hides a sink that has stopped, so add a report of your own."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 3 months later. Every handler catches its own error now, the file has been at info since October, and the card has never filled. Last week Osgifu, our new cellar hand, set PagerHandler to warning so Bryluen would hear about tanks sooner. On Tuesday 12 January, tank 5's chiller kept cycling on and off around 20.0°C, and Bryluen's phone got 38 texts between 22:00 and 02:00. At 02:05 Bryluen set the phone to silent. At 03:40 tank 2 reached 21.0°C. The text went out, and nobody heard it until 06:40.",
+  "prompt": "Reply to OP. Every handler worked and every text was sent. Why was tank 2 missed, and how should the levels be set?",
+  "keyIdeas": [
+   {
+    "idea": "Too many texts for small things taught Bryluen to stop listening, so the one that mattered went unheard: alert fatigue",
+    "match": [
+     "too many",
+     "alert fatigue",
+     "silenced",
+     "stop listening",
+     "stopped listening",
+     "cry wolf",
+     "noise"
+    ]
+   },
+   {
+    "idea": "The pager belongs at critical only: a text at night should mean someone must act now",
+    "match": [
+     "back to critical",
+     "pager at critical",
+     "only critical",
+     "critical only",
+     "act now",
+     "must act"
+    ]
+   },
+   {
+    "idea": "Warnings go to the screen and file or one summary, and a critical text nobody answers is repeated or sent to a second person",
+    "match": [
+     "to the screen",
+     "one summary",
+     "second person",
+     "escalat",
+     "acknowledg",
+     "until someone"
+    ]
+   }
+  ],
+  "model": "Nothing failed; the levels did. With the pager at warning, Bryluen got 38 texts in four hours about a chiller cycling near 20.0°C, too many for something nobody needed to act on, so the phone was silenced and the one text that mattered went unheard. That is alert fatigue, and it is the same quiet pager by another road. Set the pager back to critical only, so a text at night always means someone must act now. Send warnings to the screen and the file, or as one summary in the morning. And for critical texts, ask for an answer: if nobody acknowledges within, say, 10 minutes, text again and then call a second person, until someone does."
+ },
+ "next": "Next, The Doors That Didn't Lock: an aquarium's closing routine, and publish and subscribe done safely.",
+ "sources": [
+  {
+   "title": "Python documentation, logging: Logging facility for Python (logging levels, Handler.setLevel, Handler.handleError, raiseExceptions)",
+   "url": "https://docs.python.org/3/library/logging.html"
+  },
+  {
+   "title": "Python documentation, logging.handlers: Logging handlers (RotatingFileHandler, QueueHandler, QueueListener)",
+   "url": "https://docs.python.org/3/library/logging.handlers.html"
+  },
+  {
+   "title": "Wikipedia, Chain-of-responsibility pattern",
+   "url": "https://en.wikipedia.org/wiki/Chain-of-responsibility_pattern"
+  },
+  {
+   "title": "ISMS.online, ISO 27001:2022 Annex A 8.15 Logging (the guide's own description of the control, not the standard's text)",
+   "url": "https://www.isms.online/iso-27001/annex-a/8-15-logging-2022/"
+  }
+ ]
+}
