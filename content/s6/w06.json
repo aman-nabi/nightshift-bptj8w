@@ -1,0 +1,912 @@
+{
+  "_changelog": [
+    "v1.0.1 (2026-10-16) post: a missing space after '10 tokens.' restored",
+    "v1.0.0 (2026-10-16) first version. Concepts are the catalog's w06 slugs (token-bucket, thread-safety); compare-and-set and the clock the tests can set are taught under thread-safety, as the catalog has no slug for either. Title and setting from the Workshop bible v1.0.1 (the catalog's lld title is Rate limiter (class design)); no setting rename. content/s4/w05-v1.0.0.json does not exist, so the case follows the bible row. Of the bible's three wrong ideas, sleeping 100 ms between texts is left out of the options (volatile and a bucket per thread are the bad options). The bucket holds 2 tokens and gets one every 125 ms, so that a full bucket plus a second of refill is 10, Hoopoe's rule; the bible's bucket of 10 at 10 a second would itself let up to 19 through in one second. Names chosen and checked with the name lookup before use, so no rename was needed: Nachtmahl, Hoopoe, Gulnara, Eustorgio, Desislava (two earlier picks for the text company were dropped before use, one for containing an existing surname, one for a near name). All six sources fetched on 2026-10-16."
+  ],
+  "id": "w06",
+  "season": 6,
+  "n": 6,
+  "title": "Nineteen in One Second",
+  "setting": "a late-night food kitchen's order texts",
+  "core": true,
+  "minutes": 20,
+  "concepts": [
+    "token-bucket",
+    "thread-safety"
+  ],
+  "prerequisites": [
+    "s6e03",
+    "s5e06",
+    "s5e04",
+    "s5e01"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/workshop_nights_odgerel",
+    "flair": "Part 1",
+    "age": "8h",
+    "votes": 2963,
+    "title": "I finish my late great-aunt's machines at night. A food kitchen's texts I programmed must never go faster than 10 texts in a second. On Friday 19 went in one second, and the text company cut us off for an hour.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "My great-aunt, Winifrith Torvaine, built coin-operated machines and clockwork figures for sixty years. In her last ten years she also wrote programs, the lists of steps a computer follows, for local businesses. She died in the spring and left me her workshop. I'm Odgerel, and I finish her machines at night, one paper work order at a time."
+      },
+      {
+        "t": "p",
+        "text": "This one belongs to Nachtmahl, a late-night food kitchen. When a driver leaves, its program texts each customer: your food is on its way. Hoopoe, a text company, delivers them. Its rule: no more than 10 texts in any one second. Break it and the account is paused for an hour."
+      },
+      {
+        "t": "note",
+        "title": "WORK ORDER 52. Nachtmahl, order texts.",
+        "items": [
+          "On Friday nights Hoopoe can take 2 seconds to answer each text. Your program sends one text and waits for the answer before the next, so a big run's texts trickle out over most of a minute.",
+          "Send four at a time.",
+          "Never more than 10 texts in any one second. That is Hoopoe's rule."
+        ],
+        "sig": "Gulnara, owner"
+      },
+      {
+        "t": "p",
+        "text": "Winifrith's program had one thread: one line of work inside a program, like one cook following one recipe (s5e01). It took the next text from the queue, the line of texts waiting to go, sent it, then waited for Hoopoe's answer: about 200 ms, thousandths of a second, on a normal night."
+      },
+      {
+        "t": "p",
+        "text": "I gave it four threads, A to D, all taking from the same queue. Four at once could break Hoopoe's rule, so all four share one token bucket, as in The Bouncer (s6e03): a jar of tokens. Each text spends one, and new ones drop in at a steady pace."
+      },
+      {
+        "t": "p",
+        "text": "Mine holds 2 tokens, and a new one drops in every 125 ms, 8 a second. A full jar plus one second of new tokens comes to 10 tokens. Dropping them in is the refill."
+      },
+      {
+        "t": "p",
+        "text": "I wrote the bucket as a class, a pattern for one kind of thing in code (s5e04). Its method take() is the steps it runs when a thread asks for a token, one step per line; words after -- are notes:"
+      },
+      {
+        "t": "log",
+        "text": "TokenBucket.take()\n  n = tokens            -- read the count\n  n = n + tokens dropped in since the last take, up to 2 tokens\n  if n is zero: answer no\n  tokens = n minus one  -- write it back\n  answer yes"
+      },
+      {
+        "t": "p",
+        "text": "Before every text, a thread calls take(). It went live on Monday 5 October; all week the runs were small, 8 bags at most."
+      },
+      {
+        "t": "p",
+        "text": "On Friday at 23:41:07 three drivers left with 19 bags, and 19 texts went into the queue at once. At 23:41:08 Hoopoe emailed Gulnara: account paused for one hour. All 46 texts the kitchen tried in that hour failed. Drivers knocked at doors unannounced, and 5 bags came back cold. Gulnara rang me at 23:47."
+      },
+      {
+        "t": "p",
+        "text": "The program logs every answer the bucket gives: the time, the thread, the count it read, the count it wrote back, and the answer:"
+      },
+      {
+        "t": "log",
+        "text": "23:41:07.000  A  read 2 tokens  wrote 1 token  yes\n23:41:07.000  B  read 2 tokens  wrote 1 token  yes\n23:41:07.000  C  read 2 tokens  wrote 1 token  yes\n23:41:07.000  D  read 2 tokens  wrote 1 token  yes\n   (14 more lines from .200: read 1 token, wrote 1 token, yes)\n23:41:07.800  C  read 1 token   wrote 1 token  yes"
+      },
+      {
+        "t": "p",
+        "text": "Each time the threads came back from Hoopoe, 200 ms later, a new token had dropped in. Hoopoe's log for 23:41:07 counts 19 texts."
+      },
+      {
+        "t": "beat",
+        "text": "Nineteen yeses in 800 ms. The bucket never once said no."
+      },
+      {
+        "t": "p",
+        "text": "Beside the program, Winifrith's notebook has one line in pencil: *A till drawer has one handle.* Gulnara wants it fixed by next Friday. What should I change?"
+      },
+      {
+        "t": "evidence",
+        "label": "run_2341_redrawn.png",
+        "diagram": {
+          "type": "timeline",
+          "w": 740,
+          "aria": "Two seconds from 23:41:07. Four lanes, one per thread. Each thread sends a text at .000, .200, .400 and .600, and threads A, B and C send one more at .800: 19 texts in all, each block 200 ms while Hoopoe answers. A marker at .400 shows the 11th text. Hoopoe's lane shows 19 texts in the second from 23:41:07, then the account paused from 23:41:08.",
+          "start": "23:41:07",
+          "seconds": 2,
+          "ticksEvery": 1,
+          "rows": [
+            {
+              "label": "Thread A",
+              "gaps": [
+                [
+                  0,
+                  0.2,
+                  "1"
+                ],
+                [
+                  0.2,
+                  0.4,
+                  "5"
+                ],
+                [
+                  0.4,
+                  0.6,
+                  "9"
+                ],
+                [
+                  0.6,
+                  0.8,
+                  "13"
+                ],
+                [
+                  0.8,
+                  1,
+                  "17"
+                ]
+              ],
+              "segments": []
+            },
+            {
+              "label": "Thread B",
+              "gaps": [
+                [
+                  0,
+                  0.2,
+                  "2"
+                ],
+                [
+                  0.2,
+                  0.4,
+                  "6"
+                ],
+                [
+                  0.4,
+                  0.6,
+                  "10"
+                ],
+                [
+                  0.6,
+                  0.8,
+                  "14"
+                ],
+                [
+                  0.8,
+                  1,
+                  "18"
+                ]
+              ],
+              "segments": []
+            },
+            {
+              "label": "Thread C",
+              "gaps": [
+                [
+                  0,
+                  0.2,
+                  "3"
+                ],
+                [
+                  0.2,
+                  0.4,
+                  "7"
+                ],
+                [
+                  0.4,
+                  0.6,
+                  "11"
+                ],
+                [
+                  0.6,
+                  0.8,
+                  "15"
+                ],
+                [
+                  0.8,
+                  1,
+                  "19"
+                ]
+              ],
+              "segments": []
+            },
+            {
+              "label": "Thread D",
+              "gaps": [
+                [
+                  0,
+                  0.2,
+                  "4"
+                ],
+                [
+                  0.2,
+                  0.4,
+                  "8"
+                ],
+                [
+                  0.4,
+                  0.6,
+                  "12"
+                ],
+                [
+                  0.6,
+                  0.8,
+                  "16"
+                ]
+              ],
+              "segments": []
+            },
+            {
+              "label": "Hoopoe",
+              "gaps": [
+                [
+                  0,
+                  1,
+                  "19 texts"
+                ],
+                [
+                  1,
+                  2,
+                  "paused"
+                ]
+              ],
+              "segments": []
+            }
+          ],
+          "markers": [
+            {
+              "t": 0.4,
+              "label": "11th text",
+              "tone": "warn"
+            },
+            {
+              "t": 1,
+              "label": "paused 1 h",
+              "tone": "bad"
+            }
+          ]
+        },
+        "caption": "I redrew the run from the program's log and Hoopoe's. Each shaded block is one text being sent, numbered by its place in the run, from the bucket's yes to Hoopoe's answer 200 ms later. All four threads asked at the same moments, .000, .200, .400, .600 and .800, and every one got a yes. The 11th text went at .400. At 23:41:08 the account was paused for an hour."
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 151,
+      "age": "7h",
+      "text": "Put your four lines at .000 side by side. What count did each thread read? When did each write its count back, and what had the others done by then? A bug whose result depends on which thread gets somewhere first is called a race condition (s5e01). Most computers now have several cores, separate workers inside the chip, so threads really can run at the same instant. How many does the kitchen's have? Now count the yeses, and how far the count fell. Last: how did you test take(), and what did your test do about time?",
+      "replies": [
+        {
+          "author": "u/workshop_nights_odgerel",
+          "op": true,
+          "points": 58,
+          "age": "6h",
+          "text": "Four cores, yes. My test, a small program that checks take(), ran one thread and waited real seconds for tokens to drop in, so two threads never asked at once. take() reads the time from the computer's own clock. Winifrith tested her clockwork with a hand crank in place of the spring, one tooth at a time. Programs can do the same: the class asks a clock it is handed for the time, and a test hands it a pretend clock that it moves by hand. That is a clock the tests can set."
+        }
+      ]
+    },
+    {
+      "author": "u/volatile_counts_eustorgio",
+      "points": 97,
+      "age": "6h",
+      "text": "Textbook visibility bug, nothing to do with timing. Each core keeps its own quick copies of values, and a thread can go on reading an old copy of tokens after another thread has changed it. Java and some other programming languages have a word for this: mark tokens volatile, and every read fetches the latest value written, and every write shows to all threads at once. One word and you're done. A lock, a marker only one thread can hold at a time, is the heavy way: a thread takes it, does its work and lets go, and every other thread that wants it waits its turn."
+    },
+    {
+      "author": "u/one_jar_each_desislava",
+      "points": 64,
+      "age": "5h",
+      "text": "Sharing is the bug. Give each thread its own bucket of 2, refilled the same way, and no thread can ever read another's count. Four jars, four hands, nothing to fight over.",
+      "replies": [
+        {
+          "author": "u/workshop_nights_odgerel",
+          "op": true,
+          "points": 29,
+          "age": "4h",
+          "text": "Gulnara would rather go back to one thread, taking texts off the queue one at a time, so only one thread ever touches the bucket. She says slow texts on Fridays beat a paused account."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "Next Friday's runs will leave at the same rush. What should Odgerel change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Make refill and take one step under one lock, with a clock the tests can set.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "I put one lock around take(), from reading the count to writing it back, so the refill and the take are one step: a thread that arrives while another holds the lock waits, usually for far less than a millisecond. And the bucket now asks a clock it is handed for the time. On the bench a test sets that clock to 23:41:07.000 and has all four threads ask at once: 2 yeses and 2 noes. Replayed, Friday's run sends 2 texts at 23:41:07.000, then one at every 125 ms mark: the 19th at 23:41:09.125, never more than 9 in any one second. On Friday 16 October a run of 14 bags left at 23:26:31, Hoopoe answering in 200 ms. Its texts were all out within 1.5 s, the account stayed open, and every customer was texted before the driver knocked. On Friday 23 October Hoopoe was slow all evening, 2 s an answer, and a run of 14 still went out in 6 s.",
+        "senior": "A class that several threads share is thread-safe only if every read-then-write of its state happens as one step. Here the state is two values, the count and when it was last refilled, so one lock around all of take() is the plain answer; compare-and-set works too if both values sit in one object swapped in a single step, retrying when another thread got there first. Keep the lock short: no sending and no waiting inside it. And make time an input. A bucket that asks a clock it is handed can be tested at an exact instant, with many threads at once, in milliseconds, which is how a race gets caught on the bench instead of by the text company."
+      },
+      {
+        "text": "Mark the token count volatile, so every thread always reads the very latest count.",
+        "tone": "bad",
+        "verdict": "Sees the latest, still two steps",
+        "part2": "I marked tokens volatile and replayed Friday's run on the bench. Nothing changed: all four threads read 2 tokens at 23:41:07.000, all four wrote back 1, and 19 texts went in 800 ms. Volatile makes sure each thread sees the latest count written, and at .000 none had been written yet. On Friday 16 October a run of 14 bags left at 23:26:31, Hoopoe answering in 200 ms. Its 14 texts went in 600 ms, and Hoopoe paused the account from 23:26:32 to 00:26:32. Drivers knocked unannounced for the rest of the rush, and Gulnara refunded 3 bags that came back cold.",
+        "senior": "Volatile is about seeing: a write by one thread is seen by the next read in any thread. It does not join a read to the write that follows it. take() reads, decides and writes, and four threads read before any of them wrote, so there was nothing newer to see. Java's own tutorial says an increment such as c++ is not an atomic action, and volatile doesn't change that. Use it for a flag one thread sets and others read, not for a count many threads change."
+      },
+      {
+        "text": "Go back to one sender thread taking texts from the queue, so no two threads race.",
+        "tone": "warn",
+        "verdict": "Trade-off: safe, one at a time",
+        "part2": "Gulnara and I went back to one thread. On the bench, Friday's run goes one text every 200 ms, never more than 5 in any one second, the 19th at 23:41:10.600. On Friday 16 October a run of 14 bags left at 23:26:31, Hoopoe answering in 200 ms: its texts took 2.6 s, and the account stayed open. On Friday 23 October Hoopoe was slow all evening, 2 s an answer, and one thread sent a run of 14 over 26 s: the trickle the work order complained of. Nobody missed their food. On the bench, four threads with one lock send that run in 6 s.",
+        "senior": "One thread can't race with itself, so the count is right and the code stays simple. The price is speed: each send waits for the text company's answer, so one thread sends at most one text per answer, 5 a second at 200 ms and one every 2 s on a slow night. That is the problem the four threads were added to solve. It's a fair choice when runs are small and answers quick; when they aren't, keep the threads and make the shared bucket safe."
+      },
+      {
+        "text": "Give each of the four threads a bucket of its own, so no two threads share one count.",
+        "tone": "bad",
+        "verdict": "Four limits, one account",
+        "part2": "I gave each thread its own bucket, 2 tokens and a new one every 125 ms, and replayed Friday's run. No thread ever read another's count, and still 19 texts went in 800 ms. On Friday 16 October a run of 14 bags left at 23:26:31, Hoopoe answering in 200 ms: 14 texts in 600 ms, and the account was paused from 23:26:32 to 00:26:32. Drivers knocked unannounced for the rest of the rush, and Gulnara refunded 3 bags that came back cold.",
+        "senior": "Separate buckets remove the race by removing the sharing, and the limit goes with it. The rule belongs to the account, not to a thread: four buckets of 2 tokens and 8 a second allow up to 40 texts in one second between them. Splitting the rule, a quarter each, keeps the total but strands tokens: one busy thread waits while three idle ones hold theirs. A limit on something shared needs one shared count, made safe."
+      }
+    ]
+  },
+  "sim": {
+    "module": "w06",
+    "title": "Run Friday's texts through the bucket",
+    "lede": "You're Odgerel at the workbench at 23:41:00 on Friday 9 October 2026, before the run. The bench drives the bucket with a clock it sets itself. At 23:41:07.000 the run's texts reach the queue and the bucket is full: 2 tokens, with a new one at every 125 ms mark of the clock (.125, .250 and so on). A free thread asks the bucket only if a text is waiting. On a yes it sends the next text and is busy until Hoopoe answers; on a no it asks again at the next 125 ms mark. As built, threads that ask at the same moment all read the count before any writes it back, the worst case on a machine with four cores. With the lock they go one at a time, A, B, C, D. Hoopoe counts the texts in the one second that starts at each text; more than 10 pauses the account for an hour from the end of that second, and the next hour's 46 texts are refused. Change the design, Hoopoe's answer time and the size of the run.",
+    "tryThis": "Try this: press step once and read the four lines at .000: each thread reads 2 tokens and writes back 1. Play the rest: 19 texts by .800, the account paused. Try volatile, then a bucket per thread. Try one thread, then one lock, and compare the last text's time; set Hoopoe to 2,000 ms and compare again. Try compare-and-set and read its retries. Last, as built, set the run to 8 texts, the biggest run before Friday."
+  },
+  "explain": {
+    "oneLine": "Nothing in take() was wrong for one thread. It reads the count, then writes it back, and on Friday all four threads read 2 tokens before any wrote back 1, so four texts went for one token at every moment: 19 in 800 ms, against Hoopoe's rule of 10 in a second.",
+    "steps": [
+      {
+        "title": "Read, then write: a gap another thread can use.",
+        "text": "take() works in steps. First, a thread reads the count into its own note, n. Second, it adds the tokens dropped in since the last take. Third, it checks that n is above zero. Fourth, it writes n minus one back. Between the first step and the fourth, the bucket still holds the old count, and a thread on another core can read it too. At 23:41:07.000 all four threads read 2 before any wrote back, all four saw a token, and all four wrote 1: four yeses for one token. Every 200 ms they came back from Hoopoe together, at least one new token had dropped in, and the same thing happened: 4, 4, 4, 4 and 3 texts, 19 by .800. Java's tutorial calls this interference: two operations on the same data, in different threads, whose steps overlap. It is the race condition of Two Hands, One Cup (s5e01), inside a class."
+      },
+      {
+        "title": "Why never before, and why 23:41.",
+        "text": "With one thread, nothing else ran between a read and its write. With four, the race needs several texts waiting at once, and then it happens at every moment the threads ask together. All week the runs were 8 bags at most: 4 texts at .000 and 4 at .200, 8 in one second, inside Hoopoe's rule, while the count was quietly wrong. With Hoopoe answering in 200 ms, a run of 11 texts or more was enough to break the rule, and Friday's 19 was the first. Each thread's check was right for the count it saw, which is why nothing ever said no."
+      },
+      {
+        "title": "Volatile shows the latest write; it doesn't join the steps.",
+        "text": "Volatile is a promise about seeing. Java's tutorial says changes to a volatile variable are always visible to other threads. That cures a thread reading an old copy of a value. It does nothing about one thread reading, a second thread reading, and both then writing: at .000 there was no newer value to see. The same tutorial says an increment such as c++ does not describe an atomic action, one step nobody can split. Read, check and write back is that same shape."
+      },
+      {
+        "title": "One step: a lock, or compare-and-set.",
+        "text": "A lock makes the steps of take() one step to every other thread. First, a thread asks for the lock; if another holds it, it waits. Second, holding it, it reads, refills, checks and writes back. Third, it lets go, and the next thread goes in and reads what the first wrote. In Java, marking take() synchronized does this; the tutorial says two calls of synchronized methods on the same object cannot interleave. Compare-and-set is the other way: read, work out the new value, then ask the machine to store it only if the value is still the one you read; if not, read again. Winifrith's line was this advice: a till drawer has one handle, so only one hand is in the drawer at a time. With the lock, Friday's run goes 2 at once, then one every 125 ms, never more than 9 in a second. What can go wrong: put the send inside the lock and every thread waits for Hoopoe, so keep only the count inside."
+      },
+      {
+        "title": "A clock the tests can set.",
+        "text": "A race hides from tests that use the real clock: threads seldom land in the same instant, and waiting for tokens means waiting real seconds. So the bucket takes its clock as an input. First, a test makes a pretend clock and sets it to 23:41:07.000. Second, it starts four threads together and lets them call take() at once, many times over. Third, it checks there were exactly 2 yeses, the bucket's size. Fourth, it moves the clock 125 ms by hand and checks for exactly one more. Java's Clock class is made for this: its documentation says alternate clocks can be plugged in, which can simplify testing. What can go wrong: a test that starts its threads one after another never makes them overlap, so it passes even without the lock."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 300,
+      "aria": "The fix, drawn for next Friday. Threads A to D ask at once. TokenBucket.take() lets one in at a time under one lock, from the read to the write: at 23:41:07.000 two say yes and two say no. Texts go on to Hoopoe, never more than 9 in a second on Friday's run. Below, a test clock set by hand gives the bucket its time.",
+      "nodes": [
+        {
+          "id": "thr",
+          "label": "Threads A to D",
+          "sub": "ask at once",
+          "x": 110,
+          "y": 80,
+          "w": 160,
+          "h": 60,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "bkt",
+          "label": "TokenBucket.take()",
+          "sub": "one lock, read to write",
+          "x": 400,
+          "y": 80,
+          "w": 200,
+          "h": 60,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "hoo",
+          "label": "Hoopoe",
+          "sub": "9 a second, Friday",
+          "x": 645,
+          "y": 80,
+          "w": 150,
+          "h": 60,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "clk",
+          "label": "Test clock",
+          "sub": "set by hand",
+          "x": 400,
+          "y": 230,
+          "w": 180,
+          "h": 60,
+          "shape": "box",
+          "tone": "accent"
+        }
+      ],
+      "edges": [
+        {
+          "from": "thr",
+          "to": "bkt",
+          "label": "2 yes, 2 no"
+        },
+        {
+          "from": "bkt",
+          "to": "hoo",
+          "label": "texts"
+        },
+        {
+          "from": "clk",
+          "to": "bkt",
+          "label": "the time",
+          "tone": "muted"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for next Friday. The four threads still ask at once, but the lock lets them into take() one at a time, so each reads what the one before wrote back: at 23:41:07.000 two get a yes and two a no. The bucket asks a clock it is handed for the time; on the bench, that is a test clock set by hand.",
+    "fix": {
+      "title": "The fix: one lock from the read to the write, and a clock the tests can set",
+      "text": "Put one lock around the whole of take(): reading the count, adding the refill, checking it and writing it back. Keep nothing slow inside it; the thread sends its text after letting go. Hand the bucket its clock when it is made, the real clock in the kitchen and a pretend one on the bench. Then write the test that would have caught Friday: set the clock to 23:41:07.000, have four threads call take() at once many times over, and expect exactly 2 yeses; move the clock 125 ms and expect exactly one more. Compare-and-set is a fair alternative if the count and the refill time are kept in one object swapped in a single step."
+    },
+    "limits": [
+      "The lock covers the threads inside one running copy of the program. A second copy on another computer has its own bucket and its own lock, so together they can send twice Hoopoe's rule. Several copies need one shared count, changed in one step, or a fixed share each.",
+      "A lock makes threads wait in line for the count. Here that wait is usually far less than a millisecond, because only the count is inside; if a slow step such as sending slips inside the lock, every thread waits for Hoopoe.",
+      "A test with a set clock catches the race only if its threads really ask at the same moment, and that is still up to the machine. Run it many times, and treat a pass as evidence, not proof."
+    ],
+    "tradeoff": {
+      "head": [
+        "Approach",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "Read, then write back, no lock (as built)",
+          "Simple, and right for one thread.",
+          "Four threads at once read the same count: 19 texts in 800 ms, the account paused."
+        ],
+        [
+          "Count marked volatile",
+          "Every thread sees the latest count written.",
+          "Read and write stay two steps: the same 19 in 800 ms."
+        ],
+        [
+          "A bucket per thread",
+          "No shared count, so no race.",
+          "Four limits on one account: up to 40 in a second; 19 in 800 ms on Friday."
+        ],
+        [
+          "One sender thread",
+          "No race; never more than 5 a second at 200 ms.",
+          "One text per answer: a run of 14 takes 26 s when Hoopoe takes 2 s."
+        ],
+        [
+          "One lock from read to write",
+          "Right with any number of threads: 2 at once, then one every 125 ms.",
+          "Threads wait in line for the count, briefly; covers one copy of the program only."
+        ],
+        [
+          "Compare-and-set",
+          "No waiting for a lock; a failed set just reads again.",
+          "Both values must swap as one; retries (35 on Friday's run) grow with the threads."
+        ]
+      ]
+    },
+    "seniorTake": "When several threads share an object, ask of every method: does it read something, decide, and write it back? If so, that whole stretch must be one step to every other thread, under one lock or as one compare-and-set. Volatile won't do it, and neither will giving each thread its own copy of a limit that belongs to everyone. Keep the locked stretch tiny, with no waiting on the network inside it. Make time an input, so a test can freeze the clock and fire many threads at one instant. A token bucket is a few lines of arithmetic; the senior part is knowing who else is doing that arithmetic at the same moment, including other copies of the program on other machines.",
+    "realWorld": [
+      {
+        "title": "Java tutorial: thread interference",
+        "text": "Oracle's Java tutorial: \"Interference happens when two operations, running in different threads, but acting on the same data, interleave.\" It adds: \"This means that the two operations consist of multiple steps, and the sequences of steps overlap.\" Its worked example ends: \"Thread A's result is lost, overwritten by Thread B.\" Four threads writing back 1 at .000 is that.",
+        "source": 0
+      },
+      {
+        "title": "Java tutorial: synchronized methods",
+        "text": "On marking methods synchronized, the tutorial says \"it is not possible for two invocations of synchronized methods on the same object to interleave.\" Other threads calling them \"block (suspend execution) until the first thread is done with the object.\"",
+        "source": 1
+      },
+      {
+        "title": "Java tutorial: what volatile does, and doesn't",
+        "text": "The tutorial's page on atomic access says \"Reads and writes are atomic for all variables declared volatile\" and \"changes to a volatile variable are always visible to other threads.\" The same page says \"an increment expression, such as c++, does not describe an atomic action.\" A read and a write can each be safe while the pair is not.",
+        "source": 2
+      },
+      {
+        "title": "Java: AtomicLong.compareAndSet",
+        "text": "Java's AtomicLong is \"A long value that may be updated atomically.\" Its compareAndSet \"Atomically sets the value to newValue if the current value == expectedValue\", and \"False return indicates that the actual value was not equal to the expected value.\" A false is the signal to read again.",
+        "source": 3
+      },
+      {
+        "title": "Guava's RateLimiter: one limiter for all threads",
+        "text": "Google's Guava library describes its RateLimiter: \"Conceptually, a rate limiter distributes permits at a configurable rate.\" And: \"RateLimiter is safe for concurrent use: It will restrict the total rate of calls from all threads.\" Permits there are tokens here; the total across threads is what Hoopoe counts.",
+        "source": 4
+      },
+      {
+        "title": "Java: a clock you can plug in",
+        "text": "Java's Clock class: \"The primary purpose of this abstraction is to allow alternate clocks to be plugged in as and when required.\" It goes on: \"This can simplify testing.\" and names fixed or offset clocks for use during testing.",
+        "source": 5
+      }
+    ],
+    "interview": {
+      "asked": [
+        "Design a thread-safe rate limiter class.",
+        "Why doesn't volatile make count++ safe?",
+        "How do you test code that depends on the time?"
+      ],
+      "answer": "A token bucket needs two values: how many tokens are left and when it last refilled. take() reads both, adds the tokens earned since, checks there is one, and writes back one less. That read-to-write stretch is the whole problem: with several threads, two can read the same count and both spend the same token. Make it one step, with one lock around all of take() or with compare-and-set on a single object holding both values, retrying on failure. Keep anything slow, such as the network call, outside it. Volatile only makes the latest write visible; count++ is still a read, an add and a write, and two threads can interleave between them. For tests, inject the clock: the bucket asks a clock object it was given, so a test can set an exact time, start many threads at once, assert the yeses equal the bucket's size, then move the clock forward and assert the refill. Last, say where the limit lives: a lock covers one process, so several servers sharing one allowance need a shared counter with an atomic update, or a fixed share each."
+    }
+  },
+  "terms": [
+    {
+      "term": "Winifrith Torvaine",
+      "def": "Odgerel's great-aunt, a maker of coin-operated machines and automata for sixty years, who also wrote programs for local businesses in her last ten. She died in the spring."
+    },
+    {
+      "term": "Work order",
+      "def": "The paper note tied to each unfinished machine in the workshop, saying what the client wants done. Gulnara's asks for four senders and Hoopoe's rule."
+    },
+    {
+      "term": "Nachtmahl",
+      "def": "The late-night food kitchen in this story. Gulnara owns it; drivers leave in runs, and its program texts each customer when their food is on the way."
+    },
+    {
+      "term": "Hoopoe",
+      "def": "The text company in this story. It delivers Nachtmahl's texts, answers each in about 200 ms on a normal night, and pauses an account for an hour if it sends more than 10 in any one second."
+    },
+    {
+      "term": "Run",
+      "def": "The bags that leave with the drivers at one time. Each bag's customer gets one \"on its way\" text, so a run of 19 bags puts 19 texts in the queue at once."
+    },
+    {
+      "term": "Program",
+      "def": "A list of steps a computer follows, written in code."
+    },
+    {
+      "term": "Thread",
+      "def": "One line of work inside a program, like one cook following one recipe. Several can run at once (s5e01). Nachtmahl's program has four, A to D."
+    },
+    {
+      "term": "Queue",
+      "def": "A line of things waiting their turn. Here, the texts waiting to be sent; each thread takes the next one from the front."
+    },
+    {
+      "term": "Core",
+      "def": "One of the separate workers inside a computer's chip. A machine with four cores can run four threads at the very same instant."
+    },
+    {
+      "term": "ms",
+      "def": "Short for millisecond, a thousandth of a second. 125 ms is one eighth of a second."
+    },
+    {
+      "term": "Token bucket",
+      "def": "A limiter that keeps a count of tokens, refilled at a steady pace up to a size. Each request spends one; with none left it is refused (s6e03). Here it holds 2, plus one every 125 ms."
+    },
+    {
+      "term": "Token",
+      "def": "In a token bucket, one permission to send one text."
+    },
+    {
+      "term": "Refill",
+      "def": "Dropping new tokens into the bucket at a steady pace. Here one at every 125 ms mark of the clock, never more than 2 held."
+    },
+    {
+      "term": "Class",
+      "def": "A pattern for one kind of thing in code, like a blank form (s5e04). TokenBucket is a class; the program makes one bucket from it."
+    },
+    {
+      "term": "Method",
+      "def": "A set of steps a class carries out when asked (s5e04). take() is TokenBucket's method for asking for a token."
+    },
+    {
+      "term": "take()",
+      "def": "The bucket's method: read the count, add the refill, answer no if it is zero, otherwise write back one less and answer yes."
+    },
+    {
+      "term": "Count",
+      "def": "The number of tokens the bucket says it holds, kept in the value tokens. Every thread reads and writes the same one."
+    },
+    {
+      "term": "Race condition",
+      "def": "A bug whose result depends on which thread gets somewhere first (s5e01). Here, which thread writes the count back before another reads it."
+    },
+    {
+      "term": "Interference",
+      "def": "The Java tutorial's word for two operations on the same data, in different threads, whose steps overlap, so one result is lost."
+    },
+    {
+      "term": "Thread-safe",
+      "def": "Said of a class that gives right answers however many threads use it at once. take() as built is not."
+    },
+    {
+      "term": "Java",
+      "def": "A common programming language. Its documentation is quoted here for volatile, synchronized, AtomicLong and Clock; other languages have the same ideas under other names."
+    },
+    {
+      "term": "Volatile",
+      "def": "A word in Java and similar languages, marking a value so every read sees the latest write by any thread. It does not join a read and a later write into one step."
+    },
+    {
+      "term": "Lock",
+      "def": "A marker only one thread can hold at a time (s5e01). A thread that wants it while another holds it waits until it is let go."
+    },
+    {
+      "term": "synchronized (Java)",
+      "def": "A Java word that makes a method take the object's lock for its whole run, so two calls on the same object cannot interleave."
+    },
+    {
+      "term": "Atomic (one step)",
+      "def": "Done as a single step no other thread can split or see half done, like checking and spending a token together (s5e01, s6e03)."
+    },
+    {
+      "term": "Compare-and-set",
+      "def": "A one-step machine instruction: store a new value only if the value is still the one you read, and say whether it worked. If not, read again. Also called compare-and-swap (s5e01)."
+    },
+    {
+      "term": "Retry (compare-and-set)",
+      "def": "Reading again after a compare-and-set fails because another thread changed the value first. The sim counts these."
+    },
+    {
+      "term": "AtomicLong",
+      "def": "A Java class holding one number that can be changed atomically, with compareAndSet among its methods."
+    },
+    {
+      "term": "Test",
+      "def": "A small program that checks another piece of code by running it and comparing what it does with what it should do."
+    },
+    {
+      "term": "Clock the tests can set",
+      "def": "A clock handed to a class instead of read from the computer, so a test can give it a pretend clock and set or move the time by hand. Also called an injected clock."
+    },
+    {
+      "term": "Clock (Java)",
+      "def": "Java's class for asking the time. Code that takes a Clock as an input can be given a fixed or moved clock in a test."
+    },
+    {
+      "term": "Guava RateLimiter",
+      "def": "A rate limiter in Google's Guava library for Java. It hands out permits at a set rate and is safe for many threads, limiting their total."
+    },
+    {
+      "term": "Permit",
+      "def": "Guava's word for a token: one permission to go ahead."
+    },
+    {
+      "term": "Running copy (process)",
+      "def": "One copy of a program running on a computer, with its own memory. A lock inside it means nothing to another copy."
+    },
+    {
+      "term": "Shared store",
+      "def": "One place, reached by every copy of a program, where a count is kept and changed in one step, so all copies share one limit (s6e03)."
+    },
+    {
+      "term": "Answer time (in the sim)",
+      "def": "How long Hoopoe takes to answer each text. A thread is busy for that long after each yes. Friday's was 200 ms."
+    },
+    {
+      "term": "Moment (in the sim)",
+      "def": "One instant at which one or more threads ask the bucket. Step shows one moment at a time."
+    }
+  ],
+  "atWork": "Look for objects that several threads share and that read a value, decide, and write it back: counters, rate limiters, ID generators, caches that count their own hits, anything with a line like count = count - 1. It is a common shape, and it usually works in tests and on quiet days, then fails the first time several threads arrive together. For each one, check four things. Is the whole read-to-write stretch under one lock, or done as one compare-and-set? Is anything slow, such as a network call, inside the lock? Does the class take its clock as an input, and is there a test that freezes the clock and starts several threads at once? And how many running copies of the program share the limit: if more than one, the count has to live somewhere they all share, changed in one step. A limit you pay for, such as a text company's or a payment provider's allowance, is worth the most care, because breaking it can stop the service for everyone.",
+  "board": {
+    "cards": [
+      {
+        "id": "token-bucket",
+        "title": "Token bucket"
+      },
+      {
+        "id": "thread-safety",
+        "title": "Thread safety"
+      }
+    ],
+    "strings": [
+      {
+        "from": "token-bucket",
+        "to": "rate-limiting",
+        "label": "how it limits"
+      },
+      {
+        "from": "token-bucket",
+        "to": "thread-safety",
+        "label": "shared by threads"
+      },
+      {
+        "from": "thread-safety",
+        "to": "race-conditions",
+        "label": "a race in a class"
+      },
+      {
+        "from": "thread-safety",
+        "to": "locks",
+        "label": "one step, one lock"
+      },
+      {
+        "from": "thread-safety",
+        "to": "atomic-operations",
+        "label": "compare-and-set"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "w06-r1",
+      "kind": "free",
+      "prompt": "A concert site keeps the seats left in one counter. Each of eight request threads reads the counter, checks it is above zero, and writes back one less. At a busy launch it sold 312 tickets for 300 seats. A colleague wants to mark the counter volatile. What is going on, and what do you change?",
+      "keyIdeas": [
+        {
+          "idea": "Reading and writing back are separate steps; two threads read the same value before either writes, and both sell the same seat",
+          "match": [
+            "read the same",
+            "same value",
+            "both read",
+            "before either",
+            "before any",
+            "separate steps",
+            "two steps",
+            "interleav"
+          ]
+        },
+        {
+          "idea": "Volatile only makes the latest write visible; it does not make read, check and write one step",
+          "match": [
+            "only makes",
+            "only visib",
+            "not atomic",
+            "isn't atomic",
+            "doesn't make it atomic",
+            "does not make it atomic",
+            "still two steps",
+            "doesn't join",
+            "does not join"
+          ]
+        },
+        {
+          "idea": "Make the read-check-write one step: one lock around it, or compare-and-set and retry",
+          "match": [
+            "one lock",
+            "a lock around",
+            "lock around",
+            "synchronized",
+            "compare-and-set",
+            "compare and set",
+            "compare-and-swap",
+            "compareandset",
+            "atomic decrement",
+            "one step"
+          ]
+        }
+      ],
+      "model": "It's a race on the counter. Reading and writing back are separate steps, so two threads can read the same value, say 1 seat left, before either writes, and both sell it; on eight threads at a launch that happens again and again, 12 times here. Marking it volatile won't help: volatile only makes the latest write visible to other threads. Read and write back are still two steps, and when both threads read there is nothing newer to see. Make the stretch one step: put one lock around the read, the check and the write, or use compare-and-set on the counter and retry when it fails. Keep anything slow, like taking payment, outside the lock."
+    },
+    {
+      "id": "w06-r2",
+      "kind": "mcq",
+      "prompt": "Four threads share a token bucket holding 2 tokens. take() reads the count, then writes back one less, with no lock. All four call take() at the same instant and each reads before any writes back. How many yeses does the bucket give at that instant?",
+      "options": [
+        "2, one for each token",
+        "4, one for each thread",
+        "1, because the first write wins",
+        "0, because the threads block each other"
+      ],
+      "answer": 1,
+      "why": "Each thread reads 2, sees a token, and writes back 1. None of them saw another's write, because none had happened when they read. Four yeses, one token spent: that is Friday at 23:41:07.000. With a lock from the read to the write, the answer is 2."
+    },
+    {
+      "id": "w06-r3",
+      "kind": "free",
+      "prompt": "Your team's token bucket refills one token every 125 ms. Its only test runs one thread and sleeps real seconds while tokens come back, and it has never failed. How would you test it so the test is fast and would catch two threads spending one token?",
+      "keyIdeas": [
+        {
+          "idea": "Hand the bucket its clock, so the test uses a pretend clock and sets or moves the time by hand",
+          "match": [
+            "inject",
+            "fake clock",
+            "pretend clock",
+            "test clock",
+            "set the clock",
+            "clock object",
+            "pass in a clock",
+            "pass the clock",
+            "hand it a clock",
+            "mock clock"
+          ]
+        },
+        {
+          "idea": "Start many threads together at one frozen time, many times over",
+          "match": [
+            "many threads",
+            "several threads",
+            "eight threads",
+            "at once",
+            "same instant",
+            "same moment",
+            "concurrently",
+            "in parallel"
+          ]
+        },
+        {
+          "idea": "Count the yeses: exactly the bucket's size, then exactly one more after moving the clock one refill step",
+          "match": [
+            "count the yes",
+            "exactly the size",
+            "exactly two",
+            "no more than the size",
+            "number of yes",
+            "move the clock",
+            "advance the clock",
+            "exactly one more"
+          ]
+        }
+      ],
+      "model": "Hand the bucket its clock instead of letting it read the computer's: in the test, give it a pretend clock and set the time by hand, so nothing sleeps. Freeze the clock at one instant, start several threads at once and have them all call take() together, and repeat that many times. Count the yeses: there must be exactly the bucket's size, exactly two for a bucket of 2, never more. Then move the clock 125 ms by hand and expect exactly one more. The old test could never fail, because one thread can't race with itself."
+    },
+    {
+      "id": "w06-r4",
+      "kind": "mcq",
+      "prompt": "Which change makes Nachtmahl's take() right for four threads in one running copy of the program?",
+      "options": [
+        "Marking tokens volatile",
+        "Holding one lock from reading the count to writing it back",
+        "Checking the count a second time just before writing",
+        "Making each thread sleep 100 ms between texts"
+      ],
+      "answer": 1,
+      "why": "Only the lock turns read, refill, check and write into one step to every other thread. Volatile makes writes visible but leaves the gap. A second check narrows the gap but doesn't close it (s5e01). Sleeping slows each thread, but the four still wake together and read the same count."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 2 months later. The lock has held every Friday, and the bench test passes every time. In November Gulnara opened a collection hatch with a second computer, which runs a second copy of the program under the same Hoopoe account, with four threads and a bucket of its own. On Friday 4 December at 23:52:10 a run of 14 bags left, 7 texted from each computer. Hoopoe paused the account at 23:52:11 for an hour. Each computer's log is perfect: 2 texts at once, then one every 125 ms.",
+    "prompt": "Reply to OP. Why was the account paused when each computer's bucket worked exactly as designed, and what should change?",
+    "keyIdeas": [
+      {
+        "idea": "A lock only covers threads in one running copy; two copies each have a bucket, so together they allow twice the rule",
+        "match": [
+          "two buckets",
+          "twice the",
+          "double",
+          "one process",
+          "one copy",
+          "one running copy",
+          "both copies",
+          "per process",
+          "don't share",
+          "do not share"
+        ]
+      },
+      {
+        "idea": "Keep one shared count for both copies, in a shared store changed in one step",
+        "match": [
+          "shared store",
+          "shared count",
+          "one shared",
+          "single bucket",
+          "redis",
+          "in one place",
+          "central"
+        ]
+      },
+      {
+        "idea": "Or give each copy a fixed share of the rule, such as half the tokens and half the refill",
+        "match": [
+          "half the",
+          "split the",
+          "halve",
+          "share each",
+          "divide",
+          "fixed share"
+        ]
+      }
+    ],
+    "model": "Each bucket did exactly its job, and each job was the whole rule. The lock protects the threads inside one copy of the program; the second computer runs another copy with two buckets in all, each allowing 2 at once and 8 a second, so together they allow double Hoopoe's rule. At 23:52:10 each sent 7 texts within 625 ms: 14 in one second. The rule belongs to the account, so the count has to as well. Keep one shared count for both copies in a shared store, a small database both computers reach, where take() happens as one step there. If that's too much for a kitchen, give each copy a fixed share instead: half the tokens and half the refill, a bucket of 1 and one token every 250 ms, which wastes a little when one hatch is quiet but can never break the rule."
+  },
+  "next": "Next, The Ticket Machine That Kept the Coins: a cliff railway's ticket machine, and the state pattern: one object for each state the machine can be in, each deciding what a coin or a button does.",
+  "sources": [
+    {
+      "title": "Oracle, The Java Tutorials, Concurrency: Thread Interference (interference defined; c++ in three steps; Thread A's result is lost, overwritten by Thread B)",
+      "url": "https://docs.oracle.com/javase/tutorial/essential/concurrency/interfere.html"
+    },
+    {
+      "title": "Oracle, The Java Tutorials, Concurrency: Synchronized Methods (two invocations of synchronized methods on the same object cannot interleave)",
+      "url": "https://docs.oracle.com/javase/tutorial/essential/concurrency/syncmeth.html"
+    },
+    {
+      "title": "Oracle, The Java Tutorials, Concurrency: Atomic Access (volatile reads and writes are atomic and visible to other threads; c++ is not an atomic action)",
+      "url": "https://docs.oracle.com/javase/tutorial/essential/concurrency/atomic.html"
+    },
+    {
+      "title": "Java SE 21 API documentation, java.util.concurrent.atomic.AtomicLong (compareAndSet)",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/AtomicLong.html"
+    },
+    {
+      "title": "Guava API documentation (snapshot), com.google.common.util.concurrent.RateLimiter (permits at a configurable rate; safe for concurrent use)",
+      "url": "https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/util/concurrent/RateLimiter.html"
+    },
+    {
+      "title": "Java SE 21 API documentation, java.time.Clock (alternate clocks plugged in; can simplify testing)",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/Clock.html"
+    }
+  ]
+}
