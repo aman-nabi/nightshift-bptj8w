@@ -1,0 +1,978 @@
+{
+  "_changelog": [
+    "v1.0.0 (2026-10-16) first version, from latent-season10-bible-v1.0.1.md row a10e09, writer brief a10e09-v1.0.0.md, LATENT catalog v1.0.79 and latent-syllabus-v1.0.3.md. The syllabus row (Season 10 row 9) was followed while a10e08 was being written; a10e08's next field (only that field was read, once its file appeared) was then checked and is honoured: a wind farm's night maintenance crews, reading a question and writing its answer on separate cards, reusing the working memory of a shared beginning, and sending each question to the card that suits it. Keeps apart from a10e02 (one job on one card; here stalls and routing across cards), from a6e03 (a provider's prompt cache; here our own cards) and a2e08 (which model; here which of our own cards), from s6e13 and a1e01 (no grid, no control room, no forecasting), from s8e07 (the baton is a comparison only; no race or sport) and from a10e01's furnace. Shared given data: Llama 3.1 8B, 8.03 billion weights, 16.06 billion bytes in 16 bits, about 15 GB on the card's meter; 128 KB of working memory per token; A100 80GB, 312 TFLOPS (16-bit, dense). A manual of about 50,000 tokens: 50,000 x 131,072 bytes = 6,553,600,000 bytes, 6.1 GB on the meter (1 GB = 1,024 MB), 6.55 GB in the maker's units (1,000), which the hand-over times use; 4 manuals 24.4 GB. Reading a manual: 2 x 8.03 billion x 50,000 = 803 trillion sums for the weights plus about 655 trillion for attention, about 1.46 quadrillion; at half of 312 TFLOPS, 9.35 s by the sheet, about 9 s. Skeldaig's own measurements, never a source's: reading a manual 9 s; a hit starts writing in 0.1 s; 48 questions an hour at night, 4 per manual; hit rates 99% and 33%; the most answers on one card at once, 2. The dashboard's hit rate counts prompt tokens already read (the story's own definition, not a claim about vLLM's metric): 50,000 of about 50,500, 99.0%; taking turns, 1/3 of that, 33.0%. Story arithmetic (all in sims/a10e09-v1.0.0.js): taking turns, (2/3 x 9 s) + (1/3 x 0.1 s) = 6.03 s, shown 6.0 s, 60 times last week's 0.1 s; 32 re-reads an hour, 288 s of frozen writing an hour; a fifth card, still 4 in 12, 33%, 6.0 s, each card 9.6 questions an hour instead of 12; manuals cut to 20,000 tokens: 2.44 GB, room for 10, a reading 2.6 s (9 s scaled by the sums), 10 in 12 held, 81%, 0.5 s; separate reading and writing cards, hand-over 6.55 GB / 25 GB/s = 0.26 s (average 6.2 s), / 1.25 GB/s (10 Gb/s) = 5.2 s (average 9.5 s); manual-aware routing, 3 manuals a card, 99%, 0.1 s; cold case, a changing line before the manual, 0%, 9.0 s, 48 re-reads an hour. One deliberate change from the brief's draft: the ok option places manuals with a table (a new manual goes to the card holding fewest, so 12 settle exactly 3 to a card) instead of the ring from s3e08, because a check of a 32-bit hash ring with 1 to 300 places per card found no layout giving 3 each for these 12 manuals (32 places gave 3, 4, 3 and 2); the ring is recalled in one line in the explanation with that limit. The freeze is stated as how Skeldaig's set-up schedules (a whole prompt read before the next writing step), not as how vLLM behaves. Timeline: each farm had its own card until 16:00 on Friday 9 October 2026; last week's dashboard (Friday 2 to Friday 9 October) showed 99% and 0.1 s; IT pooled the cards at 16:00 on Friday 9 October; a Cnocbreac question reached card 3 at 01:14:58 on Saturday 10 October and its reading froze Bergthora's answer until 01:15:07; Bergthora radioed at 01:15; Mikkjal read the dashboard at 01:20 and drew the evidence at 01:40; the post at about 06:30; crews back at 22:00 on Saturday. Cold case: 2 months later, 10 October to 10 December 2026 (the line added on Tuesday 1 December, the freeze and radio call at 00:40 on Wednesday 2 December). Standards note conditional, not legal advice. Sources read 16 October 2026."
+  ],
+  "id": "a10e09",
+  "season": 10,
+  "n": 9,
+  "title": "The Relay",
+  "setting": "a wind farm's night maintenance crews",
+  "core": false,
+  "minutes": 12,
+  "concepts": [
+    "disaggregated-prefill",
+    "decode",
+    "prefix-caching",
+    "load-aware-routing"
+  ],
+  "prerequisites": [
+    "a10e01",
+    "a10e02",
+    "a10e03",
+    "a10e04",
+    "a6e03",
+    "s2e02",
+    "s3e08",
+    "a1e01",
+    "a1e02",
+    "a1e03"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/night_duty_mikkjal",
+    "flair": "Part 1",
+    "age": "6h",
+    "votes": 2954,
+    "title": "I'm the night duty technician at a wind-farm operator. At 16:00 IT pooled our assistant's three cards and a spare to share the load. By 01:20 four cards were starting answers sixty times slower than three.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm Mikkjal, night duty technician at Skeldaig. We run three wind farms, Quharry, Skarvoe and Cnocbreac, each with 4 turbine models: 12 maintenance manuals. When a turbine faults at night, a crew climbs to its nacelle, the machine room on top of the tower."
+      },
+      {
+        "t": "p",
+        "text": "Up there they ask our assistant, a language model, Llama 3.1 8B, which reads and writes in tokens, small pieces of text. The app sends the turbine model's whole manual first, about 50,000 tokens, then the crew's question."
+      },
+      {
+        "t": "p",
+        "text": "It runs on NVIDIA A100 graphics cards. Each card holds its own copy of the model's weights, its 8.03 billion learned numbers, about 15 GB on the card's meter."
+      },
+      {
+        "t": "p",
+        "text": "A card answers in two steps. First it reads the prompt, everything the app sends. Then it writes the answer, one token at a time. Reading a manual is about 1.46 quadrillion sums. At half the card's 312 TFLOPS (trillion floating-point operations, or sums, a second), that's about 9 s; our own timing says 9 s."
+      },
+      {
+        "t": "p",
+        "text": "Reading leaves working memory behind: 128 KB per token, 6.1 GB for a manual on the card's own meter (6.55 GB as the maker counts, with 1,000 MB to a GB, not 1,024)."
+      },
+      {
+        "t": "p",
+        "text": "vLLM, the program serving the model, keeps a finished reading, like a manual left open on the bench. For each question, the card checks whether it holds that manual's reading. If it does, it starts writing in 0.1 s. If not, it reads for 9 s, keeps the reading, and drops the one used longest ago. After the weights and the answers it is writing, each card has room for 4 readings, 24.4 GB. Keeping a shared beginning to reuse is called prefix caching. It works because the manual comes first."
+      },
+      {
+        "t": "p",
+        "text": "Until 16:00 on Friday 9 October, each farm's questions went to its own card, which kept that farm's 4 manuals. The spare sat idle. Last week the dashboard showed a 99% hit rate (the share of prompt tokens already read: a manual's 50,000 of about 50,500) and each answer's first token in 0.1 s."
+      },
+      {
+        "t": "p",
+        "text": "At 16:00 Oystein, our IT engineer, pooled the three farm cards and the spare behind a balancer: a switch that sends each question to the next card in line, taking turns. \"To share the load,\" the change note said."
+      },
+      {
+        "t": "p",
+        "text": "At 01:15 Bergthora radioed from a Skarvoe nacelle: an answer had frozen halfway through a procedure step for 9 seconds. At 01:20 I opened the dashboard. Each line: the time, a figure for the last hour, and last week's."
+      },
+      {
+        "t": "log",
+        "text": "01:20  cards answering          4       last week: 3\n01:20  hit rate                 33%     last week: 99%\n01:20  first token, average     6.0 s   last week: 0.1 s"
+      },
+      {
+        "t": "beat",
+        "text": "All night, some card was reading a manual it had read an hour before."
+      },
+      {
+        "t": "evidence",
+        "label": "who_keeps_which_manual.png",
+        "diagram": {
+          "type": "arch",
+          "w": 760,
+          "h": 330,
+          "aria": "Mikkjal's drawing of which manuals each card sees and keeps. Top row, last week: the Quharry card, the Skarvoe card and the Cnocbreac card each see their farm's 4 manuals and keep all 4, a 99% hit rate. Bottom row, since 16:00: cards 1, 2, 3 and 4 (the spare) each see all 12 manuals and keep the 4 used most recently, so the card a question lands on holds its manual 4 times in 12. Bottom note: (2/3 × 9 s) + (1/3 × 0.1 s) = 6.03 s.",
+          "nodes": [
+            {
+              "id": "fq",
+              "label": "Quharry card",
+              "sub": "sees 4 manuals",
+              "meta": "keeps all 4: 99%",
+              "x": 130,
+              "y": 90,
+              "w": 200,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "fs",
+              "label": "Skarvoe card",
+              "sub": "sees 4 manuals",
+              "meta": "keeps all 4: 99%",
+              "x": 380,
+              "y": 90,
+              "w": 200,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "fc",
+              "label": "Cnocbreac card",
+              "sub": "sees 4 manuals",
+              "meta": "keeps all 4: 99%",
+              "x": 630,
+              "y": 90,
+              "w": 200,
+              "h": 72,
+              "shape": "box",
+              "tone": "ok"
+            },
+            {
+              "id": "c1",
+              "label": "Card 1",
+              "sub": "sees 12 manuals",
+              "meta": "keeps 4 of 12",
+              "x": 100,
+              "y": 235,
+              "w": 160,
+              "h": 72,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "c2",
+              "label": "Card 2",
+              "sub": "sees 12 manuals",
+              "meta": "keeps 4 of 12",
+              "x": 280,
+              "y": 235,
+              "w": 160,
+              "h": 72,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "c3",
+              "label": "Card 3",
+              "sub": "sees 12 manuals",
+              "meta": "froze at 01:14:58",
+              "x": 460,
+              "y": 235,
+              "w": 160,
+              "h": 72,
+              "shape": "box",
+              "tone": "bad"
+            },
+            {
+              "id": "c4",
+              "label": "Card 4, spare",
+              "sub": "sees 12 manuals",
+              "meta": "keeps 4 of 12",
+              "x": 640,
+              "y": 235,
+              "w": 160,
+              "h": 72,
+              "shape": "box",
+              "tone": "bad"
+            }
+          ],
+          "edges": [],
+          "notes": [
+            {
+              "x": 380,
+              "y": 30,
+              "text": "Last week: each farm's questions to its own card",
+              "tone": "",
+              "anchor": "middle"
+            },
+            {
+              "x": 380,
+              "y": 168,
+              "text": "Since 16:00: each question to the next card in line",
+              "tone": "bad",
+              "anchor": "middle"
+            },
+            {
+              "x": 380,
+              "y": 312,
+              "text": "(2/3 × 9 s) + (1/3 × 0.1 s) = 6.03 s",
+              "tone": "",
+              "anchor": "middle"
+            }
+          ]
+        },
+        "caption": "Drawn at 01:40 from the dashboard. Top: last week, each farm's card saw only its own 4 manuals and kept all 4. Bottom: since 16:00 every question goes to the next card in line, so every card sees all 12 manuals and keeps the 4 used most recently. Card 3 is the one that froze Bergthora's answer."
+      },
+      {
+        "t": "p",
+        "text": "By hand: every card now sees all 12 manuals and keeps 4, so the card a question lands on holds its manual 4 times in 12. Two questions in three must re-read it: (2/3 × 9 s) + (1/3 × 0.1 s) = 6.03 s, the dashboard's 6.0. And while a card reads for 9 s, every answer it is writing waits."
+      },
+      {
+        "t": "p",
+        "text": "Oystein says the cards are overloaded and wants a fifth. The crews are back at 22:00. What should we change?"
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/gradient_ghost",
+      "points": 162,
+      "age": "5h",
+      "text": "Nothing in your server room is haunted, though a voice that stops mid-sentence ninety metres up would unsettle anyone. Taking turns has a name, round robin: the hotel doorman's rule from Dead Letter's s2e02. Two questions. Which card wrote Bergthora's answer, and what was that card doing in those 9 seconds? And how many different manuals does each card see now, against last week?",
+      "replies": [
+        {
+          "author": "u/night_duty_mikkjal",
+          "op": true,
+          "points": 79,
+          "age": "5h",
+          "text": "Card 3. At 01:14:58 another crew's question on a Cnocbreac model reached it, and card 3 held no reading of that manual, so it read for 9 s. Our set-up reads a whole prompt before its next writing step, so Bergthora's answer stood still until 01:15:07. Each card sees all 12 manuals now; last week, 4. No card was busy, our dashboard's word for writing 8 answers at once: the most on any card was 2."
+        }
+      ]
+    },
+    {
+      "author": "u/it_pool_oystein",
+      "points": 88,
+      "age": "4h",
+      "text": "Taking turns is fair. Every card gets the same quarter of the questions, and the spare finally earns its keep instead of sitting idle for a year. Four cards can't be slower than three. A 9-second read is a card with too much to do, so add a fifth card to the turns and each card reads fewer questions. And make the app wait 30 seconds before it gives up, so a slow answer never looks like a dead one.",
+      "replies": [
+        {
+          "author": "u/night_duty_mikkjal",
+          "op": true,
+          "points": 35,
+          "age": "4h",
+          "text": "Last week each farm card had 16 questions an hour. Tonight each card has 12. Fewer questions, slower answers."
+        },
+        {
+          "author": "u/it_pool_oystein",
+          "points": 19,
+          "age": "3h",
+          "text": "Then it's the cards. A fifth one settles it."
+        }
+      ]
+    },
+    {
+      "author": "u/nacelle_bergthora",
+      "points": 71,
+      "age": "4h",
+      "text": "I was at step 4 of the yaw brake check, the brake that holds the nacelle facing into the wind, with a pad I'd just loosened in my hand. Step 4 stopped mid-sentence. Nine seconds is a long time ninety metres up when the tower sways and the screen just sits there. I didn't know whether step 5 was coming, or whether the assistant had lost the turbine.",
+      "replies": [
+        {
+          "author": "u/night_duty_mikkjal",
+          "op": true,
+          "points": 30,
+          "age": "3h",
+          "text": "It started again at 01:15:07, from the word where it stopped."
+        }
+      ]
+    },
+    {
+      "author": "u/two_halves_fiadh",
+      "points": 54,
+      "age": "3h",
+      "text": "At my work we split the cards. Some cards only read prompts. When a reading is done, the reading card sends its working memory to a card that only writes, like a baton passed from one hand to the next. The writing cards never stop for a reading. People call it disaggregation: reading and writing kept apart.",
+      "replies": [
+        {
+          "author": "u/night_duty_mikkjal",
+          "op": true,
+          "points": 22,
+          "age": "2h",
+          "text": "Our four cards sit in four servers in one room, joined by our 10 Gb/s network: gigabits a second, eight bits to a byte, so 1.25 GB a second."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "It's 06:30 on Saturday 10 October, and the crews are back at 22:00. What should Skeldaig change? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Add a fifth card to the turns so each card has fewer questions to read.",
+        "tone": "bad",
+        "verdict": "Fewer questions, same misses",
+        "part2": "On Saturday afternoon Oystein borrowed a fifth A100 from the day team's test server and added it to the turns. Each card now got 9.6 questions an hour instead of 12, but each still saw all 12 manuals and kept 4, so the card a question landed on held its manual 4 times in 12, exactly as before. From 22:00 the dashboard read the same 33% hit rate and 6.0 s average first token, and 32 questions an hour still re-read a manual. At 23:50 a Quharry crew's gearbox answer froze for 9 seconds mid-step; they waited it out at the top of the tower, and the turbine went back into service 20 minutes later than planned. The day team spent the week without its test card.",
+        "senior": "More cards share out the questions, not the manuals. With taking turns, a card holds the asked manual with a chance of the readings it keeps over the manuals it sees: 4 in 12 with four cards, and 4 in 12 with five. Re-reads stay at 48 × 2/3 = 32 an hour, and each one still freezes the answers on its card. Adding cards helps only when cards are short of time; these were short of the right memory."
+      },
+      {
+        "text": "Use some cards only to read manuals and hand the result to writing cards.",
+        "tone": "warn",
+        "verdict": "No freezes, longer first waits",
+        "part2": "On Saturday Oystein made card 4 a reading card and cards 1 to 3 writing cards, still taking turns. From 22:00 no answer froze mid-step: the writing cards never stopped to read. But each new reading, 6.55 GB in the maker's units, had to cross our 10 Gb/s network: 5.2 s. Two questions in three still needed a new reading, so first tokens averaged 9.5 s, up from 6.0. Crews waited longer for the first word, then got every answer without a pause, and Bergthora's crew finished a yaw brake check on another turbine with every step whole. A 25 GB/s link would cut each hand-over to 0.26 s and the average to 6.2 s, but that means new network cards in all four servers and a new set-up, and two questions in three would still wait 9 s for a reading.",
+        "senior": "Splitting reading from writing removes the interference between them: a long reading can no longer freeze answers being written. It does nothing about how often a reading is needed, and it adds a hand-over: the working memory crosses from card to card, 6.55 GB a manual, 0.26 s at 25 GB/s, 5.2 s at 10 Gb/s. Split when freezes matter and the link is fast, and fix the misses first."
+      },
+      {
+        "text": "Send each question to the card already holding its manual, if not busy.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "On Saturday afternoon Oystein set the balancer to keep a table of which card holds each manual. A manual's first question goes to the card holding the fewest manuals, and every later question on it goes to that card, unless that card is busy, writing 8 answers at once; then it goes to the card writing the fewest. The 12 manuals settled 3 to a card, with room for a fourth, and each card still got 12 questions an hour, the same share as taking turns. After each manual's first reading at 22:00, the dashboard read a 99% hit rate and 0.1 s first tokens, and no answer froze. No card was busy all night. Bergthora's crew finished a yaw brake check on another turbine at 23:10 with every step arriving whole.",
+        "senior": "Prefix caching pays only when the next question with the same beginning reaches the card that kept it. Choose the card by what it already holds, so each card sees only its 3 manuals and keeps them all, and use load as the safety valve: a busy card's overflow goes to the least-loaded card. Taking turns spread every manual over every card; manual-aware routing gives each manual a home, and leaves room for one more."
+      },
+      {
+        "text": "Cut each manual to its first 20,000 tokens so a re-read is shorter.",
+        "tone": "bad",
+        "verdict": "Faster, with pages missing",
+        "part2": "On Saturday the app team cut every manual to its first 20,000 tokens. A reading now took 2.6 s and 2.44 GB, so each card had room for 10, and with taking turns a card held the asked manual 10 times in 12. The dashboard read 81% and 0.5 s. But the back 30,000 tokens of every manual were gone, the yaw and blade chapters among them. At 01:30 on Sunday a Cnocbreac crew asked for the yaw brake bolt settings, and the assistant gave figures with no manual page behind them. The crew's lead checked the paper manual, found different values, and stopped the job; the turbine stayed out of service until the day shift. On Monday the full manuals went back.",
+        "senior": "A shorter prompt makes each reading cheaper and fits more readings in, but the assistant answers only from what it is sent. The missing pages turn a speed problem into a safety problem. The waits came from misses, not from the manual's length: route so that readings are reused, and keep the whole manual."
+      }
+    ]
+  },
+  "sim": {
+    "module": "a10e09",
+    "title": "Route Skeldaig's questions across the cards",
+    "lede": "You're Mikkjal at 15:59 on Friday 9 October 2026, a minute before IT pools the cards. No real model runs here: every figure is worked out from given numbers. Given: Llama 3.1 8B, 8.03 billion weights, about 15 GB on the card's meter; 128 KB of working memory per token. A manual is about 50,000 tokens: 6.1 GB on the meter (6.55 GB in the maker's units, 1 GB = 1,000 MB, which the hand-over times use). Reading one is about 1.46 quadrillion sums, about 9 s at half of the A100's 312 TFLOPS; Skeldaig's own timing: 9 s. A question that finds its manual's reading starts writing in 0.1 s (Skeldaig's timing); the question itself is about 500 tokens. After the weights and the answers being written, each card has room for 200,000 tokens of kept readings, 24.4 GB: 4 whole manuals. 3 farms × 4 turbine models = 12 manuals; at night the crews ask 48 questions an hour, 4 per manual. A card is busy when it writes 8 answers at once; the most on any card on the night was 2. The hit rate counts prompt tokens already read. Average first token = the share of misses × (reading + hand-over) + the share of hits × 0.1 s. A shorter manual's reading time is the 9 s scaled by its sums. Separate reading cards hand each new reading over a link: 25 GB/s, or the 10 Gb/s network (1.25 GB/s).",
+    "tryThis": "Try this: the opening view is last week, one card per farm: 99%, 0.1 s. Play Friday night: taking turns gives 33%, 6.0 s and 288 s of frozen writing an hour. Set 5 cards: still 33%. Turn on separate reading cards and switch the link between 10 Gb/s and 25 GB/s: the freezes stop and each hand-over takes 5.2 s or 0.26 s. Set manuals to 20,000 tokens. Choose manual-aware routing. Then play each reply, and last, put a changing line before the manual for the cold case."
+  },
+  "explain": {
+    "oneLine": "Nothing in the server room was haunted. Taking turns spread every manual over every card: each card saw all 12 and kept 4, so two questions in three re-read a 9-second manual, (2/3 × 9 s) + (1/3 × 0.1 s) = 6.03 s, and each reading froze the answers being written on its card. Four cards were slower than three because they forgot more.",
+    "steps": [
+      {
+        "title": "A kept reading, reused: prefix caching.",
+        "text": "Unlike a provider's prompt cache (a6e03), this one sits on Skeldaig's own cards. First, a card reads the prompt from its first token and stores the working memory in blocks, like pages (a10e03). Second, vLLM labels each full block by its own tokens and every token before it. Third, when a new prompt begins with the same tokens, its blocks are found and reused, and only the rest is read: here the 500-token question, 0.1 s. Fourth, when room runs out, the block used longest ago is dropped first. Because each label covers everything before its block, reuse works only from the very first token: the manual first, the question after. What can go wrong: anything that changes near the start of the prompt, and a question that reaches a card that never read its manual."
+      },
+      {
+        "title": "Taking turns spread every manual over every card.",
+        "text": "First, the balancer sends each question to the next card in line, whatever it asks about. Second, each card therefore sees all 12 manuals but has room for 4, the 4 used most recently. Third, the chance it holds the asked manual is 4 in 12, so 32 of the 48 questions an hour re-read: (2/3 × 9 s) + (1/3 × 0.1 s) = 6.03 s, about 60 times last week's 0.1 s. The hit rate counts tokens: a third of 50,000 of 50,500 is 33%. A fifth card cuts each card's questions from 12 to 9.6 an hour, not the 12 manuals it sees: still 4 in 12. What can go wrong: a fair share of questions that ruins every card's memory, and a dashboard that shows load but not hits."
+      },
+      {
+        "title": "Choosing the card by what it holds: load-aware routing.",
+        "text": "First, the router looks up which card holds the question's manual. Second, if that card isn't busy (here, writing 8 answers at once), the question goes there and finds its reading: 0.1 s. Third, if it is busy, the question goes to the least-loaded card, which reads the manual once and keeps it. A manual seen for the first time goes to the card holding the fewest, so 12 manuals settle 3 to a card, with room for a fourth, and every card still gets 12 questions an hour. SGLang's load balancer does a version of this: it predicts each copy's hits and picks the best. A ring (s3e08) could place manuals without a table and move few when a card joins, but with only 12 manuals it spreads them unevenly. What can go wrong: one hot manual filling its card, and a card with more manuals than room."
+      },
+      {
+        "title": "Splitting reading from writing: disaggregation.",
+        "text": "First, a reading card reads the prompt. Second, it hands the finished working memory across to a writing card, like a baton passed from hand to hand: 6.55 GB a manual in the maker's units, 0.26 s at 25 GB/s, 5.2 s at 10 Gb/s. Third, the writing card writes and never stops to read. This removes the freezes but not the misses, and over Skeldaig's network it adds 5.2 s to each miss: 9.5 s on average. A gentler fix inside one card is chunked reading (Sarathi-Serve): read a long prompt in slices between writing steps, so answers slow down instead of stopping. What can go wrong: a slow link, and splitting before fixing what causes the readings."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 760,
+      "h": 320,
+      "aria": "The fix, drawn for Saturday night. At the top, the router's table: each manual's card, and a busy card's overflow to the least-loaded card. Below, four cards, each holding 3 manuals with room for a fourth: card 1 holds Quharry 1, Skarvoe 1 and Cnocbreac 1; card 2 the number 2 manuals; card 3 the number 3 manuals; card 4 the number 4 manuals. Each gets 12 questions an hour, a 99% hit rate and first tokens in 0.1 s.",
+      "nodes": [
+        {
+          "id": "router",
+          "label": "Router's table",
+          "sub": "manual: the card holding it",
+          "meta": "busy? the least-loaded card",
+          "x": 380,
+          "y": 70,
+          "w": 300,
+          "h": 72,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "k1",
+          "label": "Card 1",
+          "sub": "manuals no. 1",
+          "meta": "3 held, room 4",
+          "x": 100,
+          "y": 220,
+          "w": 160,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "k2",
+          "label": "Card 2",
+          "sub": "manuals no. 2",
+          "meta": "3 held, room 4",
+          "x": 280,
+          "y": 220,
+          "w": 160,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "k3",
+          "label": "Card 3",
+          "sub": "manuals no. 3",
+          "meta": "3 held, room 4",
+          "x": 460,
+          "y": 220,
+          "w": 160,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "k4",
+          "label": "Card 4",
+          "sub": "manuals no. 4",
+          "meta": "3 held, room 4",
+          "x": 640,
+          "y": 220,
+          "w": 160,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        }
+      ],
+      "edges": [
+        {
+          "from": "router",
+          "to": "k1"
+        },
+        {
+          "from": "router",
+          "to": "k2"
+        },
+        {
+          "from": "router",
+          "to": "k3"
+        },
+        {
+          "from": "router",
+          "to": "k4"
+        }
+      ],
+      "notes": [
+        {
+          "x": 380,
+          "y": 296,
+          "text": "12 questions an hour each: 99% hit rate, first token 0.1 s",
+          "tone": "ok",
+          "anchor": "middle"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for Saturday night. Each manual has a home card, so each card sees only 3 manuals and keeps all 3 with room for a fourth. A question goes to its manual's card unless that card is busy; only then does it go to the least-loaded card and pay for one reading there.",
+    "fix": {
+      "title": "The fix: send each question to the card that holds its manual, unless that card is busy",
+      "text": "Keep a table of which card holds each manual. Send a manual's first question to the card holding the fewest manuals, and every later question on it to that card. If that card is busy, writing 8 answers at once, send the question to the card writing the fewest, which reads the manual once. Here the 12 manuals settle 3 to a card with room for 4, every card still gets 12 questions an hour, and the dashboard goes back to 99% and 0.1 s with no freezes. Keep the manual first in every prompt and the question after it. Before the next change to the cards or the prompt, replay a recorded night through the new set-up and check the hit rate and the first-token time, not only how evenly the questions are shared."
+    },
+    "limits": [
+      "A hot manual can fill one card. If one turbine model has a bad night and most questions are about it, its card gets busy and the overflow reads that manual on other cards; a second kept copy of a hot manual helps.",
+      "The 9 s, 0.1 s, the hit rates and the 48 questions an hour are Skeldaig's own measurements; the sums give about 9.3 s by the card's sheet. A revised manual is a new beginning and must be read again on its card.",
+      "The freeze comes from how Skeldaig's set-up schedules: it reads a whole prompt before its next writing step. Engines that read in slices between writing steps slow answers instead of freezing them, but a 9-second reading still costs 9 seconds of card time."
+    ],
+    "tradeoff": {
+      "head": [
+        "Plan",
+        "Hit rate",
+        "First token, average",
+        "Re-reads an hour",
+        "Freezes"
+      ],
+      "rows": [
+        [
+          "One card per farm (last week)",
+          "99%",
+          "0.1 s",
+          "0",
+          "None"
+        ],
+        [
+          "Taking turns, 4 cards (Friday night)",
+          "33%",
+          "6.0 s",
+          "32",
+          "9 s each"
+        ],
+        [
+          "Taking turns, 5 cards",
+          "33%",
+          "6.0 s",
+          "32",
+          "9 s each"
+        ],
+        [
+          "Manuals cut to 20,000 tokens",
+          "81%",
+          "0.5 s",
+          "8",
+          "2.6 s each, and pages missing"
+        ],
+        [
+          "Separate reading cards, 10 Gb/s",
+          "33%",
+          "9.5 s",
+          "32",
+          "None"
+        ],
+        [
+          "Separate reading cards, 25 GB/s",
+          "33%",
+          "6.2 s",
+          "32",
+          "None, after a new link"
+        ],
+        [
+          "Manual-aware routing (the fix)",
+          "99%",
+          "0.1 s",
+          "0",
+          "None"
+        ]
+      ]
+    },
+    "seniorTake": "A prefix cache is memory on one card, so it pays only when the next request with the same beginning reaches that card. Routing decides that, which makes routing part of caching. Taking turns is fair to load and blind to memory: with many long shared beginnings and room for only a few on each card, it spreads every beginning over every card and turns most requests into misses, and more cards don't help, because each still sees everything. Choose the card by what it holds and use load only as the overflow, so each card's set of beginnings fits its room. Splitting reading from writing is the next tool, not the first: it stops long readings from freezing answers being written, at the price of shipping the working memory across a link, and it needs that link to be fast. Watch the hit rate beside the load, keep the shared beginning first in every prompt, and replay a recorded night before changing either.",
+    "realWorld": [
+      {
+        "title": "DistServe: reading and writing on different cards",
+        "text": "Zhong and colleagues (OSDI 2024) say running both phases together \"not only leads to strong prefill-decoding interferences\", and that \"DistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences.\" They report that \"DistServe can serve 7.4x more requests or 12.6x tighter SLO, compared to state-of-the-art systems\". Their measurements, on their workloads, not Skeldaig's.",
+        "source": 0
+      },
+      {
+        "title": "Splitwise: two phases, separate machines",
+        "text": "Patel and colleagues describe \"a compute-intensive prompt computation, and a memory-intensive token generation\", and write: \"With Splitwise, we propose splitting the two phases of a LLM inference request on to separate machines.\" The working memory then has to travel between machines, which is Skeldaig's hand-over.",
+        "source": 1
+      },
+      {
+        "title": "vLLM: keep the blocks, reuse the beginning",
+        "text": "vLLM's Automatic Prefix Caching page says: \"we cache the kv-cache blocks of processed requests,\" and \"reuse these blocks when a new request comes in with the same prefix as previous requests.\" It adds \"We only cache full blocks.\" When room runs out, the least recently used free block goes: \"This is the LRU block to be evicted.\"",
+        "source": 2
+      },
+      {
+        "title": "SGLang v0.4: a cache-aware load balancer",
+        "text": "The SGLang team's post (4 December 2024) says: \"The load balancer predicts prefix KV cache hit rates on workers and selects those with the highest match rates.\" On their benchmark the cache hit rate went from 20% with SGLang v0.3 to 75% with v0.4,\"up to 1.9x throughput increase and 3.8x hit rate improvement\", and they warn: \"The performance might vary based on the characteristics of the workload.\"",
+        "source": 3
+      },
+      {
+        "title": "Sarathi-Serve: reading in slices",
+        "text": "Agrawal and colleagues' abstract says \"Sarathi-Serve introduces chunked-prefills which splits a prefill request into near equal sized chunks\" and \"creates stall-free schedules that adds new requests in a batch without pausing ongoing decodes\". A way to soften freezes on one card without a hand-over.",
+        "source": 4
+      },
+      {
+        "title": "A100: the sums a second",
+        "text": "NVIDIA's A100 page lists FP16 Tensor Core as \"312 TFLOPS | 624 TFLOPS*\", with \"* With sparsity\". The story uses the dense 312 and assumes the card reaches about half of it while reading.",
+        "source": 5
+      }
+    ],
+    "interview": {
+      "asked": [
+        "What is prefix caching, and how does routing affect it?",
+        "When would you split prefill and decode onto separate GPUs?"
+      ],
+      "answer": "Prefix caching keeps the KV cache, the working memory, of a prompt's beginning after the request ends, and when a new prompt starts with exactly the same tokens, the engine reuses those blocks and only prefills the rest. vLLM labels each block by its tokens and everything before it, so the match must run from the first token: put the shared part, a system prompt or a long document, first and the varying part last. The cache lives on one GPU, so routing decides whether it is used. Round robin sends every prefix to every GPU; with 12 long documents and room for 4 per GPU, each GPU holds the asked document 4 times in 12, and adding GPUs doesn't change that. Cache-aware routing sends each request to the GPU that already holds its prefix, and uses load only to break ties or overflow when that GPU is busy; SGLang's router does this and reported hit rates rising from 20% to 75% on its benchmark. I'd split prefill and decode onto separate GPUs when long prefills keep stalling decoding and inter-token latency matters, as DistServe and Splitwise show, but only with a fast link, because the KV cache has to move: a 50,000-token prompt on Llama 3.1 8B is about 6.55 GB, 0.26 s at 25 GB/s and 5.2 s at 10 Gb/s. And I'd fix cache misses first, since splitting doesn't reduce how often prefills happen; chunked prefill is a cheaper first step on one GPU."
+    }
+  },
+  "terms": [
+    {
+      "term": "Wind farm",
+      "def": "A group of wind turbines run together. Skeldaig runs three: Quharry, Skarvoe and Cnocbreac."
+    },
+    {
+      "term": "Turbine model",
+      "def": "One design of wind turbine. Each Skeldaig farm has 4 models, each with its own maintenance manual: 12 manuals in all."
+    },
+    {
+      "term": "Maintenance manual",
+      "def": "The maker's book of procedures for one turbine model. About 50,000 tokens each; the app sends the whole manual at the start of every prompt, then the question."
+    },
+    {
+      "term": "Nacelle",
+      "def": "The machine room on top of a turbine's tower, holding the gearbox, generator and brakes. Crews climb up to it to fix faults."
+    },
+    {
+      "term": "Yaw brake",
+      "def": "The brake that holds a nacelle facing into the wind. Bergthora's crew was checking one when the answer froze."
+    },
+    {
+      "term": "Night duty technician",
+      "def": "The technician on call through the night, who takes the crews' radio calls and watches the assistant's dashboard. Mikkjal is Skeldaig's."
+    },
+    {
+      "term": "Quadrillion",
+      "def": "A thousand trillion. Reading one manual takes the card about 1.46 quadrillion sums."
+    },
+    {
+      "term": "Maker's units",
+      "def": "Sizes counted with 1 GB = 1,000 MB, as the makers' speed figures are. The card's meter counts 1 GB = 1,024 MB, so a manual's 6.55 GB in the maker's units is 6.1 GB on the meter."
+    },
+    {
+      "term": "Kept reading",
+      "def": "The working memory a card keeps after reading a manual, so the next question on it needn't be read again: 6.1 GB on the meter for 50,000 tokens."
+    },
+    {
+      "term": "Room",
+      "def": "What's left of a card's memory for kept readings after the weights and the answers being written: 24.4 GB, 4 whole manuals."
+    },
+    {
+      "term": "Least recently used",
+      "def": "The rule for what to drop when room runs out: the reading used longest ago goes first. LRU for short."
+    },
+    {
+      "term": "Hit",
+      "def": "A question whose manual's reading the card already holds. It starts writing in 0.1 s."
+    },
+    {
+      "term": "Hit rate (Skeldaig's dashboard)",
+      "def": "The share of prompt tokens already read when a question arrives. A hit reuses 50,000 of about 50,500 tokens, so all hits show 99%; taking turns showed 33%."
+    },
+    {
+      "term": "Re-read",
+      "def": "A miss: the card doesn't hold the asked manual, so it reads the whole manual again, 9 s, keeps it, and drops the reading used longest ago."
+    },
+    {
+      "term": "Prefix caching",
+      "def": "Keeping the working memory of a prompt's shared beginning, here a manual, and reusing it for the next prompt that begins the same way, token for token."
+    },
+    {
+      "term": "Block",
+      "def": "A fixed-size piece of working memory holding a run of tokens, like a page in a notebook (a10e03). vLLM keeps and reuses whole blocks."
+    },
+    {
+      "term": "Balancer",
+      "def": "A switch in front of the cards that decides which card gets each question. Skeldaig's took turns from 16:00 on Friday 9 October."
+    },
+    {
+      "term": "Taking turns",
+      "def": "Sending each question to the next card in line, whatever it asks about. Its name is round robin (s2e02)."
+    },
+    {
+      "term": "Pooling",
+      "def": "Putting several cards behind one balancer so any card can answer any question. IT pooled the three farm cards and the spare at 16:00."
+    },
+    {
+      "term": "Spare",
+      "def": "Card 4, kept idle in case a farm card failed, until the pooling."
+    },
+    {
+      "term": "Change note",
+      "def": "IT's short written record of a change: what, when and why. Friday's said \"to share the load\"."
+    },
+    {
+      "term": "Busy",
+      "def": "Skeldaig's dashboard word for a card writing 8 answers at once. No card was busy on the night; the most on any card was 2."
+    },
+    {
+      "term": "Least-loaded card",
+      "def": "The card writing the fewest answers right now. A busy card's overflow goes there."
+    },
+    {
+      "term": "Overflow",
+      "def": "A question sent away from its manual's card because that card is busy. It costs one reading on the card that takes it."
+    },
+    {
+      "term": "Router",
+      "def": "The part of the balancer that picks a card for each question. In the fix it keeps a table of which card holds each manual."
+    },
+    {
+      "term": "Load-aware routing",
+      "def": "Choosing the card by what it already holds and how busy it is, not by turns. Sending each question to its manual's card, with overflow to the least-loaded card, is one kind."
+    },
+    {
+      "term": "Manual-aware routing",
+      "def": "Sending each question to the card that already holds its manual's reading, unless that card is busy. The fix here, and one kind of load-aware routing."
+    },
+    {
+      "term": "Freeze",
+      "def": "A pause in writing while the same card reads a new prompt. Skeldaig's set-up reads a whole prompt before its next writing step, so a 9 s reading stops every answer on that card for 9 s."
+    },
+    {
+      "term": "Interference",
+      "def": "Reading and writing slowing each other because they share a card. DistServe calls it prefill-decoding interference."
+    },
+    {
+      "term": "Reading card and writing card",
+      "def": "In a split set-up, a card that only reads prompts, and a card that only writes answers from the readings it is handed."
+    },
+    {
+      "term": "Hand-over",
+      "def": "Sending a finished reading's working memory from a reading card to a writing card, like a baton passed from hand to hand: 6.55 GB a manual in the maker's units."
+    },
+    {
+      "term": "Disaggregation",
+      "def": "Running reading (prefill) and writing (decode) on separate cards, so a long reading never stalls answers being written. The working memory is handed across."
+    },
+    {
+      "term": "Gb/s",
+      "def": "Gigabits a second, a network's speed. Eight bits make a byte, so Skeldaig's 10 Gb/s network moves 1.25 GB a second."
+    },
+    {
+      "term": "Network",
+      "def": "The cables and switches joining Skeldaig's four servers, one card in each, in one room: 10 Gb/s."
+    },
+    {
+      "term": "Link",
+      "def": "The connection a hand-over crosses between two cards. At 25 GB/s a manual's reading takes 0.26 s; over the 10 Gb/s network, 5.2 s."
+    },
+    {
+      "term": "Dashboard",
+      "def": "The assistant's screen of figures: cards answering, questions an hour, hit rate and average first token, for the last hour and last week."
+    },
+    {
+      "term": "Chunked reading",
+      "def": "Reading a long prompt in slices between writing steps, so answers slow down instead of stopping. Sarathi-Serve calls it chunked-prefills."
+    },
+    {
+      "term": "SLO",
+      "def": "Service level objective: a time target, such as a first token within 1 s for most requests. DistServe measures how tight a target it can meet."
+    },
+    {
+      "term": "Goodput",
+      "def": "In DistServe's paper, the requests served a second that meet their time targets."
+    },
+    {
+      "term": "SGLang",
+      "def": "An open-source serving engine. Its v0.4 load balancer sends each request to the copy most likely to hold its prompt's beginning."
+    },
+    {
+      "term": "Worker",
+      "def": "SGLang's word for one running copy of the model on its card or cards."
+    },
+    {
+      "term": "KV cache",
+      "def": "The working memory the model keeps for each token it has read: the key and value numbers of every layer (a10e03). vLLM's page writes it kv-cache."
+    },
+    {
+      "term": "OSDI",
+      "def": "The USENIX Symposium on Operating Systems Design and Implementation, one of the main yearly systems research conferences."
+    },
+    {
+      "term": "Load test",
+      "def": "Running a recorded or made-up night of questions through a set-up before it goes live, to measure its waits, hit rate and freezes."
+    },
+    {
+      "term": "ISO/IEC 27001:2022",
+      "def": "The international standard for information security management. Its Annex A control 8.6 covers capacity management."
+    }
+  ],
+  "atWork": "Look for model servers pooled behind a load balancer that takes turns, where every request starts with one of many long shared beginnings: documents, manuals, long system prompts. It is a common pattern: pooling looks like more capacity, the load spreads evenly, and the cache hit rate quietly falls because every copy now sees every beginning. Ask four things. How many distinct long beginnings are there, and how many fit in one card's cache? Does the router know which card holds which beginning, or does it take turns? Does the dashboard show the hit rate and the first-token time beside the load? And does a long reading freeze answers being written on the same card? A later build project will ask you to measure this. Standards-readiness note, stated conditionally and not legal advice: if your organisation is certified to ISO/IEC 27001:2022 or working toward it, an auditor checking Annex A 8.6 (capacity management, as summarised by a third-party guide) would look for a load test of the pooled set-up before the switch, with its hit rate and first-token times recorded. If you report against SOC 2, an auditor checking criterion A1.1 (processing capacity, as quoted by a third-party guide) would look for the same evidence and for monitoring of it afterwards. How these apply depends on your scope and auditor. This is not legal advice.",
+  "board": {
+    "cards": [
+      {
+        "id": "prefix-caching",
+        "title": "Prefix caching"
+      },
+      {
+        "id": "load-aware-routing",
+        "title": "Load-aware routing"
+      },
+      {
+        "id": "disaggregated-prefill",
+        "title": "Disaggregated prefill"
+      }
+    ],
+    "strings": [
+      {
+        "from": "prefix-caching",
+        "to": "kv-cache",
+        "label": "keeps the reading"
+      },
+      {
+        "from": "prefix-caching",
+        "to": "prompt-caching",
+        "label": "ours, not theirs"
+      },
+      {
+        "from": "load-aware-routing",
+        "to": "prefix-caching",
+        "label": "sends to the hit"
+      },
+      {
+        "from": "load-aware-routing",
+        "to": "load-balancers",
+        "label": "not by turns"
+      },
+      {
+        "from": "load-aware-routing",
+        "to": "consistent-hashing",
+        "label": "a home per manual"
+      },
+      {
+        "from": "disaggregated-prefill",
+        "to": "prefill-vs-decode",
+        "label": "split the phases"
+      },
+      {
+        "from": "disaggregated-prefill",
+        "to": "time-to-first-token",
+        "label": "adds a hand-over"
+      },
+      {
+        "from": "disaggregated-prefill",
+        "to": "static-vs-continuous-batching",
+        "label": "no frozen steps"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "a10e09-r1",
+      "kind": "free",
+      "prompt": "Your team serves a model on 6 GPUs behind a round-robin load balancer. Every request starts with one of 30 long policy documents, about 40,000 tokens each, followed by the user's question, and each GPU's prefix cache has room for 5 documents. Since the GPUs were pooled, time to first token has gone from under a second to several seconds, and the cache hit rate reads about 17%. What is happening, and what do you change?",
+      "keyIdeas": [
+        {
+          "idea": "Round robin sends every document to every GPU; each keeps only 5 of 30, so most requests miss and read their document again",
+          "match": [
+            "every gpu sees",
+            "each gpu sees",
+            "5 of 30",
+            "1 in 6",
+            "most requests miss",
+            "read again",
+            "reads again",
+            "spreads every"
+          ]
+        },
+        {
+          "idea": "Route each request to the GPU that already holds its document, with the least-loaded GPU as the overflow when that one is busy",
+          "match": [
+            "already holds",
+            "cache-aware",
+            "prefix-aware",
+            "route by document",
+            "same gpu",
+            "least-loaded",
+            "least loaded"
+          ]
+        },
+        {
+          "idea": "30 documents over 6 GPUs is 5 each, which fits; adding GPUs to round robin would not help, since each would still see all 30",
+          "match": [
+            "5 each",
+            "five each",
+            "adding gpus",
+            "more gpus won't",
+            "still see all",
+            "fits the cache"
+          ]
+        }
+      ],
+      "model": "Round robin sends every document to every GPU, so each GPU sees all 30 but keeps only 5: the chance it holds the asked document is 1 in 6, about 17%, so most requests miss and read 40,000 tokens again before the first word. Adding GPUs to round robin won't help, because each would still see all 30. Use cache-aware routing: send each request to the GPU that already holds its document, and send it to the least-loaded GPU only when that one is busy. 30 documents over 6 GPUs is 5 each, which fits the cache, so nearly every request hits and time to first token falls back under a second."
+    },
+    {
+      "id": "a10e09-r2",
+      "kind": "mcq",
+      "prompt": "Four cards take turns. Each sees 12 manuals and keeps 4. A hit starts writing in 0.1 s; a miss reads the manual for 9 s first. About what is the average time to the first token?",
+      "options": [
+        "0.1 s",
+        "3.1 s",
+        "6.0 s",
+        "9.0 s"
+      ],
+      "answer": 2,
+      "why": "The card holds the manual 4 times in 12, a third: (2/3 × 9 s) + (1/3 × 0.1 s) = 6.03 s. 3.1 s swaps the shares, as if two in three hit; 0.1 s is one card per farm; 9.0 s is every question missing."
+    },
+    {
+      "id": "a10e09-r3",
+      "kind": "free",
+      "prompt": "In an interview you're asked: what is prefix caching, and how does routing across GPUs affect it?",
+      "keyIdeas": [
+        {
+          "idea": "Keep the working memory (KV cache) of a shared prompt beginning and reuse it, so only the new part is read",
+          "match": [
+            "shared beginning",
+            "shared prefix",
+            "same prefix",
+            "reuse the kv",
+            "reuses the kv",
+            "only the new",
+            "only the rest"
+          ]
+        },
+        {
+          "idea": "It matches only from the first token, and only on the GPU that holds it: put the shared part first",
+          "match": [
+            "from the first token",
+            "token for token",
+            "exactly the same tokens",
+            "shared part first",
+            "on one gpu",
+            "lives on one"
+          ]
+        },
+        {
+          "idea": "Round robin spreads every prefix over every GPU and kills the hit rate; route by prefix with load as the overflow",
+          "match": [
+            "round robin",
+            "round-robin",
+            "cache-aware",
+            "prefix-aware",
+            "least-loaded",
+            "least loaded",
+            "overflow"
+          ]
+        }
+      ],
+      "model": "Prefix caching keeps the KV cache, the working memory, of a prompt's shared beginning, and when a new prompt starts with exactly the same tokens the engine reuses it and reads only the rest. The match runs token for token from the first token, so put the shared part first: the document or system prompt, then the question. The cache lives on one GPU, so routing decides whether it is used. Round robin spreads every prefix over every GPU: with 12 long documents and room for 4 a GPU, each holds the asked one 4 times in 12, and more GPUs don't change that. Cache-aware routing sends each request to the GPU that holds its prefix, and uses load only as the overflow: a busy GPU's requests go to the least-loaded one."
+    },
+    {
+      "id": "a10e09-r4",
+      "kind": "mcq",
+      "prompt": "A reading card hands a finished reading of 6.55 GB (in the maker's units) to a writing card over a 10 Gb/s network. About how long does the hand-over take?",
+      "options": [
+        "0.26 s",
+        "0.66 s",
+        "5.2 s",
+        "52 s"
+      ],
+      "answer": 2,
+      "why": "10 Gb/s is 1.25 GB a second (8 bits to a byte): 6.55 ÷ 1.25 = 5.2 s. 0.26 s is a 25 GB/s link; 0.66 s treats 10 Gb/s as 10 GB a second; 52 s counts the 52.4 gigabits at 1 Gb/s."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 2 months later. Since Saturday 10 October the balancer has sent each question to the card holding its manual: 99%, 0.1 s, no freezes. On Tuesday 1 December the app team added a line at the very top of every prompt, before the manual: the crew's name, the turbine number and the time, so each answer could greet its crew. At 00:40 on Wednesday 2 December an answer froze for 9 seconds on a Quharry nacelle, and the crew radioed me. The dashboard read a 0% hit rate and a 9.0 s average first token: every one of the 48 questions an hour was reading its manual from scratch. The routing hadn't changed; each manual's questions still reached its card.",
+    "prompt": "Reply to OP. Why is the hit rate 0% when every question still reaches the card that read its manual? What would you change?",
+    "keyIdeas": [
+      {
+        "idea": "Reuse needs the same beginning, token for token from the first token; a line that changes on every prompt, placed first, makes every beginning new",
+        "match": [
+          "token for token",
+          "from the first token",
+          "different beginning",
+          "beginning changed",
+          "changes every",
+          "starts differently",
+          "no longer starts"
+        ]
+      },
+      {
+        "idea": "Move the changing line after the manual, just before the question, so the manual is the shared beginning again",
+        "match": [
+          "after the manual",
+          "move the line",
+          "before the question",
+          "manual first",
+          "move it after",
+          "put the manual"
+        ]
+      },
+      {
+        "idea": "Then hits return and first tokens fall back; treat any change to the start of a prompt as a change to the cache, and check the hit rate",
+        "match": [
+          "back to 99",
+          "hit rate back",
+          "check the hit rate",
+          "watch the hit rate",
+          "start of a prompt",
+          "start of the prompt"
+        ]
+      }
+    ],
+    "model": "Reuse works only on a shared beginning, token for token from the first token. The new line changes on every prompt and sits first, so no prompt starts the way an earlier one did: the card can't use its kept reading, reads all 50,000 tokens again for 9 s, and freezes the answers it is writing. The routing is fine; the beginning changed. Move the line after the manual, just before the question, so each manual is again the shared beginning: the hit rate goes back to 99% and first tokens to 0.1 s. Treat any change to the start of a prompt as a change to the cache, and check the hit rate on the dashboard before and after."
+  },
+  "next": "Next, The Cost of a Token: a tyre factory's night shift, and what a model's answers really cost in plain words: the cost of a million tokens, how busy the cards really are, adding and removing cards with the load, and renting a model by the token against running your own.",
+  "sources": [
+    {
+      "title": "Yinmin Zhong, Shengyu Liu, Junda Chen, Jianbo Hu, Yibo Zhu, Xuanzhe Liu, Xin Jin and Hao Zhang, DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving, OSDI 2024 (arXiv:2401.09670), abstract page, read 16 October 2026: this strategy not only leads to strong prefill-decoding interferences; DistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences.; DistServe can serve 7.4x more requests or 12.6x tighter SLO, compared to state-of-the-art systems",
+      "url": "https://arxiv.org/abs/2401.09670"
+    },
+    {
+      "title": "Pratyush Patel, Esha Choukse, Chaojie Zhang, Aashaka Shah, Íñigo Goiri, Saeed Maleki and Ricardo Bianchini, Splitwise: Efficient generative LLM inference using phase splitting (arXiv:2311.18677), abstract page, read 16 October 2026: a compute-intensive prompt computation, and a memory-intensive token generation; With Splitwise, we propose splitting the two phases of a LLM inference request on to separate machines.",
+      "url": "https://arxiv.org/abs/2311.18677"
+    },
+    {
+      "title": "vLLM documentation, Automatic Prefix Caching (design), read 16 October 2026: we cache the kv-cache blocks of processed requests,; reuse these blocks when a new request comes in with the same prefix as previous requests.; We only cache full blocks.; This is the LRU block to be evicted.",
+      "url": "https://docs.vllm.ai/en/latest/design/prefix_caching.html"
+    },
+    {
+      "title": "The SGLang Team, SGLang v0.4: Zero-Overhead Batch Scheduler, Cache-Aware Load Balancer, Faster Structured Outputs, LMSYS blog, 4 December 2024, read 16 October 2026: The load balancer predicts prefix KV cache hit rates on workers and selects those with the highest match rates.; up to 1.9x throughput increase and 3.8x hit rate improvement; its benchmark table gives a cache hit rate of 20% for SGLang v0.3 and 75% for SGLang v0.4; The performance might vary based on the characteristics of the workload.",
+      "url": "https://lmsys.org/blog/2024-12-04-sglang-v0-4/"
+    },
+    {
+      "title": "Amey Agrawal, Nitin Kedia, Ashish Panwar, Jayashree Mohan, Nipun Kwatra, Bhargav S. Gulavani, Alexey Tumanov and Ramachandran Ramjee, Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve (arXiv:2403.02310), abstract page, read 16 October 2026: Sarathi-Serve introduces chunked-prefills which splits a prefill request into near equal sized chunks; creates stall-free schedules that adds new requests in a batch without pausing ongoing decodes",
+      "url": "https://arxiv.org/abs/2403.02310"
+    },
+    {
+      "title": "NVIDIA, NVIDIA A100 Tensor Core GPU, product page and specifications, read 16 October 2026: FP16 Tensor Core 312 TFLOPS | 624 TFLOPS*; * With sparsity; 80GB HBM2e",
+      "url": "https://www.nvidia.com/en-us/data-center/a100/"
+    },
+    {
+      "title": "ISMS.online, ISO 27001:2022 Annex A 8.6, Capacity Management, a third-party summary page, not the standard's own wording, read 16 October 2026: ensures that organisations proactively manage IT resources to meet current and future operational demands,; Organisations should execute regular stress tests to ascertain their ability to satisfy their overall business needs.",
+      "url": "https://www.isms.online/iso-27001/annex-a/8-6-capacity-management-2022/"
+    },
+    {
+      "title": "Linford & Co, Availability Trust Services Criteria in a SOC 2 Audit, a third-party page quoting the AICPA criterion, read 16 October 2026: The entity maintains, monitors, and evaluates current processing capacity and use of system components",
+      "url": "https://linfordco.com/blog/availability-soc-2-trust-service-principle/"
+    }
+  ]
+}
