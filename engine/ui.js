@@ -1,9 +1,13 @@
-/* engine/ui-v1.2.4.js
+/* engine/ui-v1.2.5.js
    Dead Letter UI (DL.ui): the shell, router wiring and every view. Published as engine/ui.js.
    Contract: docs/dead-letter-engine-contract-v1.1.0.md, sections 6 and 9.9. Needs engine/core-v1.2.0.js (the merged
    catalog, state v2, DL.builds, DL.credits, decision cards; DL.sync, DL.prompts and the #interview/<id> route from
    v1.1). Styles: index-v1.1.0.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
    CHANGELOG
+   v1.2.5 (2026-10-16) the 3 AM Interview room and the text-only interview name the interview's own course and subject
+        (LATENT finales no longer say Dead Letter or system design): fillRoom fills {{COURSE}} and {{SUBJECT}} from the
+        course (courses-v1.0.2.json `subject`; fallback by id: dl system design, lt AI engineering), and
+        DL.prompts.interview gets course and subject. Needs engine/core-v1.2.2.js and content/interview-room-v1.0.1.html.
    v1.2.4 (2026-10-14) "How it works" (#guide), in plain words, for readers who have never studied computers: what
         the site is, each part of a case in order, what cold cases are and when they come back (1, 3, 7, 21, 60
         and 120 days, moved by your grade), why you answer from memory, how to remember more, the rest of the site,
@@ -2819,16 +2823,25 @@
     p.then(function () { if (S.roomP === p) S.roomP = null; }, function () { if (S.roomP === p) S.roomP = null; });
     return p;
   }
+  /* The interview's course name and subject for the room and the text-only prompt (v1.2.5). `c` is a course
+     info object (courses-v1.0.2.json) or null. */
+  function courseTitleOf(c) { return c && typeof c.title === "string" && c.title ? c.title : "Dead Letter"; }
+  function subjectOf(c) {
+    if (c && typeof c.subject === "string" && c.subject) return c.subject;
+    return c && c.id === "lt" ? "AI engineering" : "system design";
+  }
   /* One pass over the template, so a filled value is never filled again. Title and level land in HTML text,
      so they are escaped; the id lands in JS strings too and is kept to [A-Za-z0-9_-]. */
-  function fillRoom(html, iv, level) {
+  function fillRoom(html, iv, level, course) {
     var values = {
       INTERVIEW_ID: String(iv.id || "").replace(/[^A-Za-z0-9_-]/g, ""),
       INTERVIEW_TITLE: escapeHtml(iv.title || iv.id || ""),
       LEVEL: escapeHtml(level || ""),
-      SEASON: escapeHtml(typeof iv.season === "number" ? String(iv.season) : "")
+      SEASON: escapeHtml(typeof iv.season === "number" ? String(iv.season) : ""),
+      COURSE: escapeHtml(courseTitleOf(course)),
+      SUBJECT: escapeHtml(subjectOf(course))
     };
-    return String(html).replace(/\{\{(INTERVIEW_ID|INTERVIEW_TITLE|LEVEL|SEASON)\}\}/g, function (m, k) { return values[k]; });
+    return String(html).replace(/\{\{(INTERVIEW_ID|INTERVIEW_TITLE|LEVEL|SEASON|COURSE|SUBJECT)\}\}/g, function (m, k) { return values[k]; });
   }
   function attemptsOf(id) {
     var rec = interviewRec(id);
@@ -2878,6 +2891,7 @@
     }
     var id = iv.id;
     var course = courseOf(iv);
+    var cinfo = courseInfo(course) || { id: course };
     setCourse(ctx, course);
     var season = typeof iv.season === "number" ? iv.season : null;
     var se = season ? seasonMeta(season, course) : null;
@@ -2908,7 +2922,7 @@
     var textBtn = h("button", { class: "btn btn-copy", type: "button", text: "Copy a text-only interview" });
     var copyStatus = h("p", { class: "status-line", role: "status", "aria-live": "polite" });
     var fallback = copyField("Interview text to copy");
-    function roomText(html) { return ROOM_ASK + fillRoom(html, iv, level) + "\n```"; }
+    function roomText(html) { return ROOM_ASK + fillRoom(html, iv, level, cinfo) + "\n```"; }
     roomBtn.addEventListener("click", function () {
       var o = { field: fallback, status: copyStatus, btn: roomBtn, hideField: true, ok: ROOM_COPIED };
       if (S.room) { copyText(roomText(S.room), o); return; }   // cached: the copy stays inside the click
@@ -2931,7 +2945,7 @@
         copyStatus.textContent = "The interview text isn't available. Reload the page and try again.";
         return;
       }
-      var text = DL.prompts.interview({ id: id, title: iv.title || id, season: season, rubric: iv.rubric });
+      var text = DL.prompts.interview({ id: id, title: iv.title || id, season: season, rubric: iv.rubric, course: courseTitleOf(cinfo), subject: subjectOf(cinfo) });
       copyText(text, { field: fallback, status: copyStatus, btn: textBtn, hideField: true,
         ok: "Copied. Paste it into claude.ai or the Claude app (any account) to start the interview." });
     });

@@ -1,5 +1,6 @@
-/* engine/core-v1.2.0.js
+/* engine/core-v1.2.2.js
    CHANGELOG
+   v1.2.2 (2026-10-16) prompts.interview takes optional course and subject (defaults Dead Letter and system design) so LATENT finales name their own course.
    v1.2.1 (2026-10-07) default pace is plan B for learning both courses in parallel: 45 minutes on weekdays, 80 on weekend days.
    v1.2.0 (2026-10-07) engine contract v1.1.0 section 9 (9.1 to 9.8): two
      courses (Dead Letter and LATENT) on one forum, plus Build Nights.
@@ -2348,12 +2349,14 @@
   function interviewPrompt(input) {
     var inp = input || {};
     var id = cleanId(inp.id) || "interview";
-    var title = asText(inp.title).trim() || "a system design problem of your choice";
+    var course = asText(inp.course).trim() || "Dead Letter";
+    var subject = asText(inp.subject).trim() || "system design";
+    var title = asText(inp.title).trim() || "a " + subject + " problem of your choice";
     var season = typeof inp.season === "number" && isFinite(inp.season) ? inp.season : null;
     var areas = rubricAreas(inp.rubric);
     var max = areas.length * 4;
     return [
-      "Let's run a mock system design interview. It is the 3 AM Interview from Dead Letter, a course I am working through.",
+      "Let's run a mock " + subject + " interview. It is the 3 AM Interview from " + course + ", a course I am working through.",
       "",
       "The problem: " + title + (season ? " (the Season " + season + " finale)." : "."),
       "",
