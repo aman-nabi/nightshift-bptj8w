@@ -1,0 +1,850 @@
+{
+ "_changelog": [
+  "v1.0.0 (2026-10-16) first version. Concepts are the catalog's w05 slugs (seat-locking, concurrency, idempotency); none was missing. Title and setting from the Workshop bible v1.0.1 (the catalog's lld title is Movie ticket booking and its lld entry has no setting). app/src/content/s5/w04-v1.0.0.json did not exist, so the bible row was followed. Of the bible's three wrong ideas, sticky sessions and checking twice are the bad options; shortening the hold to 1 minute is left out. s5e01 is recalled by id in the explanation but not listed as a prerequisite, because it comes later than Season 4; race condition, check-then-act and conditional write are defined here instead. No renames were needed: every name passed the name lookup first time. Sources fetched on 2026-10-16: PostgreSQL UPDATE, transaction isolation and explicit locking pages, Stripe's idempotent requests page and the AICPA trust services criteria landing page (its PDF needs an account, so no criterion text is quoted)."
+ ],
+ "id": "w05",
+ "season": 4,
+ "n": 5,
+ "title": "Two Tickets for Seat F7",
+ "setting": "an open-air summer cinema in a park",
+ "core": true,
+ "minutes": 20,
+ "concepts": [
+  "seat-locking",
+  "concurrency",
+  "idempotency"
+ ],
+ "prerequisites": [
+  "s4e07",
+  "s3e02",
+  "s2e03",
+  "s2e02",
+  "s2e01",
+  "s1e09",
+  "s1e04",
+  "s1e02"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/workshop_nights_odgerel",
+  "flair": "Part 1",
+  "age": "7h",
+  "votes": 3046,
+  "title": "I finish my late great-aunt's machines at night. The open-air cinema's booking program I finished sold deckchair F7 twice, 18 seconds apart. Both customers paid. The usher's torch found them at the same chair.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "My great-aunt, Winifrith Torvaine, built coin-operated machines and clockwork figures for sixty years. In her last ten she also wrote programs, the lists of steps a computer follows, for local businesses. She died in the spring and left me her workshop. I'm Odgerel. I program on night shifts and finish her machines in the evenings. Each one still has its paper work order tied on with string."
+   },
+   {
+    "t": "note",
+    "title": "WORK ORDER 23. Summer cinema, Thistledown Park.",
+    "items": [
+     "Book a deckchair online for each outdoor screening: 200 deckchairs on the lawn, rows A to J.",
+     "Tap a seat and it is held for you for 5 minutes while you pay.",
+     "Nobody else may take a held seat."
+    ],
+    "sig": "Mereana, organiser"
+   },
+   {
+    "t": "p",
+    "text": "Her booking program runs as a web server: a program on a computer that answers people's phones and web browsers. Each page or tap it answers is called a request."
+   },
+   {
+    "t": "p",
+    "text": "Booking takes three steps. First, you open the seat map. Second, you tap a free seat, and the server holds it for you for 5 minutes. Third, you press Pay. When the card company says yes, the server writes your ticket into the database, a store of records on its own computer, and emails it to you. Each visit has a checkout number."
+   },
+   {
+    "t": "p",
+    "text": "The database keeps one record, called a row, per ticket. Winifrith kept the holds somewhere else: in the server's memory, its own fast scratch space, which no other computer can see. Here is her program written out. The first line is what the server keeps; under each job are its steps, in order:"
+   },
+   {
+    "t": "log",
+    "text": "Server.holds: seat -> checkout, until\nhold(seat, checkout):\n  if the seat has a ticket: refuse\n  if holds[seat] is still running: refuse\n  holds[seat] = checkout, until now + 5 min\npay(checkout, seat):\n  ask the card company\n  on yes: add a ticket row (seat, checkout)"
+   },
+   {
+    "t": "p",
+    "text": "On Saturday 25 July the 21:30 film was close to selling out. At 20:00 Mereana switched on a second server, as the company that rents us the computers advised. A third program, the load balancer, now stands at the front door and hands each request to the two servers in turn."
+   },
+   {
+    "t": "p",
+    "text": "Here are both servers' lines for F7: time, server, checkout number, and what happened:"
+   },
+   {
+    "t": "log",
+    "text": "20:58:41  server 1  3318  hold F7: ok\n21:00:07  server 2  3320  seat map: F7 free\n21:00:12  server 2  3320  hold F7: ok\n21:02:51  server 1  3318  paid: ticket F7\n21:03:09  server 2  3320  paid: ticket F7"
+   },
+   {
+    "t": "p",
+    "text": "Checkout 3318 was Ms Gatacre; 3320 was Mr Vowles. At 21:34, with the film running, Fulke, our usher, found them both at deckchair F7 and shone a torch on two phones showing the same ticket. Fulke carried out a spare chair for Mr Vowles and radioed Mereana, who refunded him and rang me at 21:40."
+   },
+   {
+    "t": "beat",
+    "text": "Two servers. Two holds. One deckchair."
+   },
+   {
+    "t": "p",
+    "text": "Beside the program, Winifrith's notebook has one line in pencil: *Never keep a promise in a pocket.* Mereana has three more busy nights next week, on both servers. What should I change?"
+   },
+   {
+    "t": "evidence",
+    "label": "seat_F7_saturday_redrawn.png",
+    "diagram": {
+     "type": "timeline",
+     "aria": "Saturday 25 July from 20:58:00 to 21:06:00. Server 1 holds F7 for checkout 3318 from 20:58:41 to 21:03:41. Server 2 holds nothing until 21:00:12, then holds F7 for checkout 3320 until 21:05:12. F7 has no ticket until 21:02:51, one ticket until 21:03:09, then two. Checkout 3320's seat map at 21:00:07 shows F7 free.",
+     "start": "20:58:00",
+     "seconds": 480,
+     "ticksEvery": 60,
+     "rows": [
+      {
+       "label": "server 1: F7 held",
+       "segments": [
+        [
+         41,
+         341,
+         "warn"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         41,
+         "free"
+        ]
+       ]
+      },
+      {
+       "label": "server 2: F7 held",
+       "segments": [
+        [
+         132,
+         432,
+         "warn"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         132,
+         "no hold here"
+        ]
+       ]
+      },
+      {
+       "label": "tickets for F7",
+       "segments": [
+        [
+         291,
+         309,
+         "ok"
+        ],
+        [
+         309,
+         480,
+         "bad"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         291,
+         "none"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 127,
+       "label": "3320 sees F7 free"
+      },
+      {
+       "t": 309,
+       "label": "second ticket"
+      }
+     ]
+    },
+    "caption": "I redrew Saturday from both servers' lines. Server 1 held F7 for checkout 3318 from 20:58:41 until 21:03:41. Server 2 never saw that hold: at 21:00:07 its seat map showed F7 free, and at 21:00:12 it held F7 for checkout 3320 until 21:05:12. The database had no ticket for F7 until 21:02:51, then two, 18 seconds apart."
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 141,
+   "age": "6h",
+   "text": "Take the moment 21:00:12. Server 2 is asked to hold F7 for checkout 3320. Write down every place server 2 looks before it says yes, and what each place held at that second. Then do the same for server 1 at 20:58:41. What a program remembers between one request and the next is called its state. So: where did this program keep its promise to Ms Gatacre, and which computers could read it? Last, ask why nothing like this happened in June.",
+   "replies": [
+    {
+     "author": "u/workshop_nights_odgerel",
+     "op": true,
+     "points": 55,
+     "age": "5h",
+     "text": "In June there was one server, so every hold sat in one memory. Mereana adds an older oddity. Twice this summer a customer lost signal in the park after pressing Pay, and the page sent Pay again. Each payment carries the checkout number as an idempotency key (s4e07), a name for the job. The card company saves its first answer under that name and gives it back to any repeat, so it charged once. But both times our server wrote a second ticket for the same seat, and Mereana deleted one by hand."
+    }
+   ]
+  },
+  {
+   "author": "u/same_server_mosese",
+   "points": 88,
+   "age": "5h",
+   "text": "Textbook. Memory on a server only works if the customer keeps coming back to that server, and your load balancer sends each request wherever is next. Most load balancers can do sticky sessions (s2e03): it notes which server a customer's first request went to, then sends all their later ones there. Switch it on and each customer's hold is always where their payment lands. Moving holds into the database the week of three busy nights is how you get a slow site.",
+   "replies": [
+    {
+     "author": "u/workshop_nights_odgerel",
+     "op": true,
+     "points": 34,
+     "age": "4h",
+     "text": "Mereana would rather keep it simple: one customer at a time books each screening, from seat map to ticket, while the rest wait in a line on the page, like a queue at a box office. She says nobody minds a short wait for a deckchair."
+    }
+   ]
+  },
+  {
+   "author": "u/look_again_tokala",
+   "points": 57,
+   "age": "4h",
+   "text": "Your hold step looks for a ticket in the database, and then nothing looks again. Do the same check at Pay: if the seat has a ticket by then, stop before charging the card. One more line, no new design, and 3320's ticket came a full 18 seconds after 3318's.",
+   "replies": [
+    {
+     "author": "u/workshop_nights_odgerel",
+     "op": true,
+     "points": 21,
+     "age": "3h",
+     "text": "The card company takes about half a minute per payment, while the bank checks the customer's phone. Ms Gatacre pressed Pay at 21:02:20; Mr Vowles pressed it at 21:02:40."
+    }
+   ]
+  }
+ ],
+ "reply": {
+  "prompt": "Three busy nights are coming, on both servers. What should Odgerel change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Turn on sticky sessions, so every request from one customer goes to the same server.",
+    "tone": "bad",
+    "verdict": "One customer, still two servers",
+    "part2": "I asked the load balancer for sticky sessions. On the bench, Saturday's rush comes out the same. Ms Gatacre's first request went to server 1 and Mr Vowles's to server 2, so each stayed where it started, each server held F7 for its own customer, and F7 sold twice, at 21:02:51 and 21:03:09. Sticky sessions keep one customer on one server; they never let a server see the other's holds. On Friday 31 July, the second busy night, Fulke's torch found two people with the same deckchair again, in row D. Fulke carried out the spare chair, Mereana refunded one of them, and she asked me to stop guessing.",
+    "senior": "Sticky sessions solve a different problem: one user's own data scattered across servers. The double sale is between two users, and each server is still deciding alone about a seat both can sell. Pinning a customer to a server only decides which wrong server they get. Anything two customers compete for must be decided in one place both servers ask, by a write that only succeeds if the seat is still free."
+   },
+   {
+    "text": "Let only one customer at a time book each screening, start to finish; the rest wait in line.",
+    "tone": "warn",
+    "verdict": "Trade-off: right, but a line",
+    "part2": "I kept a line in the database, so both servers share it: one checkout at a time per screening, from seat map to ticket. On the bench, Saturday's rush sells 4 tickets for 4 seats and nobody twice. But each turn lasts as long as that customer takes to choose and pay. Checkout 3319 waits 3 min 49 s, Mr Vowles 4 min 34 s and gets J19, checkout 3321 waits 6 min 28 s, and checkout 3322 waits 5 min 46 s only to learn the film is sold out. On Thursday 30 July nobody shared a deckchair, but Mereana had emails from customers who watched the line page for minutes. And on the bench, a Pay sent twice still writes a second ticket for the same seat.",
+    "senior": "Making bookings take turns removes the race by removing the overlap, so it is correct. But it locks the whole screening for the length of the slowest step, a person choosing and a bank checking a phone, when only one seat is ever in dispute. Waits grow with the rush, and the rush is exactly when you sell. Lock or decide at the level of one seat, for one instant, and let everyone else carry on."
+   },
+   {
+    "text": "Hold seats as database rows, each taken only if the seat is free, with an end time and key.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "I moved the holds into the database. Each seat's row now carries a hold: the checkout number and an end time 5 minutes on. The database writes it only if the seat has no ticket and no hold still running, and says how many rows it changed: 0 means someone got there first. The ticket is written once per checkout number. On the bench, server 2's seat map at 21:00:07 shows F7 taken, so Mr Vowles takes J19; checkout 3322 is told at 21:04:40 that the film is sold out: 4 tickets for 4 seats. With Mr Vowles tapping F7 a second after Ms Gatacre, the database refuses him and he taps J19 6 seconds later. Ms Gatacre's Pay sent twice gets her same ticket back. Over the three busy nights Fulke's torch found nobody sharing a chair, Mereana refunded nothing, and no hold needed clearing: each simply ran out.",
+    "senior": "A hold is a promise every server must see, so it lives in the shared database, and it is taken by one conditional write that the database decides: change the row only if the seat is still free, then read the count of rows changed. No check-then-write gap is left for a race. An end time makes holds free themselves. Keying the ticket on the checkout makes a repeated Pay return the first result. Now a second server, or a tenth, changes nothing about who gets F7."
+   },
+   {
+    "text": "Check the database again just before charging the card, and stop if the seat has a ticket.",
+    "tone": "bad",
+    "verdict": "The check comes too soon",
+    "part2": "I added the check at Pay. On the bench, Saturday's rush still sells F7 twice. Mr Vowles pressed Pay at 21:02:40; Ms Gatacre's ticket was written at 21:02:51, 11 seconds later, so his check found nothing. The check only stops a customer who presses Pay after the other ticket exists; two customers paying in the same half minute both pass. Worse, on the bench Ms Gatacre's Pay sent twice is now told F7 has a ticket, though the ticket is hers. On Saturday 1 August two people met at one deckchair in row H. Fulke carried out the spare chair again, and Mereana refunded one of them.",
+    "senior": "A second check is still a check followed by a separate act, so the race just moves to the gap between the check and the ticket write, here about half a minute of card payment. More checks shrink nothing that matters; they only change which pairs collide. The seat has to be claimed by a single step that cannot succeed twice, at the moment of the hold, so the second customer never reaches Pay."
+   }
+  ]
+ },
+ "sim": {
+  "module": "w05",
+  "title": "Run the 21:00 rush through the booking program",
+  "lede": "You're Odgerel at the workbench, replaying Saturday 25 July 2026 from 20:58:00. The screening has 200 deckchairs: 196 have tickets, and C14, F7, H2 and J19 have none. A hold lasts 5 minutes. Five checkouts arrive. Each opens the seat map, taps the first seat it wants that the map shows free, presses Pay, and gets a ticket when the card company says yes. 3318, Ms Gatacre: map 20:58:30, tap 20:58:41, Pay 21:02:20, card 31 s, wants F7. 3319: 20:59:02, 20:59:10, 21:00:30, 22 s, wants C14. 3320, Mr Vowles: 21:00:07, 21:00:12, 21:02:40, 29 s, wants F7, else J19. 3321: 21:01:15, 21:01:24, 21:03:30, 28 s, wants H2. 3322: 21:04:40, 21:04:51, 21:06:05, 25 s, wants J19. Which server answered each request comes from the load balancer's log. A refused tap tries the next seat it wants 6 seconds later; with nothing free, the checkout leaves. Change the design, the number of servers, Mr Vowles's timing, and whether Ms Gatacre's Pay is sent twice (at 21:02:58; the card company charges once).",
+  "tryThis": "Try this: press Step six times and watch server 2 hold F7 at 21:00:12 while server 1 already holds it. Play the rest: two tickets for F7, 18 seconds apart. Switch to 1 server. Back on 2, try sticky sessions, then the second check, and read Mr Vowles's Pay at 21:02:40. Try one booking at a time and read the waits. Then holds as database rows, and move Mr Vowles to a second after Ms Gatacre. Last, send her Pay twice, as built and as rows."
+ },
+ "explain": {
+  "oneLine": "Nobody typed anything twice. Each server kept its holds in its own memory, so server 2 never saw server 1's hold on F7, held it again for Mr Vowles, and both payments wrote a ticket.",
+  "steps": [
+   {
+    "title": "Two memories, one seat.",
+    "text": "First, at 20:58:41 Ms Gatacre tapped F7. The load balancer handed that request to server 1, which found no ticket for F7 in the database and no hold in its own memory, so it wrote the hold into its memory until 21:03:41. Second, at 21:00:07 Mr Vowles opened the seat map, and server 2 answered: no ticket in the database, no hold in its own memory, so F7 showed free. Third, at 21:00:12 he tapped it, and server 2 wrote its own hold, until 21:05:12. Fourth, both pressed Pay, at 21:02:20 and 21:02:40, and Winifrith's pay step adds a ticket whenever the card company says yes: at 21:02:51 and 21:03:09. Each server did exactly what the program says. The promise to Ms Gatacre lived where server 2 could not look."
+   },
+   {
+    "title": "Why never before, and why 21:03.",
+    "text": "From June until Saturday evening there was one server. Every hold sat in its one memory and every seat map came from it, so a held seat always showed as taken. The second server went on at 20:00 on Saturday. Even then, a double sale needs two customers on different servers wanting the same seat within one hold's 5 minutes. With the last four deckchairs going in under ten minutes, F7 was that seat: from 21:00:12 to 21:03:41 both servers held it at once."
+   },
+   {
+    "title": "Keep the hold where every server looks, and take it in one step.",
+    "text": "A hold is data both servers need, so it belongs in the shared database. Give each seat's row two more values: who holds it and until when. Taking a hold is then one command to the database: change the seat's row to this checkout and an end time 5 minutes on, only where the seat has no ticket and no hold still running. This is a conditional write. The database reports how many rows it changed: 1 means the hold is yours, 0 means someone got there first, and the page says the seat was just taken. Why not look first and write after? Between the look and the write, another request can look too; that check-then-act gap is a race condition (s5e01 goes deeper). In PostgreSQL, when two such commands reach one row together, the second waits for the first to finish and then tests its condition again, so it changes 0 rows. What can go wrong: a page that reads the seat first and then writes without the condition brings the race back."
+   },
+   {
+    "title": "One ticket per checkout.",
+    "text": "The card company already treats the checkout number as an idempotency key (s4e07): a Pay sent twice is charged once, and the repeat gets the first answer back. The booking needs the same rule on its own side. First, the hold carries the checkout number. Second, when the card company says yes, the ticket is written only if this checkout's hold is still on the seat and this checkout has no ticket yet. Third, a repeat finds its ticket already there and sends the same ticket again. What can go wrong: checking the seat alone, as the second check at Pay does, turns Ms Gatacre's repeat into \"F7 has a ticket\", though she paid for it."
+   },
+   {
+    "title": "Holds that end on their own.",
+    "text": "Because each hold has an end time, nothing has to delete it. A seat counts as free when it has no ticket and its hold's end time has passed, so a customer who walks away frees the seat 5 minutes later with no clean-up job; the next hold simply writes over the old one. Use the database's own clock for both writing and testing end times, so two servers whose clocks differ cannot disagree. What can go wrong: a customer who pays after their hold has run out may find the seat taken by someone else in between. Then the ticket write changes 0 rows, and the payment must be refunded, never turned into a second ticket."
+   }
+  ],
+  "diagram": {
+   "type": "arch",
+   "w": 760,
+   "h": 350,
+   "aria": "The fix. The load balancer hands requests to server 1 and server 2 in turn. Both servers ask the same database. Server 1 asks it to hold F7 for checkout 3318 only if F7 is free, and 1 row changes. Server 2 asks it to hold F7 for checkout 3320 only if F7 is free, and 0 rows change, so Mr Vowles is told F7 was just taken. The database's F7 row holds checkout 3318 until 21:03:41.",
+   "nodes": [
+    {
+     "id": "lb",
+     "label": "Load balancer",
+     "sub": "requests in turn",
+     "x": 380,
+     "y": 60,
+     "w": 220,
+     "h": 52,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "s1",
+     "label": "Server 1",
+     "sub": "3318 taps F7",
+     "x": 150,
+     "y": 175,
+     "w": 200,
+     "h": 52,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "s2",
+     "label": "Server 2",
+     "sub": "3320 taps F7",
+     "x": 610,
+     "y": 175,
+     "w": 200,
+     "h": 52,
+     "shape": "box",
+     "tone": ""
+    },
+    {
+     "id": "db",
+     "label": "Database, row F7",
+     "sub": "held by 3318 until 21:03:41",
+     "x": 380,
+     "y": 295,
+     "w": 280,
+     "h": 56,
+     "shape": "box",
+     "tone": "ok"
+    }
+   ],
+   "edges": [
+    {
+     "from": "lb",
+     "to": "s1",
+     "label": "in turn"
+    },
+    {
+     "from": "lb",
+     "to": "s2",
+     "label": "in turn"
+    },
+    {
+     "from": "s1",
+     "to": "db",
+     "label": "if free: 1 row",
+     "tone": "ok"
+    },
+    {
+     "from": "s2",
+     "to": "db",
+     "label": "if free: 0 rows",
+     "tone": "bad"
+    }
+   ]
+  },
+  "caption": "The fix, drawn for the next busy night. Both servers ask one database, and the database decides. Server 1's hold on F7 changes 1 row; server 2's, a moment later, changes 0, so Mr Vowles is told F7 was just taken and picks another seat. The row keeps checkout 3318 and an end time, so the hold frees itself at 21:03:41 if she walks away, and her ticket is written once for her checkout.",
+  "fix": {
+   "title": "The fix: holds as database rows, taken only if free, with an end time and the checkout's key",
+   "text": "Move the holds out of each server's memory and onto each seat's row in the shared database: the checkout number holding it and an end time 5 minutes on. Take a hold with one conditional write: change the row only where the seat has no ticket and no hold still running, then read the count of rows changed; 0 means just taken. Show the seat map from the same rows. When the card company says yes, write the ticket only if this checkout still holds the seat and has no ticket yet; a repeated Pay finds the ticket and sends it again. Use the database's clock for every end time. Then delete Server.holds, so no server can promise a seat on its own."
+  },
+  "limits": [
+   "Every booking now depends on the database. If it is slow or down, nobody can hold a seat; a read-only copy of the database must never be used to decide one, because it can lag behind the latest hold.",
+   "A hold is per seat. A family that wants four seats together needs all four taken in one step or none, or two families can each end up holding half of what the other wants.",
+   "The end time is a promise to the customer. Too short and slow payers lose seats they are paying for; too long and abandoned holds keep seats off sale. 5 minutes is Mereana's choice, not a rule."
+  ],
+  "tradeoff": {
+   "head": [
+    "Design",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "Holds in each server's memory (as built)",
+     "Fast, and right with one server.",
+     "With two, each server promises seats the other already promised: F7 sold twice, 18 s apart."
+    ],
+    [
+     "Sticky sessions",
+     "Each customer's own requests stay on one server.",
+     "Two customers on two servers still each get F7: the same double sale."
+    ],
+    [
+     "A second check before the card",
+     "Catches a Pay pressed after the first ticket exists.",
+     "Mr Vowles pressed Pay 11 s before the first ticket; two payments in the same half minute both pass."
+    ],
+    [
+     "One booking at a time per screening",
+     "Nobody twice, by construction.",
+     "A line: on the bench, Saturday's rush waits up to 6 min 28 s, and 5 min 46 s just to learn it is sold out."
+    ],
+    [
+     "Holds as database rows, taken only if free, with end time and key",
+     "Every server sees every hold; 1 row changed or 0; a repeated Pay gets the same ticket.",
+     "Every booking depends on the database; group bookings need all seats in one step."
+    ]
+   ]
+  },
+  "seniorTake": "Before you switch on a second server, list what each server remembers between requests: holds, baskets, logins, counters. Anything another server needs to see belongs in a shared store, and anything two customers can compete for must be taken by one conditional write that the store decides: change it only if it is still free, and read the count of rows changed. Sticky sessions hide the problem for one customer and never fix it between two. Locking the whole screening fixes it by making everyone wait. Give holds an end time so they free themselves, and key the booking on the checkout so a repeat returns the first result. Then the number of servers stops mattering to who gets F7.",
+  "realWorld": [
+   {
+    "title": "PostgreSQL: only rows that match are changed",
+    "text": "The PostgreSQL documentation for UPDATE says of its WHERE condition: \"Only rows for which this expression returns true will be updated.\" Of the count the command reports: \"If count is 0, no rows were updated by the query (this is not considered an error).\" A hold taken with a WHERE that asks for no ticket and no running hold reports 1 or 0, and 0 means someone else got the seat.",
+    "source": 0
+   },
+   {
+    "title": "PostgreSQL: two updates of one row at once",
+    "text": "At the Read Committed isolation level, if another transaction is already updating the row, \"the would-be updater will wait for the first updating transaction to commit or roll back (if it is still in progress).\" Then \"The search condition of the command (the WHERE clause) is re-evaluated to see if the updated version of the row still matches the search condition.\" So the second of two taps a moment apart sees the first hold and changes nothing.",
+    "source": 1
+   },
+   {
+    "title": "PostgreSQL: a lock held for a whole booking",
+    "text": "One booking at a time could be built by locking the screening's row with SELECT ... FOR UPDATE. The documentation says this \"prevents them from being locked, modified or deleted by other transactions until the current transaction ends.\" Held through a seat choice and a card payment, that is minutes of everyone else waiting.",
+    "source": 2
+   },
+   {
+    "title": "Stripe: the same key, the saved answer",
+    "text": "Stripe's documentation: \"For API v1, Stripe saves the status code and body of the first request made with a given idempotency key after endpoint execution begins. Retries with the same key return the saved response, including 500 errors.\" That is the card company's side of a repeated Pay. It protects the charge, not the ticket the cinema writes afterwards.",
+    "source": 3
+   },
+   {
+    "title": "Stripe: who makes the key",
+    "text": "\"A client generates an idempotency key, which is a unique key that the server uses to recognize subsequent retries of the same request.\" Here the client is the booking program. Stripe suggests \"using V4 UUIDs, or another random string with enough entropy to avoid collisions\"; a plain checkout number is unique only within one cinema's own records.",
+    "source": 3
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Design a movie ticket booking system.",
+    "How do you stop two people booking the same seat?",
+    "A payment request is sent twice. How does the customer end up with one ticket?"
+   ],
+   "answer": "Start with the objects: a Screening has Seats; a Hold ties a seat to a checkout until an end time; a Booking turns a hold into a ticket after payment. Keep holds in the shared database, never in one server's memory, because the site will run on more than one server on exactly the nights that matter. Take a hold with a conditional write: update the seat's row to this checkout and now plus five minutes, only where it has no ticket and no unexpired hold, and check the count of rows changed; zero means someone got there first. The database settles two taps at once: the second waits for the first and tests its condition again. Show the seat map from the same rows. Holds expire by their end time, so abandoned checkouts free their seats with no clean-up job; use the database's clock. Payment: send the checkout's idempotency key to the payment provider, and write the booking at most once per checkout key, only if this checkout still holds the seat; a retry returns the existing booking. If the hold ran out and the seat went to someone else, refund instead of booking. Name the alternatives and why not: sticky sessions keep one user on one server but don't stop two users on two servers; a check before paying is check-then-act with a payment-sized gap; locking the whole screening is correct but makes a line. Follow-ups: group bookings all or nothing, and a read replica must never decide a hold."
+  }
+ },
+ "terms": [
+  {
+   "term": "Workshop (Winifrith's)",
+   "def": "The workshop Winifrith Torvaine left to Odgerel: half-finished coin-operated machines and clockwork figures, each with a paper work order tied on and a program to match."
+  },
+  {
+   "term": "Work order",
+   "def": "A paper slip saying what a client wants made or finished. Work order 23 is the Thistledown Park summer cinema's seat booking, signed by Mereana."
+  },
+  {
+   "term": "Thistledown Park summer cinema",
+   "def": "The open-air cinema in this story: 200 deckchairs on a park lawn, rows A to J. Mereana organises it and Fulke is its usher."
+  },
+  {
+   "term": "Usher",
+   "def": "The person who shows people to their seats with a torch once the film has started. Fulke found the two F7 tickets this way."
+  },
+  {
+   "term": "Program",
+   "def": "The list of steps a computer follows. Winifrith wrote hers in the same notebooks as her clockwork."
+  },
+  {
+   "term": "Web server",
+   "def": "A program on a computer that answers requests from people's phones and web browsers, and the computer it runs on (s1e02). The booking program runs on two of them on busy nights."
+  },
+  {
+   "term": "Request",
+   "def": "One page or tap a server is asked to answer, such as opening the seat map, holding a seat or pressing Pay."
+  },
+  {
+   "term": "Seat map",
+   "def": "The page that shows which deckchairs are free. Each server draws it from the database's tickets and from the holds it can see."
+  },
+  {
+   "term": "Hold",
+   "def": "A promise that a seat is yours for 5 minutes while you pay, like a coat on a chair. Nobody else may take a held seat."
+  },
+  {
+   "term": "Checkout number",
+   "def": "The number each booking visit gets, such as 3318. It names the job, so it also serves as the visit's idempotency key."
+  },
+  {
+   "term": "Card company",
+   "def": "The company that charges the customer's card and answers yes or no, after about half a minute while the bank checks the customer's phone."
+  },
+  {
+   "term": "Database",
+   "def": "A store of records on its own computer that programs read and write (s1e09). Both servers share the cinema's one database."
+  },
+  {
+   "term": "Row",
+   "def": "One record in a database table, like one line in a ledger. As built, one row per ticket; in the fix, each seat's row also carries its hold."
+  },
+  {
+   "term": "Memory (a server's)",
+   "def": "A computer's fast scratch space, where a running program keeps what it is working on. Only that computer can see it, and it is lost when the program stops."
+  },
+  {
+   "term": "State",
+   "def": "What a program remembers between one request and the next, such as the holds. Where state lives decides which servers can see it."
+  },
+  {
+   "term": "Load balancer",
+   "def": "A program at the front door that hands each request to one of several servers, here the two servers in turn (s2e02)."
+  },
+  {
+   "term": "Sticky sessions",
+   "def": "A load balancer setting: note which server a customer's first request went to, then send all their later requests there (s2e03)."
+  },
+  {
+   "term": "Line (one booking at a time)",
+   "def": "Mereana's idea: one checkout at a time books each screening, from seat map to ticket, while the others wait their turn, like a queue at a box office."
+  },
+  {
+   "term": "Idempotency key",
+   "def": "A name for one job, sent with every try of it, so a repeat gets the first answer back instead of doing the job again (s4e07). The card company uses the checkout number."
+  },
+  {
+   "term": "Saved answer",
+   "def": "The answer the card company stored with an idempotency key the first time, and gives back to every repeat of that key."
+  },
+  {
+   "term": "Conditional write",
+   "def": "A database change that happens only if a record still looks as expected, such as: hold F7 only where it has no ticket and no running hold. 0 rows changed means someone got there first."
+  },
+  {
+   "term": "Rows changed (count)",
+   "def": "The number a database reports after a change: how many rows it altered. For a conditional hold, 1 means yours and 0 means just taken."
+  },
+  {
+   "term": "Race condition",
+   "def": "A bug whose result depends on which of two things happens first. Two customers wanting F7 at once was one (s5e01 goes deeper)."
+  },
+  {
+   "term": "Check-then-act",
+   "def": "Looking at shared data, then acting on what you saw, as two separate steps. Unsafe when someone else can change the data in between."
+  },
+  {
+   "term": "Transaction",
+   "def": "A group of database changes that happen all together or not at all (s3e02)."
+  },
+  {
+   "term": "End time (of a hold)",
+   "def": "When a hold runs out, 5 minutes after it was taken. After it, the seat counts as free again with nothing deleted."
+  },
+  {
+   "term": "Clean-up job",
+   "def": "A program that runs every so often to delete old records, such as holds that have run out. Holds with an end time don't need one."
+  },
+  {
+   "term": "Refund",
+   "def": "Money sent back to a card for a payment that shouldn't stand. Mereana refunded Mr Vowles for his F7 ticket."
+  },
+  {
+   "term": "PostgreSQL",
+   "def": "The database whose documentation is quoted here on conditional updates and row locks."
+  },
+  {
+   "term": "UPDATE ... WHERE (SQL)",
+   "def": "The SQL command that changes saved rows, but only the rows that match its WHERE condition, and reports how many it changed. SQL is the language for talking to databases."
+  },
+  {
+   "term": "Read Committed",
+   "def": "One of PostgreSQL's isolation levels, its rules for what one transaction sees of others running at the same time."
+  },
+  {
+   "term": "SELECT ... FOR UPDATE",
+   "def": "A PostgreSQL command that reads rows and locks them, so other transactions trying to change or lock them wait until this one ends."
+  },
+  {
+   "term": "Lock",
+   "def": "A marker only one transaction or program can hold at a time, like a single key to a room; others wait for it."
+  },
+  {
+   "term": "Stripe",
+   "def": "A company that takes card payments for businesses. Its documentation on idempotency keys is quoted here."
+  },
+  {
+   "term": "API v1 (Stripe)",
+   "def": "The first version of the requests Stripe's service accepts. The rules on saved answers quoted here are written for v1."
+  },
+  {
+   "term": "500 error",
+   "def": "The answer code a server sends when it failed while handling a request. Stripe gives a repeat the saved 500 too."
+  },
+  {
+   "term": "V4 UUID",
+   "def": "A long random identifier, very unlikely to match anyone else's, that Stripe suggests for idempotency keys."
+  },
+  {
+   "term": "Read replica",
+   "def": "A read-only copy of a database that follows the main one, a little behind (s2e12). It must never decide a hold."
+  },
+  {
+   "term": "SOC 2",
+   "def": "An audit report, written by an outside checker, on a company's controls against the AICPA's trust services criteria."
+  },
+  {
+   "term": "Trust services criteria",
+   "def": "The AICPA's criteria for judging controls over security, availability, processing integrity, confidentiality and privacy, used in SOC 2 reports."
+  },
+  {
+   "term": "Processing integrity",
+   "def": "One of the five trust services categories: whether a system does its processing correctly, such as selling each seat once."
+  },
+  {
+   "term": "All or nothing",
+   "def": "Taking several things in one step that either gets every one of them or none, as a transaction does (s3e02)."
+  },
+  {
+   "term": "Bench (in the sim)",
+   "def": "Odgerel's workbench: the sim, which replays Saturday's 21:00 rush through whichever design you pick."
+  },
+  {
+   "term": "Mr Vowles's timing (in the sim)",
+   "def": "When checkout 3320 opens the seat map and taps: as on the night, 21:00:07 and 21:00:12, or a second after Ms Gatacre, 20:58:36 and 20:58:42."
+  }
+ ],
+ "atWork": "Look for state a server keeps in its own memory that another server would need: holds, baskets, login sessions, counters, lists of what was recently sent. Read-only access to the code is enough. Search for maps or lists made at the top of a file and written inside one request, then read in a later one. Each is fine on one server and wrong the day a second is switched on, which is usually the busiest day. Move anything two customers can compete for into the shared database, take it with a conditional write and check the count of rows changed, give it an end time, and key each booking or order on its checkout so a repeat returns the first result. If your company is pursuing SOC 2, the AICPA's trust services criteria are for evaluating controls over \"processing integrity\" among other categories; if processing integrity is in your report's scope, a seat or order sold twice is worth a written control and a test now, rather than a finding at audit time.",
+ "board": {
+  "cards": [
+   {
+    "id": "seat-locking",
+    "title": "Seat locking"
+   },
+   {
+    "id": "concurrency",
+    "title": "Concurrency"
+   },
+   {
+    "id": "idempotency",
+    "title": "Idempotency"
+   }
+  ],
+  "strings": [
+   {
+    "from": "seat-locking",
+    "to": "sticky-sessions-vs-a-shared-session-store",
+    "label": "memory per server"
+   },
+   {
+    "from": "seat-locking",
+    "to": "transactions",
+    "label": "all or nothing"
+   },
+   {
+    "from": "seat-locking",
+    "to": "optimistic-vs-pessimistic-locking",
+    "label": "condition or lock"
+   },
+   {
+    "from": "concurrency",
+    "to": "race-conditions",
+    "label": "check, then act"
+   },
+   {
+    "from": "concurrency",
+    "to": "load-balancers",
+    "label": "two servers"
+   },
+   {
+    "from": "idempotency",
+    "to": "idempotency-keys",
+    "label": "one ticket per key"
+   },
+   {
+    "from": "concurrency",
+    "to": "seat-locking",
+    "label": "one row decides"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "w05-r1",
+   "kind": "free",
+   "prompt": "A city bike-hire app lets you reserve a bike at a dock for 10 minutes while you walk there. It runs on three servers behind a load balancer, and each server keeps its reservations in a list in its own memory. On busy mornings two riders sometimes arrive for the same bike, both holding a reservation. What is wrong, and what do you change?",
+   "keyIdeas": [
+    {
+     "idea": "Each server's reservations are invisible to the other servers, so two servers can reserve the same bike",
+     "match": [
+      "other servers",
+      "can't see",
+      "cannot see",
+      "invisible",
+      "only that server",
+      "each server decides"
+     ]
+    },
+    {
+     "idea": "Keep reservations in the shared database, where every server looks",
+     "match": [
+      "shared database",
+      "shared store",
+      "one shared",
+      "in a database",
+      "database row"
+     ]
+    },
+    {
+     "idea": "Take a reservation with one conditional write, only if the bike is still free, and check the rows changed",
+     "match": [
+      "conditional",
+      "only if",
+      "rows changed",
+      "zero rows",
+      "0 rows",
+      "in one step"
+     ]
+    },
+    {
+     "idea": "Give each reservation an end time, so it frees itself",
+     "match": [
+      "end time",
+      "expire",
+      "expiry",
+      "runs out",
+      "frees itself"
+     ]
+    }
+   ],
+   "model": "Each server keeps reservations in its own memory, which the other servers cannot see. A rider on server 1 reserves bike 12; a second rider whose request lands on server 2 sees bike 12 free and reserves it too, so each server decides alone about the same bike. Move reservations into one shared database that every server reads. Take each reservation with a conditional write in one step: change the bike's row to this rider only if it has no reservation still running, then check the rows changed; zero rows means someone got there first, so offer another bike. Give every reservation an end time ten minutes on, so a rider who never turns up frees the bike when it runs out, with nothing to delete."
+  },
+  {
+   "id": "w05-r2",
+   "kind": "mcq",
+   "prompt": "Holds live in each server's memory. Server 1 holds F7 for Ms Gatacre at 20:58:41 for 5 minutes. With sticky sessions turned on, Mr Vowles's requests all go to server 2. At 21:00:12 he taps F7. What does server 2 do?",
+   "options": [
+    "Refuses, because sticky sessions share holds between servers",
+    "Holds F7 for Mr Vowles, because its own memory has no hold on F7",
+    "Passes the tap to server 1, which refuses it",
+    "Waits until Ms Gatacre's hold ends at 21:03:41"
+   ],
+   "answer": 1,
+   "why": "Sticky sessions only decide which server a customer talks to. Server 2 still looks in its own memory and the database's tickets, finds nothing for F7, and holds it. Ms Gatacre's hold is in server 1's memory, where server 2 cannot look."
+  },
+  {
+   "id": "w05-r3",
+   "kind": "free",
+   "prompt": "After the fix, a customer's phone loses signal just after Pay, and the page sends Pay again 7 seconds later. The load balancer hands the second request to the other server. The card company charges once. What must the booking side do so the customer ends with one ticket, and why doesn't it matter which server gets the second request?",
+   "keyIdeas": [
+    {
+     "idea": "The second Pay is the same job, named by the same checkout number, not a new booking",
+     "match": [
+      "same job",
+      "same checkout",
+      "not a new",
+      "a repeat",
+      "retry"
+     ]
+    },
+    {
+     "idea": "Write the ticket at most once per checkout; a repeat finds it and sends the same ticket",
+     "match": [
+      "once per",
+      "already has",
+      "already exists",
+      "same ticket",
+      "at most once",
+      "existing ticket"
+     ]
+    },
+    {
+     "idea": "Both servers read the same shared database, so either finds the first ticket",
+     "match": [
+      "shared database",
+      "either server",
+      "any server",
+      "whichever server",
+      "both servers"
+     ]
+    }
+   ],
+   "model": "The second Pay is a repeat of the same job, named by the same checkout number, not a new booking. The card company already saw that key and returned its saved answer, so the charge happens once; the booking side needs the same rule. Write the ticket at most once per checkout: when the yes comes back, if this checkout already has a ticket, send the same ticket again instead of writing another. Because tickets and holds live in the shared database, whichever server gets the repeat finds the existing ticket; nothing depends on the first server's memory."
+  },
+  {
+   "id": "w05-r4",
+   "kind": "mcq",
+   "prompt": "In the fixed program, F7's row says it is held by checkout 3318 until 21:03:41, and F7 has no ticket. At 21:04:00 checkout 3325 taps F7. What should happen?",
+   "options": [
+    "Refuse: F7 is held by checkout 3318",
+    "Hold F7 for 3325 until 21:09:00, because 3318's hold has run out",
+    "Wait for a clean-up job to delete 3318's hold first",
+    "Write a ticket for 3318, since it held the seat first"
+   ],
+   "answer": 1,
+   "why": "A hold counts only until its end time. At 21:04:00, 3318's hold ended 19 seconds earlier, so the conditional write finds no running hold and no ticket, changes 1 row, and gives 3325 a new 5-minute hold. No clean-up job is needed, and nobody paid for 3318's seat."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 1 month later. Not one seat sold twice since, and the holds look after themselves. For the last weekends of the summer Mereana asked for group booking: tap up to 6 seats, and the program holds them in the order tapped, one seat per write. On Saturday 22 August, within the same second, 20:51:10, two families each tried for row G, seats 4 to 7. One tapped from G4 upward, the other from G7 down. Each held two seats, was refused the third, and was told a seat was just taken. Both gave up. The four deckchairs showed as taken until 20:56:10, and both families bought seats elsewhere, apart.",
+  "prompt": "Reply to OP. Why did two families who each wanted four seats in row G end up with none, and how should the program take a group's seats?",
+  "keyIdeas": [
+   {
+    "idea": "Each family took seats one by one in a different order, so each held half and blocked the other",
+    "match": [
+     "different order",
+     "opposite ends",
+     "one by one",
+     "half each",
+     "two each",
+     "partial"
+    ]
+   },
+   {
+    "idea": "Take every seat of a group in one transaction, all or nothing",
+    "match": [
+     "all or nothing",
+     "all-or-nothing",
+     "one transaction",
+     "single transaction",
+     "every seat or none"
+    ]
+   },
+   {
+    "idea": "When one seat is refused, give the others back at once, and take seats in one fixed order",
+    "match": [
+     "release",
+     "let go",
+     "give back",
+     "fixed order",
+     "same order",
+     "seat order",
+     "roll back"
+    ]
+   }
+  ],
+  "model": "Each family's seats were taken one by one, in different orders: one from G4 upward, the other from G7 down. They met in the middle, so each held two seats and was refused the next, which the other family held. Neither could finish, both gave up, and their holds kept all four seats off sale until they ran out at 20:56:10. Take a group's seats all or nothing: one transaction that holds every seat only if every seat is free, or holds none (s3e02). If seats must be taken one at a time, take them in one fixed order, such as seat order, so two groups can't each grab half, and release the holds already taken the moment one seat is refused, instead of leaving them to run out."
+ },
+ "next": "Next, Nineteen in One Second: a late-night food kitchen's order texts, and a rate limiter class that is safe with threads.",
+ "sources": [
+  {
+   "title": "PostgreSQL documentation (current), UPDATE: the WHERE condition and the UPDATE count it reports",
+   "url": "https://www.postgresql.org/docs/current/sql-update.html"
+  },
+  {
+   "title": "PostgreSQL documentation (current), Transaction Isolation, 13.2.1 Read Committed Isolation Level (concurrent updates of one row)",
+   "url": "https://www.postgresql.org/docs/current/transaction-iso.html"
+  },
+  {
+   "title": "PostgreSQL documentation (current), Explicit Locking, 13.3.2 Row-Level Locks (FOR UPDATE)",
+   "url": "https://www.postgresql.org/docs/current/explicit-locking.html"
+  },
+  {
+   "title": "Stripe API reference, Idempotent requests (API v1 saved responses, client-generated keys)",
+   "url": "https://docs.stripe.com/api/idempotent_requests"
+  },
+  {
+   "title": "AICPA and CIMA, 2017 Trust Services Criteria (With Revised Points of Focus, 2022), resource landing page (purpose and the five categories; the criteria's PDF needs an account and was not read)",
+   "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022"
+  }
+ ]
+}
