@@ -1,0 +1,916 @@
+{
+  "_changelog": [
+    "v1.0.1 (2026-10-16) cold-case grading: the bare number fragment \"444\" became \"444 a second\"",
+    "v1.0.0 (2026-10-16) first version"
+  ],
+  "id": "s9e16",
+  "season": 9,
+  "n": 16,
+  "title": "The Model Farm",
+  "setting": "a mushroom farm's picking robots",
+  "core": false,
+  "minutes": 12,
+  "concepts": [
+    "serving-models-at-scale",
+    "gpus",
+    "batching",
+    "caching"
+  ],
+  "prerequisites": [
+    "s6e03",
+    "s2e04"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/night_grower_bolanle",
+    "flair": "Part 1",
+    "age": "7h",
+    "votes": 2964,
+    "title": "I'm the night grower at a mushroom farm. Our only robot on the beds last night skipped 1,200 ripe mushrooms, \"no answer in time\". The model's log says each batch took 0.05 seconds.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm Bolanle, night grower at Dunnerholme Mushrooms. Our mushrooms grow in long beds in dark sheds, and twelve picking robots work the beds at night. Each robot rolls along a bed with an arm, a basket and a camera that sends 4 photos a second."
+      },
+      {
+        "t": "p",
+        "text": "The robots don't judge ripeness. A model does: a program that learned, from thousands of photos, to tell ripe mushrooms from young ones. It runs on one shared machine, the GPU server, in a locked room across the yard. A GPU is a chip that does thousands of small sums at once, the work a model needs."
+      },
+      {
+        "t": "p",
+        "text": "Rukhsana, the engineer who installed the robots in October 2024, explained the server's rule to me. It works like a lift that leaves when it's full or when its doors have been open long enough. Photos ride in a batch, a group handled together. The most a batch holds is its batch size: 16."
+      },
+      {
+        "t": "p",
+        "text": "A batch goes in four steps. The server collects photos as they arrive. It stops at 16, or when the first photo has waited 2 seconds. The GPU runs the model once over the whole batch: one pass, 0.05 seconds whether it holds 1 photo or 16. Then every answer goes back to its robot."
+      },
+      {
+        "t": "p",
+        "text": "An arm picks in steps too. The camera sends a photo. The arm waits for its answer. If it says ripe, the arm reaches down, twists, and drops the mushroom in the basket. But the robot keeps rolling, so the answer must come within 1 second of the photo. After that the mushroom is behind the arm, and the robot logs it skipped. There's no pause: no way to stop and wait."
+      },
+      {
+        "t": "p",
+        "text": "On a normal night all twelve send 48 photos a second. A batch fills to 16 in a third of a second, 0.33, and the answers are back at 0.38."
+      },
+      {
+        "t": "p",
+        "text": "On Thursday 15 October a supermarket rang Csaba, who owns the farm, with a rush order for Friday morning. The other eleven robots had gone into the wash bay at 18:00 for the clean they get every April and October, all together. Csaba kept robot 3 out and set it to pick beds 1 to 4 alone, 23:00 to 03:00."
+      },
+      {
+        "t": "p",
+        "text": "At 03:10 I walked the beds by torch. Ripe caps everywhere along all four beds, already opening. Robot 3's basket was little more than a third full."
+      },
+      {
+        "t": "beat",
+        "text": "It had rolled past every one of them with its camera on."
+      },
+      {
+        "t": "p",
+        "text": "In the control room I opened the logs. The GPU server's model log has a line per batch: when it was sent, how many photos, and how long its pass took. The robot log gives robot 3's totals."
+      },
+      {
+        "t": "log",
+        "text": "model log, GPU server, Thu 15 to Fri 16 October\n23:00:02.00  batch 1      8 photos   pass 0.05 s\n23:00:04.00  batch 2      8 photos   pass 0.05 s\n...\n03:00:00.00  batch 7200   8 photos   pass 0.05 s\n57,600 photos, 1,920 ripe found\n\nrobot log, robot 3, beds 1 to 4\npicked 720\nskipped 1,200: no answer in time"
+      },
+      {
+        "t": "evidence",
+        "label": "robot3_first_3_seconds.png",
+        "diagram": {
+          "type": "timeline",
+          "w": 740,
+          "aria": "The first 3 seconds of robot 3's run, from 23:00:00. Batch 1 collects photos from 0 to 2 seconds and is sent at 2.00 with 8 photos. The GPU is idle until 2.00 and runs one pass from 2.00 to 2.05. Photo 1's arm has its 1 second from 0 to 1.00 and skips the mushroom; photo 6, sent at 1.25, has until 2.25 and gets its answer at 2.05 in time.",
+          "start": "23:00:00",
+          "seconds": 3,
+          "ticksEvery": 1,
+          "rows": [
+            {
+              "label": "Batch 1 collects",
+              "segments": [
+                [
+                  0,
+                  2,
+                  "warn"
+                ]
+              ],
+              "gaps": [
+                [
+                  2,
+                  3,
+                  "sent, 8 photos"
+                ]
+              ]
+            },
+            {
+              "label": "GPU",
+              "segments": [
+                [
+                  2,
+                  2.05,
+                  "ok"
+                ]
+              ],
+              "gaps": [
+                [
+                  0,
+                  2,
+                  "idle"
+                ]
+              ]
+            },
+            {
+              "label": "Photo 1's arm",
+              "segments": [
+                [
+                  0,
+                  1,
+                  "ok"
+                ]
+              ],
+              "gaps": [
+                [
+                  1,
+                  3,
+                  "skipped at 1.00"
+                ]
+              ]
+            },
+            {
+              "label": "Photo 6's arm",
+              "segments": [
+                [
+                  1.25,
+                  2.25,
+                  "ok"
+                ]
+              ],
+              "gaps": []
+            }
+          ],
+          "markers": [
+            {
+              "t": 2.05,
+              "label": "answers at 2.05",
+              "tone": "bad"
+            }
+          ]
+        },
+        "caption": "Redrawn from the two logs: the first 3 seconds of the run, Thursday 15 October from 23:00:00. Batch 1 collects robot 3's photos for the full 2 seconds (amber) and holds 8. The GPU sits idle, then does one pass, 2.00 to 2.05. Photo 1's arm had its second from 23:00:00 to 23:00:01 and skipped; photo 6, sent at 1.25, got its answer in time. Photos 1 to 5 skipped, 6 to 8 answered in time: 3 of 8, in every batch of the night."
+      },
+      {
+        "t": "p",
+        "text": "One photo in 30 shows a ripe mushroom, and they turn up evenly at every place in a batch. Csaba says the next rush order will come the same way. What should we change before robot 3 works alone again?"
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 131,
+      "age": "6h",
+      "text": "Two words for reading your logs. Latency is how long one answer takes, here from photo to answer. Throughput is how much work gets done each second, here photos the GPU answers. A full batch is good for throughput: one pass, 16 answers. Your arms live on latency. Check two things before you change anything. On a normal night with all twelve, how many photos does each batch hold, and how far apart are the lines? And ask Rukhsana what the 2 seconds was chosen for.",
+      "replies": [
+        {
+          "author": "u/night_grower_bolanle",
+          "op": true,
+          "points": 46,
+          "age": "5h",
+          "text": "Wednesday night's log, all twelve running: every batch 16 photos, lines a third of a second apart. Rukhsana says she set 2 seconds at install as a ceiling she never expected to reach: with twelve robots the batch is always full first. She never tried one robot alone. In two years ours have never worked apart. At every clean, all twelve stood in the wash bay together."
+        }
+      ]
+    },
+    {
+      "author": "u/bigger_chip_gyula",
+      "points": 87,
+      "age": "5h",
+      "text": "Seen this at three companies. The GPU is the bottleneck in every model system: the one slow part everything else queues behind. When answers come back late, the chip is too slow. Buy a faster GPU, one that does a pass in half the time, and every answer arrives sooner. Software tweaks are a rounding error next to new hardware.",
+      "replies": [
+        {
+          "author": "u/night_grower_bolanle",
+          "op": true,
+          "points": 22,
+          "age": "4h",
+          "text": "Csaba priced one: twice as fast, 0.025 seconds a pass. He likes that it's something you can buy and bolt in."
+        }
+      ]
+    },
+    {
+      "author": "u/full_trays_nasrin",
+      "points": 52,
+      "age": "4h",
+      "text": "Your server was built to run full batches, and a GPU is cheapest per photo when every pass is full. Raise the batch size above 16, say to 32, and each pass does twice the work for the same 0.05 seconds. You'll want the room when the farm adds robots anyway.",
+      "replies": [
+        {
+          "author": "u/night_grower_bolanle",
+          "op": true,
+          "points": 15,
+          "age": "3h",
+          "text": "Rukhsana says the server can take 32."
+        }
+      ]
+    }
+  ],
+  "reply": {
+    "prompt": "Csaba wants it fixed before robot 3 works alone again. What should Rukhsana change on the GPU server or the robots? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Buy a faster GPU for the farm, so that each batch of photos is worked through sooner.",
+        "tone": "bad",
+        "verdict": "A faster chip, the same wait",
+        "part2": "Csaba bought the faster GPU, and Rukhsana fitted it on Tuesday 20 October. In the sim, replaying Thursday 15 October with it: a pass now takes 0.025 seconds, but each batch still waits the full 2 seconds and holds 8 photos. The answers come at 2.025 seconds; photo 5's second had run out at 2.00. Photos 1 to 5 are still skipped in every batch: 720 picked, 1,200 skipped. The GPU, busy 2.5% of the night before, is now busy 1.25%. The farm paid for a faster chip to sit idle for longer.",
+        "senior": "Before buying speed, find where the time goes. Of the 2.05 seconds robot 3 waited for photo 1's answer, 2.00 was the batch waiting and 0.05 was the GPU working. Halving the 0.05 saves 0.025 seconds, too little to save photo 5, whose second ran out at 2.00. The GPU was busy 2.5% of the night: the delay was a rule, not a chip. A faster GPU raises throughput, and that helps when the GPU is busy; here it was mostly idle."
+      },
+      {
+        "text": "Send each batch after 0.1 seconds at most, and let an arm with no answer pause.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "Rukhsana changed the server's rule on Monday 19 October: a batch goes when it holds 16 photos or when its first photo has waited 0.1 seconds, whichever comes first. She set the arms to pause, stop and wait, if an answer is ever late. In the sim, replaying Thursday 15 October: robot 3's photos now go one to a batch, each answer is back 0.15 seconds after its photo, and all 1,920 ripe mushrooms are picked without a single pause. The GPU is busy 20% of the night instead of 2.5%. Replaying a normal night with all twelve: batches of 5, 9.6 passes a second, every answer back 0.15 seconds after its photo, the GPU busy 48% instead of 15%. The batches are smaller than the 16 Rukhsana built for. No answer is late.",
+        "senior": "Choose the wait from the deadline, not from how full you'd like the batch. The arm has 1 second and a pass takes 0.05, so a wait of 0.1 leaves a wide margin whatever the load: a lone robot gets batches of 1, twelve robots get batches of about 5, and no photo waits more than 0.15 seconds. Forming batches from whatever arrives in a short wait is dynamic batching. The price is work per pass: at full load the GPU runs about ten small passes a second instead of three full ones, 48% busy instead of 15%. That's the trade to make on purpose: spare GPU time for answers that always land. The pause is the safety net for the day something else goes slow; it should almost never fire, and when it does, count it and look into it."
+      },
+      {
+        "text": "Raise the batch size above 16 photos, so the GPU does more work on each pass.",
+        "tone": "bad",
+        "verdict": "Bigger trays, still waiting",
+        "part2": "Rukhsana set the batch size to 32. In the sim, replaying Thursday 15 October: nothing changes for robot 3. Its batches never got near 16; the 2-second wait closes each one at 8 photos. Answers still come at 2.05: 720 picked, 1,200 skipped. Replaying a normal night with all twelve: a batch now takes 0.67 seconds to fill and its answers come at 0.72, still inside the arm's second, but much closer to it than the 0.38 before.",
+        "senior": "A larger batch only adds throughput when there are photos to fill it. With one robot the batch never reached 16, so raising the size changes nothing: the wait was the limit. With many robots, a larger batch makes each photo wait longer for the ones behind it. Batch size and wait are both latency settings. Pick them from the deadline, then check the GPU keeps up."
+      },
+      {
+        "text": "Run every photo on its own, one at a time, the moment it reaches the GPU server.",
+        "tone": "warn",
+        "verdict": "Trade-off: in time, but three GPUs",
+        "part2": "Rukhsana set the batch size to 1: every photo goes to the GPU alone, the moment it arrives. In the sim, replaying Thursday 15 October: each answer is back 0.05 seconds after its photo and all 1,920 are picked; the GPU is busy 20% of the night. Then replay a normal night with all twelve: 48 photos a second at 0.05 seconds a pass is 2.4 seconds of work every second. One GPU server falls further and further behind, and in the sim 1 of 23,040 ripe mushrooms is picked. Rukhsana priced the fix for that: 3 GPU servers, each busy 80%, to do what one did before.",
+        "senior": "Running every request alone gives the lowest latency for each one, and for a single client it's perfect. But it throws away what batching buys, one pass for many answers, and at full load that means several times the GPUs. A short batch wait gets nearly the same latency, 0.15 seconds instead of 0.05, on the one GPU you have. Batch size 1 suits a deadline tighter than any wait, or traffic that is always light."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s9e16",
+    "title": "Replay the batches on robot 3's night",
+    "lede": "You're replaying Thursday 15 October at Dunnerholme Mushrooms. As given data: each robot's camera sends 4 photos a second. With robot 3 alone, photo k arrives 0.25 × (k - 1) seconds after the first. With all twelve, the robots take turns: a photo every 1/48 second, the first at 0.02. The GPU server collects photos into a batch until it holds the batch size (16) or its first photo has waited the longest wait (2 seconds); a photo arriving just as the wait ends starts the next batch. One pass takes 0.05 seconds, whatever the batch holds. An arm needs its answer within 1 second of the photo, or it skips (as built) or pauses. The night runs 23:00 to 03:00: 57,600 photos from robot 3. One photo in 30 shows a ripe mushroom (1,920), spread evenly over the places in a batch, so picks are the photos answered in time divided by 30. In this sim a paused arm's camera keeps its pace, and no photo repeats tonight. With more GPU servers, photos are dealt to each in turn. The third robots setting is a fault, not the story: robot 7's camera stuck at 400 photos a second, its arm stopped; the rate limit lets each robot send 4 a second. The lab clock steps the first 5 seconds in 0.05-second steps; the night button runs all 4 hours.",
+    "tryThis": "Try this: play to 5 seconds as built: batch 1 holds 8 photos, goes at 2.00, answers at 2.05, and photos 1 to 5 are skipped. Run the night: 720 picked, 1,200 skipped, the GPU busy 2.5%. Switch to twelve robots: batches of 16 at 0.33, answers at 0.38. Then set the longest wait to 0.1 seconds and the late answer to pause, for one robot and for twelve. Try the faster GPU, a batch size of 32, a batch size of 1 with one and three GPU servers, three GPU servers with the 2-second wait, pause on its own, the cache, and robot 7's stuck camera with and without the rate limit."
+  },
+  "explain": {
+    "oneLine": "Nothing was wrong with the model, the GPU or robot 3. The server waited up to 2 seconds to fill each batch, a ceiling set for twelve robots, who filled it in a third of a second. Robot 3 alone put only 8 photos in each batch, so every answer came at 2.05 seconds, after the arm had already skipped the first 5.",
+    "steps": [
+      {
+        "title": "A batch is four steps, and one of them is a wait.",
+        "text": "First the server collects photos as they arrive. Second, it stops when it holds 16 or when its first photo has waited 2 seconds; a photo arriving just as the wait ends starts the next batch. Third, the GPU runs the model once over the whole batch, one pass of 0.05 seconds. Fourth, every answer goes back to its robot. On 15 October robot 3 sent a photo every quarter second: photo 1 at 23:00:00, photo 8 at 1.75 seconds. Sixteen never came, so the wait ended each batch at 2.00 with 8 photos, and every answer arrived at 2.05. An arm's limit is 1 second after its photo: 1.00 for photo 1, 2.00 for photo 5, 2.25 for photo 6. Photos 1 to 5 were skipped and 6 to 8 answered in time, 3 of 8, in all 7,200 batches. Ripe finds fell evenly across the 8 places, so 3 in 8 of the 1,920 were picked: 720, and 1,200 skipped. The model log's 0.05 seconds was true. It was the time per batch; the photos' time went into the wait."
+      },
+      {
+        "title": "Batching trades latency for throughput, and the 2 seconds was set for twelve robots.",
+        "text": "A pass costs the GPU 0.05 seconds whether it carries 1 photo or 16, so a full batch gives 16 answers for the work of one: high throughput. The price is latency: the first photo in a batch waits for the others. With all twelve robots, 48 photos a second fill a batch in 0.33 seconds and its answers are back at 0.38, so the 2-second wait was a ceiling nobody reached. Rukhsana set it for full load, and at full load it was harmless. It only bites when traffic falls, and the robots had always run together: at every clean since October 2024, all twelve stood in the wash bay and nothing picked. A batch wait tuned for full load that strands a lone client is a common pattern, and a test at full load never finds it."
+      },
+      {
+        "title": "Set the wait from the deadline, and let a late arm pause.",
+        "text": "Start from the deadline, not from how full you'd like the batch. The arm has 1 second; a pass takes 0.05. A batch that goes at 16 photos or after 0.1 seconds, whichever comes first, answers every photo within 0.15 seconds at any load. Forming batches this way, from whatever arrives in a short wait, is called dynamic batching. Robot 3 alone gets batches of 1, four passes a second, the GPU busy 20% instead of 2.5%, and all 1,920 picked. Twelve robots get batches of 5, 9.6 passes a second, the GPU busy 48% instead of 15%, every answer by 0.15. The trade is smaller batches, not late answers. The pause is the net under it: if an answer is ever late, the arm stops, waits for the answer, then picks or moves on. Pausing alone, with the 2-second wait, would have picked all 1,920 but left robot 3's arm standing still 2 hours 6 minutes of the 4. Servers for language models go further and change the batch at every step of writing (Orca, vLLM); LATENT's a10e04 \"Many at Once\" and a10e08 \"The Engines\" take that on, and a10e01 \"The Furnace\" looks inside the GPU itself."
+      },
+      {
+        "title": "Why the other fixes fail, two guards for a shared GPU, and the walk across the yard.",
+        "text": "A GPU twice as fast answers at 2.025 instead of 2.05; photo 5's second ran out at 2.00, so it is still 720. A batch size of 32 changes nothing for one robot, whose batches stopped at 8, and makes twelve robots wait until 0.72. More GPU servers make it worse: photos dealt in turn to 3 servers reach each one every 0.75 seconds, a batch holds 3, and robot 3 picks 640. Running every photo alone keeps robot 3 in time, but twelve robots need 2.4 seconds of passes every second: 3 GPU servers to do what one did. Two guards protect a shared GPU, using the same numbers. A cache keeps saved answers so a repeated question skips the slow work, like the jar of cards by the till in \"The Jar on the Counter\" (s2e04); tonight no photo repeated, so it would have answered none. A per-robot rate limit caps what each robot may send, like the doorman in \"The Bouncer\" (s6e03): if one camera got stuck at 400 photos a second, more than the GPU's most of 320 (16 every 0.05 seconds), a limit of 4 a second per robot would turn its extra photos away before they reached the batch. LATENT's a6e07 \"Too Many Questions\" covers limits on a model provider. At 03:30 Bolanle crossed the yard and unlocked the GPU server's room. The fans hummed. On the screen, under batch 7,200, one line: waiting for 16 photos, or 2 seconds. It had waited like that all night, 7,200 times, for eleven robots standing in the wash bay."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 300,
+      "aria": "The fix, drawn as one photo's path. Robot cameras send 4 photos a second each to a per-robot limit of 4 a second. Allowed photos go to a cache that answers only a photo seen before. New photos join a batch that goes at 16 photos or after 0.1 seconds, whichever comes first. The GPU runs one pass in 0.05 seconds and sends the answers to the arms, which have their answer within 0.15 seconds and pause if one is ever late.",
+      "nodes": [
+        {
+          "id": "cams",
+          "label": "Robot cameras",
+          "sub": "4 photos a second",
+          "x": 110,
+          "y": 70,
+          "w": 160,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "door",
+          "label": "Per-robot limit",
+          "sub": "4 a second each",
+          "x": 370,
+          "y": 70,
+          "w": 160,
+          "h": 52,
+          "shape": "box",
+          "tone": "accent"
+        },
+        {
+          "id": "cache",
+          "label": "Cache",
+          "sub": "repeat photos only",
+          "x": 630,
+          "y": 70,
+          "w": 160,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "arms",
+          "label": "Arms",
+          "sub": "answer by 0.15 s",
+          "meta": "pause if late",
+          "x": 110,
+          "y": 230,
+          "w": 160,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "gpu",
+          "label": "GPU",
+          "sub": "one pass, 0.05 s",
+          "x": 370,
+          "y": 230,
+          "w": 160,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "batch",
+          "label": "Batch",
+          "sub": "16 photos or 0.1 s",
+          "meta": "whichever first",
+          "x": 630,
+          "y": 230,
+          "w": 160,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        }
+      ],
+      "edges": [
+        {
+          "from": "cams",
+          "to": "door",
+          "label": "photos"
+        },
+        {
+          "from": "door",
+          "to": "cache",
+          "label": "allowed"
+        },
+        {
+          "from": "cache",
+          "to": "batch",
+          "label": "new photo"
+        },
+        {
+          "from": "batch",
+          "to": "gpu",
+          "label": "16 or 0.1 s",
+          "tone": "ok"
+        },
+        {
+          "from": "gpu",
+          "to": "arms",
+          "label": "answers",
+          "tone": "ok"
+        },
+        {
+          "from": "cache",
+          "to": "arms",
+          "label": "saved answer",
+          "dash": true,
+          "tone": "muted"
+        }
+      ]
+    },
+    "caption": "The fix, drawn as one photo's path. Each robot may send 4 photos a second; a stuck camera's extra photos are turned away at the limit. A photo seen before would be answered from the cache, though on 15 October none repeated. New photos join a batch that goes at 16 photos or after 0.1 seconds, whichever comes first, so every answer reaches its arm within 0.15 seconds, and an arm whose answer is ever late pauses instead of skipping.",
+    "fix": {
+      "title": "The fix: a batch goes at 16 photos or after 0.1 seconds, and a late arm pauses",
+      "text": "Set the server's longest wait from the arm's deadline: a batch goes when it holds 16 photos or when its first photo has waited 0.1 seconds, whichever comes first. With a 0.05-second pass, every answer is back within 0.15 seconds of its photo, for one robot or twelve. Set the arms to pause instead of skipping when an answer is late, and count every pause, because it should almost never happen. Put a per-robot limit of 4 photos a second in front of the server, so a faulty camera can't take the GPU from the others. Write the deadline, the pass time and the wait down together beside the server's settings, and test with one robot alone as well as all twelve before any night the robots work apart."
+    },
+    "limits": [
+      "Smaller batches cost GPU time. At full load the GPU runs about ten small passes a second instead of three full ones, busy 48% instead of 15%. That spare time is the price of every answer landing in time.",
+      "A pause is a safety net, not a plan. With the old 2-second wait, pausing alone would have kept robot 3's arm standing still 2 hours 6 minutes of 4. Count every pause and find out why it happened.",
+      "The 0.1 seconds assumes a pass stays near 0.05. A slower model, or a GPU shared with other work, eats the margin, so the wait must be set again whenever the pass time or the deadline changes."
+    ],
+    "tradeoff": {
+      "head": [
+        "Change",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "As built: 16 photos or 2 seconds",
+          "Full batches at twelve robots: answers at 0.38, GPU 15% busy.",
+          "Robot 3 alone: 8 a batch, answers at 2.05, 720 of 1,920 picked."
+        ],
+        [
+          "A faster GPU (0.025 s a pass)",
+          "Each pass takes half the time.",
+          "Answers at 2.025; still 720 picked; the GPU 1.25% busy."
+        ],
+        [
+          "Batch size 32",
+          "More per pass at full load.",
+          "Robot 3 unchanged at 720; twelve robots wait until 0.72."
+        ],
+        [
+          "Three GPU servers",
+          "More GPU.",
+          "Each batch waits longer: robot 3 picks 640."
+        ],
+        [
+          "Every photo on its own",
+          "Every answer 0.05 s after its photo; robot 3 picks 1,920.",
+          "Twelve robots need 3 GPU servers, each 80% busy."
+        ],
+        [
+          "Pause alone",
+          "Nothing skipped.",
+          "Robot 3's arm stands still 2 h 6 min of the 4 hours."
+        ],
+        [
+          "16 photos or 0.1 s, pause if late (the fix)",
+          "Every answer by 0.15 s for one robot or twelve; 1,920 picked.",
+          "Smaller batches: GPU 48% busy at full load instead of 15%."
+        ]
+      ]
+    },
+    "seniorTake": "Batching is the main lever for serving a model on few GPUs: one pass, many answers. But every batch is a wait, and the wait belongs to the latency budget, not to the batch size you'd like. Start from the slowest deadline any caller has, take off the pass time and a margin, and that's your longest wait; let the batch go early when it fills. Then test at both ends: full load, where throughput matters, and one lonely client, where the wait is the whole delay. Before buying hardware, look at GPU busy. A GPU busy 2.5% of the night isn't slow, it's waiting. Guard a shared GPU from its callers too: a per-client rate limit so one faulty sender can't fill every batch, and a cache only where inputs truly repeat.",
+    "realWorld": [
+      {
+        "title": "NVIDIA Triton: the dynamic batcher",
+        "text": "Triton's \"Batchers\" page: \"Dynamic batching is a feature of Triton that allows inference requests to be combined by the server\". Why: \"Creating a batch of requests typically results in increased throughput.\" Inference means running a model to get an answer; Dunnerholme's server does the same with photos.",
+        "source": 0
+      },
+      {
+        "title": "Triton: a delay with a limit",
+        "text": "The same page: \"The dynamic batcher can be configured to allow requests to be delayed for a limited time in the scheduler\", set by \"max_queue_delay_microseconds\". When the batch won't fill: \"If the delay expires the dynamic batcher sends the batch as is, even though it is not a maximum or preferred size.\" Dunnerholme's delay was 2 seconds; the fix's is 0.1.",
+        "source": 0
+      },
+      {
+        "title": "Triton: tune the delay against the latency budget",
+        "text": "Triton's advice for tuning reads like the fix: \"Try increasing delay values until the latency budget is exceeded to see the impact on throughput.\" It also notes the default: the batcher \"will not delay when forming batches.\" The deadline sets the delay, not the other way round.",
+        "source": 0
+      },
+      {
+        "title": "Orca, OSDI '22: scheduling per step, not per request",
+        "text": "Yu and colleagues found that in fixed batches for language models, \"requests that have finished earlier than other requests in a batch cannot return to the client,\" and \"newly arrived requests have to wait until the current batch completely finishes.\" Their answer schedules \"at the granularity of iteration (instead of request)\", one step of writing at a time.",
+        "source": 1
+      },
+      {
+        "title": "vLLM: continuous batching and PagedAttention",
+        "text": "vLLM's documentation lists \"Continuous batching of incoming requests, chunked prefill, prefix caching\" and \"Efficient management of attention key and value memory with PagedAttention\" among what makes it fast: requests join and leave a running batch, and GPU memory is shared out in small pages.",
+        "source": 2
+      },
+      {
+        "title": "vLLM: caching a repeated start",
+        "text": "vLLM's automatic prefix caching reuses work when two requests begin the same way, \"allowing the new query to skip the computation of the shared part.\" That is a cache for repeated inputs; it only pays when inputs repeat, which Dunnerholme's photos never did.",
+        "source": 3
+      }
+    ],
+    "interview": {
+      "asked": [
+        "How would you serve a model to many clients on a few GPUs?",
+        "Batch size against latency: how do you choose?",
+        "How do you protect a shared GPU from one noisy client?"
+      ],
+      "answer": "I'd batch requests, because a GPU pass costs about the same for one request as for many, so batching is how a few GPUs serve many clients. But each batch is a wait, so I'd set the longest wait from the latency budget: the slowest caller's deadline, minus the pass time, minus a margin. The batch goes when it is full or when that wait ends, whichever comes first: dynamic batching, like Triton's max_queue_delay_microseconds. Batch size I'd pick from measured throughput: big enough that full load fits on the GPUs with room to spare, never so big that waiting for it breaks the deadline. Then I'd test at both ends, full load and a single client alone, and watch batch sizes, GPU busy and the slowest answer. Before adding GPUs I'd check GPU busy: if it is low, the delay is a rule, not the hardware. For language models I'd use a server with continuous batching, like vLLM, where requests join and leave at every step. To protect a shared GPU I'd put a per-client rate limit in front, a token bucket per caller, so one noisy client is turned away instead of filling every batch, and cache only where inputs truly repeat. I'd tell the story of a mushroom farm whose batch wait was set for twelve robots: one robot alone waited 2 seconds for every answer and skipped 1,200 ripe mushrooms while the GPU sat idle."
+    }
+  },
+  "terms": [
+    {
+      "term": "Night grower",
+      "def": "The farm worker who looks after the mushroom beds through the night. Bolanle is Dunnerholme's."
+    },
+    {
+      "term": "Dunnerholme Mushrooms",
+      "def": "The farm in this story: dark sheds of long mushroom beds, picked at night by twelve robots that share one GPU server."
+    },
+    {
+      "term": "Bed",
+      "def": "A long shelf of growing mix where mushrooms come up. Robot 3 picked beds 1 to 4 alone on Thursday 15 October."
+    },
+    {
+      "term": "Picking robot",
+      "def": "A machine that rolls along a bed with a camera, an arm and a basket, and picks the mushrooms the model calls ripe. The farm has twelve."
+    },
+    {
+      "term": "Ripe",
+      "def": "Ready to pick: the cap grown but not yet opened. Left too long, caps open and the mushroom is spoiled for sale."
+    },
+    {
+      "term": "Model",
+      "def": "A program that has learned from many examples to answer one kind of question; here, is the mushroom in this photo ripe?"
+    },
+    {
+      "term": "GPU",
+      "def": "Short for graphics processing unit: a chip that does thousands of small sums at once, first built to draw games, now the usual engine for running models."
+    },
+    {
+      "term": "GPU server",
+      "def": "The one machine with a GPU that runs the model for all twelve robots, in a locked room across the yard."
+    },
+    {
+      "term": "Batch",
+      "def": "A group of photos the GPU server handles together, like a lift that leaves when it's full or when its doors have been open long enough."
+    },
+    {
+      "term": "Batch size",
+      "def": "The most photos one batch may hold: 16 as built. A batch goes as soon as it reaches it."
+    },
+    {
+      "term": "Longest wait",
+      "def": "How long a batch may wait for more photos, counted from its first photo, before it is sent anyway: 2 seconds as built, 0.1 in the fix."
+    },
+    {
+      "term": "Pass",
+      "def": "One run of the model over a whole batch. On the farm's GPU it takes 0.05 seconds whether the batch holds 1 photo or 16."
+    },
+    {
+      "term": "Answer limit",
+      "def": "The 1 second an arm has after its photo. The robot keeps rolling, and after 1 second the mushroom is behind the arm."
+    },
+    {
+      "term": "Skip",
+      "def": "What an arm does as built when no answer has come within 1 second: the robot logs the mushroom skipped and rolls on."
+    },
+    {
+      "term": "Pause",
+      "def": "Stopping the arm to wait for a late answer, then picking, instead of skipping. The fix keeps it as a safety net; each pause costs the robot time."
+    },
+    {
+      "term": "Model log",
+      "def": "The GPU server's record: one line per batch, with when it was sent, how many photos it held and how long its pass took."
+    },
+    {
+      "term": "Robot log",
+      "def": "Each robot's record of the night: mushrooms picked, and those skipped with the reason, such as no answer in time."
+    },
+    {
+      "term": "Wash bay",
+      "def": "Where all twelve robots are cleaned together every April and October. On 15 October eleven were in it and robot 3 was kept out."
+    },
+    {
+      "term": "Rush order",
+      "def": "A supermarket's order for Friday morning that made Csaba run robot 3 alone during the clean."
+    },
+    {
+      "term": "Latency",
+      "def": "How long one answer takes; here, from the photo to its answer. The arm's 1-second limit is a latency limit."
+    },
+    {
+      "term": "Throughput",
+      "def": "How much work gets done each second; here, photos the GPU answers. Full batches raise it: one pass, many answers."
+    },
+    {
+      "term": "Bottleneck",
+      "def": "The one slow part that everything else queues behind, like a narrow bottle neck. Speeding up anything else changes little."
+    },
+    {
+      "term": "GPU busy",
+      "def": "The share of the time the GPU spends running passes. On 15 October, 2.5%: it spent most of the night waiting."
+    },
+    {
+      "term": "Dynamic batching",
+      "def": "Forming each batch from whatever has arrived within a short wait, sent when full or when the wait ends, whichever comes first."
+    },
+    {
+      "term": "Cache",
+      "def": "A store of saved answers kept close at hand, so a question asked before is answered without the slow work (s2e04). It only helps when inputs repeat."
+    },
+    {
+      "term": "Rate limit (per robot)",
+      "def": "A cap on how many photos each robot may send a second, with extra photos turned away, like a doorman at a club (s6e03). 4 a second in the fix."
+    },
+    {
+      "term": "Noisy client",
+      "def": "One caller sending far more than its share, such as a faulty camera, so everyone sharing the machine waits behind it."
+    },
+    {
+      "term": "Firmware",
+      "def": "The program built into a device such as a camera, updated now and then by its maker."
+    },
+    {
+      "term": "Inference",
+      "def": "Running a trained model to get an answer, such as ripe or not ripe for one photo. Serving a model means doing inference for callers."
+    },
+    {
+      "term": "Triton Inference Server",
+      "def": "NVIDIA's free software for serving models: it takes requests, batches them and runs them on GPUs."
+    },
+    {
+      "term": "max_queue_delay_microseconds",
+      "def": "Triton's setting for the longest a request may be held while a batch forms. A microsecond is a millionth of a second."
+    },
+    {
+      "term": "Latency budget",
+      "def": "The time an answer is allowed to take, from which every wait on the way is paid. The arm's budget is 1 second."
+    },
+    {
+      "term": "Language model",
+      "def": "A model that writes text one small piece, a token, at a time, running the model once for each piece."
+    },
+    {
+      "term": "Token",
+      "def": "The small piece of text a language model writes at a time: a word or part of a word."
+    },
+    {
+      "term": "Orca",
+      "def": "A 2022 research system for serving language models that schedules the GPU one step of writing at a time, instead of one whole request at a time."
+    },
+    {
+      "term": "Continuous batching",
+      "def": "Letting new requests join a running batch and finished ones leave at each step, so nobody waits for the slowest in the batch."
+    },
+    {
+      "term": "vLLM",
+      "def": "Free software for serving language models fast, with continuous batching and careful sharing of GPU memory."
+    },
+    {
+      "term": "PagedAttention",
+      "def": "vLLM's way of keeping each request's working memory in small pages on the GPU, so more requests fit at once."
+    },
+    {
+      "term": "Prefix caching",
+      "def": "Reusing work already done for the shared start of two requests, so the second skips it: vLLM's cache for repeated inputs."
+    },
+    {
+      "term": "LATENT",
+      "def": "The forum's second course, on AI systems, on the board /n/latent. Its cases are linked here by id, not taught again."
+    },
+    {
+      "term": "ISO/IEC 27001:2022",
+      "def": "The international standard for managing information security. Annex A lists controls, among them A.8.6 on capacity."
+    },
+    {
+      "term": "A.8.6 Capacity management",
+      "def": "The ISO/IEC 27001:2022 control on watching and tuning resources, such as GPU time, against current and expected demand."
+    },
+    {
+      "term": "NIST AI Risk Management Framework",
+      "def": "A voluntary framework from the US National Institute of Standards and Technology for managing risks of AI systems. Named here, not taught."
+    },
+    {
+      "term": "ISO/IEC 42001:2023",
+      "def": "The international standard for an AI management system: requirements for running AI systems responsibly. Named here, not taught."
+    }
+  ],
+  "atWork": "Find every place where a shared model server, or any shared worker, gathers requests before it acts: a batch timer, a flush interval, a buffer that waits to fill. Ask what each wait was tuned for. A batch wait tuned for full load that strands a lone client is a common pattern: it passes every busy-hour test and fails on the first quiet night. For each, write down the slowest caller's deadline, the time one pass takes, and the longest wait, and check that the wait plus the pass fits under the deadline at the lowest traffic you ever see, not only the highest. Replay a single client alone in testing. Watch batch sizes, GPU busy and the slowest answer, and put a per-client rate limit in front of a shared GPU so one faulty caller can't take it all. Standards, stated conditionally: if your company is pursuing ISO/IEC 27001:2022, control A.8.6 (capacity management) expects resources to be monitored and tuned against current and expected demand, and a wait tuned only for peak load would be a gap to close. AI systems like this one also map to the NIST AI Risk Management Framework and ISO/IEC 42001, if your company follows them; this case names those frameworks and does not teach them. Build the deadline-based wait, the alerts and the low-load test in from the first design rather than at audit time.",
+  "board": {
+    "cards": [
+      {
+        "id": "serving-models-at-scale",
+        "title": "Serving models at scale"
+      },
+      {
+        "id": "gpus",
+        "title": "GPUs"
+      },
+      {
+        "id": "batching",
+        "title": "Batching"
+      },
+      {
+        "id": "caching",
+        "title": "Caching"
+      }
+    ],
+    "strings": [
+      {
+        "from": "batching",
+        "to": "latency",
+        "label": "wait vs answer"
+      },
+      {
+        "from": "batching",
+        "to": "gpus",
+        "label": "one pass, many"
+      },
+      {
+        "from": "gpus",
+        "to": "capacity",
+        "label": "idle, not slow"
+      },
+      {
+        "from": "serving-models-at-scale",
+        "to": "rate-limiting",
+        "label": "per-robot limit"
+      },
+      {
+        "from": "caching",
+        "to": "hit-ratio",
+        "label": "repeats only"
+      },
+      {
+        "from": "serving-models-at-scale",
+        "to": "batching",
+        "label": "wait from deadline"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s9e16-r1",
+      "kind": "free",
+      "prompt": "Your company runs a speech-to-text model on one shared GPU server for a call centre's 40 agents. The server batches up to 32 audio clips or holds them up to 1.5 seconds. Agents need each transcript within 1 second. On a quiet bank holiday only 2 agents work, and their screens show transcripts arriving late, while the GPU dashboard shows it nearly idle and each pass takes 0.04 seconds. What happened, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "With little traffic the batch never fills, so each clip waits the full 1.5-second timer; the GPU is not the delay",
+          "match": [
+            "never fills",
+            "doesn't fill",
+            "not full",
+            "waits the full",
+            "full 1.5",
+            "timer",
+            "the wait",
+            "waiting for the batch",
+            "not the gpu"
+          ]
+        },
+        {
+          "idea": "Set the batch wait from the deadline: send after a short wait or when full, whichever comes first (dynamic batching)",
+          "match": [
+            "short wait",
+            "shorter wait",
+            "from the deadline",
+            "whichever",
+            "dynamic batching",
+            "max_queue_delay",
+            "queue delay",
+            "cut the wait",
+            "lower the wait",
+            "reduce the wait"
+          ]
+        },
+        {
+          "idea": "Accept smaller batches (less work per pass) and check the GPU still keeps up at full load; a faster or extra GPU won't help",
+          "match": [
+            "smaller batches",
+            "smaller batch",
+            "less per pass",
+            "throughput",
+            "keeps up",
+            "keep up",
+            "full load",
+            "faster gpu won't",
+            "won't help"
+          ]
+        }
+      ],
+      "model": "The GPU isn't the delay: it is nearly idle and a pass takes 0.04 seconds. With 2 agents the batch never fills to 32, so every clip waits the full 1.5-second timer before the pass, and transcripts land after the agents' 1 second. I'd set the wait from the deadline: send each batch when it is full or after a short wait, say 0.2 seconds, whichever comes first, which is dynamic batching. Every transcript then arrives within about a quarter of a second at any load. The cost is smaller batches, less work per pass, so I'd check the GPU still keeps up at full load with 40 agents and watch its busy share and the slowest answer. A faster GPU or a second server won't help: the time was spent waiting, not working."
+    },
+    {
+      "id": "s9e16-r2",
+      "kind": "mcq",
+      "prompt": "Robot 3 alone, as built: photo k arrives at 0.25 × (k - 1) seconds, and every answer in the batch comes at 2.05. Which photos in each batch of 8 get their answer in time?",
+      "options": [
+        "Photos 1 to 3, because they arrived first",
+        "Photos 6 to 8: their 1-second limits end at 2.25, 2.50 and 2.75",
+        "All 8, because the pass takes only 0.05 seconds",
+        "None, because every answer comes after 2 seconds"
+      ],
+      "answer": 1,
+      "why": "Each photo's limit is its arrival plus 1 second. Photo 5 arrives at 1.00, so its limit is 2.00, before the 2.05 answer; photo 6 arrives at 1.25 and has until 2.25. So photos 1 to 5 are skipped and 6 to 8 answered in time: 3 of 8, and 3 in 8 of 1,920 ripe finds is 720."
+    },
+    {
+      "id": "s9e16-r3",
+      "kind": "mcq",
+      "prompt": "Which change gives every photo an answer within 0.15 seconds, for one robot and for twelve, on one GPU server?",
+      "options": [
+        "A GPU twice as fast, at 0.025 seconds a pass",
+        "A batch size of 32",
+        "A batch sent at 16 photos or after 0.1 seconds, whichever comes first",
+        "Three GPU servers, keeping the 2-second wait"
+      ],
+      "answer": 2,
+      "why": "A 0.1-second wait plus a 0.05-second pass caps every answer at 0.15 seconds: one robot gets batches of 1, twelve get batches of about 5, and the GPU is about half busy. A faster GPU still answers at 2.025, a batch size of 32 still waits 2 seconds for one robot, and three servers make each batch wait longer (robot 3 picks 640)."
+    },
+    {
+      "id": "s9e16-r4",
+      "kind": "free",
+      "prompt": "In an interview you're asked: how would you serve a model to many clients on a few GPUs, choose batch size against latency, and protect a shared GPU from one noisy client?",
+      "keyIdeas": [
+        {
+          "idea": "Batch requests so one pass serves many (throughput), but cap the wait by the latency budget: send when full or after a short wait (dynamic batching)",
+          "match": [
+            "dynamic batching",
+            "one pass",
+            "throughput",
+            "short wait",
+            "longest wait",
+            "latency budget",
+            "deadline",
+            "whichever"
+          ]
+        },
+        {
+          "idea": "Test and watch at both low and full load: batch sizes, GPU busy and the slowest answer; add GPUs only when they're truly busy",
+          "match": [
+            "low load",
+            "light load",
+            "alone",
+            "full load",
+            "gpu busy",
+            "utilisation",
+            "utilization",
+            "slowest answer",
+            "p99"
+          ]
+        },
+        {
+          "idea": "Per-client rate limits protect the shared GPU from one noisy client; cache only repeated inputs",
+          "match": [
+            "rate limit",
+            "per-client",
+            "per caller",
+            "token bucket",
+            "turned away",
+            "turn away",
+            "quota",
+            "cache"
+          ]
+        }
+      ],
+      "model": "I'd batch requests, since one GPU pass costs about the same for one request as for many, and that throughput is how a few GPUs serve many clients. But I'd cap each batch's wait by the latency budget: the batch goes when full or after a short wait, whichever comes first, which is dynamic batching. Batch size comes from measurement: big enough that full load fits with room to spare, never so big that waiting for it breaks the deadline. I'd test at both ends, full load and one client alone, and watch batch sizes, GPU busy and the slowest answer; I'd add GPUs only when they are truly busy, because a low GPU busy means the delay is a rule, not hardware. To protect a shared GPU I'd give each client a rate limit, a token bucket per caller, so a noisy client's extra requests are turned away instead of filling every batch, and I'd cache answers only where inputs really repeat."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 3 months later. Since Monday 19 October every batch goes at 16 photos or after 0.1 seconds, and a late arm pauses; not one arm paused through November and December. On Wednesday 13 January all twelve robots started at 23:00. A firmware update from the camera maker that afternoon had left robot 7's camera stuck sending 400 photos a second, while its arm stood still. At 23:30, on my rounds, I found every robot paused over its bed, arms raised, waiting. The screen in the GPU server's room read 100% busy. Rukhsana says the server can do at most 16 photos every 0.05 seconds: 320 a second.",
+    "prompt": "Reply to OP. Why did one robot's camera stop all twelve, and what should Rukhsana change?",
+    "keyIdeas": [
+      {
+        "idea": "Robot 7's 400 a second plus the others' 44 is more than the GPU's 320 a second, so the shared line of batches grows and every robot's answers come late",
+        "match": [
+          "more than the gpu",
+          "more than 320",
+          "over 320",
+          "444 a second",
+          "falls behind",
+          "fell behind",
+          "overloaded",
+          "swamped",
+          "shared",
+          "queue"
+        ]
+      },
+      {
+        "idea": "A per-robot rate limit of 4 photos a second turns robot 7's extra photos away before they reach the batch",
+        "match": [
+          "rate limit",
+          "per robot",
+          "per-robot",
+          "4 a second",
+          "four a second",
+          "token bucket",
+          "turn away",
+          "turned away",
+          "quota"
+        ]
+      },
+      {
+        "idea": "Alert when one robot's photo rate jumps, and roll camera updates out to one robot first",
+        "match": [
+          "alert",
+          "alarm",
+          "monitor",
+          "one robot first",
+          "a single robot",
+          "canary",
+          "test the update"
+        ]
+      }
+    ],
+    "model": "One shared GPU serves all twelve, and robot 7's stuck camera sent 400 photos a second on top of the other eleven's 44: 444 a second, more than the GPU's 320. The GPU fell behind, the shared queue of batches grew all night, and every robot's answers came late, so every arm paused. Nothing was wrong with the other robots; they were waiting behind a noisy client. Rukhsana should put a per-robot rate limit in front of the server, 4 photos a second each, a token bucket per robot, so robot 7's extra photos are turned away at the door and the others are answered within 0.15 seconds as usual. Then alert when any robot's photo rate jumps or GPU busy climbs past its normal level, and roll camera updates out to one robot first, checking its rate before the rest get it."
+  },
+  "next": "Next, The Drill: a payroll bureau's Thursday night run, and running a company-wide continuity program: who owns each plan, keeping plans current, and the kinds of exercise that test them.",
+  "sources": [
+    {
+      "title": "NVIDIA, Triton Inference Server documentation, Batchers (dynamic batcher, max_queue_delay_microseconds, tuning delay against the latency budget), read 16 October 2026",
+      "url": "https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/batcher.html"
+    },
+    {
+      "title": "Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, Soojeong Kim and Byung-Gon Chun, Orca: A Distributed Serving System for Transformer-Based Generative Models, USENIX OSDI '22 (presentation page with the abstract), read 16 October 2026",
+      "url": "https://www.usenix.org/conference/osdi22/presentation/yu"
+    },
+    {
+      "title": "vLLM documentation, Welcome to vLLM (continuous batching, PagedAttention, prefix caching), read 16 October 2026",
+      "url": "https://docs.vllm.ai/en/latest/"
+    },
+    {
+      "title": "vLLM documentation, Automatic Prefix Caching, read 16 October 2026",
+      "url": "https://docs.vllm.ai/en/latest/features/automatic_prefix_caching.html"
+    },
+    {
+      "title": "ISMS.online, ISO 27001:2022 Annex A 8.6 Capacity Management (a summary of the control), read 16 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a/8-6-capacity-management-2022/"
+    },
+    {
+      "title": "NIST, AI Risk Management Framework (AI RMF), read 16 October 2026",
+      "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+    },
+    {
+      "title": "Standard Norge, ISO/IEC 42001:2023 (Information technology, Artificial intelligence, Management system), read 16 October 2026",
+      "url": "https://online.standard.no/en/isoiec-42001-2023-4"
+    }
+  ]
+}
