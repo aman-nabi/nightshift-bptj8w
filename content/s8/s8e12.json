@@ -1,0 +1,800 @@
+{
+ "_changelog": [
+  "v1.0.1 (2026-10-16) Helland's article is cited from the Internet Archive's copy of the ACM Queue page, where the main session checked every quote word for word, instead of a blog that quoted it",
+  "v1.0.0 (2026-10-16) first version"
+ ],
+ "id": "s8e12",
+ "season": 8,
+ "n": 12,
+ "title": "Exactly Once, Really?",
+ "setting": "a vending machine that pays out twice",
+ "core": false,
+ "minutes": 12,
+ "concepts": [
+  "end-to-end-idempotency",
+  "deduplication-across-systems"
+ ],
+ "prerequisites": [
+  "s4e06",
+  "s4e07",
+  "s4e13"
+ ],
+ "rule": null,
+ "post": {
+  "author": "u/night_restock_kazimiera",
+  "flair": "Part 1",
+  "age": "7h",
+  "votes": 2987,
+  "title": "I restock vending machines on a night route. This morning's report says we paid back more than we sold: 41 refunds paid twice, for cans that never came out.",
+  "blocks": [
+   {
+    "t": "p",
+    "text": "I'm Kazimiera, night restocker for Plinthwell Vending. My route ends at Stannerley bus station, where machine 7 sells cans to the night-bus crowd: £3.50 a can, cards only. Each sale is a vend."
+   },
+   {
+    "t": "p",
+    "text": "When a can doesn't drop, the machine owes the money back: a refund. It sends the refund over the phone network, like a text, to a company that passes it on. That go-between is called a gateway. Ours is Tetherline."
+   },
+   {
+    "t": "p",
+    "text": "Tetherline gives each request a label of its own, a request id. Then it hands it on towards Ferrovane, the company that pays the card back: our payment provider."
+   },
+   {
+    "t": "p",
+    "text": "In between sits a queue: a waiting line of messages that Ferrovane takes off one at a time, in order."
+   },
+   {
+    "t": "p",
+    "text": "Ferrovane is careful. It keeps every request id for a day, and if the same id arrives again, it drops it. Removing repeats like that is called deduplication."
+   },
+   {
+    "t": "p",
+    "text": "The machine is careful too. First it sends the refund and waits 10 seconds for an answer. If none has come, it sends the same refund again, once, with the same refund number. Then it takes whichever answer comes first. That second send is a retry. A card sale just waits, and never sends twice."
+   },
+   {
+    "t": "p",
+    "text": "Two old threads here explain why: a sender that tries again can make one job happen twice (At Least Once), so name each job once, before its first try (The Ticket Number)."
+   },
+   {
+    "t": "p",
+    "text": "On Thursday 15 April I filled machine 7 at 23:00 and put a new brand of tall cans in column 4. They wedged in the chute. The machine saw no can drop, so it refunded, but it kept selling column 4. From 23:21 to 05:38, 41 vends failed."
+   },
+   {
+    "t": "p",
+    "text": "From 22:00 to 06:00 the phone company was working on the mast behind the station. A refund's round trip, there and back with an answer, usually takes 1 to 2 seconds. That night it took 12 to 20."
+   },
+   {
+    "t": "p",
+    "text": "Every morning Ferrovane settles up. First it adds up the night's card sales. Then it takes off the refunds it paid. Then it pays Plinthwell the difference. That's the settlement. Its report comes by email to the route phone I carry, at 06:00. Each line: what it counts, how many, the money."
+   },
+   {
+    "t": "log",
+    "text": "machine 7   Thu 15 Apr 18:00 to Fri 16 Apr 06:00\ncard sales      76    £266.00\nrefunds         82    £287.00\nto Plinthwell         -£21.00\nrefund numbers paid twice: 41"
+   },
+   {
+    "t": "p",
+    "text": "At 06:15 I opened machine 7 and found the tall cans jammed. Then I read the machine's own log for the first jam. Each line: time, refund number, what happened."
+   },
+   {
+    "t": "log",
+    "text": "23:21:40  refund 5131  try 1 sent\n23:21:50  refund 5131  no answer in 10 s. try 2 sent, same number\n23:21:54  refund 5131  answer: paid (Tetherline t-90211)\n23:22:04  refund 5131  answer: paid (Tetherline t-90212). already done"
+   },
+   {
+    "t": "beat",
+    "text": "One can. One number. Two refunds."
+   },
+   {
+    "t": "evidence",
+    "label": "refund_5131_log.png",
+    "diagram": {
+     "type": "timeline",
+     "w": 740,
+     "aria": "Refund 5131, from 23:21:40 for 30 seconds. Row one, machine 7: waiting for an answer until 23:21:54, then done. Row two, try 1, which Tetherline named t-90211: on its way from 23:21:40, answered paid at 23:21:54. Row three, try 2, which Tetherline named t-90212: sent at 23:21:50, answered paid again at 23:22:04. Markers show try 2 at 10 seconds, paid at 14 seconds and paid again at 24 seconds.",
+     "start": "23:21:40",
+     "seconds": 30,
+     "ticksEvery": 5,
+     "rows": [
+      {
+       "label": "Machine 7",
+       "segments": [
+        [
+         14,
+         30,
+         "ok"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         14,
+         "waiting"
+        ]
+       ]
+      },
+      {
+       "label": "Try 1: t-90211",
+       "segments": [
+        [
+         0,
+         14,
+         "warn"
+        ]
+       ]
+      },
+      {
+       "label": "Try 2: t-90212",
+       "segments": [
+        [
+         10,
+         24,
+         "bad"
+        ]
+       ],
+       "gaps": [
+        [
+         0,
+         10,
+         "not sent yet"
+        ]
+       ]
+      }
+     ],
+     "markers": [
+      {
+       "t": 10,
+       "label": "try 2",
+       "tone": "warn"
+      },
+      {
+       "t": 14,
+       "label": "paid",
+       "tone": "ok"
+      },
+      {
+       "t": 24,
+       "label": "paid again",
+       "tone": "bad"
+      }
+     ]
+    },
+    "caption": "Redrawn from machine 7's log, refund 5131, Thursday 15 April 2027, 23:21:40 to 23:22:10. Try 1 went at 23:21:40 and Tetherline named it t-90211. With no answer by 23:21:50, the machine sent try 2 with the same refund number, and Tetherline named it t-90212. Ferrovane had never seen t-90212, so it paid again. The answers came back at 23:21:54 and 23:22:04, each after a 14-second round trip."
+   },
+   {
+    "t": "p",
+    "text": "Ferrovane removed duplicates. The machine kept one number. Still, 41 refunds were paid twice: £143.50 we won't get back. The phone company's notice on the mast says the work comes back in May. What should Plinthwell change before then?"
+   }
+  ]
+ },
+ "comments": [
+  {
+   "author": "u/grey_pager",
+   "points": 164,
+   "age": "6h",
+   "text": "Each leg of your refund's trip, machine to Tetherline, Tetherline to the queue, the queue to Ferrovane, is called a hop. A name for one job that stays the same on every try is called a key; your refund number was meant to be one. Before you choose, read your machine's log again. On which hops was 5131 the name of the job? And what, exactly, did Ferrovane compare?",
+   "replies": [
+    {
+     "author": "u/night_restock_kazimiera",
+     "op": true,
+     "points": 52,
+     "age": "5h",
+     "text": "5131 went the whole way, but only as a note inside each request. The names Ferrovane compared were Tetherline's: t-90211 and t-90212. Different names, so it paid both."
+    }
+   ]
+  },
+  {
+   "author": "u/already_deduped_sigismund",
+   "points": 91,
+   "age": "5h",
+   "text": "You're overthinking it. Ferrovane already removes duplicates; it just needs help with the fast ones. Most queues have a setting that drops any message whose id they've seen in the last 5 minutes, and hands each message on once. It's called exactly-once. Ask Tetherline to switch it on. Five minutes covers a 10-second retry thirty times over. Then stop worrying.",
+   "replies": [
+    {
+     "author": "u/night_restock_kazimiera",
+     "op": true,
+     "points": 18,
+     "age": "4h",
+     "text": "Tetherline's support line says it's one switch on our account."
+    }
+   ]
+  },
+  {
+   "author": "u/old_route_fulgentia",
+   "points": 47,
+   "age": "3h",
+   "text": "Ran a vending route for years. We never let a machine send money twice on its own. Anything unanswered went on a list, and the office checked each one against the provider's report in the morning. Slower for the customer, but you never pay out twice."
+  }
+ ],
+ "reply": {
+  "prompt": "The mast work comes back in May. What should Plinthwell change before then? Part 2 follows your advice.",
+  "options": [
+   {
+    "text": "Have the gateway drop any repeat refund it sees from the same machine within 5 seconds.",
+    "tone": "bad",
+    "verdict": "Five seconds, ten-second retries",
+    "part2": "Tetherline added the window in April: a refund from the same machine, for the same amount, within 5 seconds of another, is dropped. In the sim, replaying Thursday with the window on: try 2 of refund 5131 reaches Tetherline at 23:21:50, 10 seconds after try 1, so the window lets it through, and Ferrovane, which has never seen t-90212, pays again. Repeats dropped: 0. All 41 refunds are paid twice, £143.50 extra, and the 06:00 report still reads sales £266.00 against refunds £287.00. A window wide enough to catch a 10-second retry would also swallow a real second refund from the same machine, a customer whose second try jammed too. On the first mast night in May the report showed refunds paid twice again.",
+    "senior": "A time window guesses that two requests are the same job because they look alike and arrive close together. It is wrong both ways: a retry can come later than any window (here every one came at 10 seconds), and two real jobs can look alike and come close together. Duplicates should be recognised by a name the sender gives the job, not by timing or by matching amounts. And the window sits at the very hop that is causing the trouble: Tetherline still makes a new id for every try, so every check after it compares the wrong names."
+   },
+   {
+    "text": "Turn on the queue's exactly-once setting, so no refund is ever passed on twice.",
+    "tone": "bad",
+    "verdict": "Exactly once, for one hop",
+    "part2": "Tetherline switched the queue's exactly-once setting on. In the sim, replaying Thursday: the queue drops a message whose id it saw in the last 5 minutes, and the id on each message is Tetherline's request id. Try 1 of refund 5131 is t-90211 and try 2 is t-90212, so the queue sees two different messages and passes both. Repeats dropped at the queue: 0. 41 refunds paid twice, £143.50 extra. The setting did exactly what it promises: no message went from the queue to Ferrovane twice. It never saw a repeat, because Tetherline had already turned one refund into two messages one hop earlier. In May the report showed the same doubles.",
+    "senior": "A queue's exactly-once is a real promise about one hop: a message it has accepted is handed on once, and a repeat of the same message id is dropped. It says nothing about whether two messages with different ids are the same job, because the queue never saw the job, only the messages. Exactly once for the whole trip can't come from any single hop's setting. It needs one name for the job, made where the job starts and carried unchanged, so every hop that checks is checking the same thing."
+   },
+   {
+    "text": "Make one refund key at the machine and have every hop drop repeats of that key.",
+    "tone": "ok",
+    "verdict": "Senior answer",
+    "part2": "Plinthwell changed the machines on Monday 19 April. Each refund now carries a key made at the machine: m7 for machine 7, then the vend number, because each of Plinthwell's machines counts its own vends. Tetherline passes the key on unchanged instead of making its own id, and the queue and Ferrovane use it as the id. Every hop keeps the keys it has seen: a repeat is dropped and gets the first answer back. In the sim, replaying Thursday: try 2 of refund 5131 reaches Tetherline at 23:21:50 carrying m7-5131. Tetherline has seen it and drops it, and at 23:21:54 the first answer, paid, goes back for both tries. 41 refunds, each paid once, £0.00 paid twice, and the report reads sales £266.00, refunds £143.50. Switch off the hops' own checks and Ferrovane still drops all 41 repeats itself, because the key reaches it unchanged. Through May's mast nights the report showed no refund paid twice.",
+    "senior": "Make the key once, at the origin, the place where the job starts, from something only that job has: the machine's id plus its vend number. Carry it unchanged through every hop, so the gateway, the queue and the provider all check the same name, and store the first result against it so a repeat gets that answer instead of a second payment. Retries stay on, so a refund that really is lost still gets through. The check that matters most is at the hop that moves the money; checks at earlier hops save traffic and protect any work they do. The price: every hop's owner must agree to carry the key and keep it as long as a repeat can arrive, and a hop that renames requests breaks the chain."
+   },
+   {
+    "text": "Never retry an unanswered refund by itself; list it for a person to check each morning.",
+    "tone": "warn",
+    "verdict": "Trade-off: no doubles, slow refunds",
+    "part2": "Plinthwell switched automatic retries off. A refund with no answer in 10 seconds goes on a list, and the office checks each one against Ferrovane's report the next morning. In the sim, replaying Thursday: refund 5131 has no answer at 23:21:50 and is listed. Ferrovane pays t-90211 anyway, at 23:21:54, but machine 7 has stopped waiting, so nobody hears it. 0 refunds paid twice, 41 paid once, and 41 waiting for a person. Each customer's screen said the refund would be checked in the morning. Through May the office spent its mornings on those lists, and a refund that really was lost on the way waited until a person found it.",
+    "senior": "Turning retries off swaps doubles for doubt. Nothing is paid twice, but a refund whose answer is slow is now an unknown, and a person must find out which unknowns were paid and which were lost. That is safe and cheap to build, and it is the right fallback when a provider offers no way to drop repeats. It costs staff time every night the network is slow, and the customer waits for a lost refund until someone looks. A key carried end to end keeps retries safe, so the machine can keep trying until it hears back."
+   }
+  ]
+ },
+ "sim": {
+  "module": "s8e12",
+  "title": "Replay Thursday night's refunds through every hop",
+  "lede": "You're Kazimiera at 23:21:39 on Thursday 15 April 2027, a second before vend 5131 fails. As given data: every can costs £3.50; 76 cards were charged that night (£266.00); 41 vends from column 4 failed, numbers 5131 to 5183, the last refund at 05:38. Round trips were 12 to 20 seconds while the mast was worked on (refund 5131: 14 s), and 1 to 2 seconds before. The machine waits 10 seconds, then sends the same refund once more. Tetherline numbers requests from t-90211; Ferrovane drops a request id it has seen; the queue's exactly-once setting drops an id it saw in the last 5 minutes. Set the rules, then play the night to the 06:00 report.",
+  "tryThis": "Try this: play it as built: 82 refunds paid, 41 paid twice, £143.50 extra, and sales £266.00 against refunds £287.00. Set the round trip to 1 to 2 s: no second tries. Turn on Tetherline's 5 s window, or the queue's exactly-once setting: 0 repeats dropped, still 41 paid twice. Make the id at the machine and let every hop drop repeats: 41 paid once, and Plinthwell gets £122.50. Turn automatic retry off: no doubles, but 41 refunds wait for a person."
+ },
+ "explain": {
+  "oneLine": "Nothing at Ferrovane was broken. The machine kept one refund number for both tries, but Tetherline gave every try a new request id, and Ferrovane removes duplicates by request id. With round trips of 12 to 20 seconds, every refund was retried at 10 seconds, so 41 refunds arrived as 82 different requests.",
+  "steps": [
+   {
+    "title": "A retry, step by step.",
+    "text": "A retry has four steps. First, send: the machine sends the refund. Second, wait: it gives the answer 10 seconds. Third, no answer: it can't tell a lost request from a slow one, because from the machine both look the same. Fourth, send again, with the same refund number. What goes wrong: no answer is not a no. On Thursday every first try was paid; its answer was just 2 to 10 seconds late. Before the mast work, answers came in 1 to 2 seconds, so the fourth step never happened. This is At Least Once (s4e06): a sender that retries makes repeats normal, so whoever acts on a request must expect them."
+   },
+   {
+    "title": "Each hop removed duplicates, on the name it saw.",
+    "text": "Ferrovane did remove duplicates: it drops a request id it has seen. But Tetherline makes a new request id for every try it passes on. So try 1 of refund 5131 became t-90211 and try 2 became t-90212, and from that hop on, one refund was two requests. The refund number still rode inside each request, but only as a note; nothing after Tetherline compared it. A hop that makes a new id per try turns one job into two, and every check after it checks the wrong name. Two other cures miss for the same reason: a 5-second window at Tetherline can't catch a retry that comes at 10 seconds, and waiting 30 seconds before retrying only works until a round trip takes longer than that."
+   },
+   {
+    "title": "Exactly once covers one hop.",
+    "text": "The queue's exactly-once setting drops a message whose id it saw in the last 5 minutes and hands each message to Ferrovane once. That is a real promise, but about one hop: from the queue to whoever reads it. It can't know that two messages with different ids are the same refund, because the ids were made by Tetherline, one hop earlier. As At Least Once showed (s4e06), a queue's exactly-once covers its own part of the trip. No single hop can promise exactly once for the whole trip; the whole trip can only get it if every hop checks one name for the job."
+   },
+   {
+    "title": "The fix: one key, from the machine to the money.",
+    "text": "First, make the key once, where the job starts: at the machine, when the vend fails. Use the machine's id plus the vend number, m7-5131, because each of Plinthwell's machines counts its own vends and a bare 5131 could be another machine's refund. Second, carry it unchanged through every hop: Tetherline passes m7-5131 on instead of making its own id, and the queue and Ferrovane use it as the id. Third, at every hop, look the key up before acting: if it is new, store it and pass the refund on; if it has been seen, drop the repeat. Fourth, return the stored first result to the repeat, so the machine hears 'paid' however many times it asked. What goes wrong: a hop that forgets keys too soon, or makes its own, breaks the chain. This is Rule 3 (s4e07), the ticket number, stretched across every hop."
+   }
+  ],
+  "diagram": {
+   "type": "sequence",
+   "w": 740,
+   "aria": "The fix, replayed for refund 5131. At 23:21:40 machine 7 sends try 1 with key m7-5131. Tetherline passes m7-5131 on unchanged to the queue, and the queue to Ferrovane, which finds the key new, pays and stores the answer. At 23:21:50 the machine sends try 2 with the same key. Tetherline has seen m7-5131 and drops the repeat. At 23:21:54 the first answer, paid, goes back for both tries. Outcome: 41 refunds, each paid once.",
+   "lanes": [
+    "machine 7",
+    "Tetherline",
+    "queue",
+    "Ferrovane"
+   ],
+   "steps": [
+    {
+     "from": 0,
+     "to": 1,
+     "label": "try 1: m7-5131"
+    },
+    {
+     "from": 1,
+     "to": 2,
+     "label": "m7-5131, unchanged"
+    },
+    {
+     "from": 2,
+     "to": 3,
+     "label": "m7-5131"
+    },
+    {
+     "note": 3,
+     "text": "new key: pay",
+     "sub": "store the answer",
+     "tone": "ok"
+    },
+    {
+     "from": 0,
+     "to": 1,
+     "label": "try 2: m7-5131",
+     "tone": "warn"
+    },
+    {
+     "note": 1,
+     "text": "seen m7-5131",
+     "sub": "drop the repeat",
+     "tone": "ok"
+    },
+    {
+     "from": 1,
+     "to": 0,
+     "label": "paid, once",
+     "tone": "ok"
+    },
+    {
+     "outcome": 0,
+     "text": "41 refunds, each paid once",
+     "tone": "ok"
+    }
+   ]
+  },
+  "caption": "The fix, replayed for refund 5131. Try 1 leaves machine 7 at 23:21:40 with key m7-5131, and every hop passes the same key on. Ferrovane finds it new, pays and stores the answer. Try 2 leaves at 23:21:50 with the same key; Tetherline has seen it and drops it. At 23:21:54 the first answer, paid, goes back for both tries.",
+  "fix": {
+   "title": "The fix: make the key at the machine and check it at every hop",
+   "text": "Make each refund's key once, at the machine, from the machine's id and the vend number: m7-5131. Send it with every try, and keep retries on, so a refund that really is lost still gets through. Have Tetherline pass the key on unchanged instead of making its own id, and have the queue and Ferrovane use it as the id. At every hop, look the key up first: a new key is stored and passed on; a seen key is dropped, and the stored first answer goes back. Keep each key at every hop for at least as long as a repeat can arrive. Then test it on a slow line: replay a night of 20-second round trips and check that the report shows no refund paid twice."
+  },
+  "limits": [
+   "The key only protects hops that keep it. A new service added between the machine and Ferrovane that makes its own id brings the doubles back, so every hop's owner must agree to carry it.",
+   "Each hop must keep its keys at least as long as a repeat can arrive. A key forgotten too soon lets a late repeat through as new.",
+   "Keys cost storage and a lookup at every hop, and a repeat that arrives while the first is still on its way needs a rule: hold it for the first answer, or answer 'still working'."
+  ],
+  "tradeoff": {
+   "head": [
+    "Rule",
+    "Good",
+    "Bad"
+   ],
+   "rows": [
+    [
+     "New id per try at Tetherline (as built)",
+     "Nothing to change; fine while answers come in 1 to 2 seconds.",
+     "At 12 to 20 seconds, 41 refunds paid twice: £143.50 extra, refunds £287.00 against sales £266.00."
+    ],
+    [
+     "Tetherline drops repeats within 5 seconds",
+     "Cheap, one setting at one hop.",
+     "Retries come at 10 seconds: 0 dropped, still 41 paid twice. A wider window drops real refunds."
+    ],
+    [
+     "The queue's exactly-once setting",
+     "A real promise for one hop: each message handed on once.",
+     "The two tries carry different ids: 0 dropped, still 41 paid twice."
+    ],
+    [
+     "Key made at the machine, checked at every hop (the fix)",
+     "41 refunds, each paid once; retries stay on, so lost refunds still get through.",
+     "Every hop must carry the key and keep it long enough; a lookup and storage at each hop."
+    ],
+    [
+     "No automatic retry, a person checks",
+     "Nothing paid twice; simple to build.",
+     "41 refunds wait for a person; a lost refund waits until someone finds it."
+    ],
+    [
+     "Wait 30 seconds before retrying",
+     "No second tries at 12 to 20 seconds.",
+     "Doubles return whenever a round trip takes longer than 30 seconds; customers wait longer."
+    ]
+   ]
+  },
+  "seniorTake": "Exactly once is not something a queue or a provider can hand you on its own. Networks lose answers, so senders retry, so repeats are normal; the job is to make a repeat harmless. That takes one name for the job, made once where the job starts, carried unchanged to wherever the money moves, and checked there before acting, with the first result stored and returned to every repeat. Each hop's own exactly-once or duplicate check only covers the names it sees; a hop that renames requests quietly undoes all of them. When you design across services, ask of every hop: does it keep the key, make its own, or drop it, and how long does it remember?",
+  "realWorld": [
+   {
+    "title": "Helland: retries are normal",
+    "text": "Pat Helland's 2012 article describes messages between systems: \"They can get lost, and so, after a timeout, they are retried.\" The result: \"The application on the other side of the communication may see multiple messages arrive where one was intended.\"",
+    "source": 1
+   },
+   {
+    "title": "Helland: why idempotence matters",
+    "text": "His conclusion in one line: \"In a world full of retried messages, idempotence is an essential property for reliable systems.\" Idempotent means doing a job twice has the same effect as doing it once.",
+    "source": 1
+   },
+   {
+    "title": "Where the article appeared",
+    "text": "Crossref lists it in Queue, ACM's magazine, volume 10, issue 4, published online on 13 April 2012, with the subtitle \"An essential property for reliable systems\".",
+    "source": 2
+   },
+   {
+    "title": "The CACM record",
+    "text": "It also ran in Communications of the ACM: Inist's Pascal-Francis catalogue lists it there in 2012, volume 55, issue 5, pages 56 to 65.",
+    "source": 3
+   },
+   {
+    "title": "Stripe: idempotent endpoints",
+    "text": "Brandur Leach of Stripe recommends making server endpoints idempotent, \"which means that they can be called any number of times while guaranteeing that side effects only occur once.\"",
+    "source": 0
+   },
+   {
+    "title": "Stripe: the client makes the key",
+    "text": "\"This is where idempotency keys come into play.\" The key is made where the job starts: \"When performing a request, a client generates a unique ID to identify just that operation and sends it up to the server\". On a failure: \"If the client notices a failure, it retries the request with the same ID\".",
+    "source": 0
+   },
+   {
+    "title": "Stripe: the repeat gets the first result",
+    "text": "If the work was done but the answer was lost, \"the server simply replies with a cached result of the successful operation.\" That is the stored first result every hop in the fix returns.",
+    "source": 0
+   }
+  ],
+  "interview": {
+   "asked": [
+    "Can a system deliver exactly once?",
+    "Where should an idempotency key be created?",
+    "Design refunds that are safe to retry across three services."
+   ],
+   "answer": "Over a network that can lose answers, no system can deliver a message exactly once: a sender that hears nothing can't tell lost from slow, so it must retry, and delivery becomes at least once. What you can get is an effect that happens once: the receiver recognises a repeat by a key and returns the first result instead of doing the work again. A queue's exactly-once setting gives that for one hop only. So the key must be created once, at the origin, where the job starts, from something unique to that job, such as a device id plus its own running count, never by a middle service per attempt. For refunds across a device, a gateway and a payment provider, I'd mint the key on the device when the refund is needed, send it with every try, have the gateway pass it through unchanged, use it as the queue's message id, and have the provider look it up before paying: new, pay and store the result; seen, return the stored result. Every hop keeps keys at least as long as a retry can arrive. Retries stay on, with backoff, so lost requests still get through. I'd test it by replaying slow round trips and checking that nothing is paid twice. I'd tell the story of a vending machine whose gateway gave each retry a new request id, so the provider's own duplicate check paid 41 refunds twice in one night."
+  }
+ },
+ "terms": [
+  {
+   "term": "Night restocker",
+   "def": "The person who refills vending machines overnight on a route of sites. Kazimiera, for Plinthwell Vending."
+  },
+  {
+   "term": "Plinthwell Vending",
+   "def": "The vending company in this story. It runs a route of machines, each counting its own vends; machine 7 is at Stannerley bus station."
+  },
+  {
+   "term": "Vending machine",
+   "def": "A machine that sells items by itself: the customer pays by card, picks a column, and a can drops into the tray."
+  },
+  {
+   "term": "Vend",
+   "def": "One sale from a vending machine. Machine 7 numbers every vend; vend 5131 was the first that failed on 15 April."
+  },
+  {
+   "term": "Column",
+   "def": "One stack of a vending machine's stock, with its own chute. Column 4 held the tall cans that jammed."
+  },
+  {
+   "term": "Refund",
+   "def": "Money sent back to a card for a charge that shouldn't stand. Here, for a vend whose can never dropped."
+  },
+  {
+   "term": "Refund number",
+   "def": "The number machine 7 gives a refund: the vend number. It sends the same one on both tries."
+  },
+  {
+   "term": "Gateway",
+   "def": "A go-between that passes messages from one network to another. Tetherline carries the machines' requests from the phone network on towards Ferrovane."
+  },
+  {
+   "term": "Tetherline",
+   "def": "The gateway company in this story. As built, it gives every request it passes on a new request id, starting from t-90211 that night."
+  },
+  {
+   "term": "Request id",
+   "def": "A label a service gives one request so it can be told apart from others. Tetherline makes a new one for every try."
+  },
+  {
+   "term": "Payment provider",
+   "def": "The company that moves card money for a business: it charges cards for sales and pays refunds back. Ferrovane, for Plinthwell."
+  },
+  {
+   "term": "Ferrovane",
+   "def": "The payment provider in this story. It keeps every request id for a day and drops one it has seen; it settles up with Plinthwell each morning."
+  },
+  {
+   "term": "Queue",
+   "def": "A waiting line of messages, like tickets on a spike: one side adds them, the other takes them off in order. Tetherline's sits between it and Ferrovane."
+  },
+  {
+   "term": "Message",
+   "def": "One item on a queue, with its own id. Here, one refund request."
+  },
+  {
+   "term": "Hop",
+   "def": "One leg of a request's trip from one system to the next: machine to Tetherline, Tetherline to the queue, the queue to Ferrovane."
+  },
+  {
+   "term": "Deduplication",
+   "def": "Spotting a repeat of something already handled and dropping it, like a post room binning a second copy of the same letter. It only works on the name it compares."
+  },
+  {
+   "term": "Retry",
+   "def": "Sending a request again because no answer came in time. Machine 7 waits 10 seconds, then sends the same refund once more."
+  },
+  {
+   "term": "Round trip",
+   "def": "The time from sending a request to getting its answer back. Usually 1 to 2 seconds for a refund; 12 to 20 during the mast work."
+  },
+  {
+   "term": "Phone mast",
+   "def": "The tower that carries a mobile network's radio signal for an area. Work on the one behind the station slowed every refund."
+  },
+  {
+   "term": "Settlement",
+   "def": "The morning sum-up: the provider adds the night's card sales, takes off the refunds it paid and pays the business the difference."
+  },
+  {
+   "term": "Settlement report",
+   "def": "Ferrovane's list of the night's sales and refunds, emailed to the route phone at 06:00. On 16 April: sales £266.00, refunds £287.00."
+  },
+  {
+   "term": "Key",
+   "def": "A name for one job that stays the same on every try, so any receiver can spot a repeat. Also called an idempotency key (s4e07)."
+  },
+  {
+   "term": "Exactly-once (queue setting)",
+   "def": "A queue setting that hands each message on once and drops a message whose id it saw in the last 5 minutes. It covers one hop."
+  },
+  {
+   "term": "Repeat window",
+   "def": "Option 0's rule at Tetherline: drop a refund from the same machine, for the same amount, within 5 seconds of another."
+  },
+  {
+   "term": "Stored first result",
+   "def": "The answer a hop saved with a key the first time, returned to every repeat of that key instead of doing the work again."
+  },
+  {
+   "term": "Origin",
+   "def": "The place a job starts. For a refund, the machine whose vend failed. The key is made there, once."
+  },
+  {
+   "term": "End to end",
+   "def": "Covering the whole trip, from where a job starts to where its work is done, not just one hop."
+  },
+  {
+   "term": "Idempotent",
+   "def": "Safe to do more than once: doing it twice has the same effect as doing it once, like pressing a lift button that is already lit."
+  },
+  {
+   "term": "Side effect",
+   "def": "Something a request changes in the world, such as money paid back. An idempotent endpoint makes it happen only once."
+  },
+  {
+   "term": "Server",
+   "def": "A computer that answers other computers' requests. Ferrovane's take refund requests off the queue."
+  },
+  {
+   "term": "Endpoint",
+   "def": "One address on a server that does one kind of job, such as 'pay a refund'."
+  },
+  {
+   "term": "Client",
+   "def": "The program that sends a request and waits for the answer. Here, machine 7."
+  },
+  {
+   "term": "Cached result",
+   "def": "Stripe's words for a saved answer: the result of the first, successful request, sent again to a repeat."
+  },
+  {
+   "term": "API gateway",
+   "def": "A service in front of other services that every call passes through, often to check, count and label the calls. API means a way for programs to ask another program for things."
+  },
+  {
+   "term": "Payments service",
+   "def": "In the recall scenario, the service behind the gateway that charges customers' cards."
+  },
+  {
+   "term": "Backoff",
+   "def": "Waiting longer after each failed try before trying again, so retries don't pile onto a struggling line."
+  },
+  {
+   "term": "Key lifetime",
+   "def": "How long a hop keeps a key before forgetting it. A repeat that comes later than that looks new."
+  },
+  {
+   "term": "Rule 3",
+   "def": "If the register asks you to charge a customer again, check the ticket number first. Name each job once, before the first try, and let a repeat of that name return the first result."
+  },
+  {
+   "term": "ISO 9001",
+   "def": "An international standard for quality management. Clause 8.5.1 asks that a service is produced under controlled conditions."
+  },
+  {
+   "term": "SOC 2 PI1",
+   "def": "The processing integrity criteria in a SOC 2 report: processing should be complete, valid, accurate, timely and authorised."
+  }
+ ],
+ "atWork": "Look for a middle service that gives each attempt a new id: a common pattern is an API gateway or any other go-between service that stamps every incoming call with its own fresh request id, in front of a service that removes duplicates by that id. Read-only checks are enough. First, pick one job that can be retried, such as a payment, refund or order, and follow it hop by hop: where is its key made, and does every hop pass that same key on, or swap in its own? Second, list each hop's duplicate check: what name does it compare, and how long does it keep it? Third, compare that with your retry rules: the longest gap between a first try and its last retry must be shorter than every hop's key lifetime. In AWS, look at what Amazon API Gateway adds as its own request id, whether your SQS FIFO MessageDeduplicationId comes from the caller's key or from something made per attempt, and whether your payments code sends the caller's idempotency key to the provider. Standards: if your company is pursuing ISO 9001:2015, clause 8.5.1 (control of production and service provision) expects a service to run under controlled conditions, and a refund that can be paid twice whenever the network is slow is a gap. If it is pursuing a SOC 2 report that covers processing integrity (PI1), the criteria expect processing to be complete, valid and accurate, so write down where each job's key is made, which hops check it and for how long. Flag for the design: a middle service that mints ids per attempt, or a key kept for less time than retries can run, would need rework before an audit, so put the end-to-end key into the design from the first draft.",
+ "board": {
+  "cards": [
+   {
+    "id": "end-to-end-idempotency",
+    "title": "End-to-end idempotency"
+   },
+   {
+    "id": "deduplication-across-systems",
+    "title": "Dedup across systems"
+   }
+  ],
+  "strings": [
+   {
+    "from": "end-to-end-idempotency",
+    "to": "idempotency-keys",
+    "label": "one key, all hops"
+   },
+   {
+    "from": "end-to-end-idempotency",
+    "to": "at-least-once",
+    "label": "why repeats come"
+   },
+   {
+    "from": "deduplication-across-systems",
+    "to": "exactly-once",
+    "label": "one hop only"
+   },
+   {
+    "from": "deduplication-across-systems",
+    "to": "retries",
+    "label": "same name"
+   },
+   {
+    "from": "end-to-end-idempotency",
+    "to": "deduplication-across-systems",
+    "label": "check every hop"
+   }
+  ]
+ },
+ "recall": [
+  {
+   "id": "s8e12-r1",
+   "kind": "free",
+   "prompt": "Your shop's mobile app sends each order through an API gateway, which stamps every call with its own fresh request id and passes it to the payments service. The payments service drops any request id it has seen. On a slow train line, the app gives up waiting after 5 seconds and sends the same order again, and some customers are charged twice. What is happening, and what would you change?",
+   "keyIdeas": [
+    {
+     "idea": "The gateway gives each try a new id, so the payments service sees two different requests and its check never matches",
+     "match": [
+      "new id",
+      "different id",
+      "two different",
+      "each try",
+      "every try",
+      "never matches",
+      "renames"
+     ]
+    },
+    {
+     "idea": "Make one key in the app, once per order, and carry it unchanged through the gateway",
+     "match": [
+      "in the app",
+      "at the origin",
+      "where the order starts",
+      "unchanged",
+      "carry it",
+      "carries it",
+      "pass it through",
+      "passes it through",
+      "same key"
+     ]
+    },
+    {
+     "idea": "Every hop, above all the payments service, drops repeats of that key and returns the stored first result",
+     "match": [
+      "stored result",
+      "first result",
+      "stored answer",
+      "first answer",
+      "look up the key",
+      "looks up the key",
+      "repeats of the key",
+      "repeats of that key"
+     ]
+    }
+   ],
+   "model": "The app does retry with the same order, but the gateway gives each try a new id, so the payments service sees two different requests and its duplicate check never matches: one order becomes two charges. I'd make one key in the app, once per order, at the origin, and send it with every try. The gateway must carry it unchanged instead of stamping its own, and the payments service must use it as the id: it looks up the key before charging, charges and stores the result if the key is new, and returns the stored first result to any repeat. Every hop keeps the key at least as long as a retry can arrive."
+  },
+  {
+   "id": "s8e12-r2",
+   "kind": "mcq",
+   "prompt": "In the sim, with Thursday's 12 to 20 second round trips and the 10 second retry wait, which one change leaves no refund paid twice while automatic retries stay on?",
+   "options": [
+    "Tetherline drops a repeat from the same machine within 5 s",
+    "The queue's exactly-once setting on",
+    "The id made at the machine, m7 plus the vend number, carried unchanged",
+    "Tetherline, the queue and Ferrovane all checking, with Tetherline's ids as now"
+   ],
+   "answer": 2,
+   "why": "With the key made at the machine, both tries carry m7-5131, so the first hop that checks drops the repeat; even with only Ferrovane checking, all 41 repeats are dropped and each refund is paid once. The 5 s window drops nothing because retries come at 10 s, and the queue and the hops compare Tetherline's new ids, so 41 refunds are still paid twice."
+  },
+  {
+   "id": "s8e12-r3",
+   "kind": "free",
+   "prompt": "In an interview you're asked: can a system deliver a message exactly once?",
+   "keyIdeas": [
+    {
+     "idea": "Not over a network that loses answers: a sender can't tell lost from slow, so it retries, and delivery is at least once",
+     "match": [
+      "at least once",
+      "at-least-once",
+      "lost from slow",
+      "can't tell",
+      "cannot tell",
+      "must retry",
+      "retries"
+     ]
+    },
+    {
+     "idea": "The effect can happen once: the receiver recognises a repeat by a key and returns the first result",
+     "match": [
+      "idempoten",
+      "first result",
+      "stored result",
+      "drops repeats",
+      "drop repeats",
+      "duplicate check",
+      "dedup"
+     ]
+    },
+    {
+     "idea": "A queue's exactly-once covers one hop; the key must be made at the origin and survive every hop",
+     "match": [
+      "one hop",
+      "every hop",
+      "each hop",
+      "end to end",
+      "end-to-end",
+      "origin",
+      "whole trip"
+     ]
+    }
+   ],
+   "model": "Not over a network that can lose answers. A sender that hears nothing can't tell lost from slow, so it must retry, and delivery becomes at least once. What you can get is an effect that happens once: the receiver is idempotent, recognising a repeat by a key and returning the stored first result instead of doing the work again. A queue's exactly-once setting gives that for one hop only. For the whole trip, the key must be made once at the origin and carried unchanged through every hop, with each hop that acts checking it. I'd mention a vending machine whose gateway gave every retry a new id, so the provider's own check paid refunds twice."
+  },
+  {
+   "id": "s8e12-r4",
+   "kind": "mcq",
+   "prompt": "Where should the idempotency key for a refund be created?",
+   "options": [
+    "At the payment provider, when the refund arrives",
+    "At the gateway, as the request passes through",
+    "Once, where the job starts, and then carried unchanged",
+    "At the queue, from the time the message arrived"
+   ],
+   "answer": 2,
+   "why": "Only the origin knows that two tries are the same job. A key made later, by the provider, the gateway or the queue, is made per request it sees, so a retry gets a new one and looks like a new refund."
+  }
+ ],
+ "coldCase": {
+  "update": "UPDATE, 3 months later. The keys work: no refund paid twice through May's mast nights. Then a storm cut the power at Stannerley at 01:10 on Friday 9 July. Machine 7 had sent refund m7-6204 at 01:09:55 and heard nothing back. It keeps an unanswered refund and sends it again when it restarts. The power came back at 09:30 on Saturday 10 July, and the machine sent the refund again with the same key. Ferrovane paid it a second time. Its docs say it keeps each key for 24 hours.",
+  "prompt": "Reply to Kazimiera. The key never changed, so why was refund m7-6204 paid twice, and what should change?",
+  "keyIdeas": [
+   {
+    "idea": "Ferrovane had forgotten the key: it keeps keys for a day, and the repeat came over 32 hours later",
+    "match": [
+     "forgot",
+     "forgotten",
+     "expired",
+     "a day",
+     "too late",
+     "32 hours",
+     "no longer"
+    ]
+   },
+   {
+    "idea": "Keep keys at least as long as a repeat can arrive, or stop the machine retrying once a key's lifetime has passed",
+    "match": [
+     "as long as",
+     "longer than",
+     "stop retrying",
+     "give up",
+     "lifetime",
+     "older than"
+    ]
+   },
+   {
+    "idea": "Before resending an old refund, ask Ferrovane whether it was paid, or pass it to a person",
+    "match": [
+     "ask ferrovane",
+     "check first",
+     "check with",
+     "look it up",
+     "look up",
+     "status",
+     "to a person"
+    ]
+   }
+  ],
+  "model": "The key was right, but Ferrovane had forgotten it. It keeps keys for a day, and the repeat came more than 32 hours after the first try, so m7-6204 looked new and was paid again. A key only works while every hop remembers it, so the rule is: keep keys at least as long as a repeat can arrive, or stop the machine retrying once a key is older than the shortest lifetime on the trip. For anything older, don't send it blind: ask Ferrovane for the refund's status, look it up by key, or pass it to a person. Then test it by holding a refund past a day and resending it."
+ },
+ "next": "Next, Two Cities: a bike-hire scheme in two cities across a border, and running one service from two places at once, standby or both live, and where each country's data is allowed to live.",
+ "sources": [
+  {
+   "title": "Brandur Leach, Designing robust and predictable APIs with idempotency, Stripe blog, 22 February 2017 (idempotent endpoints, idempotency keys, cached results), read 16 October 2026",
+   "url": "https://stripe.com/blog/idempotency"
+  },
+  {
+   "title": "Pat Helland, Idempotence Is Not a Medical Condition: An essential property for reliable systems, ACM Queue 10(4), 14 April 2012, read through the Internet Archive's copy of the queue.acm.org page (the live page refused automated reading), read 16 October 2026",
+   "url": "https://web.archive.org/web/20251223070450/https://queue.acm.org/detail.cfm?id=2187821"
+  },
+  {
+   "title": "Crossref record for Pat Helland, Idempotence Is Not a Medical Condition: An essential property for reliable systems, Queue 10(4), pages 30-46, published online 13 April 2012, read 16 October 2026",
+   "url": "https://api.crossref.org/works/10.1145%2F2181796.2187821"
+  },
+  {
+   "title": "Inist Pascal-Francis record for Pat Helland, Idempotence Is Not a Medical Condition, Communications of the ACM 55(5), 2012, pages 56-65, read 16 October 2026",
+   "url": "https://pascal-francis.inist.fr/vibad/index.php?action=getRecordDetail&idt=26019711"
+  }
+ ]
+}
