@@ -1,0 +1,995 @@
+{
+  "_changelog": [
+    "v1.0.1 (2026-10-16) Iorwerth's comment: 'ran every request through Zuul' became 'put Zuul in front of every service that took requests from outside', matching the post's 'All of Netflix Edge services are fronted with the Zuul layer'",
+    "v1.0.0 (2026-10-16) first version"
+  ],
+  "id": "s9e18",
+  "season": 9,
+  "n": 18,
+  "title": "Field Report: Any Region Can Take It",
+  "setting": "the Netflix TechBlog archive",
+  "core": true,
+  "minutes": 12,
+  "concepts": [
+    "active-active-across-aws-regions",
+    "serving-members-from-more-than-one-region",
+    "keeping-data-replicated-between-regions",
+    "steering-traffic-away-from-a-failing-region"
+  ],
+  "prerequisites": [
+    "s1e01",
+    "s1e10",
+    "s2e15",
+    "s2e16",
+    "s6e04",
+    "s6e10",
+    "s6e11"
+  ],
+  "rule": null,
+  "post": {
+    "author": "u/night_warden_anwuli",
+    "flair": "Field Report",
+    "age": "4h",
+    "votes": 3012,
+    "title": "I'm a night parking warden. Our city's parking system was copied from a Netflix post from 2013: two regions, both live. At 02:14 my handheld called every car unpaid, even the one I watched pay at 02:09.",
+    "blocks": [
+      {
+        "t": "p",
+        "text": "I'm Anwuli, night parking warden for Pelmouth City Council. Drivers pay with a phone app. My handheld is a scanner: it reads a number plate and asks the parking system whether the car has paid."
+      },
+      {
+        "t": "p",
+        "text": "That system runs on machines: computers the council rents from a cloud company. Each question a phone or handheld sends is a request. One machine answers 100 requests a minute."
+      },
+      {
+        "t": "p",
+        "text": "Iorwerth, our developer, built it in 2025 from a Netflix TechBlog post, \"Active-Active for Multi-Regional Resiliency\" (2 December 2013). The machines sit in two regions, A and B: two of the cloud company's sites, far apart, so one fault can't reach both. Both are live, each serving half the drivers, \"a rough split of 50/50%\": active-active."
+      },
+      {
+        "t": "p",
+        "text": "A payment is saved in the region that takes it, then copied to the other moments later. Both regions hold every payment, each a little behind."
+      },
+      {
+        "t": "p",
+        "text": "Phones find a region through DNS, the internet's address book. A phone asks for the parking address and gets a DNS answer: which region to use. It keeps that answer 60 seconds."
+      },
+      {
+        "t": "p",
+        "text": "If a region fails, a steering service moves everyone, in steps. Every few seconds it sends each region a health check, a tiny test request. After a few failures in a row, it marks the region down and changes the DNS answer to the other region. Phones move as their saved answers run out."
+      },
+      {
+        "t": "p",
+        "text": "Saturday night is our peak, our busiest stretch. The centre charges until 04:00, for the clubs, and from 23:00 to 03:00 we get 600 requests a minute, 300 per region. In March a cost review capped each region at 4 machines, 400 a minute: 75% busy at the peak, which it called healthy."
+      },
+      {
+        "t": "p",
+        "text": "In April Iorwerth ran an evacuation drill, moving every driver off region A on purpose: A marked down, the DNS answer changed, phones moved to B. At 05:00 on Sunday 19 April, 120 requests a minute in all, it passed. Region A had never failed for real."
+      },
+      {
+        "t": "p",
+        "text": "Saturday 10 October. At 02:09, now Sunday, a driver on the market square paid by phone beside me and showed me the green PAID screen."
+      },
+      {
+        "t": "p",
+        "text": "At 02:14 my round brought me back. Her car: UNPAID. So was every car on the square."
+      },
+      {
+        "t": "beat",
+        "text": "Every car in the centre had stopped paying at once."
+      },
+      {
+        "t": "p",
+        "text": "I opened the council's status page, a public web page on how the system runs. At 02:15:"
+      },
+      {
+        "t": "log",
+        "text": "status page, 02:15\nRegion A: down. Region B: serving 100%"
+      },
+      {
+        "t": "p",
+        "text": "The health-check alarm had woken Iorwerth at 02:10; at 02:20 he told every warden: no tickets. He sent me the regions' records. Each line: the minute, requests in, answered in time, left waiting. Left waiting means timed out: the phone or handheld gave up."
+      },
+      {
+        "t": "log",
+        "text": "02:09  A 300 in, 300 answered   B 300 in, 300 answered\n02:10  A fails, 300 timed out   B 300 in, 300 answered\n02:11  B 600 in, 400 answered, 200 waiting\n02:12  B 600 in, 200 answered, 400 waiting, checks fail\n02:13  B 600 in, 0 answered, 600 waiting"
+      },
+      {
+        "t": "evidence",
+        "label": "sunday_0208_0216.png",
+        "diagram": {
+          "type": "timeline",
+          "w": 740,
+          "aria": "Sunday 11 October, 02:08 to 02:16. Region A answers until 02:10, then is down. Region B answers normally until 02:11, is overloaded from 02:11 to 02:12, and fails its own health checks from 02:12. The driver's payment, made at 02:09, sits in region B from 02:09 onwards. Markers: paid at 02:09, B's checks fail at 02:12, and the handheld shows UNPAID at 02:14.",
+          "start": "02:08:00",
+          "seconds": 480,
+          "ticksEvery": 60,
+          "rows": [
+            {
+              "label": "Region A",
+              "segments": [
+                [
+                  0,
+                  120,
+                  "ok"
+                ]
+              ],
+              "gaps": [
+                [
+                  120,
+                  480,
+                  "down"
+                ]
+              ]
+            },
+            {
+              "label": "Region B",
+              "segments": [
+                [
+                  0,
+                  180,
+                  "ok"
+                ],
+                [
+                  180,
+                  240,
+                  "warn"
+                ],
+                [
+                  240,
+                  480,
+                  "bad"
+                ]
+              ],
+              "gaps": []
+            },
+            {
+              "label": "Payment in B",
+              "segments": [
+                [
+                  60,
+                  480,
+                  "ok"
+                ]
+              ],
+              "gaps": [
+                [
+                  0,
+                  60,
+                  "not yet"
+                ]
+              ]
+            }
+          ],
+          "markers": [
+            {
+              "t": 60,
+              "label": "paid 02:09",
+              "tone": "ok"
+            },
+            {
+              "t": 240,
+              "label": "checks fail",
+              "tone": "bad"
+            },
+            {
+              "t": 360,
+              "label": "UNPAID 02:14",
+              "tone": "bad"
+            }
+          ]
+        },
+        "caption": "Redrawn from the regions' records and my handheld, Sunday 11 October, 02:08 to 02:16. Region A answers until 02:10, then nothing. Region B is green until 02:11, amber while 600 requests a minute meet its 400, and red from 02:12, when its own health checks fail. Her payment went through region A at 02:09 and was copied to region B moments later; it was there all along. At 02:14 the handheld asked, got no answer in time, and showed UNPAID."
+      },
+      {
+        "t": "p",
+        "text": "Iorwerth found her payment in region B, copied there at 02:09. Nothing was lost. The status page, he says, shows each region's share of traffic, not its health. Next Saturday brings the same peak. What should we change?"
+      }
+    ]
+  },
+  "comments": [
+    {
+      "author": "u/grey_pager",
+      "points": 133,
+      "age": "3h",
+      "text": "Two words, then questions. The other common design is active-passive: one region live, the other a standby, a small copy kept ready that adds machines when it has to take over. Now your night. At 02:11, how many requests a minute could region B answer, and how many came? When did anyone last move a whole Saturday peak onto one region? And when the handheld gets no answer at all, how does it tell that apart from an answer that says not paid?",
+      "replies": [
+        {
+          "author": "u/night_warden_anwuli",
+          "op": true,
+          "points": 51,
+          "age": "3h",
+          "text": "B could answer 400; 600 came. Nobody has ever moved a Saturday peak: the April drill was 120 a minute at 05:00 on a Sunday. And it can't tell them apart. Iorwerth says the handheld shows UNPAID whenever no answer comes back in time. It was set that way in 2019, on the old system, when a check almost never went unanswered."
+        }
+      ]
+    },
+    {
+      "author": "u/short_ttl_olusegun",
+      "points": 89,
+      "age": "3h",
+      "text": "The failover, the move to B, was just too slow. Your phones kept the old DNS answer for 60 seconds, so for a whole minute region A's drivers knocked on a dead door, then landed on B in one lump. Those 60 seconds are the DNS cache time: how long a phone keeps an answer. Shorten the DNS caching to 5 seconds and traffic moves at once. I've done it on three sites. It's one setting.",
+      "replies": [
+        {
+          "author": "u/night_warden_anwuli",
+          "op": true,
+          "points": 24,
+          "age": "2h",
+          "text": "Iorwerth says he can set it to 5 seconds tonight."
+        }
+      ]
+    },
+    {
+      "author": "u/pelmouth_dev_iorwerth",
+      "points": 66,
+      "age": "2h",
+      "text": "Iorwerth here. We copied two live regions, payments copied both ways, and the steering. One thing I left out. Netflix put a program called Zuul in front of every service that took requests from outside, which could \"define a maximum traffic level at any point in time\". Requests above that level are turned away at once with a busy answer, \"try again\", instead of being put in a line. I skipped it because a driver who is turned away can't pay. The post's own drill also moved traffic \"a bit more gradually\" than in an emergency."
+    },
+    {
+      "author": "u/four_tries_mbugua",
+      "points": 41,
+      "age": "1h",
+      "text": "Warden in another city. Our handhelds don't trust a single silence. If a check gets no answer, they ask again, three more times, before they show anything. A blip shouldn't put a ticket on a paid car, and with four tries it never has."
+    }
+  ],
+  "reply": {
+    "prompt": "Next Saturday brings the same peak. What should Pelmouth change before then? Part 2 follows your advice.",
+    "options": [
+      {
+        "text": "Shorten how long phones keep the DNS answer, so drivers move over to region B faster.",
+        "tone": "bad",
+        "verdict": "Faster into the same overload",
+        "part2": "Iorwerth set the DNS cache time to 5 seconds on Monday 12 October. In the sim, replaying the night with it: region A's drivers reach region B within 02:10 instead of 02:11. B gets 600 requests a minute a minute sooner. It is overloaded at 02:10, its health checks fail at 02:11, and from 02:12 nothing is answered in time. By 02:19, 5,400 requests have timed out, against 5,100 as built, and every car checked from 02:12 shows UNPAID. The move was quicker. The region it moved to could still answer only 400 a minute.",
+        "senior": "Failing over faster helps only when the place you fail over to can take the load. A short DNS cache time moves drivers sooner, and it costs extra lookups all the time; some phones and helpers also keep answers longer than they are told. Here the surviving region was the limit: 600 a minute into 400 overloads it however fast they arrive. Check where the traffic lands before you make it land sooner."
+      },
+      {
+        "text": "Make each handheld try a check three more times before it shows a car as unpaid.",
+        "tone": "bad",
+        "verdict": "More knocking on a full door",
+        "part2": "Iorwerth set the handhelds to send each unanswered check three more times, the next minute. In the sim, replaying the night: the retries land on region B on top of the drivers. B gets 690 requests at 02:11 instead of 600, and 780 a minute from 02:14. Its line reaches 3,195 by 02:19 instead of 1,800. Its health checks still fail at 02:12, and every car checked from 02:13 still shows UNPAID, now after four tries. The retries made the overloaded region busier and saved no car.",
+        "senior": "A retry helps when a failure is brief and the other side has room. When a region is overloaded, every retry is one more request in its line, so retries deepen the overload: a retry storm, as in \"Cascades\" (s6e04). And retrying never settles what the handheld says when no answer comes. It still has to choose between UNPAID and the truth, \"cannot check\"."
+      },
+      {
+        "text": "Keep one region live, with a small standby that adds machines when it has to take over.",
+        "tone": "warn",
+        "verdict": "Trade-off: cheaper, but minutes of failures",
+        "part2": "Iorwerth priced it: region A live with 8 machines for everyone, region B a standby of 2 that adds 2 machines a minute after A fails. That is 10 machines in all, against 16 for two regions each sized for the peak. In the sim, replaying the night: at 02:10 all 600 requests time out at A, since every driver was there. B has 4 machines at 02:11 and is overloaded: 400 answered, 200 waiting. At 02:12 it has 6 and its health checks fail. At 02:13 it has 8 and answers all 600, and from 02:14 it is healthy at 75% busy. 1,000 requests time out on the way, and 100 checks show UNPAID. It costs less, and it comes back, but payments fail while it grows.",
+        "senior": "Active-passive with a standby that grows is a real design, cheaper than two full regions, and many systems use it. Its price is the minutes it takes to grow: new machines take time to start, as in \"Autoscaling\" (s6e11), and the standby's saved copies start empty. If those minutes are acceptable, write them down as your recovery time target, the RTO from \"When the Building Burns\" (s6e10), and rehearse the growth at peak. Add a maximum level too: in the sim it turns B's 200 waiting at 02:11 into 200 turned away at once, and B's health checks never fail."
+      },
+      {
+        "text": "Size each region for the whole peak, and turn away requests above what it can carry.",
+        "tone": "ok",
+        "verdict": "Senior answer",
+        "part2": "By Saturday 17 October Pelmouth ran 8 machines in each region, 800 a minute, with a maximum level in each region at what its machines can answer. Iorwerth changed the handheld too: no answer now shows \"cannot check\", never UNPAID. In the sim, replaying the night: region A fails at 02:10 and its 300 requests that minute time out. From 02:11 region B takes all 600 on 8 machines, 75% busy, health checks passing, nothing waiting and nothing turned away. With only 4 machines, the maximum level alone keeps B healthy too: 400 answered, 200 turned away at once, and the handhelds show \"cannot check\" for those. At 02:30 on Sunday 15 November, at the peak, Iorwerth failed region A on purpose with 600 a minute arriving, and B carried them all. It costs twice the machines: 16 instead of 8.",
+        "senior": "Active-active works only if any one region can carry everyone. With two regions, each must take the whole peak, so each runs at most half busy on a normal night; that spare half is the insurance. Then put a maximum traffic level at each region's front door, so a surprise above its size is turned away quickly instead of filling a line that drowns its own health checks. Rehearse the evacuation at peak-like load, not at 05:00 on a Sunday. And make every reader of the system say \"cannot check\" when no answer comes, so an outage never becomes a false record."
+      }
+    ]
+  },
+  "sim": {
+    "module": "s9e18",
+    "title": "Run the game day on Pelmouth's two regions",
+    "lede": "You're replaying Sunday 11 October 2026 from 02:00, inside the Saturday peak (23:00 to 03:00), one minute at a time to 02:19. As given data: one machine answers 100 requests a minute; as built, each region runs 4. The peak is 600 requests a minute, split 50/50 (or 70/30: 420 and 180); the April drill's load is 120. One request in ten is a handheld check, and in this lab every car checked has paid, so every UNPAID is wrong. A region works through its line first come, first served. A request not answered in the minute it arrives has timed out; it stays in the line, and a machine still spends a turn on it later (wasted work). Health checks fail in any minute that starts with requests already waiting. When region A fails, the steering marks it down and points the DNS answer at region B that minute; phones that keep the answer 60 seconds reach B the next minute, with 5 seconds the same minute. Gradual moves a third of A's drivers a minute. The maximum level answers up to what the machines can and turns the rest away at once. Retries send each unanswered check 3 more times the next minute; the handheld line counts cars by their first try. One live region: A runs 8 machines for everyone, and B is a standby of 2 that has 4, 6, then 8 machines in the minutes after A fails. Every change sets the clock back to 02:00 with region A not failed.",
+    "tryThis": "Try this: press Replay the night. Region A fails at 02:10, region B gets 600 at 02:11 and answers 400, its health checks fail at 02:12, and from 02:13 every check shows unpaid. Then run your own game day: reset, press Next minute ten times to 02:09, press Fail region A now, and play on. Set the load to the April drill's 120 and replay: it passes. Try 8 machines, the maximum level with 4 and with 8, \"cannot check\", the 5-second DNS answer, retries, 70/30, gradual, and one live region with a standby, with and without the maximum level."
+  },
+  "explain": {
+    "oneLine": "Nothing was lost, and region B didn't break on its own. Region A failed at 02:10, and the DNS answer sent all 600 requests a minute to region B, which a cost review had capped at 4 machines, 400 a minute. Its line grew, its own health checks failed at 02:12, and the handheld read every silence as UNPAID.",
+    "steps": [
+      {
+        "title": "Two live regions, and what moves when one fails.",
+        "text": "Pelmouth copied the shape of Netflix's 2013 design: two regions, both live, each serving half the drivers, with every payment copied to the other region moments after it is saved. Copying afterwards, not waiting for the other region, is called asynchronous copying; it keeps each payment quick, and the price is that each region is a little behind the other. When a region fails, steering is a chain of steps, and each can go wrong. First, the steering service sends every region a health check every few seconds; if the checks themselves are slow or wrong, the steering acts late or on a healthy region. Second, after a few failures in a row it marks the region down. Third, it changes the DNS answer to name the healthy region. Fourth, each phone keeps its saved answer until its cache time runs out, 60 seconds here, so some drivers keep knocking on the dead region for up to a minute. At 02:10 region A's 300 requests timed out that way; at 02:11 all 600 reached region B. Eureka in \"Field Report: Roll Call\" (s2e16) keeps the list of live machines inside one region; the steering does the same job one level up, for whole regions."
+      },
+      {
+        "title": "Region B could answer 400 a minute, and 600 came.",
+        "text": "In March the cost review saw each region 75% busy at the Saturday peak, 300 of its 400, and called it healthy. It was, for a night when both regions run. With one region gone, 600 a minute met 4 machines. At 02:11 region B answered 400 and 200 were left waiting, already given up by their phones. At 02:12 its machines first spent their turns on those 200, wasted work, as in \"Cascades\" (s6e04), so only 200 new requests were answered in time. B's own health checks waited in the same line and failed: the region meant to catch everyone was itself marked failing. From 02:13 every turn went on requests nobody was waiting for, and nothing was answered in time; by 02:19 the line held 1,800. The status page's \"serving 100%\" was B's share of the traffic, not its health. The handheld got no answer in time and showed UNPAID, as it had been set to in 2019, although her 02:09 payment sat in B all along. The April drill never saw any of this: at 05:00 on a Sunday it moved 120 requests a minute, 30% of B's 400."
+      },
+      {
+        "title": "Three things the post says made it work, and Pelmouth's fix.",
+        "text": "Netflix's post describes more than the shape. First, a surviving region big enough for everyone: its exercise was enough \"to prove we could take the full load\" in the other region, and it thanks the ability \"to rapidly provision additional capacity\" there. Second, a maximum traffic level at the front door, so extra requests are turned away rather than flooding the services behind; turning away above capacity is called load shedding. Third, moving traffic gradually in the exercise, so services could scale up and caches warm up. Pelmouth's fix follows the same three ideas with its own numbers. Each region runs 8 machines, 800 a minute: the city's choice, not a Netflix number, so either region takes the 600 at 75% busy. Each region turns away anything above what its machines can answer, so a surprise gets a quick busy answer instead of a line. The handheld shows \"cannot check\" when no answer comes. And the evacuation is rehearsed at the peak, as a game day: a failure caused on purpose with people watching, here at 02:30 on Sunday 15 November. Growing machines takes minutes, as \"Autoscaling\" (s6e11) showed, and a region that takes strangers' traffic starts with cold caches, the saved copies \"Field Report: The Cache in Every Zone\" (s2e15) keeps warm in each zone. The recovery time target, the RTO from \"When the Building Burns\" (s6e10), is only real if the region you recover into can carry the load."
+      },
+      {
+        "title": "Why the other fixes fail, and the walk into region B.",
+        "text": "Keeping the DNS answer 5 seconds moves drivers a minute sooner into the same 400: B overloads at 02:10, and 5,400 requests time out instead of 5,100. Handheld retries add 180 requests a minute to the overloaded region and still show UNPAID. Splitting 70/30 changes nothing when a region fails, since region B still takes 100%; with 4 machines it even overloads region A at 420 on an ordinary Saturday. Moving drivers gradually after a real fault leaves the ones not yet moved knocking on a dead region: with 8 machines, 600 time out instead of 300. Gradual suits a planned move, where the old region still answers. One live region with a standby is cheaper, 10 machines instead of 16, and loses 1,000 requests while it grows from 2 to 8. On the Tuesday after, Iorwerth let Anwuli into the council's operations room, the nearest a warden gets to walking into region B. He opened B's own screen for 02:11. Four machines, each at 100%. Below them the line climbed a minute at a time, 200, 400, 600, every request in it already given up, and the four machines still working through them in order, as if someone were waiting."
+      }
+    ],
+    "diagram": {
+      "type": "arch",
+      "w": 740,
+      "h": 320,
+      "aria": "The fix, drawn for the next Saturday peak. Phones and handhelds send 600 requests a minute to the DNS steering, which health-checks both regions. Region A is marked down. The DNS answer points to region B's maximum level of 800 a minute, which passes requests to region B's 8 machines, 600 at 75% busy. Region B answers the handheld, which shows cannot check when no answer comes.",
+      "nodes": [
+        {
+          "id": "phones",
+          "label": "Phones, handhelds",
+          "sub": "600 a minute",
+          "x": 110,
+          "y": 70,
+          "w": 170,
+          "h": 52,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "dns",
+          "label": "DNS steering",
+          "sub": "health checks",
+          "meta": "every few seconds",
+          "x": 370,
+          "y": 70,
+          "w": 170,
+          "h": 72,
+          "shape": "box",
+          "tone": ""
+        },
+        {
+          "id": "rega",
+          "label": "Region A",
+          "sub": "down",
+          "x": 630,
+          "y": 70,
+          "w": 170,
+          "h": 52,
+          "shape": "box",
+          "tone": "bad"
+        },
+        {
+          "id": "hand",
+          "label": "Handheld",
+          "sub": "no answer shows",
+          "meta": "cannot check",
+          "x": 110,
+          "y": 240,
+          "w": 170,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "regb",
+          "label": "Region B",
+          "sub": "8 machines",
+          "meta": "600 at 75% busy",
+          "x": 370,
+          "y": 240,
+          "w": 170,
+          "h": 72,
+          "shape": "box",
+          "tone": "ok"
+        },
+        {
+          "id": "door",
+          "label": "Maximum level",
+          "sub": "800 a minute",
+          "meta": "above it: busy",
+          "x": 630,
+          "y": 240,
+          "w": 170,
+          "h": 72,
+          "shape": "box",
+          "tone": "accent"
+        }
+      ],
+      "edges": [
+        {
+          "from": "phones",
+          "to": "dns",
+          "label": "ask"
+        },
+        {
+          "from": "dns",
+          "to": "rega",
+          "label": "marked down",
+          "dash": true,
+          "tone": "muted"
+        },
+        {
+          "from": "dns",
+          "to": "door",
+          "label": "DNS answer",
+          "tone": "ok"
+        },
+        {
+          "from": "door",
+          "to": "regb",
+          "label": "up to 800",
+          "tone": "ok"
+        },
+        {
+          "from": "regb",
+          "to": "hand",
+          "label": "answers",
+          "tone": "ok"
+        }
+      ]
+    },
+    "caption": "The fix, drawn for the next Saturday peak. The steering health-checks both regions; with region A down, the DNS answer names region B. B's front door answers up to 800 a minute, what its 8 machines can carry, and turns anything above that away at once. At 600 a minute B runs 75% busy with its health checks passing, and a handheld that ever gets no answer shows \"cannot check\".",
+    "fix": {
+      "title": "The fix: any region can take the whole peak, and nothing waits past what it can answer",
+      "text": "Run 8 machines in each region, 800 a minute, so either one alone carries the 600-a-minute Saturday peak at 75% busy; 8 is Pelmouth's own choice from its own numbers. Put a maximum traffic level at each region's front door at what its machines can answer, so anything above it is turned away at once with a busy answer and the region's line, and its health checks, stay clear. Set every handheld to show \"cannot check\" when no answer comes, never UNPAID. Rehearse the evacuation at the peak, as a game day with people watching, at least after every change to machines, the split or the steering, and write the result down. Keep the status page honest: show each region's health beside its share of the traffic."
+    },
+    "limits": [
+      "It doubles the machines: 16 instead of 8, and on a normal night each region runs about 38% busy. That spare half is what you pay for any region being able to take it.",
+      "A maximum level turns real drivers away when it fires. They get a quick busy answer and must try again, which is better than a line nobody comes back from, but the phone app should say so plainly.",
+      "Copying between regions is a little behind. A payment made in the moments before a region fails may not have reached the other one yet, so a missing payment just after a failover is not proof of no payment."
+    ],
+    "tradeoff": {
+      "head": [
+        "Change",
+        "Good",
+        "Bad"
+      ],
+      "rows": [
+        [
+          "As built: 4 machines each, no maximum level",
+          "75% busy on a normal peak; 8 machines in all.",
+          "B overloads at 02:11, fails at 02:12; 5,100 timed out by 02:19."
+        ],
+        [
+          "DNS answer kept 5 seconds",
+          "Drivers reach B a minute sooner.",
+          "B overloads at 02:10; 5,400 timed out."
+        ],
+        [
+          "Handheld retries",
+          "A brief silence gets another chance.",
+          "780 a minute into B; line 3,195; still UNPAID."
+        ],
+        [
+          "Split 70/30",
+          "Nothing, when a region fails.",
+          "B still takes 100%; with 4 machines A overloads at 420."
+        ],
+        [
+          "Gradual move after a fault",
+          "Suits a planned move, where the old region still answers.",
+          "Drivers not yet moved knock on a dead region: 600 timed out with 8 machines."
+        ],
+        [
+          "One live region, standby of 2 growing to 8",
+          "10 machines instead of 16; healthy from 02:14.",
+          "1,000 timed out while it grows."
+        ],
+        [
+          "8 machines each, maximum level, cannot check (the fix)",
+          "B carries 600 at 75%; never drowns; no false UNPAID.",
+          "16 machines; each region about 38% busy on a normal night."
+        ]
+      ]
+    },
+    "seniorTake": "Active-active is a promise that any region can take everyone, and the promise lives in capacity, not in the diagram. With two regions, each must carry the whole peak, so each runs at most half busy on a good night; anything less means the survivor is the next to fall, usually within a minute or two. Put a maximum traffic level at each region's front door so a surprise is turned away fast instead of piling into a line that drowns the region's own health checks. Copy data both ways, accept that each region is a little behind, and decide what readers do when they get no answer: \"cannot check\" is a true answer, UNPAID is not. Then rehearse the evacuation at peak-like load after every change to size, split or steering. A drill at the quietest hour proves only that the quietest hour survives.",
+    "realWorld": [
+      {
+        "title": "Netflix, 2013: two live regions, split by DNS",
+        "text": "Meshenberg, Gopalani and Kosewski describe users routed to the closest region \"with a rough split of 50/50%\", and in a big outage, tools \"to override geo-DNS and direct all of users traffic to a healthy Region\". Geo-DNS is a DNS answer chosen by where the user is. That is the shape Pelmouth copied.",
+        "source": 0
+      },
+      {
+        "title": "Copying both ways, asynchronously",
+        "text": "The post's list of requirements includes \"Data replication should be asynchronous.\" For saved copies it added a message to the other region: \"Whenever there is a write in one region, EvCache client will send a message to another region (via SQS) to invalidate the corresponding entry.\" Each region is a little behind; Pelmouth's 02:09 payment had arrived in B in time.",
+        "source": 0
+      },
+      {
+        "title": "Zuul: a maximum traffic level",
+        "text": "Netflix enhanced its front door, Zuul, with the ability to \"define a maximum traffic level at any point in time, so that any additional requests will be automatically shed\". Why: \"Such ability is absolutely necessary in order to protect services that are still scaling up in order to meet growing demands, or when regional caches are cold, so that the underlying persistence layer does not get overloaded with requests.\"",
+        "source": 0
+      },
+      {
+        "title": "Chaos Kong: gradually, and at full load",
+        "text": "In their region exercise, \"we shifted traffic a bit more gradually than we would normally do under emergency circumstances in order to allow services to scale up appropriately and for caches to warm up gradually.\" It moved a majority of traffic, \"enough to prove we could take the full load of Netflix in US-West-2.\" The test was at full load, not at a quiet hour.",
+        "source": 0
+      },
+      {
+        "title": "Capacity to grow into",
+        "text": "Among the reasons for success the post names \"the ability of AWS to rapidly provision additional capacity in US-West-2.\" AWS is Amazon Web Services, Netflix's cloud company. The surviving region had room to grow; Pelmouth's had a cap of 4 machines.",
+        "source": 0
+      }
+    ],
+    "interview": {
+      "asked": [
+        "Design a service that survives losing a whole region.",
+        "What must be true before you fail a region over?",
+        "What is load shedding, and where does it go?"
+      ],
+      "answer": "I'd run the service live in at least two regions, each serving its share, with data copied between them, usually asynchronously so each write stays quick, and I'd say plainly that each region is a little behind. The rule that makes it survive is capacity: any one region must carry the whole load of the region it replaces, so with two regions each runs at most half busy at peak, or the survivor falls over a minute after the failure. Before failing over I'd want three things true: the target region has that headroom, steering works as tested steps (health checks, a down mark, a changed DNS answer, and phones that pick it up within their cache time), and readers treat no answer as unknown, not as a negative. Load shedding means a maximum traffic level that turns away requests above capacity quickly, with a busy answer, so the region stays healthy instead of filling a line nobody returns to; it goes at the front door of each region, the gateway or load balancer, before work reaches the services behind. Then I'd rehearse a regional evacuation at peak-like load, as a game day, and move traffic gradually in planned moves so machines start and caches warm. I'd tell the story of a city parking system whose drill passed at 120 requests a minute and whose surviving region, capped at 400, met 600 at 02:11."
+    }
+  },
+  "terms": [
+    {
+      "term": "Parking warden",
+      "def": "A council worker who walks the streets checking that parked cars have paid, and issues tickets to those that haven't. Anwuli works nights."
+    },
+    {
+      "term": "Pelmouth City Council",
+      "def": "The city in this story. Its pay-by-phone parking runs in two cloud regions, A and B."
+    },
+    {
+      "term": "Handheld",
+      "def": "The warden's scanner: it reads a number plate, asks the parking system whether the car has paid, and shows the answer."
+    },
+    {
+      "term": "Machine (server)",
+      "def": "A computer rented from a cloud company that runs the parking system's program. One answers 100 requests a minute."
+    },
+    {
+      "term": "Request",
+      "def": "One question a phone or handheld sends the system, such as start parking, pay, or has this car paid."
+    },
+    {
+      "term": "Cloud company",
+      "def": "A company that rents out computers in its own sites, billed by use, instead of a customer owning them."
+    },
+    {
+      "term": "Region",
+      "def": "One of a cloud company's sites: a group of buildings in one area, far from its others, so one fault can't reach two. Pelmouth uses regions A and B."
+    },
+    {
+      "term": "Active-active",
+      "def": "Running live in two or more regions at once, each serving some of the users. If one fails, the others take its users."
+    },
+    {
+      "term": "Active-passive",
+      "def": "One region live, the other a standby that takes over only when the live one fails."
+    },
+    {
+      "term": "Standby",
+      "def": "A small copy of the system kept ready in another region, which adds machines when it has to take over. Like a reserve team warming up."
+    },
+    {
+      "term": "Asynchronous copying",
+      "def": "Saving a change where it arrives first and copying it to the other region moments later, so each region is a little behind. Also called asynchronous replication."
+    },
+    {
+      "term": "DNS",
+      "def": "The internet's address book: it turns a name, like the parking app's address, into where to send requests (s1e01)."
+    },
+    {
+      "term": "DNS answer",
+      "def": "What a phone gets back when it looks up the parking address: here, which region to use."
+    },
+    {
+      "term": "DNS cache time",
+      "def": "How long a phone keeps a DNS answer before asking again, often called the TTL, short for time to live (s1e01). Pelmouth's is 60 seconds."
+    },
+    {
+      "term": "Steering service",
+      "def": "The program that health-checks each region, marks a failing one down and changes the DNS answer so phones move to the healthy one."
+    },
+    {
+      "term": "Health check",
+      "def": "A tiny test request sent every few seconds to see whether a region answers. A few failures in a row mark it down."
+    },
+    {
+      "term": "Peak",
+      "def": "The busiest stretch of the week. Pelmouth's is Saturday night, 23:00 to 03:00: 600 requests a minute."
+    },
+    {
+      "term": "Busy (percent)",
+      "def": "How much of a region's machines' time goes on requests: 300 of 400 a minute is 75% busy."
+    },
+    {
+      "term": "Cost review",
+      "def": "A check of what the system costs. Pelmouth's in March capped each region at 4 machines."
+    },
+    {
+      "term": "Evacuation drill",
+      "def": "Moving every user off one region on purpose to see that the other takes them. Pelmouth's ran at 05:00 on Sunday 19 April at 120 requests a minute."
+    },
+    {
+      "term": "Game day",
+      "def": "A planned day when a team causes a failure on purpose, with people watching and ready, to see how the system copes (s2e15)."
+    },
+    {
+      "term": "Status page",
+      "def": "A public web page saying how a system is running. Pelmouth's showed each region's share of traffic, not whether it was answering."
+    },
+    {
+      "term": "Line (queue)",
+      "def": "Requests waiting their turn at a region's machines, first come, first served, like a queue at a post office counter."
+    },
+    {
+      "term": "Timed out",
+      "def": "Given up on: the phone or handheld stopped waiting because no answer came in time."
+    },
+    {
+      "term": "Wasted work",
+      "def": "Machine time spent answering requests whose phones have already given up. Also called dead work (s6e04)."
+    },
+    {
+      "term": "Overloaded",
+      "def": "Getting more requests than the machines can answer, so the line grows every minute."
+    },
+    {
+      "term": "Maximum traffic level",
+      "def": "A cap at a region's front door: requests above it are turned away at once with a busy answer, so the region never takes on more than it can answer."
+    },
+    {
+      "term": "Turn away (load shedding)",
+      "def": "Refusing extra requests quickly with a busy answer instead of putting them in a line, so the rest are served (s6e04)."
+    },
+    {
+      "term": "Front door",
+      "def": "The first program every request reaches in a region, before the services behind it; a gateway or load balancer."
+    },
+    {
+      "term": "Cannot check",
+      "def": "What a handheld should show when no answer comes in time: the truth, that it doesn't know, rather than UNPAID."
+    },
+    {
+      "term": "Retry",
+      "def": "Sending a request again after it failed or got no answer."
+    },
+    {
+      "term": "Retry storm",
+      "def": "Retries piling extra requests onto a system that is already overloaded, making it worse (s6e04)."
+    },
+    {
+      "term": "Autoscaling",
+      "def": "Adding machines automatically when they get busy, up to a cap. New machines take minutes to start (s6e11)."
+    },
+    {
+      "term": "Cold cache",
+      "def": "A store of saved copies that holds nothing useful yet, so every request goes the slow way until it fills (s2e15)."
+    },
+    {
+      "term": "RTO",
+      "def": "Recovery time objective: the longest a service may be down before it must be back (s6e10)."
+    },
+    {
+      "term": "Failover",
+      "def": "Moving work from a failed part to a healthy one, here from region A to region B."
+    },
+    {
+      "term": "Split 70/30",
+      "def": "Sending 70% of drivers to one region and 30% to the other instead of half each. When one region fails, the other still takes 100%."
+    },
+    {
+      "term": "Netflix TechBlog",
+      "def": "Netflix's engineering blog, where its engineers describe how they build things. The 2013 post is read here through the Internet Archive."
+    },
+    {
+      "term": "Internet Archive",
+      "def": "A library that saves copies of web pages as they were, at web.archive.org."
+    },
+    {
+      "term": "Zuul",
+      "def": "Netflix's front door program: every request from outside passes through it, and it can route requests, change routes while running and turn requests away."
+    },
+    {
+      "term": "Gateway",
+      "def": "A program at a system's front door that every outside request passes through first, which can route, limit or turn away requests."
+    },
+    {
+      "term": "Load balancer",
+      "def": "A program that spreads incoming requests across a group of machines, like a host seating diners at free tables."
+    },
+    {
+      "term": "Headroom",
+      "def": "Spare capacity kept free on purpose, so a surge or a failover can be absorbed without overloading."
+    },
+    {
+      "term": "Persistence layer",
+      "def": "Netflix's phrase for the databases that keep data for good, behind the services and caches."
+    },
+    {
+      "term": "SQS",
+      "def": "Amazon Simple Queue Service: AWS's service for passing messages between programs, which Netflix used to tell the other region's cache to drop an old copy."
+    },
+    {
+      "term": "Invalidate (a cache entry)",
+      "def": "Mark a saved copy as out of date so the next read fetches the fresh value instead."
+    },
+    {
+      "term": "Geo-DNS",
+      "def": "A DNS answer chosen by where the user is, so each user is sent to a nearby region."
+    },
+    {
+      "term": "Chaos Kong",
+      "def": "Netflix's exercise of failing a whole region on purpose to show the other region can take everyone (s2e15)."
+    },
+    {
+      "term": "EVCache",
+      "def": "Netflix's cache, a store of saved copies kept close to its services (s2e15)."
+    },
+    {
+      "term": "Eureka",
+      "def": "Netflix's list of which machines are up inside a region, so programs find a live one (s2e16)."
+    },
+    {
+      "term": "AWS",
+      "def": "Amazon Web Services, the cloud company Netflix rents its machines from."
+    },
+    {
+      "term": "US-West-2",
+      "def": "An AWS region in Oregon, one of the two Netflix used for active-active in 2013, with US-East-1 in Virginia."
+    },
+    {
+      "term": "Build Night N7",
+      "def": "\"Multi-region deploy, capacity and cost\": a Build Night project that asks for a written-up region-loss drill. It opens after s9e01 and s9e03."
+    },
+    {
+      "term": "ISO/IEC 27001:2022",
+      "def": "The international standard for managing information security. Its Annex A lists controls, among them A.5.29, A.5.30, A.8.6 and A.8.14."
+    },
+    {
+      "term": "A.5.29 Information security during disruption",
+      "def": "The ISO/IEC 27001:2022 control on keeping information secure while the business is disrupted, such as during a regional failover."
+    },
+    {
+      "term": "A.5.30 ICT readiness for business continuity",
+      "def": "The ISO/IEC 27001:2022 control on planning, building and testing the technology so it can keep running or recover through a disruption."
+    },
+    {
+      "term": "A.8.14 Redundancy",
+      "def": "The ISO/IEC 27001:2022 control on having enough spare information processing, such as a second region, to meet availability needs."
+    },
+    {
+      "term": "A.8.6 Capacity management",
+      "def": "The ISO/IEC 27001:2022 control on watching and tuning resources, such as machines, against current and expected demand."
+    },
+    {
+      "term": "SOC 2 A1.1",
+      "def": "In the SOC 2 Trust Services Criteria, the availability criterion on maintaining, monitoring and evaluating capacity to meet demand."
+    }
+  ],
+  "atWork": "Two live regions, each sized for about half the load, is a common pattern: each runs comfortably at peak, the bill looks right, and the first time one region fails the other is asked for twice its size. Find yours. For every service that runs in more than one region, write down the peak, what one region can answer alone, and what happens when the excess arrives: a line, or a quick busy answer from a maximum traffic level at the region's front door. Check what every client does with no answer, and make it say \"unknown\" or \"cannot check\" rather than a negative. Then fail a region on purpose, at peak-like load, with people watching, and write it up. Build Night N7, \"Multi-region deploy, capacity and cost\", asks for exactly that region-loss drill written up, with the cost of the second region; the sim's game day is the same drill (N7 opens after s9e01 and s9e03). Standards, stated conditionally: if your company is pursuing ISO/IEC 27001:2022, an auditor checking A.5.29 and A.5.30 would look for continuity plans that are tested, A.8.14 for redundancy that can actually carry the load, and A.8.6 for capacity watched against demand; a failover tested only at a quiet hour would be a gap. If you are pursuing SOC 2, criterion A1.1 asks for capacity to be maintained, monitored and evaluated against demand. Build the sizing rule, the maximum level and the peak-load drill in from the first design rather than at audit time.",
+  "board": {
+    "cards": [
+      {
+        "id": "active-active-across-aws-regions",
+        "title": "Active-active"
+      },
+      {
+        "id": "serving-members-from-more-than-one-region",
+        "title": "Two live regions"
+      },
+      {
+        "id": "keeping-data-replicated-between-regions",
+        "title": "Copying both ways"
+      },
+      {
+        "id": "steering-traffic-away-from-a-failing-region",
+        "title": "Steering traffic"
+      }
+    ],
+    "strings": [
+      {
+        "from": "active-active-across-aws-regions",
+        "to": "capacity",
+        "label": "one carries all"
+      },
+      {
+        "from": "serving-members-from-more-than-one-region",
+        "to": "load-shedding",
+        "label": "turn away excess"
+      },
+      {
+        "from": "steering-traffic-away-from-a-failing-region",
+        "to": "dns",
+        "label": "DNS answer moves"
+      },
+      {
+        "from": "steering-traffic-away-from-a-failing-region",
+        "to": "health-check",
+        "label": "checks wait too"
+      },
+      {
+        "from": "keeping-data-replicated-between-regions",
+        "to": "replication-lag",
+        "label": "a little behind"
+      },
+      {
+        "from": "active-active-across-aws-regions",
+        "to": "game-days",
+        "label": "rehearse at peak"
+      },
+      {
+        "from": "active-active-across-aws-regions",
+        "to": "active-passive-vs-active-active",
+        "label": "vs a standby"
+      }
+    ]
+  },
+  "recall": [
+    {
+      "id": "s9e18-r1",
+      "kind": "free",
+      "prompt": "Your company runs a food-ordering service live in two cloud regions, each with 6 servers; one server handles 50 orders a minute. On a Friday dinner peak of 480 orders a minute, split evenly, one region loses power. Within two minutes the other region's dashboards go red and stay red, and its orders fail too. Your last failover test, on a quiet Tuesday morning, passed. What happened, and what would you change?",
+      "keyIdeas": [
+        {
+          "idea": "The surviving region can answer only 300 a minute and all 480 arrived, so it was overloaded: its line grew and its own health checks failed",
+          "match": [
+            "only 300",
+            "can only answer",
+            "can't carry",
+            "cannot carry",
+            "overloaded",
+            "overload",
+            "more than it can",
+            "line grew",
+            "queue grew",
+            "all 480"
+          ]
+        },
+        {
+          "idea": "Size each region to carry the whole peak, and turn away requests above what it can answer (a maximum traffic level, load shedding)",
+          "match": [
+            "whole peak",
+            "full peak",
+            "full load",
+            "entire load",
+            "load shedding",
+            "shed load",
+            "maximum traffic level",
+            "maximum level",
+            "turn away",
+            "turned away",
+            "12 servers",
+            "twelve servers",
+            "more servers in each"
+          ]
+        },
+        {
+          "idea": "Rehearse the failover at peak-like load, as a game day, not at a quiet hour",
+          "match": [
+            "at peak",
+            "peak-like",
+            "peak load",
+            "busy hour",
+            "game day",
+            "real load",
+            "rehearse",
+            "drill at peak",
+            "full traffic"
+          ]
+        }
+      ],
+      "model": "Each region can answer 6 × 50 = 300 orders a minute, and at the dinner peak each was taking 240, 80% busy. When one region lost power, all 480 went to the survivor, which can only answer 300, so it was overloaded: its line grew, phones gave up on orders still waiting, and its own health checks waited in the same line and failed. The quiet Tuesday test passed because it moved far less than 300. I'd size each region to carry the whole peak, 12 servers each, so either one alone takes 480 at 80% busy, and put a maximum traffic level at each region's front door so anything above what it can answer is turned away at once with a busy answer; that load shedding keeps the region healthy instead of drowning it. Then I'd rehearse the failover at peak-like load, as a game day, after every change to size or steering."
+    },
+    {
+      "id": "s9e18-r2",
+      "kind": "mcq",
+      "prompt": "Pelmouth as built: 4 machines per region, 100 requests a minute each, 600 a minute at the Saturday peak, split 50/50. Which change lets region B carry everyone when region A fails?",
+      "options": [
+        "Phones keep the DNS answer 5 seconds instead of 60",
+        "Split the drivers 70/30 instead of 50/50",
+        "8 machines in each region",
+        "Handhelds try each check three more times"
+      ],
+      "answer": 2,
+      "why": "When A fails, B gets all 600 whatever the split or the DNS cache time. 4 machines answer 400, so B overloads; 8 answer 800, so B takes 600 at 75% busy. A shorter DNS cache time only brings the overload a minute sooner, and retries add load."
+    },
+    {
+      "id": "s9e18-r3",
+      "kind": "mcq",
+      "prompt": "The April evacuation drill passed with the same 4 machines in each region. Why didn't it find the problem?",
+      "options": [
+        "The drill was run on region B instead of region A",
+        "It moved 120 requests a minute, well under region B's 400",
+        "The steering was switched off during the drill",
+        "The DNS answer was kept for only 5 seconds that day"
+      ],
+      "answer": 1,
+      "why": "At 05:00 on a Sunday the whole system took 120 requests a minute, so region B took all of it at 30% busy. The weakness only shows when the load moved is bigger than what one region can answer: the Saturday peak's 600 against B's 400."
+    },
+    {
+      "id": "s9e18-r4",
+      "kind": "free",
+      "prompt": "In an interview you're asked: design a service that survives losing a whole region. What must be true before you fail a region over? And what is load shedding, and where does it go?",
+      "keyIdeas": [
+        {
+          "idea": "Any one region must carry the whole load of the region it replaces (with two, each runs at most half busy), with data copied between regions, usually asynchronously",
+          "match": [
+            "whole load",
+            "full load",
+            "half busy",
+            "half full",
+            "headroom",
+            "spare capacity",
+            "asynchronous",
+            "copied between",
+            "replicated"
+          ]
+        },
+        {
+          "idea": "Steer with health checks and a changed DNS answer, treat no answer as unknown, and rehearse the evacuation at peak-like load as a game day",
+          "match": [
+            "health check",
+            "game day",
+            "rehearse",
+            "at peak",
+            "peak-like",
+            "unknown",
+            "cannot check"
+          ]
+        },
+        {
+          "idea": "A maximum traffic level at each region's front door (gateway or load balancer) turns away requests above capacity quickly, so the region stays healthy",
+          "match": [
+            "maximum traffic level",
+            "maximum level",
+            "front door",
+            "gateway",
+            "load balancer",
+            "turn away",
+            "turned away",
+            "busy answer",
+            "reject"
+          ]
+        }
+      ],
+      "model": "I'd run live in at least two regions with data replicated between them, usually asynchronously, so each region is a little behind. Before any failover, the region I fail into must carry the whole load of the one it replaces: with two regions each runs at most half busy at peak, and that headroom is the design. Steering works in steps: health checks find the failed region, it is marked down, the DNS answer changes, and clients move as their saved answers run out. Clients must treat no answer as unknown, \"cannot check\", never as a negative. Load shedding is a maximum traffic level at each region's front door, the gateway or load balancer, that turns away requests above capacity quickly with a busy answer, so the region never fills a line that drowns its own health checks. And I'd rehearse the evacuation at peak-like load as a game day after every change, moving planned traffic gradually so machines start and caches warm."
+    }
+  ],
+  "coldCase": {
+    "update": "UPDATE, 4 months later. Since Saturday 17 October each region runs 8 machines with a maximum level, and in November we failed region A on purpose at the peak: region B carried all 600. On Sunday 7 February at 01:52 region A failed for real. Region B took everyone at 75% busy and turned nobody away. But three drivers who paid through region A in the last moments before 01:52 show as not paid in region B: their checks come back with a real answer, not paid, and I ticketed one of them at 01:58. Their payments appeared in region B at 02:40, when Iorwerth got region A running again.",
+    "prompt": "Reply to OP. Why did region B say three paid cars had not paid, and what should Pelmouth change?",
+    "keyIdeas": [
+      {
+        "idea": "Copying between regions is asynchronous, a little behind: payments saved in A just before it failed had not reached B yet, so B's answer was honestly out of date",
+        "match": [
+          "a little behind",
+          "behind",
+          "asynchronous",
+          "async",
+          "not copied",
+          "hadn't been copied",
+          "not yet copied",
+          "copy lag",
+          "replication lag",
+          "hadn't reached"
+        ]
+      },
+      {
+        "idea": "Just after a failover, treat a missing payment as unknown: a grace window, the driver's receipt, no tickets for that window",
+        "match": [
+          "grace",
+          "receipt",
+          "cannot check",
+          "unknown",
+          "don't ticket",
+          "no tickets",
+          "hold the ticket",
+          "hold tickets"
+        ]
+      },
+      {
+        "idea": "When region A returns, copy its missed payments across and cancel any ticket they disprove (reconcile)",
+        "match": [
+          "reconcile",
+          "cancel the ticket",
+          "cancel tickets",
+          "cancel any ticket",
+          "refund",
+          "catch up",
+          "comes back",
+          "missed payments"
+        ]
+      }
+    ],
+    "model": "Nothing was wrong with region B; it answered from what it had. Copying between regions is asynchronous, a little behind, so the three payments saved in region A in the moments before 01:52 hadn't reached B when A failed. B's not paid was honestly out of date, and the payments were safe in A, which is why they appeared at 02:40. Pelmouth should treat a missing payment just after a failover as unknown: for a grace window, say the first 15 minutes after a region fails, handhelds show cannot check for cars with no payment, and the driver's receipt in the app counts as proof, so no tickets in that window. Then, when the failed region comes back, reconcile: copy its missed payments across and cancel any ticket they disprove, starting with the one from 01:58. Copying synchronously, waiting for both regions before saying paid, would close the gap but slow every payment and stop payments when the other region is down."
+  },
+  "next": "Next, Field Report: Filling the Boxes at Night: the Netflix TechBlog archive, and Open Connect, Netflix's own network of caching boxes placed close to members, filled ahead of time with titles they are likely to watch during quiet fill windows.",
+  "sources": [
+    {
+      "title": "Ruslan Meshenberg, Naresh Gopalani and Luke Kosewski, Active-Active for Multi-Regional Resiliency, The Netflix Tech Blog, 2 December 2013 (Internet Archive copy, read 16 October 2026)",
+      "url": "https://web.archive.org/web/20161206210802/http://techblog.netflix.com/2013/12/active-active-for-multi-regional.html"
+    },
+    {
+      "title": "ISMS.online, ISO 27001:2022 Annex A 5.29 Information Security During Disruption (a summary of the control), read 16 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a-2022/5-29-information-security-during-disruption-2022/"
+    },
+    {
+      "title": "ISMS.online, ISO 27001:2022 Annex A 5.30 ICT Readiness for Business Continuity (a summary of the control), read 16 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a-2022/5-30-readiness-for-business-continuity-2022/"
+    },
+    {
+      "title": "ISMS.online, ISO 27001:2022 Annex A 8.14 Redundancy of Information Processing Facilities (a summary of the control), read 16 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a-2022/8-14-redundancy-of-information-processing-facilities-2022/"
+    },
+    {
+      "title": "ISMS.online, ISO 27001:2022 Annex A 8.6 Capacity Management (a summary of the control), read 16 October 2026",
+      "url": "https://www.isms.online/iso-27001/annex-a/8-6-capacity-management-2022/"
+    },
+    {
+      "title": "Linford & Co, Availability Trust Services Criteria in a SOC 2 Audit (A1.1 capacity), read 16 October 2026",
+      "url": "https://linfordco.com/blog/availability-soc-2-trust-service-principle/"
+    }
+  ]
+}
