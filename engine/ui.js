@@ -1,9 +1,12 @@
-/* engine/ui-v2.0.0.js
+/* engine/ui-v2.0.1.js
    Dead Letter UI (DL.ui): the shell, router wiring and every view. Published as engine/ui.js.
    Contract: docs/dead-letter-engine-contract-v1.1.0.md, sections 6 and 9.9. Needs engine/core-v1.2.0.js (the merged
    catalog, state v2, DL.builds, DL.credits, decision cards; DL.sync, DL.prompts and the #interview/<id> route from
-   v1.1). Styles: index-v2.0.0.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
+   v1.1). Styles: index-v2.0.1.html. Publishing: docs/dead-letter-conventions-v1.1.0.md section 3.
    CHANGELOG
+   v2.0.1 (2026-10-17) the site is 3AM Labs (3amlabs.dev): the top-bar wordmark always reads "3AM Labs"; the
+        catalog's forum name ("nocturne") stays the forum inside the stories, and the board (/n/nightshift) still shows
+        beside the wordmark.
    v2.0.0 (2026-10-17) Night console redesign (mockup redesign-c-console-v1.0.0.html, contract scratchpad
         console-markup-contract-v1.0.0): one-row top bar (Tonight, Cold cases, current section) with a Menu overlay
         for the rest, a live clock, a progress line (plan progress, reading progress on cases); the board switcher
@@ -140,6 +143,7 @@
   var ARG_ROUTES = { "case": 1, interview: 1, build: 1 };
   /* Routes core's router knows, used when DL.router.ROUTES is missing. Anything else (build) is routed here. */
   var CORE_ROUTES = ["tonight", "case", "interview", "reviews", "rules", "board", "seasons", "notes", "settings"];
+  var SITE_NAME = "3AM Labs";   // the site brand (v2.0.1); the catalog's forum.name is the in-story forum
   var DL_TAGLINE = "Stories from people who work while you sleep.";
   var BOARD_KEY = "dl.board";
   var GUIDE_SEEN_KEY = "dl.guide.seen";
@@ -886,7 +890,7 @@
   }
   function renderShell() {
     var forum = catalog().forum || {};
-    setText("brand-name", forum.name || "nocturne");
+    setText("brand-name", SITE_NAME);
     setText("brand-board", forum.board || "/n/nightshift");
     var nav = doc.getElementById("nav");
     var holder = doc.getElementById("nav-links");   // never #nav itself: it also holds the wordmark, clock and Menu button
